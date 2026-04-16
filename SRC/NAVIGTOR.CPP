@@ -1,0 +1,104 @@
+/*
+  MIT License
+
+  Copyright (c) 2026 Stefan Mader
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+#include "STL/GL.H"
+#include "NAVIGTOR.HPP"
+#include "MENUBAR.HPP"
+#include "CONFIG.HPP"
+#include "LAYERS.HPP"
+#include "IMGUI/IMGUI.H"
+#include "IMGUI/IMGUIGL.HPP"
+#include "DIALOGS.HPP"
+#include <math.h>
+
+int navigator_height = 68;
+int sidebar_width = 200;
+
+extern double canvasScrollX;
+extern double canvasScrollY;
+extern double canvasZoom;
+
+GLuint navigatorTexture = 0;
+int navigatorX = 11;
+int navigatorY = 11;
+int navigatorWidth = navigator_height - 10;
+int navigatorHeight = navigatorWidth;
+
+void initNavigator() {
+  glGenTextures(1,&navigatorTexture);
+  glBindTexture(GL_TEXTURE_2D,navigatorTexture);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, navigatorX, navigatorY, 0, GL_RGBA, GL_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void updateNavigatorImage() {
+  unsigned int *dest = glGetTexturePointer(navigatorTexture);
+  unsigned int width = glGetTextureWidth(navigatorTexture);
+  unsigned int height = glGetTextureHeight(navigatorTexture);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      unsigned int col = 0xff000000;
+      int sx = x + mouseX - currentCanvas->screenPosX - width / 2;
+      int sy = y + mouseY - currentCanvas->screenPosY - height / 2;
+      if (sx >= 0 && sx < currentCanvas->width && sy >= 0 && sy < currentCanvas->height) 
+        col = currentCanvas->pixels[sx+sy*currentCanvas->width];
+      dest[x+y*width] = col;
+    }
+  }
+}
+
+void drawNavigator() {
+  ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height));
+  ImGui::Begin("NAVIGATOR", NULL, ImVec2(sidebar_width,navigator_height),1.0,FROZENWINDOW);
+  drawDialogs();
+  double x,y; x = mouseX - currentCanvas->screenPosX; y = mouseY - currentCanvas->screenPosY; currentCanvas->transform.transformForward(x,y,x,y);
+  ImVec2 cursor = ImGui::GetCursorPos();
+  int xp = (int)floor(x);
+  int yp = (int)floor(y);
+  if (!currentCanvas->gridOn) {
+    ImGui::Text("X:%d",xp);
+    ImGui::Text("Y:%d",yp);
+  } else {
+    int gridX = (xp - currentCanvas->gridOffsetX+currentCanvas->gridStepX*10000) / currentCanvas->gridStepX-10000;
+    int gridY = (yp - currentCanvas->gridOffsetY+currentCanvas->gridStepY*10000) / currentCanvas->gridStepY-10000;
+    ImGui::Text("X:%d[%d]",xp,gridX);
+    ImGui::Text("Y:%d[%d]",yp,gridY);
+  }
+  ImGui::SetCursorPos(ImVec2(cursor.x+sidebar_width - navigatorWidth - 10,cursor.y));
+  updateNavigatorImage();
+  ImVec2 cursor2 = ImGui::GetCursorScreenPos();
+  if (ImGui::ImageButton((ImTextureID)navigatorTexture,ImVec2(navigatorWidth,navigatorHeight),ImVec2(0,0),ImVec2(1,1),0)) {
+  }
+  ImVec2 c0 = ImVec2((double)navigatorWidth*(navigatorX/2)/navigatorX,(double)navigatorHeight*(navigatorY/2)/navigatorY);
+  ImVec2 c1 = ImVec2((double)navigatorWidth*(navigatorX/2+1)/navigatorX,(double)navigatorHeight*(navigatorY/2+1)/navigatorY);
+  c0.x += cursor2.x - 1;
+  c0.y += cursor2.y - 1;
+  c1.x += cursor2.x + 1;
+  c1.y += cursor2.y + 1;
+  ImGui::GetWindowDrawList()->AddRect(c0,c1,0xff0000ff);
+  ImGui::End();
+}

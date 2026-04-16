@@ -1,0 +1,741 @@
+/*
+  MIT License
+
+  Copyright (c) 2026 Stefan Mader
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+#include "GL.H"
+#include "IMGUIGL.HPP"
+#include "CONFIG.HPP"
+#include "DIALOGS.HPP"
+#include "LAYERS.HPP"
+#include "STL/DOS.HPP"
+#include "SVG.HPP"
+#include "SERIALZE.HPP"
+
+#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize)) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableRenderMouseClicks();
+#define DIALOGEND() ImGui::PopStyleColor(); ImGui::EndPopup();} ImGui::PopStyleColor();
+#define DIALOGKEYSHERE() {if (keyboardFocusNew>0) {keyboardFocusNew--;ImGui::SetKeyboardFocusHere();}}
+
+void disableRenderMouseClicks();
+
+unsigned int previewTexture = 0;
+const unsigned int previewWidth = 64;
+const unsigned int previewHeight = 64;
+unsigned int preview[previewWidth*previewHeight];
+double previewAspect = 1;
+
+void updatePreview() {
+  glBindTexture(GL_TEXTURE_2D,previewTexture);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, previewWidth, previewHeight, 0, GL_RGBA, GL_BYTE, preview);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void clearPreview() {
+  for (int y = 0; y < previewHeight; y++) {
+    for (int x = 0; x < previewWidth; x++) {
+      preview[x+y*previewWidth] = 0x40000000;
+    }
+  }
+  previewAspect = 1;
+  updatePreview();
+}
+
+void initDialogs() {
+  glGenTextures(1,&previewTexture);
+  glBindTexture(GL_TEXTURE_2D,previewTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  clearPreview();
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void drawDialogs() {
+  dialogCanvas(false);
+  dialogExpandShrinkSelection(false);
+  dialogImageResize(false);
+  dialogLoadSave(false,DIALOG_NONE);
+  dialogOverwrite(false);
+  dialogDeletePicture(false);
+  dialogAddLayer(false);
+  dialogDeleteLayers(false);
+  dialogSelectByAlpha(false);
+  dialogBakeLayers(false);
+  dialogNewImage(false);
+}
+
+void dialogCanvas(bool openIt) {
+  static double x0=0,y0=0,x1=0,y1=0;
+  if (openIt) {
+    x0 = currentCanvas->canvasX0;
+    y0 = currentCanvas->canvasY0;
+    x1 = currentCanvas->canvasX1;
+    y1 = currentCanvas->canvasY1;
+  }
+  DIALOGSTART("Configure canvas")
+  int k;
+  ImGui::PushItemWidth(64+16*2);
+  k = (int)(currentCanvas->canvasX1-currentCanvas->canvasX0);ImGui::Text("Canvas width");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASWIDTH",&k)) {currentCanvas->canvasX1 = currentCanvas->canvasX0 + k;}
+  k = (int)(currentCanvas->canvasY1-currentCanvas->canvasY0);ImGui::Text("Canvas height");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASHEIGHT",&k)) {currentCanvas->canvasY1 = currentCanvas->canvasY0 + k;}
+  k = (int)(currentCanvas->canvasX0);ImGui::Text("Canvas x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASX",&k)) {int v = currentCanvas->canvasX1-currentCanvas->canvasX0;currentCanvas->canvasX0 = k;currentCanvas->canvasX1 = currentCanvas->canvasX0+v;}
+  k = (int)(currentCanvas->canvasY0);ImGui::Text("Canvas y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASY",&k)) {int v = currentCanvas->canvasY1-currentCanvas->canvasY0;currentCanvas->canvasY0 = k;currentCanvas->canvasY1 = currentCanvas->canvasY0+v;}
+  ImGui::PopItemWidth();
+  double w = currentCanvas->canvasX1-currentCanvas->canvasX0;
+  double h = currentCanvas->canvasY1-currentCanvas->canvasY0;
+  if (w < 1) w = 1;
+  if (h < 1) h = 1;
+  if (ImGui::Button("tl##DIALOGCANVASTL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = y0;}
+  ImGui::SameLine();
+  if (ImGui::Button("tc##DIALOGCANVASTC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = y0;}
+  ImGui::SameLine();
+  if (ImGui::Button("tr##DIALOGCANVASTR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = y0;}
+
+  if (ImGui::Button("cl##DIALOGCANVASCL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = (y0+y1)/2-h/2;}
+  ImGui::SameLine();
+  if (ImGui::Button("cc##DIALOGCANVASCC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = (y0+y1)/2-h/2;}
+  ImGui::SameLine();
+  if (ImGui::Button("cr##DIALOGCANVASCR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = (y0+y1)/2-h/2;}
+
+  if (ImGui::Button("bl##DIALOGCANVASBL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = y1-h;}
+  ImGui::SameLine();
+  if (ImGui::Button("bc##DIALOGCANVASBC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = y1-h;}
+  ImGui::SameLine();
+  if (ImGui::Button("br##DIALOGCANVASBR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = y1-h;}
+
+  currentCanvas->canvasX1 = currentCanvas->canvasX0+w;
+  currentCanvas->canvasY1 = currentCanvas->canvasY0+h;
+
+  ImGui::PushItemWidth(64+16*2);
+  k = currentCanvas->gridStepX; ImGui::Text("Grid step x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDSTEPX",&k)) {currentCanvas->gridStepX = k;}
+  k = currentCanvas->gridStepY; ImGui::Text("Grid step y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDSTEPY",&k)) {currentCanvas->gridStepY = k;}
+  k = currentCanvas->gridOffsetX; ImGui::Text("Grid offset x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDOFFSETX",&k)) {currentCanvas->gridOffsetX = k;}
+  k = currentCanvas->gridOffsetY; ImGui::Text("Grid offset y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDOFFSETY",&k)) {currentCanvas->gridOffsetY = k;}
+  if (currentCanvas->gridStepX < 2) currentCanvas->gridStepX = 2;
+  if (currentCanvas->gridStepY < 2) currentCanvas->gridStepY = 2;
+  if (currentCanvas->gridStepX > 16384) currentCanvas->gridStepX = 16384;
+  if (currentCanvas->gridStepY > 16384) currentCanvas->gridStepY = 16384;
+  if (currentCanvas->gridOffsetX > 16384) currentCanvas->gridOffsetX = 16384;
+  if (currentCanvas->gridOffsetY > 16384) currentCanvas->gridOffsetY = 16384;
+  if (currentCanvas->gridOffsetX < -16384) currentCanvas->gridOffsetX = -16384;
+  if (currentCanvas->gridOffsetY < -16384) currentCanvas->gridOffsetY = -16384;
+  ImGui::PopItemWidth();
+
+  if (ImGui::Button("Close##DIALOGCANVASCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogImageResize(bool openIt) {
+  static double x0=0,y0=0,x1=0,y1=0,w=0,ow=0,h=0,oh=0;
+  static bool keepAspect = true;
+  static bool quantize = false;
+  static double aspect = 1;
+  if (openIt) {
+    x0 = currentCanvas->canvasX0;
+    y0 = currentCanvas->canvasY0;
+    x1 = currentCanvas->canvasX1;
+    y1 = currentCanvas->canvasY1;
+    ow = x1 - x0;
+    w = ow;
+    oh = y1 - y0;
+    h = oh;
+    keepAspect = true;
+    quantize = true;
+    if (oh != 0) aspect = ow/oh;
+  }
+  DIALOGSTART("Resize image")
+  int k;
+  ImGui::Text("You may lose pixel information through resizing");
+  ImGui::Text("and the layers may be rotated/resized when saving the layers!");
+  ImGui::Text("");
+  ImGui::PushItemWidth(64+16*2);
+  k = (int)w;ImGui::Text("New image width");ImGui::SameLine();if (ImGui::InputInt("##DIALOGIMAGERESIZEWIDTH",&k)) {w = k; if (keepAspect) h = w/aspect;}
+  k = (int)h;ImGui::Text("New image height");ImGui::SameLine();if (ImGui::InputInt("##DIALOGIMAGERESIZEHEIGHT",&k)) {h = k; if (keepAspect) w = h*aspect;}
+  if (w < 1) w = 1;
+  if (h < 1) h = 1;
+  ImGui::PopItemWidth();
+  ImGui::Text("Preserve proportions");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEKEEPASPECT",&keepAspect);
+  ImGui::Text("Quantize/bake all");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEQUANTIZE",&quantize);
+  if (ImGui::Button("Resize##DIALOGIMAGERESIZEESIZE")) {
+    currentCanvas->resizeCanvas(w,h,quantize);
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGIMAGERESIZECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogExpandShrinkSelection(bool openIt) {
+  static int value = 1;
+  static bool shrink = false;
+  if (openIt) {
+    shrink = false;
+    value = 1;
+  }
+  DIALOGSTART("Expand or shrink selection")
+
+  ImGui::PushItemWidth(64+16*2);
+  int k;
+  k = value; ImGui::Text("Expand or shrink selection by pixels");ImGui::SameLine();if (ImGui::InputInt("##DIALOGSELECTIONEXPANDORSHRINKVALUE",&k)) {value = k;}
+  ImGui::Text("Shrink?");ImGui::SameLine();if (ImGui::Checkbox("##DIALOGSELECTIONEXPANDORSHRINKSHRINK",&shrink)) {}
+  if (value > 100) value = 100;
+  if (value < -100) value = -100;
+
+  if (ImGui::Button("Apply##DIALOGCANVASAPPLY")) {
+    currentCanvas->expandSelection(value * (shrink ? -1 : 1));
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGCANVASCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+
+void dialogDeletePicture(bool openIt) {
+  DIALOGSTART("Delete current picture?");
+  ImGui::Text("Do you want to delete the current picture \"%s\"?",currentCanvas->pictureName);
+  if (ImGui::Button("Delete##DIALOGDELETEPICTUREDELETE")) {
+    for (int i = 0; i < canvas.size(); i++) {
+      if (canvas[i] == currentCanvas) {
+        delete canvas[i];
+        canvas.erase(i,1);
+        if (i < canvas.size()) currentCanvas = canvas[i]; 
+        else
+        if (i-1 >= 0) currentCanvas = canvas[i-1];
+      }
+    }
+    if (canvas.empty()) {
+      addTempPicture();
+      currentCanvas = canvas[0];
+    }
+    shouldUpdateAll = true;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGDELETEPICTURECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogAddLayer(bool openIt) {
+  static char layerName[LAYERNAMEMAX];
+  static int w = 0, h = 0;
+  if (openIt) {
+    static int counter = 0; counter++;
+    sprintf(layerName,"Added %d",counter);
+    w = currentCanvas->canvasX1-currentCanvas->canvasX0;
+    h = currentCanvas->canvasY1-currentCanvas->canvasY0;
+  }
+  DIALOGSTART("Add layer");
+  ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGADDLAYERNAME",layerName,LAYERNAMEMAX);
+  ImGui::PushItemWidth(64+16*2);
+  ImGui::Text("Layer width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERWIDTH",&w);
+  ImGui::Text("Layer height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERHEIGHT",&h);
+  ImGui::PopItemWidth();
+  if (w < 1) w = 1;
+  if (h < 1) h = 1;
+  if (ImGui::Button("Add layer##DIALOGADDLAYERADD")) {
+    int pos = 0;
+    for (int i = 0; i < currentCanvas->layers.size(); i++) {
+      if (currentCanvas->layers[i]->state.active || currentCanvas->layers[i]->state.selected) {pos = i; break;}
+    }
+    Layer *l = new Layer();
+    l->init(w,h);
+    sprintf(l->name,layerName);
+    currentCanvas->insertLayer(l,pos);
+    currentCanvas->setActiveLayer(pos);
+    shouldUpdateAll = true;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGADDLAYERCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogDeleteLayers(bool openIt) {
+  DIALOGSTART("Delete layers");
+
+  Array<Layer *> layers;
+  bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+
+  if (layers.empty()) {
+    ImGui::Text("No layers selected or active");
+  } else {
+    ImGui::Text("Layers to delete");
+    ImGui::BeginChild("DELETELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
+    for (int i = 0; i < layers.size(); i++) {
+      ImGui::Text("\"%s\"",layers[i]->name);
+    }
+    ImGui::EndChild();
+  }
+
+  if (!layers.empty()) {
+    if (ImGui::Button("Delete these layers##DIALOGDELETELAYERSDELETE")) {
+      for (int i = 0; i < layers.size(); i++) {
+        currentCanvas->eraseLayer(layers[i]);
+      }
+      shouldUpdateAll = true;
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGDELETELAYERSCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogSelectByAlpha(bool openIt) {
+  static int alphaThreshold = 128;
+  DIALOGSTART("Select by alpha");
+  ImGui::PushItemWidth(64+16*2);
+  ImGui::Text("Alpha threshold"); ImGui::SameLine(); ImGui::InputInt("##DIALOGSELECTBYALPHA",&alphaThreshold);
+  if (alphaThreshold<0) alphaThreshold = 0;
+  if (alphaThreshold>256) alphaThreshold = 256;
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGSELECTBYALPHAAPPLY")) {
+    currentCanvas->selectByAlpha(alphaThreshold);
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGSELECTBYALPHACLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND();
+}
+
+void dialogBakeLayers(bool openIt) {
+  DIALOGSTART("Bake layers");
+
+  Array<Layer *> layers;
+  bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+
+  if (layers.empty()) {
+    ImGui::Text("No layers selected or active");
+  } else {
+    ImGui::Text("You may lose pixel information through baking");
+    ImGui::Text("and the layers may be rotated/resized when saving the layers!");
+    ImGui::Text("");
+    ImGui::Text("Layers to bake");
+    ImGui::BeginChild("DIALOGBAKELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
+    for (int i = 0; i < layers.size(); i++) {
+      ImGui::Text("\"%s\"",layers[i]->name);
+    }
+    ImGui::EndChild();
+  }
+
+  if (!layers.empty()) {
+    if (ImGui::Button("Bake these layers##DIALOGBAKELAYERSAPPLY")) {
+      for (int i = 0; i < layers.size(); i++) {
+        layers[i]->bakeLayer();
+      }
+      shouldUpdateAll = true;
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGBAKELAYERSCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogNewImage(bool openIt) {
+  static int w = 1920,h = 1080;
+  static char imageName[PICTURENAMEMAX];
+  if (openIt) {
+    static int counter = 0; counter++;
+    sprintf(imageName,"New image %d",counter % 1023);
+  }
+  DIALOGSTART("New picture");
+  ImGui::Text("Picture name"); ImGui::SameLine(); ImGui::InputText("##DIALOGNEWIMAGENAME",imageName,PICTURENAMEMAX);
+  ImGui::PushItemWidth(64+16*2);
+  ImGui::Text("Picture width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w);
+  ImGui::Text("Picture height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h);
+  ImGui::PopItemWidth();
+
+  if (ImGui::Button("Create##DIALOGNEWIMAGECREATE")) {
+    newPicture(w,h,String(imageName));
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGNEWIMAGECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+typedef void (*LOADSAVEFUNC)(const char *shortPath, const char *longFileName);
+const char *images = ".png,.jpg,.tga,.bmp,.psd,.gif,.pic,.pnm,.hdr";
+const char *png = ".png";
+const char *all = "*.*";
+const char *pal = "*.pa2";
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRaw};
+
+void sortFileNames(Array<File> &files, int column, bool sortOrder) {
+  for (int i = 0; i < files.size(); i++) {
+    for (int j = i+1; j < files.size(); j++) {
+      bool bigger = false;
+      String nameHere = (files[i].name.name + files[i].name.extension);
+      bool dirHere = files[i].attributes & DOS_ATTR_SUBDIR;
+      bool dirThere = files[j].attributes & DOS_ATTR_SUBDIR;
+      switch(dirHere?0:column) {
+      case 0: bigger = nameHere < (files[j].name.name + files[j].name.extension); break;
+      case 1: bigger = (files[i].name.extension + files[i].name.name) < (files[j].name.extension + files[j].name.name); break;
+      case 2: bigger = files[i].size < files[j].size; break;
+      case 3: bigger = files[i].date < files[j].date; break;
+      }
+      if ((!dirHere)&&sortOrder) bigger = !bigger;
+      if (dirHere != dirThere) {
+        if (dirHere) bigger = false; else bigger = true;
+      }
+      if (bigger) {
+        File t = files[i];
+        files[i] = files[j];
+        files[j] = t;
+      }
+    }
+  }
+}
+
+unsigned int dialogLoadSaveGameObjectUniqueId = 0;
+String dialogLoadSaveSetFileNameAndPath;
+int dialogLoadSaveModeId = 0;
+
+LOADSAVEFUNC loadSaveFunc = NULL; 
+String loadSaveShortPath; 
+String loadSaveLongFileName;
+
+Array<String> particles(const String &full, const char limiter, bool withLastParticle) {
+  Array<String> ret;
+  int start = 0;
+  for (int i = 0; i < full.length(); i++) {
+    if (full[i] == limiter) {
+      ret.push_back(full.substr(start,i-start));
+      start = i + 1;
+    }
+  }
+  if (withLastParticle && start != full.length()) ret.push_back(full.substr(start));
+  return ret;
+}
+
+void callLoadSaveFunc() {
+  if (loadSaveFunc == NULL) {dialogLoadSaveModeId = 0;return;}
+  loadSaveFunc(loadSaveShortPath.c_str(), loadSaveLongFileName.c_str());
+  dialogLoadSaveModeId = 0;
+}
+
+void dialogOverwrite(bool openIt) {
+  if (openIt) {
+    String shortPath = shortFileName(loadSaveShortPath+loadSaveLongFileName);
+    FILE *in = fopen(dosFileName(shortPath).c_str(),"rb");
+    if (in == NULL) {
+      callLoadSaveFunc();
+      return;  // don't open dialog
+    }
+    fclose(in);
+  }
+  DIALOGSTART("Overwrite file")
+  ImGui::Text("Overwrite old file?");
+  ImGui::BeginChild("##DIALOGOVERWRITECHILD",ImVec2(main_window_xres/2,64));
+  ImGui::TextWrapped("Filename:%s",loadSaveLongFileName.c_str());
+  ImGui::TextWrapped("Path:%s",loadSaveShortPath.c_str());
+  ImGui::EndChild();
+  ImGui::Separator();
+  if (ImGui::Button("Overwrite##DIALOGOVERWRITEOVERWRITE")) {
+    callLoadSaveFunc();
+    dialogLoadSaveModeId = 0;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Don't##DIALOGOVERWRITECLOSE")) {
+    dialogLoadSaveModeId = 0;
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void resize2(String &s, int len) {
+  int a = s.length();
+  s.resize(len);
+  memset(&s[a],0,len-a);
+}
+
+void dialogLoadSave(bool openIt, int dialogMode) {
+
+  static int mode = DIALOG_NONE; if (dialogMode != DIALOG_NONE) mode = dialogMode;
+#define FILTERNAMEMAX 16
+  static char filter[FILTERNAMEMAX];
+
+
+  static bool previewOn = false; 
+  static bool driveReady = true;
+  static bool needsRescanFiles = false;
+  static bool longFileNames = false;
+  static bool initColumns = false;
+  static Array<char> driveLetters;
+  static Array<File> files;
+  static int sortByColumn = 0;
+  static bool sortingOrder[4] = {false};
+  static String paths[DIALOG_COUNT];
+  static String fileNames[DIALOG_COUNT];
+  static String path2;
+  static String scrollToFileName;
+  static String returnToPath;
+  static int scrollToHelper = 0;
+  const int NAMEMAXHERE = 513;
+  if (openIt) {
+    initColumns = true;
+    previewOn = false;
+    memset(filter,0,sizeof(filter));
+    needsRescanFiles = true;
+    driveLetters.clear();
+    for (int i = 'A'; i <= 'Z'; i++) {
+      if (dosHasDrive((char)i)) driveLetters.push_back((char)i);
+    }
+    for (int j = 0; j < DIALOG_COUNT; j++) {
+      fileNames[j] = ""; // little bug
+      resize2(fileNames[j],NAMEMAXHERE);
+    }
+    scrollToHelper=0;
+    if (!dialogLoadSaveSetFileNameAndPath.empty()) {
+      String zwo = dialogLoadSaveSetFileNameAndPath;
+      dialogLoadSaveSetFileNameAndPath = unixFileName(SHORTFILENAME(zwo));
+      fileNames[mode] = getName(zwo) + getExtension(zwo);
+      scrollToFileName = toLower(fileNames[mode]);
+      scrollToHelper = 2;
+      resize2(fileNames[mode],NAMEMAXHERE);
+      paths[mode] = getPath(dialogLoadSaveSetFileNameAndPath);
+      dialogLoadSaveSetFileNameAndPath = "";
+    }
+  }
+  bool result = false;
+  DIALOGSTART(dialogCaption[mode])
+  if (paths[mode].empty()) {paths[mode] = getCWD();}
+  if (needsRescanFiles) {
+    clearPreview();
+    needsRescanFiles = false;
+    files.clear();
+    char driveLetter = paths[mode][0];
+    driveReady = true;
+    if (driveLetter>='A'&&driveLetter<='B') {driveReady = dosIsDriveReady(driveLetter);}
+    if (driveReady) {
+      files = dosGetFiles(paths[mode]);
+    }
+    for (int i = 0; i < files.size(); i++) {
+      if (files[i].name.name == "." || files[i].name.name == "..") {files.erase(i,1);i--;} else
+      if ((files[i].attributes & 0x1f) != DOS_ATTR_SUBDIR && (files[i].attributes & 0x1f) != DOS_ATTR_NORMAL) {files.erase(i,1);i--;}
+    }
+    if (longFileNames) {
+      for (int i = 0; i < files.size(); i++) {
+          files[i].name.full = LONGFILENAME(files[i].name.full);
+          files[i].name.name = getName(files[i].name.full);
+          files[i].name.extension = getExtension(files[i].name.full);
+      }
+    }
+    sortFileNames(files, sortByColumn, sortingOrder[sortByColumn]);
+    path2 = LONGFILENAME(paths[mode]);
+  }
+#if !defined(__DJGPP__)
+  ImGui::Text("Long filenames"); ImGui::SameLine(); if(ImGui::Checkbox("##DIALOGLOADSAVELONGFILENAMES", &longFileNames)) needsRescanFiles = true;
+#endif
+  ImGui::SameLine();
+  for (int i = 0; i < driveLetters.size(); i++) {
+    if (i != 0) ImGui::SameLine();
+    char a = driveLetters[i];
+    if (ImGui::Button((String::fromChar(a)+":##DIALOGLOADSAVEDRIVELETTER"+toString(i)).c_str())) {
+      paths[mode] = String::fromChar(a) + ":/";
+      needsRescanFiles = true;
+      //log_setBiosCursor(0,0);
+    }
+  }
+  ImGui::Text("%s",dialogFileTypes[mode]);
+  ImGui::Separator();
+  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();ImGui::InputText("##DIALOGLOADSAVEFILTER",filter,FILTERNAMEMAX);
+  ImGui::SameLine();
+  ImGui::Text("Preview"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGLOADSAVEPREVIEW",&previewOn)) {if (previewOn) clearPreview();}
+  if (previewOn) {
+    ImGui::BeginTooltip();
+    ImGui::Image((ImTextureID)previewTexture,ImVec2(previewWidth,previewHeight*aspectRatio*main_window_yres/main_window_xres/previewAspect));
+    ImGui::EndTooltip();
+  }
+  ImGui::Separator();
+  if (ImGui::Button("Home##DIALOGLOADSAVEHOME")) {
+    paths[mode] = appFolder;
+    needsRescanFiles=true;
+  }
+  ImGui::SameLine();
+  ImGui::TextWrapped("%s",path2.c_str());
+  ImGui::Separator();
+  if (paths[mode].length() > 3 && ImGui::Button("..##DIALOGLOADSAVEPATHBACK")) {
+    int k = paths[mode].substr(0,paths[mode].length()-1).findLast("/");
+    if (k>=0) paths[mode] = paths[mode].substr(0,k+1);
+    needsRescanFiles = true;
+  }
+  ImGui::SameLine(); ImGui::Text("Sort by:"); ImGui::SameLine();
+  for (int l = 0; l < 4; l++) {
+    if (l!=0) ImGui::SameLine();
+    static const char *headerButtonNames[4] = {"Filename##DIALOGLOADSAVEFILENAMES","Ext##DIALOGLOADSAVEEXTS","Size##DIALOGLOADSAVESIZES","Date##DIALOGLOADSAVEDATES"};
+    if (ImGui::Button(headerButtonNames[l])) {
+      sortByColumn = l;
+      sortingOrder[l] = !sortingOrder[l];
+      needsRescanFiles = true;
+    }
+  }
+  ImGui::Separator();
+  int w = main_window_xres/2;
+  int h = main_window_yres/2;
+
+  if (!driveReady) {
+    if (ImGui::Button("Drive not ready.. Retry.##DIALOGLOADSAVERETRY")) {
+      needsRescanFiles = true;
+    }
+  } else {
+    ImGui::BeginChild("DIALOGLOADSAVECHILD",ImVec2(w,h));
+    ImGui::Columns(4);
+    String filter2 = toLower(filter);  
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(1,0));  
+    for (int j = 0; j < 4; j++) {
+      if (initColumns) {
+          if (j == 1) ImGui::SetColumnOffset(j,ImGui::GetColumnOffset(j-1)+7*20);
+          if (j == 2) ImGui::SetColumnOffset(j,ImGui::GetColumnOffset(j-1)+7*5);
+          if (j == 3) ImGui::SetColumnOffset(j,ImGui::GetColumnOffset(j-1)+7*10);
+      }
+      for (int i = 0; i < (int)files.size(); i++) {
+        String fullFileName = toLower(files[i].name.name + files[i].name.extension);
+        if (!filter2.empty() && fullFileName.findFirst(filter2)<0) continue;
+        bool isDir = files[i].attributes & DOS_ATTR_SUBDIR;
+        if (isDir) {
+          if (j == 0) {
+            ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0,0,0,0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImVec4(0,0,0,0.5));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered,ImVec4(0,0,0,0));
+            if (ImGui::Button((files[i].name.name+"##DIALOGLOADSAVEDIRBUTTON"+String::fromInt(i)).c_str())) {
+              paths[mode] += files[i].name.name + files[i].name.extension + "/";
+              paths[mode] = SHORTFILENAME(paths[mode]);
+              fileNames[mode] = "";
+              resize2(fileNames[mode],NAMEMAXHERE);
+              needsRescanFiles = true;
+            } else {
+              //if (!previewOn) drawToolTip(files[i].name.name.c_str());
+            }
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+          } 
+          if (j == 1) {
+            ImGui::Text("DIR");
+          }
+          if (j == 2) {
+            ImGui::Text("");
+          }
+          if (j == 3) {
+            FileTime t = files[i].date;
+            ImGui::Text("%02d.%02d.%04d %02d:%02d.%02d",t.day,t.month,t.year,t.hour,t.minute,t.second);
+          }
+        } else {
+          if (j == 0) {
+            ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0,0,0,0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImVec4(0,0,0,0.5));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered,ImVec4(0,0,0,0));
+            if (ImGui::Button((files[i].name.name+"##DIALOGLOADSAVEFILEBUTTON"+String::fromInt(i)).c_str())) {
+              fileNames[mode] = files[i].name.name + files[i].name.extension;
+              if (previewOn) {
+                String p = paths[mode]; 
+                String f = fileNames[mode];
+                f.resize(strlen(f.c_str()));
+                previewAspect = updateToolTip(preview, previewWidth, previewHeight, p.c_str(), f.c_str());
+                updatePreview();
+              }
+              resize2(fileNames[mode],NAMEMAXHERE);
+            } else {
+              //if (!previewOn) drawToolTip((files[i].name.name + files[i].name.extension).c_str());
+            }
+            if (fullFileName==scrollToFileName) {ImGui::SetScrollHere();}
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+          }
+          if (j == 1) {
+            ImGui::Text("%s",files[i].name.extension.c_str());
+          }
+          if (j == 2) {
+            ImGui::Text("%db",files[i].size);
+          }
+          if (j == 3) {
+            FileTime t = files[i].date;
+            ImGui::Text("%02d.%02d.%04d %02d:%02d.%02d",t.day,t.month,t.year,t.hour,t.minute,t.second);
+          }
+        }
+      }
+      ImGui::NextColumn();
+    }
+    ImGui::PopStyleVar();  
+    initColumns = false;
+    ImGui::EndChild();
+  }
+  ImGui::Separator();
+  ImGui::PushItemWidth(w);
+  ImGui::Text("Filename");
+  DIALOGKEYSHERE();
+  ImGui::InputText("##DIALOGLOADSAVEFILENAME",&fileNames[mode][0],NAMEMAXHERE);
+  ImGui::PopItemWidth();
+  ImGui::Separator();
+  if (ImGui::Button((String(proceedButton[mode])+String("##DIALOGLOADSAVEPROCEED")).c_str())) {
+    result = true;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGLOADSAVECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+  if (scrollToHelper>0) scrollToHelper--; else scrollToFileName="";
+  if (result) {
+    loadSaveFunc = NULL;
+    if (funcs[mode]!=NULL) {
+      loadSaveFunc = funcs[mode]; 
+      loadSaveShortPath = paths[mode]; 
+      loadSaveLongFileName = fileNames[mode];
+      loadSaveLongFileName.resize(strlen(loadSaveLongFileName.c_str()));
+      if (toLower(proceedButton[mode])=="save") {
+        if (loadSaveLongFileName.find(".")<0) {loadSaveLongFileName += dialogDefaultExtension[mode];}
+        dialogOverwrite(true);
+      } else
+        callLoadSaveFunc();
+    }
+  }
+}
