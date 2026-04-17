@@ -59,12 +59,14 @@ public:
   bool selected;
   bool visible;
   float alpha;
+  bool imGuiActive;
 
   LayerState() {
     active = false;
     selected = false;
     visible = true;
     alpha = 1;
+    imGuiActive = false;
   }
 
   void clear();
@@ -95,10 +97,9 @@ public:
 enum PIXELSTATES {
   PIXELSTATE_NONE = 0,
   PIXELSTATE_UPDATED = 1,
-  PIXELSTATE_SELECTED = 2
+  PIXELSTATE_SELECTED = 2,
+  PIXELSTATE_FILLED = 4
 };
-
-extern bool hilightSelection;
 
 enum REPAINTSTATES {
   REPAINTSTATE_NONE = 0,
@@ -145,6 +146,7 @@ public:
   void mirrorVertically();
   void rotate90DegreesForward();
   void rotate90DegreesBackward();
+  void rotateByDegrees(double degrees);
 
   void selectAll();
   void selectNone();
@@ -155,9 +157,18 @@ public:
 
   bool hasSelection();
   Vector boundingBox();
+  void quantizeBoundingBox();
 
   void resizeLayerContent(int newWidth, int newHeight);
   void bakeLayer();
+  Layer *clone();
+
+  void setLayerPos(double x, double y);
+  void setLayerSize(double width, double height);
+  double getAngleDegrees();
+  void setAngleDegrees(double degrees);
+
+  void enlargenLayerBy(int left, int top, int right, int bottom);
 };
 
 class CanvasControl {
@@ -211,6 +222,9 @@ public:
   TransformationState transform;
   Array<Layer*> layers;
 
+  bool hilightSelection;
+  bool justSingle;
+
   Canvas() {
     width = 0;
     height = 0;
@@ -229,6 +243,8 @@ public:
     gridStepY = 8;
     gridOffsetX = 0;
     gridOffsetY = 0;
+    hilightSelection = false;
+    justSingle = false;
   }
 
   ~Canvas() {
@@ -242,8 +258,9 @@ public:
 
   void init(int width, int height);
 
-  void getLayerPos(Layer *layer, int screenX, int screenY, int &layerX, int &layerY);
-  void getScreenPos(Layer *layer, int layerX, int layerY, int &screenX, int &screenY);
+  void getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY);
+  void getCanvasPos(double screenX, double screenY, double &canvasX, double &canvasY);
+  void getScreenPos(Layer *layer, double layerX, double layerY, double &screenX, double &screenY);
 
   void updateRegion(int screenX0, int screenY0, int screenX1, int screenY1);
   void update(bool forceUpdate);
@@ -271,6 +288,7 @@ public:
   bool hasSelection();
   void selectByAlpha(int alphaThreshold);
   void selectAllLayers();
+  void showAllLayers(bool show);
 
   void moveLayersUp();
   void moveLayersDown();
@@ -280,6 +298,7 @@ public:
   void expandSelection(int pixels);
   
   Layer *getSelectionAsLayer(bool pixelSelection, bool selectAllLayers, bool keepCanvasSize);
+  void duplicateLayers();
   void copy();
   void paste();
 

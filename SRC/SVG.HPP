@@ -46,6 +46,8 @@ public:
 
 extern HashMap<String, SVG> svgs;
 
+void reloadIcons();
+
 void loadBaseSVGs();
 
 #endif //__SVG_HPP__

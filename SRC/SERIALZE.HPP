@@ -30,6 +30,9 @@
 #define SHORTFILENAME(__str__) (longFileNames ? shortFileName(__str__) : unixFileName(__str__))
 extern bool longFileNames;
 
+void updateStatusBar();
+void initStatusBar();
+
 String longFileName(const String &a);
 String shortFileName(const String &a);
 
@@ -38,6 +41,7 @@ void insertImageLayers(const char *shortPath, const char *longFileName);
 void exportLayers(const char *shortPath, const char *longFileName);
 void exportPNG(const char *shortPath, const char *longFileName);
 void exportLayersRaw(const char *shortPath, const char *longFileName);
+void insertPSD(const char *shortPath, const char *longFileName);
 
 void loadPalette(const char *shortPath, const char *longFileName);
 void savePalette(const char *shortPath, const char *longFileName);

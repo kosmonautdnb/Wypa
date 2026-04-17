@@ -38,7 +38,8 @@ enum DIALOGMODE {
   DIALOG_LOADPALETTE = 5,
   DIALOG_SAVEPALETTE = 6,
   DIALOG_EXPORTLAYERSRAW = 7,
-  DIALOG_COUNT = 8
+  DIALOG_INSERTPSD = 8,
+  DIALOG_COUNT = 9
 };
 
 void dialogCanvas(bool openIt);
@@ -50,6 +51,9 @@ void dialogDeleteLayers(bool openIt);
 void dialogSelectByAlpha(bool openIt);
 void dialogBakeLayers(bool openIt);
 void dialogNewImage(bool openIt);
+void dialogGetLayersFromPicture(bool openIt);
+void dialogUpdateLayer(bool openIt);
+void dialogAbout(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

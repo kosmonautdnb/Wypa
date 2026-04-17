@@ -33,6 +33,7 @@ extern ImVec4 foregroundColor;
 extern int paletteColorsPerRow;
 extern Array<ImVec4> palette;
 
+unsigned int swapRB(unsigned int color);
 unsigned int getUIntColor(const ImVec4 &k);
 ImVec4 getImVec4Color(unsigned int v);
 

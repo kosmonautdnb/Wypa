@@ -297,13 +297,16 @@ void drawColorField() {
       ImGui::PushID((String("##DRAWCOLORFIELDPALETTEPALETTEBUTTON")+String::fromInt(i)).c_str());
       if ((i % paletteColorsPerRow) != 0) ImGui::SameLine();
       ImVec4 c3 = palette[i];
+      int a = ImGui::GetIO().MouseClicked[0];
+      ImGui::GetIO().MouseClicked[0] = ImGui::GetIO().MouseClicked[0] || ImGui::GetIO().MouseClicked[1];
       if (ImGui::ImageButton((ImTextureID)0, ImVec2(b,14), ImVec2(0,0), ImVec2(1,1), -1, c3, c3)) {
-        if (alt) {
+        if (ImGui::IsMouseDown(1)) {
           palette[i] = foregroundColor;
         } else {
           foregroundColor = c3;
         }
       }
+      ImGui::GetIO().MouseClicked[0] = a;
       ImGui::PopID();
     }
     ImGui::PopStyleVar();

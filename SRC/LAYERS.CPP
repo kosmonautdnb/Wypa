@@ -29,6 +29,8 @@
 #include "MENUBAR.HPP"
 #include "NAVIGTOR.HPP"
 #include "SERIALZE.HPP"
+#include "TOOLBAR.HPP"
+#include "TOOLVIEW.HPP"
 #include <math.h>
 
 Layer *copyLayer = NULL;
@@ -135,7 +137,7 @@ void Layer::init(int width, int height) {
 }
 
 void Layer::mirrorHorizontally() {
-  Matrix center; center.translate(Vector(width/2,0,0));
+  Matrix center; center.translate(Vector((double)width/2,0,0));
   Matrix modify; modify.scale3(Vector(-1,1,1));
   transform.transformation = transform.transformation * center * modify * inverse2(center);
   transform.update();
@@ -143,24 +145,52 @@ void Layer::mirrorHorizontally() {
 }
 
 void Layer::mirrorVertically() {
-  Matrix center; center.translate(Vector(0,height/2,0));
+  Matrix center; center.translate(Vector(0,(double)height/2,0));
   Matrix modify; modify.scale3(Vector(1,-1,1));
   transform.transformation = transform.transformation * center * modify * inverse2(center);
   transform.update();
   shouldUpdateAll = true;
 }
 
+Matrix straighten(const Matrix &m) {
+  Matrix ret;
+  for (int i = 0; i < 16; i++) {
+    double a = m.m[i];
+    if (a < -0.5) a = -1; else
+    if (a > 0.5) a = 1; else
+    a = 0;
+    ret.m[i] = a;
+  }
+  return ret;
+}
+
 void Layer::rotate90DegreesForward() {
-  Matrix center; center.translate(Vector(width/2,height/2,0));
+  Vector c((double)width/2.0,(double)height/2.0,0);
+  c = inverse2(transform.transformation)*c;
+  Matrix center; center.translate(Vector(c.x,c.y,0));
   Matrix modify; modify = rotationMatrixAngleAxis(PI*-0.5,0,0,1);
+  modify = straighten(modify);
   transform.transformation = transform.transformation * center * modify * inverse2(center);
   transform.update();
   shouldUpdateAll = true;
 }
 
 void Layer::rotate90DegreesBackward() {
-  Matrix center; center.translate(Vector(width/2,height/2,0));
+  Vector c((double)width/2.0,(double)height/2.0,0);
+  c = inverse2(transform.transformation)*c;
+  Matrix center; center.translate(Vector(c.x,c.y,0));
   Matrix modify; modify = rotationMatrixAngleAxis(PI*0.5,0,0,1);
+  modify = straighten(modify);
+  transform.transformation = transform.transformation * center * modify * inverse2(center);
+  transform.update();
+  shouldUpdateAll = true;
+}
+
+void Layer::rotateByDegrees(double degrees) {
+  Vector c((double)width/2.0,(double)height/2.0,0);
+  c = inverse2(transform.transformation)*c;
+  Matrix center; center.translate(Vector(c.x,c.y,0));
+  Matrix modify; modify = rotationMatrixAngleAxis(-degrees*PI/180.0,0,0,1);
   transform.transformation = transform.transformation * center * modify * inverse2(center);
   transform.update();
   shouldUpdateAll = true;
@@ -245,6 +275,18 @@ Vector Layer::boundingBox() {
   return ret;
 }
 
+void Layer::quantizeBoundingBox() {
+  for (int i = 0; i < 10; i++) { // this doesn't work reliably
+    Vector b = boundingBox();
+    b.x = floor(b.x);
+    b.y = floor(b.y);
+    b.z = floor(b.z);
+    b.w = floor(b.w);
+    setLayerPos(b.x,b.y);
+    setLayerSize(b.z-b.x,b.w-b.y);
+  }
+}
+
 void layerNewContent(Layer *l, int w, int h) {
   if (w < 1) return;
   if (h < 1) return;
@@ -326,6 +368,96 @@ void Layer::bakeLayer() {
   delete[] beforeS;
 }
 
+Layer *Layer::clone() {
+  Layer *ret = new Layer();
+  *ret = *this;
+  ret->pixels = NULL;
+  ret->pixelStates = NULL;
+  ret->init(width,height);
+  memcpy(ret->pixels,pixels,ret->width*ret->height*sizeof(unsigned int));
+  return ret;
+}
+
+void Layer::setLayerPos(double x, double y) {
+  Vector b = boundingBox();
+  double moveX = x-b.x;
+  double moveY = y-b.y;
+  Vector k2 = Vector(moveX,moveY,0);
+  transform.translate(-k2.x,-k2.y);
+  transform.update();
+}
+
+void Layer::setLayerSize(double width, double height) {
+  if (width == 0 || height == 0) return;
+  Vector b = boundingBox();
+  double oldWidth = b.z-b.x;
+  double oldHeight = b.w-b.y;
+  if (oldWidth == 0 || oldHeight == 0) return;
+  double scaleX = width / oldWidth;
+  double scaleY = height / oldHeight;
+  if (scaleX == 0 || scaleY == 0) return;
+  Matrix modify;modify.scale3(Vector(1.0/scaleX,1.0/scaleY,1));
+
+  //Vector c((double)width/2.0*0,(double)height/2.0*0,0);
+  //c = inverse2(transform.transformation)*c;
+  Vector c = b.xy();
+  Matrix center; center.translate(Vector(c.x,c.y,0));
+  transform.transformation = transform.transformation * center * modify * inverse2(center);
+  transform.update();
+  shouldUpdateAll = true;
+}
+
+double Layer::getAngleDegrees() {
+  Vector c((double)width/2.0,(double)height/2.0,0);
+  Vector n((double)width/2.0,(double)height/2.0*0,0);
+  c = inverse2(transform.transformation)*c;
+  n = inverse2(transform.transformation)*n;
+  c -= n;
+  if (c.x==0&&c.y==0) return 0;
+  return fmod((atan2(c.y,c.x)*180.0/PI+360-90),360.0);
+}
+
+void Layer::setAngleDegrees(double degrees) {
+  if (degrees < 0 || degrees > 360.0) return;
+  double currentAngle = getAngleDegrees();
+  double modify = degrees - currentAngle;
+  rotateByDegrees(modify);
+}
+
+void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
+  int newWidth = width + left + right;
+  int newHeight = height + top + bottom;
+  if (newWidth < 1 || newHeight < 1) return;
+  unsigned int *pixels2 = new unsigned int[newWidth*newHeight];
+  unsigned char *pixelStates2 = new unsigned char[newWidth*newHeight];
+
+  for (int y = 0; y < newHeight; y++) {
+    for (int x = 0; x < newWidth; x++) {
+      int sx = x - left;
+      int sy = y - top;
+      unsigned int col = 0x00000000;
+      unsigned char state = 0;
+      if ((unsigned int)sx < width && (unsigned int)sy < height) {
+        col = pixels[sx+sy*width];
+        state = pixelStates[sx+sy*width];
+      }
+      pixels2[x+y*newWidth] = col;
+      pixelStates2[x+y*newWidth] = state;
+    }
+  }
+
+  if (pixels != NULL) {delete[] pixels; pixels = NULL;};
+  if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;};
+  pixels = pixels2;
+  pixelStates = pixelStates2;
+  width = newWidth;
+  height = newHeight;
+  Matrix modify; modify.translate(Vector(left,top,0));
+  transform.transformation = modify * transform.transformation;
+  transform.update();
+  shouldUpdateAll = true;
+}
+
 void CanvasControl::setCanvasTransform(Canvas *canvas) {
   canvas->transform.fresh();
   canvas->transform.translate(scrollX,scrollY);
@@ -382,24 +514,33 @@ void Canvas::init(int width, int height) {
   this->canvasY1 = height;
 }
 
-void Canvas::getLayerPos(Layer *layer, int screenX, int screenY, int &layerX, int &layerY) {
+void Canvas::getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY) {
   double x,y;
   x = (double)screenX-screenPosX;
   y = (double)screenY-screenPosY;
   transform.transformForward(x,y,x,y);
   layer->transform.transformForward(x,y,x,y);
-  layerX = (int)floor(x);
-  layerY = (int)floor(y);
+  layerX = x;
+  layerY = y;
 }
 
-void Canvas::getScreenPos(Layer *layer, int layerX, int layerY, int &screenX, int &screenY) {
+void Canvas::getCanvasPos(double screenX, double screenY, double &canvasX, double &canvasY) {
+  double x,y;
+  x = (double)screenX-screenPosX;
+  y = (double)screenY-screenPosY;
+  transform.transformForward(x,y,x,y);
+  canvasX = x;
+  canvasY = y;
+}
+
+void Canvas::getScreenPos(Layer *layer, double layerX, double layerY, double &screenX, double &screenY) {
   double x,y;
   x = (double)layerX;
   y = (double)layerY;
   layer->transform.transformBackward(x,y,x,y);
   transform.transformBackward(x,y,x,y);
-  screenX = (int)floor(x+screenPosX);
-  screenY = (int)floor(y+screenPosY);
+  screenX = x+screenPosX;
+  screenY = y+screenPosY;
 }
 
 bool justSelection = false;
@@ -423,13 +564,12 @@ void fillCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, unsigned int col
   }
 }
 
-bool hilightSelection = false;
-
 void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) {
-  if (!layer->state.visible) return;
+  if ((!canvas->justSingle) && (!layer->state.visible)) return;
+  if (canvas->justSingle && (!layer->state.active)) return;
 
   bool darken = !(layer->state.selected || layer->state.active);
-  if (!hilightSelection) darken = false;
+  if (!canvas->hilightSelection) darken = false;
 
   Vector b = layer->boundingBox();
   Vector b1 = b.xy();
@@ -812,7 +952,7 @@ void Canvas::updateLayer(Layer *layer, bool forceUpdate) {
       }
     }
   }
-  updateRegion(x0,y0,x1,y1);
+  updateRegion(x0+screenPosX,y0+screenPosY,x1+screenPosX,y1+screenPosY);
 }
 
 void Canvas::addLayer(Layer *layer) {
@@ -882,6 +1022,7 @@ void Canvas::rotate90DegreesForward() {
   Vector rbCanvas = inverse2(screenToCanvas) * Vector(canvasX1,canvasY1,0);
   Matrix center; center.translate(Vector((ltCanvas.x+rbCanvas.x)*0.5,(ltCanvas.y+rbCanvas.y)*0.5,0));
   Matrix rotate = rotationMatrixAngleAxis(PI*-0.5,0,0,1);
+  rotate = straighten(rotate);
   for (int i = 0; i < layers.size(); i++) {
     Layer *l = layers[i];
     Matrix centerInLayerSpace; centerInLayerSpace.translate(screenToCanvas * center * Vector(0,0,0));
@@ -907,6 +1048,7 @@ void Canvas::rotate90DegreesBackward() {
   Vector rbCanvas = inverse2(screenToCanvas) * Vector(canvasX1,canvasY1,0);
   Matrix center; center.translate(Vector((ltCanvas.x+rbCanvas.x)*0.5,(ltCanvas.y+rbCanvas.y)*0.5,0));
   Matrix rotate = rotationMatrixAngleAxis(PI*0.5,0,0,1);
+  rotate = straighten(rotate);
   for (int i = 0; i < layers.size(); i++) {
     Layer *l = layers[i];
     Matrix centerInLayerSpace; centerInLayerSpace.translate(screenToCanvas * center * Vector(0,0,0));
@@ -1063,6 +1205,11 @@ void Canvas::selectAllLayers() {
   shouldUpdateAll = true;
 }
 
+void Canvas::showAllLayers(bool show) {
+  for (int i = 0; i < layers.size(); i++) {layers[i]->state.visible = show;}
+  shouldUpdateAll = true;
+}
+
 void Canvas::moveLayersUp() {
   if ((!layers.empty()) && (layers[0]->state.selected || layers[0]->state.active)) return;
   for (int i = 1; i < layers.size(); i++) {
@@ -1187,6 +1334,20 @@ Layer *Canvas::getSelectionAsLayer(bool pixelSelection,bool selectAllLayers, boo
   sprintf(l->name,"paste");
   delete copyCanvas;
   return l;
+}
+
+
+void Canvas::duplicateLayers() {
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      layers[i]->state.selected = false;
+      Layer *l = layers[i]->clone();
+      sprintf(l->name,"duplicate");
+      insertLayer(l,i);
+      i++;
+    }
+  }
+  shouldUpdateAll = true;
 }
 
 void Canvas::copy() {
@@ -1326,19 +1487,25 @@ void blitCanvas() {
   }
 }
 
+void canvasDefault(Canvas *canvas) {
+  canvas->init(glFrameBufferWidth-sidebar_width-toolbar_width-toolview_width,glFrameBufferHeight-menuBar_height);
+  canvas->screenPosX = toolbar_width+toolview_width;
+  canvas->screenPosY = menuBar_height;
+}
+
 void addPicture(String fileName) {
   currentCanvas = new Canvas();
   canvas.push_back(currentCanvas);
-  currentCanvas->init(glFrameBufferWidth-sidebar_width,glFrameBufferHeight-menuBar_height);
+  canvasDefault(currentCanvas);
   currentCanvas->addLayer(loadImage("",fileName));
-  currentCanvas->screenPosX = 0;
-  currentCanvas->screenPosY = menuBar_height;
   currentCanvas->setActiveLayer(0);
+  currentCanvas->fitCanvasToLayers();
   shouldUpdateAll = true;
 }
 
 void insertPicture(String fileName) {
   Layer *l = loadImage("",fileName);
+  if (l == NULL) return;
   int pos = 0;
   for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
   currentCanvas->layers.insert(l,pos);
@@ -1350,9 +1517,7 @@ void addTempPicture() {
   currentCanvas = new Canvas();
   sprintf(currentCanvas->pictureName,"empty");
   canvas.push_back(currentCanvas);
-  currentCanvas->init(glFrameBufferWidth-sidebar_width,glFrameBufferHeight-menuBar_height);
-  currentCanvas->screenPosX = 0;
-  currentCanvas->screenPosY = menuBar_height;
+  canvasDefault(currentCanvas);
   shouldUpdateAll = true;
 }
 
@@ -1360,9 +1525,7 @@ void newPicture(int w, int h,const String &pictureName) {
   currentCanvas = new Canvas();
   sprintf(currentCanvas->pictureName,pictureName.c_str());
   canvas.push_back(currentCanvas);
-  currentCanvas->init(glFrameBufferWidth-sidebar_width,glFrameBufferHeight-menuBar_height);
-  currentCanvas->screenPosX = 0;
-  currentCanvas->screenPosY = menuBar_height;
+  canvasDefault(currentCanvas);
   Layer *l = new Layer();
   l->init(w,h);
   l->selectAll();
@@ -1370,5 +1533,7 @@ void newPicture(int w, int h,const String &pictureName) {
   l->selectNone();
   sprintf(l->name,"unnamed");
   currentCanvas->addLayer(l);
+  currentCanvas->fitCanvasToLayers();
+  currentCanvas->setActiveLayer(0);
   shouldUpdateAll = true;
 }

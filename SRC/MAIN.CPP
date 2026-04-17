@@ -35,6 +35,9 @@
 #include "COLORFLD.HPP"
 #include "LAYERV.HPP"
 #include "DIALOGS.HPP"
+#include "TOOLBAR.HPP"
+#include "TOOLVIEW.HPP"
+#include "TOOLS.HPP"
 #include <math.h>
 
 bool roundButton(const char *name, bool enabled) {
@@ -53,46 +56,6 @@ bool roundButton(const char *name, bool enabled) {
   ImGui::PopStyleVar();
   ImGui::PopStyleVar();
   return ret;
-}
-
-void moveSelectedLayersByPixels(double x, double y) {
-  bool one = false;
-  for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) {
-    Layer *l = currentCanvas->layers[i2];
-    if (l->state.selected) {one = true; break;}
-  }
-
-  for (int i = 0; i < currentCanvas->layers.size(); i++) {
-    Layer *l = currentCanvas->layers[i];
-    if ((l->state.selected && one) || (l->state.active && (!one))) {
-      double x0 = 0, y0 = 0;
-      currentCanvas->transform.transformForward(x0,y0,x0,y0);
-      l->transform.transformForward(x0,y0,x0,y0);
-      double x1 = x, y1 = y;
-      currentCanvas->transform.transformForward(x1,y1,x1,y1);
-      l->transform.transformForward(x1,y1,x1,y1);
-      Matrix t; t.translate(Vector(-(x1-x0),-(y1-y0)));
-      l->transform.transformation = t * l->transform.transformation;
-      l->transform.update();
-    }
-  }
-  shouldUpdateAll = true;
-}
-
-void useTool() {
-  if (controlKeyId == CONTROLKEY_NONE) {
-    if (ImGui::IsMouseDown(0))
-      moveSelectedLayersByPixels(mouseDX, mouseDY);
-  }
-  if (ImGui::IsMouseDown(1)) {
-    Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
-    int lx, ly; currentCanvas->getLayerPos(l, (int)floor(mouseX), (int)floor(mouseY), lx, ly);
-    if ((unsigned int)lx<l->width&&(unsigned int)ly<l->height) {
-      l->pixels[lx+ly*l->width] = getUIntColor(foregroundColor);
-      addUsedColor(foregroundColor);
-      shouldUpdateAll = true;
-    }
-  }
 }
 
 double screenSaverStartTime;
@@ -124,6 +87,52 @@ void select(Layer *l) {
 void disableRenderMouseClicks() {
 }
 
+ImVec2 normalize(const ImVec2 &v) {
+  ImVec2 r = v;
+  double l = sqrt(r.x*r.x+r.y*r.y);
+  if (l != 0) {r.x /= l; r.y /= l;}
+  return r;
+}
+
+void screenSaver() {
+  if (glSeconds()-screenSaverStartTime >= SCREENSAVERTIMEINSECONDS) {
+    static ImVec2 textPos(0,0);
+    static ImVec2 textDir = normalize(ImVec2(1,1));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0,0,0,1));
+    ImGui::SetNextWindowPos(ImVec2(0,0));
+    ImGui::Begin("SCREENSAVER", NULL, ImVec2(main_window_xres,main_window_yres),0.95,FROZENWINDOW);
+    String date = "Date " + timeDescString();float fontSize = 2.0;
+    ImVec2 textSize = ImGui::CalcTextSize(date.c_str()); textSize.x *= fontSize; textSize.y *= fontSize;
+    ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),ImGui::GetWindowFontSize()*fontSize,ImVec2(textPos.x,textPos.y),0xffffffff,date.c_str());
+    textPos.x += textDir.x * timeDelta * main_window_xres / 10;
+    textPos.y += textDir.y * timeDelta * main_window_xres / 10;
+    mouseX = textPos.x;
+    mouseY = textPos.y;
+    if (textPos.x > main_window_xres-textSize.x) {
+      textDir.x = -(double)rand()/RAND_MAX-1.1;
+      textDir.y = (double)rand()/RAND_MAX*2-1;
+      textDir = normalize(textDir);
+    }
+    if (textPos.x < 0) {
+      textDir.x = (double)rand()/RAND_MAX+1.1;
+      textDir.y = (double)rand()/RAND_MAX*2-1;
+      textDir = normalize(textDir);
+    }
+    if (textPos.y > main_window_yres-textSize.y) {
+      textDir.x = (double)rand()/RAND_MAX*2-1;
+      textDir.y = -(double)rand()/RAND_MAX-1.1;
+      textDir = normalize(textDir);
+    }
+    if (textPos.y < 0) {
+      textDir.x = (double)rand()/RAND_MAX*2-1;
+      textDir.y = (double)rand()/RAND_MAX+1.1;
+      textDir = normalize(textDir);
+    }
+    ImGui::End();
+    ImGui::PopStyleColor();
+  }
+}
+
 int main(int argc, const char *argv[]) {
 
   appFolder = unixFileName(getPath(argv[0]));
@@ -135,14 +144,20 @@ int main(int argc, const char *argv[]) {
   printf("www.github.com/kosmonautdnb/wypa\n");
   printf("\n");
 
+  glWatcomPrecisionTimer(GL_TRUE);
+
   if (!glVesa(main_window_xres,main_window_yres,32)) {
     printf("Error 1\n");
     exit(0);
   }
 
+  glClearColor(0.6,0.8,1.0,0);
+  glClear(GL_COLOR_BUFFER_BIT);
+
   InitImGui(glFrameBufferWidth,glFrameBufferHeight);
   ImGui::GetStyle().WindowRounding = 0.f;
   glFastTexturing = true;
+  screenSaverStartTime = glSeconds();
 
   ImGui::GetStyle().Colors[ImGuiCol_WindowBg] = ImVec4(1,1,1,1);
   ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1);
@@ -165,6 +180,8 @@ int main(int argc, const char *argv[]) {
   initNavigator();
   initMenuBar();
   initDialogs();
+  initToolBar();
+  initToolView();
 
   bool quit = false;
   while(!quit) {
@@ -172,16 +189,25 @@ int main(int argc, const char *argv[]) {
     if (currentKey == GL_VK_ESCAPE) quit = true;
     perFrame();
 
-    if (currentKey == '-') {
-      currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,1.0/zoomStep);
-    }
 
-    if (currentKey == '+') {
-      currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,zoomStep);
-    }
+    if (isPaintAreaActive()) {
+      if (currentKey == '-') {
+        currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,1.0/zoomStep);
+      }
+  
+      if (currentKey == '+') {
+        currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,zoomStep);
+      }
+  
+      if (controlKeyId == CONTROLKEY_ALT) {
+        currentCanvas->control.moveByPixels(currentCanvas,mouseDX,mouseDY);
+      }
 
-    if (controlKeyId == CONTROLKEY_CTRL) {
-      currentCanvas->control.moveByPixels(currentCanvas,mouseDX,mouseDY);
+      bool enableScrollKeys = tool != TOOL_MOVE;      
+      if (enableScrollKeys && currentKey == GL_VK_LEFT) currentCanvas->control.moveByPixels(currentCanvas,scrollKeyPixels,0);
+      if (enableScrollKeys && currentKey == GL_VK_RIGHT) currentCanvas->control.moveByPixels(currentCanvas,-scrollKeyPixels,0);
+      if (enableScrollKeys && currentKey == GL_VK_UP) currentCanvas->control.moveByPixels(currentCanvas,0,scrollKeyPixels);
+      if (enableScrollKeys && currentKey == GL_VK_DOWN) currentCanvas->control.moveByPixels(currentCanvas,0,-scrollKeyPixels);
     }
 
     useTool();
@@ -190,9 +216,6 @@ int main(int argc, const char *argv[]) {
       currentCanvas->control.setCanvasTransform(currentCanvas);
     }
 
-    glClearColor(0.6,0.8,1.0,0);
-    glClear(GL_COLOR_BUFFER_BIT);
-   
     //select();
     blitCanvas();
     
@@ -201,6 +224,9 @@ int main(int argc, const char *argv[]) {
     drawNavigator();
     drawColorField();
     drawLayerView();
+    drawToolBar();
+    drawToolView();
+    screenSaver();
     ImGui::Render();
       
     if (refreshMasked) glRefreshMasked(); else glRefresh();

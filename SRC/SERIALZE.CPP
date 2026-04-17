@@ -29,6 +29,7 @@
 #include "STL/IMAGE.HPP"
 #include "STL/ARRAY.HPP"
 #include "STL/DOS.HPP"
+#include "STL/PSDIMAGE.HPP"
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = RGBAImage::fromMemory(&(arr[0]), arr.size());
 
@@ -168,6 +169,41 @@ void exportLayersRaw(const char *shortPath, const char *longFileName) {
       updateStatusBar();
     }
   }
+}
+
+void insertPSD(const char *shortPath, const char *longFileName) {
+  String fullFileName = shortFileName(dosFileName(String(shortPath)+String(longFileName)));
+  PSDImage *img = new PSDImage();
+  if (img->Load(fullFileName.c_str())) {
+    int pos = 0;
+    for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
+    int w = img->header.Columns;
+    int h = img->header.Rows;
+    int l = img->NumLayers();
+    if (h > 0 && w > 0 && l > 1) {
+      for (int i = 0; i < l; i++) {
+        int width,height,offset_x,offset_y;
+        unsigned int *imageData = img->GetLayerData(i, width, height, offset_x, offset_y);
+        if (imageData==NULL) continue;
+        if (width == 0) continue;
+        if (height == 0) continue;
+        Layer *l = new Layer();
+        l->init(width,height);
+        for (int j = 0; j < width * height; j++) {
+          l->pixels[j] = swapRB(imageData[j]);
+        }
+        l->transform.translate(-offset_x,-offset_y);
+        const PSDImage::psd_layer *k = img->GetLayer(i);
+        memcpy(l->name,k->name,LAYERNAMEMAX);
+        l->name[LAYERNAMEMAX-1] = 0;
+        l->state.visible = k->hidden ? false : true;
+        bool has_opacity = k->has_opacity ? true : false;
+        l->state.alpha = has_opacity ? k->opacity/255.0 : 1;
+        currentCanvas->insertLayer(l,pos); pos++;
+      }
+    }
+  }
+  delete img;
 }
 
 Array<String> getLines(const char *string) {

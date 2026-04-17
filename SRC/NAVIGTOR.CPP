@@ -75,19 +75,26 @@ void drawNavigator() {
   ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height));
   ImGui::Begin("NAVIGATOR", NULL, ImVec2(sidebar_width,navigator_height),1.0,FROZENWINDOW);
   drawDialogs();
-  double x,y; x = mouseX - currentCanvas->screenPosX; y = mouseY - currentCanvas->screenPosY; currentCanvas->transform.transformForward(x,y,x,y);
+
   ImVec2 cursor = ImGui::GetCursorPos();
+  int nameSize = 7*(PICTURENAMEMAX);
+  ImGui::PushItemWidth(nameSize);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9,0.9,0.9,1));
+  ImGui::InputText("##DRAWNAVIGATORPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX);
+  ImGui::PopStyleColor();
+  ImGui::PopItemWidth();
+
+  double x,y; x = mouseX - currentCanvas->screenPosX; y = mouseY - currentCanvas->screenPosY; currentCanvas->transform.transformForward(x,y,x,y);
   int xp = (int)floor(x);
   int yp = (int)floor(y);
   if (!currentCanvas->gridOn) {
-    ImGui::Text("X:%d",xp);
-    ImGui::Text("Y:%d",yp);
+    ImGui::Text("%d %d",xp,yp);
   } else {
     int gridX = (xp - currentCanvas->gridOffsetX+currentCanvas->gridStepX*10000) / currentCanvas->gridStepX-10000;
     int gridY = (yp - currentCanvas->gridOffsetY+currentCanvas->gridStepY*10000) / currentCanvas->gridStepY-10000;
-    ImGui::Text("X:%d[%d]",xp,gridX);
-    ImGui::Text("Y:%d[%d]",yp,gridY);
+    ImGui::Text("%d[%d] %d[%d]",xp,gridX,yp,gridY);
   }
+
   ImGui::SetCursorPos(ImVec2(cursor.x+sidebar_width - navigatorWidth - 10,cursor.y));
   updateNavigatorImage();
   ImVec2 cursor2 = ImGui::GetCursorScreenPos();

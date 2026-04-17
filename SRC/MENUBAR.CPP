@@ -85,6 +85,7 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Load image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
       if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
+      if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
       ImGui::Separator();
       if (ImGui::MenuItem("Export png")) {dialogLoadSave(true,DIALOG_EXPORTPNG);}
       if (ImGui::MenuItem("Save selected layer(s) as single png")) {dialogLoadSave(true,DIALOG_EXPORTLAYERS);}
@@ -106,7 +107,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Rotate +90 degrees")) {currentCanvas->rotate90DegreesForward();}
       if (ImGui::MenuItem("Rotate -90 degrees")) {currentCanvas->rotate90DegreesBackward();}
       ImGui::Separator();
-      if (ImGui::MenuItem("Canvas size")) {dialogCanvas(true);}
+      if (ImGui::MenuItem("Configure canvas")) {dialogCanvas(true);}
       if (ImGui::MenuItem("Resize image")) {dialogImageResize(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Fit canvas to layers")) {currentCanvas->fitCanvasToLayers();}
@@ -119,7 +120,10 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Add layer")) {dialogAddLayer(true);}
       if (ImGui::MenuItem("Delete layer(s)")) {dialogDeleteLayers(true);}
       ImGui::Separator();
+      if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
+      if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
       if (ImGui::MenuItem("Select all layers")) {currentCanvas->selectAllLayers();}
+      if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {currentCanvas->duplicateLayers();}
       ImGui::Separator();
       if (ImGui::MenuItem("Copy layer(s)",NULL,false,one)) {currentCanvas->copy();}
       if (ImGui::MenuItem("Paste",NULL,false,copyLayer != NULL)) {currentCanvas->paste();}
@@ -129,6 +133,8 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Mirror vertically",NULL,false,one)) {currentCanvas->mirrorVerticallyLayers();}
       if (ImGui::MenuItem("Rotate +90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesForwardLayers();}
       if (ImGui::MenuItem("Rotate -90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesBackwardLayers();}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Update layer",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {dialogUpdateLayer(true);}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Selection")) {
@@ -144,7 +150,7 @@ void drawMenuBar() {
     if (ImGui::BeginMenu("View")) {
       on = true;
       bool selected;
-      selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9","",&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; shouldUpdateAll = true;}
+      selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9","",&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); shouldUpdateAll = true;}
       if (ImGui::MenuItem("Zoom in (+)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,zoomStep);}
       if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
       ImGui::Separator();
@@ -158,8 +164,6 @@ void drawMenuBar() {
 
     if (ImGui::BeginMenu("Pictures")) {
       on = true;
-      if (ImGui::MenuItem("Delete picture")) {dialogDeletePicture(true);}
-      ImGui::Separator();
       for (int i = 0; i < canvas.size(); i++) {
         bool isIt = canvas[i] == currentCanvas;
         if (ImGui::MenuItem((String(canvas[i]->pictureName)+String("##MENUBARPICTURES")+String::fromInt(i)).c_str(),NULL,isIt)) {
@@ -167,10 +171,14 @@ void drawMenuBar() {
           shouldUpdateAll = true;
         }
       }
+      ImGui::Separator();
+      if (ImGui::MenuItem("Delete picture")) {dialogDeletePicture(true);}
+      if (ImGui::MenuItem("Insert layers from other picture")) {dialogGetLayersFromPicture(true);}
       ImGui::EndMenu();
     }
 
     if (ImGui::BeginMenu("Help")) {
+      if (ImGui::MenuItem("About")) {dialogAbout(true);}
       on = true;
       ImGui::EndMenu();
     }

@@ -32,11 +32,14 @@ HashMap<String, SVG> svgs;
 #include "STL\NSVGRAST.HPP"
 #include "STL\IMAGE.HPP"
 #include "CONFIG.HPP"
+#include "TOOLBAR.HPP"
 
 #define ICONSCALE (16.0/11.0)
 #define ICONSCALEX (20.0/11.0)
 #define ADDICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,11*ICONSCALE,11*ICONSCALE,1*ICONSCALE,aspectRatio)
 #define ADDICONX(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,11*ICONSCALEX,11*ICONSCALEX,1*ICONSCALEX,aspectRatio)
+
+#define ADDTOOLBARICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/11.0),aspectRatio)
 
 SVG *SVG::free() {
   if (rgba != NULL) {::free(rgba); rgba = NULL;}
@@ -102,8 +105,20 @@ void colorIcon(const char *id, unsigned int color) {
   svg->set(svg->fileName,rgba2,svg->w,svg->h);
 }
 
+void reloadIcons() {
+  svgs.clear();
+  loadBaseSVGs();
+}
+
 void loadBaseSVGs() {
   ADDICON("appicon","3D.SVG");
   ADDICON("search","SEARCH.SVG");
+  double toolbar_width2 = toolbar_width-5;
+  ADDTOOLBARICON("moveTool","SEARCH.SVG");
+  ADDTOOLBARICON("selectionTool","SEARCH.SVG");
+  ADDTOOLBARICON("pencilTool","SEARCH.SVG");
+  ADDTOOLBARICON("paintBrushTool","SEARCH.SVG");
+  ADDTOOLBARICON("eraserTool","SEARCH.SVG");
+  ADDTOOLBARICON("wandTool","SEARCH.SVG");
   colorIcon("appicon",0x00ffffff);
 }

@@ -35,9 +35,6 @@ void drawLayerView() {
   ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height+navigator_height+colorField_height));
   ImGui::Begin("LAYERVIEW", NULL, ImVec2(sidebar_width,main_window_yres-(menuBar_height+navigator_height+colorField_height)),1.0,FROZENWINDOW);
 
-  ImGui::Text("Name"); ImGui::SameLine(); ImGui::InputText("##DRAWLAYERVIEWPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX);
-  ImGui::Separator();
-
   Layer *currentLayer = currentCanvas->getActiveLayer();
   if (currentLayer != NULL) {
     ImGui::PushItemWidth(7*8+16);
@@ -60,9 +57,13 @@ void drawLayerView() {
   if (roundButton("Add layer##LAYERVIEWADLAYER",true)) {
     dialogAddLayer(true);
   }
+  if (roundButton(currentCanvas->justSingle?"Single off##LAYERVIEWSINGLE":"Single on ##LAYERVIEWSINGLE",true)) {
+    currentCanvas->justSingle = !currentCanvas->justSingle;
+    shouldUpdateAll = true;
+  }
   ImGui::SameLine();
-  if (roundButton(hilightSelection?"No highlight##LAYERVIEWHILIGHT":"Hilight layers##LAYERVIEWHILIGHT",true)) {
-    hilightSelection = !hilightSelection;
+  if (roundButton(currentCanvas->hilightSelection?"No highlight##LAYERVIEWHILIGHT":"Hilight layers##LAYERVIEWHILIGHT",true)) {
+    currentCanvas->hilightSelection = !currentCanvas->hilightSelection;
     shouldUpdateAll = true;
   }
 
@@ -77,7 +78,11 @@ void drawLayerView() {
     ImGui::SameLine();
     ImGui::Checkbox((String("##LAYERVIEWCHILDSELECTED")+String::fromInt(i)).c_str(),&l->state.selected);
     ImGui::SameLine();
+    int a = ImGui::GetIO().MouseClicked[0];
+    ImGui::GetIO().MouseClicked[0] = (ImGui::GetIO().MouseClicked[0] && (l->state.imGuiActive))||(ImGui::GetIO().MouseDoubleClicked[0] && (!l->state.imGuiActive));
     ImGui::InputText((String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX);
+    l->state.imGuiActive = ImGui::IsItemActive();
+    ImGui::GetIO().MouseClicked[0] = a;
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y));
 
     ImGui::InvisibleButton("##LAYERVIEWINVISIBLEBUTTON",ImVec2(sidebar_width,CELLSIZE));

@@ -81,6 +81,40 @@ void drawDialogs() {
   dialogSelectByAlpha(false);
   dialogBakeLayers(false);
   dialogNewImage(false);
+  dialogGetLayersFromPicture(false);
+  dialogUpdateLayer(false);
+  dialogAbout(false);
+}
+
+void dialogAbout(bool openIt) {
+  DIALOGSTART("About")
+  ImGui::Text(
+    "WYPA - A SIMPLE PAINT PAINT PROGRAM FOR DOS\n"
+    "dedicated to pixelling for games.\n"
+    "------------------------------------\n"
+    "Coded in early 2026 by\n"
+    "Stefan Mader of Puls4r\n"
+    "------------------------------------\n"
+    "Source is released under the most\n"
+    "common: MIT License. (open source)\n"
+    "------------------------------------\n"
+    "Build date: " __DATE__ "\n"
+    "Build time: " __TIME__ "\n"
+    "Version: %d.%02d\n"
+    "------------------------------------\n"
+    "Wypa is not coded very \"good\"\n"
+    "It's just a proof of concept, since\n"
+    "there where almost no other options\n"
+    "to paint in high resolutions with true color.\n"
+    "------------------------------------\n"
+    "This program is freeware.\n"
+  ,version / 100, version % 100
+  );
+  ImGui::Separator();
+  if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
 }
 
 void dialogCanvas(bool openIt) {
@@ -125,6 +159,15 @@ void dialogCanvas(bool openIt) {
   currentCanvas->canvasY1 = currentCanvas->canvasY0+h;
 
   ImGui::PushItemWidth(64+16*2);
+
+  ImGui::Separator();
+
+  ImGui::Text("");
+  float k2;
+  k2 = (float)currentCanvas->control.pixelSizeX; ImGui::Text("Pixel size x");ImGui::SameLine();if (ImGui::InputFloat("##DIALOGCANVASPIXELSIZEX",&k2,0,0,2)) {currentCanvas->control.pixelSizeX = k2; shouldUpdateAll = true;}
+  k2 = (float)currentCanvas->control.pixelSizeY; ImGui::Text("Pixel size y");ImGui::SameLine();if (ImGui::InputFloat("##DIALOGCANVASPIXELSIZEY",&k2,0,0,2)) {currentCanvas->control.pixelSizeY = k2; shouldUpdateAll = true;}
+
+  ImGui::Text("");
   k = currentCanvas->gridStepX; ImGui::Text("Grid step x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDSTEPX",&k)) {currentCanvas->gridStepX = k;}
   k = currentCanvas->gridStepY; ImGui::Text("Grid step y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDSTEPY",&k)) {currentCanvas->gridStepY = k;}
   k = currentCanvas->gridOffsetX; ImGui::Text("Grid offset x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDOFFSETX",&k)) {currentCanvas->gridOffsetX = k;}
@@ -137,6 +180,7 @@ void dialogCanvas(bool openIt) {
   if (currentCanvas->gridOffsetY > 16384) currentCanvas->gridOffsetY = 16384;
   if (currentCanvas->gridOffsetX < -16384) currentCanvas->gridOffsetX = -16384;
   if (currentCanvas->gridOffsetY < -16384) currentCanvas->gridOffsetY = -16384;
+
   ImGui::PopItemWidth();
 
   if (ImGui::Button("Close##DIALOGCANVASCLOSE")) {
@@ -394,16 +438,103 @@ void dialogNewImage(bool openIt) {
   DIALOGEND()
 }
 
+void dialogGetLayersFromPicture(bool openIt) {
+  static int selected = -1;
+  if (openIt) {
+    selected = -1;
+  }
+  DIALOGSTART("Get selected layers from other picture");
+  ImGui::Text("Insert layers from this picture");
+  ImGui::BeginChild("CHILDDIALOGGETLAYERSFROMPICTURE",ImVec2(main_window_xres/2,main_window_yres/3));
+  for (int i = 0; i < canvas.size(); i++) {
+    int count = 0;
+    for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) {
+      if (currentCanvas->layers[i2]->state.selected||currentCanvas->layers[i2]->state.active) {
+        count++;
+      }
+    }
+
+    if (ImGui::Button((String(selected == i ? ">" : " ")+String("\"")+String(canvas[i]->pictureName) + String("\"  selected layers:") + String::fromInt(count) + String("##DIALOGGETLAYERSFROMPICTURELINE")).c_str())) {
+      selected = i;
+    }
+  }
+  ImGui::EndChild();
+
+  if (selected >= 0 && selected < canvas.size()) {
+    if (ImGui::Button("Get layers##DIALOGGETLAYERSFROMPICTUREGETLAYERS")) {
+      int pos = 0;
+      for (int i = 0; i < currentCanvas->layers.size(); i++) {
+        if (currentCanvas->layers[i]->state.selected||currentCanvas->layers[i]->state.active) {
+          pos = i;
+          break;
+        }
+      }
+      Canvas *otherCanvas = canvas[selected];
+      for (int i2 = 0; i2 < otherCanvas->layers.size(); i2++) {
+        Layer *l = otherCanvas->layers[i2];
+        if (l->state.active || l->state.selected) {
+          Layer *l2 = l->clone();
+          currentCanvas->insertLayer(l2,pos); pos++;
+        }
+      }
+      shouldUpdateAll = true;
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGGETLAYERSFROMPICTURECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogUpdateLayer(bool openIt) {
+  static int expandLeft = 0, expandRight = 0, expandTop = 0, expandBottom = 0;
+  DIALOGSTART("Update layer");
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l != NULL) {
+    ImGui::Text("Old layer pixel data width %d\n", l->width);
+    ImGui::Text("Old layer pixel data height %d\n", l->height);
+    ImGui::Text("");
+    int newWidth = l->width + expandLeft + expandRight;
+    int newHeight = l->height + expandTop + expandBottom;
+    if (newWidth < 1) {newWidth = 1; expandLeft = 0; expandRight = -l->width+1;}
+    if (newHeight < 1) {newHeight = 1; expandTop = 0; expandBottom = -l->height+1;}
+    ImGui::Text("New layer pixel data width %d\n", newWidth);
+    ImGui::Text("New layer pixel data height %d\n", newHeight);
+    ImGui::Text("");
+    ImGui::PushItemWidth(64+16*2);
+    ImGui::Text("Expand top"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDTOP",&expandTop);
+    ImGui::Text("Expand left"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDLEFT",&expandLeft);
+    ImGui::Text("Expand bottom"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDBOTTOM",&expandBottom);
+    ImGui::Text("Expand right"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDRIGHT",&expandRight);
+    ImGui::PopItemWidth();
+    ImGui::Text("");
+    if (ImGui::Button("Apply##DIALOGUPDATELAYERAPPLY")) {
+      l->enlargenLayerBy(expandLeft,expandTop,expandRight,expandBottom);
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGUPDATELAYERCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+
+
 typedef void (*LOADSAVEFUNC)(const char *shortPath, const char *longFileName);
 const char *images = ".png,.jpg,.tga,.bmp,.psd,.gif,.pic,.pnm,.hdr";
 const char *png = ".png";
+const char *psd = ".psd";
 const char *all = "*.*";
 const char *pal = "*.pa2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRaw};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRaw,insertPSD};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {
