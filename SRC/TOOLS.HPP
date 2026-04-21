@@ -24,43 +24,87 @@
 #ifndef __TOOLS_HPP__
 #define __TOOLS_HPP__
 
+#include "STL/GL.H"
 #include "STL/ARRAY.HPP"
+#include <string.h>
 
-class Brush {
+enum BRUSHINSTANCE {
+  BRUSHINSTANCE_PAINT = 0,
+  BRUSHINSTANCE_SELECT = 1,
+  BRUSHINSTANCE_EDIT = 2,
+  BRUSHINSTANCE_COUNT = 3
+};
+
+class BrushInstance {
 public:
-  Brush() {
+  BrushInstance() {
     isPencil = false;
     pixelWidth = 0;
     pixelHeight = 0;
     glHandle = 0;
+  }
+  ~BrushInstance() {
+    if (glHandle != 0) {glDeleteTextures(1,&glHandle); glHandle = 0;}
+  }
+  double pixelWidth;
+  double pixelHeight;
+  bool isPencil;
+  unsigned int glHandle;
+  Array<float> values;
+  void resize(class Brush *base, double newPixelWidth, double newPixelHeight);
+  void update(class Brush *base);
+  void updateGLHandle(bool pencil);
+};
+
+class Brush {
+public:
+  Brush() {
     size = 64;
     pressure = 1;
     softness = 1;
-    outlinedOnGL = false;
+    edginess = 0;
+    ovality = 0;
+    aspect = 1;
+    rotation = 0;
+    memset(instances,0,sizeof(instances));
   }
   ~Brush() {
+    for (int i = 0; i < BRUSHINSTANCE_COUNT; i++) if (instances[i] != NULL) delete instances[i];
   }
-  bool isPencil;
-  double pixelWidth;
-  double pixelHeight;
+  BrushInstance *getCreateInstance(int brushInstance, int w, int h, bool pencil);
+  void freeInstance(int brushInstance);
+  BrushInstance * instances[BRUSHINSTANCE_COUNT];
   float size;
   float pressure;
   float softness;
-  bool outlinedOnGL;
-  unsigned int glHandle;
-  Array<float> values;
-  Brush *clone();
-  void resize(double newPixelWidth, double newPixelHeight);
-  void updateGLHandle();
+  float edginess;
+  float ovality;
+  float aspect;
+  float rotation;
   void update();
 };
 
-extern Brush brush;
-extern Brush pencil;
+extern Array<Brush *> brushes;
+extern int currentBrush;
 
 extern double wandAlphaDistance;
 extern double wandColorDistance;
 extern bool wandByNeighbors;
+
+extern bool pipetteFromLayer;
+
+extern double fillColorDistance;
+
+enum SELECTIONTOOL {
+  SELECTIONTOOL_RECTANGLE,
+  SELECTIONTOOL_ELLIPSE,
+  SELECTIONTOOL_LASSO,
+  SELECTIONTOOL_POLYGON
+};
+
+extern int selectionTool;
+extern bool selectionProportional;
+extern double toolW,toolH;
 
 bool isPaintAreaActive();
 

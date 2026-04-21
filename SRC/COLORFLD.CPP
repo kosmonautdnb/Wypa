@@ -255,8 +255,9 @@ void colorDisplay(ImVec4 *c) {
   ImGui::PopStyleColor();
   ImGui::PopStyleColor();
   ImGui::SameLine();
-  ImGui::BeginChild("COLORCHILD1",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,20*(COLORTRACEBACKS+1)));
+  ImGui::BeginChild("COLORCHILD1",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,20*(COLORTRACEBACKS+1)+20));
   ImGui::Image((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), *c);
+  ImGui::Text("");
   for (int i = 0; i < COLORTRACEBACKS; i++) {
     unsigned int c2 = colorTraceBacks[i];
     ImVec4 c3 = ImVec4((c2&255)/255.f,((c2>>8)&255)/255.f,((c2>>16)&255)/255.f,((c2>>24)&255)/255.f);

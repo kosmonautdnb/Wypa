@@ -151,6 +151,8 @@ void deleteAll() {
   SETUPENTITIES(free);
 }
 
+bool quit = false;
+
 int main(int argc, const char *argv[]) {
 
   appFolder = unixFileName(getPath(argv[0]));
@@ -196,7 +198,6 @@ int main(int argc, const char *argv[]) {
   shouldUpdateAll = true;
   SETUPENTITIES(init);
 
-  bool quit = false;
   while(!quit) {
 
     if (currentKey == GL_VK_ESCAPE) quit = true;

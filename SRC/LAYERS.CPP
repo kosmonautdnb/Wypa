@@ -39,12 +39,19 @@ Array<Canvas*> canvas;
 bool shouldUpdateAll = false;
 bool shouldUpdate = false;
 
+Layer *selectionPlane;
+bool showSelectionPlane = false;
+bool showSelectionPlaneBounding = false;
+
 void initLayers() {
+  selectionPlane = new Layer();
+  selectionPlane->init(10,10);
 }
 
 void freeLayers() {
   for (int i = 0; i < canvas.size(); i++) delete canvas[i];
   canvas.clear();
+  delete selectionPlane;
 }
 
 Matrix inverse2(const Matrix &a) {
@@ -125,7 +132,88 @@ void Layer::setPixel(int x, int y, unsigned int rgba) {
   if ((unsigned int)x<width&&(unsigned int)y<height) pixels[x+y*width] = rgba;
 }
 
+void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
+  int deltaX = x1 - x0;
+  int deltaY = y1 - y0;
+  int delta = abs(deltaX);
+  if (abs(deltaY)>delta) delta = abs(deltaY);
+  if (delta == 0) return;
+  double px = x0;
+  double py = y0;
+  double xa = (double)(x1 - x0)/delta;
+  double ya = (double)(y1 - y0)/delta;
+  for (int i = 0; i < delta+1; i++) {
+    setPixel(px,py,color);
+    px += xa;
+    py += ya;
+  }
+}
+
+void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int or) {
+  int deltaX = x1 - x0;
+  int deltaY = y1 - y0;
+  int delta = abs(deltaX);
+  if (abs(deltaY)>delta) delta = abs(deltaY);
+  if (delta == 0) return;
+  double px = x0;
+  double py = y0;
+  double xa = (double)(x1 - x0)/delta;
+  double ya = (double)(y1 - y0)/delta;
+  for (int i = 0; i < delta+1; i++) {
+    int x = px;
+    int y = py;
+    if ((unsigned int)x<width&&(unsigned int)y<height) {
+      pixels[x+y*width] |= or;
+    }
+    px += xa;
+    py += ya;
+  }
+}
+
+void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
+  int deltaX = x1 - x0;
+  int deltaY = y1 - y0;
+  int delta = abs(deltaX);
+  if (abs(deltaY)>delta) delta = abs(deltaY);
+  if (delta == 0) return;
+  double px = x0;
+  double py = y0;
+  double xa = (double)(x1 - x0)/delta;
+  double ya = (double)(y1 - y0)/delta;
+  for (int i = 0; i < delta+1; i++) {
+    int x = px;
+    int y = py;
+    if ((unsigned int)x<width&&(unsigned int)y<height) {
+      pixels[x+y*width] ^= eor;
+    }
+    px += xa;
+    py += ya;
+  }
+}
+
+void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
+  if (y1 == y0) return;
+  if (y1 < y0) {
+    int t;
+    t = x0; x0 = x1; x1 = t;
+    t = y0; y0 = y1; y1 = t;
+  }
+  double px = x0;
+  int py = y0;
+  double xa = (double)(x1 - x0)/(y1-y0);
+  for (int i = 0; i < y1-y0; i++) {
+    int x = px;
+    int y = py;
+    if ((unsigned int)x<width&&(unsigned int)y<height) {
+      pixels[x+y*width] ^= eor;
+    }
+    px += xa;
+    py ++;
+  }
+}
+
 void Layer::init(int width, int height) {
+  if (width*height == 0) return;
   transform.clear();
   state.clear();
   mode = LAYERMODE_NORMAL;
@@ -147,6 +235,14 @@ void Layer::init(int width, int height) {
   memset(pixelStates,0,width*height*sizeof(unsigned char));
   this->width = width;
   this->height = height;
+}
+
+void Layer::clear() {
+  if (pixels == NULL) return;
+  if (pixelStates == NULL) return;
+  if (width*height == 0) return;
+  memset(pixels,0,width*height*sizeof(unsigned int));
+  memset(pixelStates,0,width*height*sizeof(unsigned char));
 }
 
 void Layer::mirrorHorizontally() {
@@ -265,6 +361,31 @@ void Layer::selectByAlpha(int alphaThreshold) {
   for (int i = 0; i < width * height; i++) {
     pixelStates[i] = pixelStates[i] & (~PIXELSTATE_SELECTED);
     if ((pixels[i]>>24) >= alphaThreshold) pixelStates[i] |= PIXELSTATE_SELECTED;
+  }
+  shouldUpdateAll = true;
+}
+
+void Layer::selectionAsOutline() {
+  int addX[] = {-1,1,0,0};
+  int addY[] = {0,0,-1,1};
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int pos = x + y * width;
+      pixelStates[pos] &= ~PIXELSTATE_TEMP;
+      if (!(pixelStates[pos] & PIXELSTATE_SELECTED)) {
+        bool outline = false;
+        for (int i = 0; i <= 4; i++) {
+          int x3 = x + addX[i];
+          int y3 = y + addY[i];
+          int pos3 = x3 + y3 * width;
+          if ((unsigned int)x3 < width && (unsigned int)y3 < height && (pixelStates[pos3] & PIXELSTATE_SELECTED)) pixelStates[pos3] |= PIXELSTATE_TEMP;
+        }
+      }
+    }
+  }
+  for (int i = 0; i  < width * height; i++) {
+    pixelStates[i] &= ~PIXELSTATE_SELECTED;
+    if (pixelStates[i] & PIXELSTATE_TEMP) pixelStates[i] |= PIXELSTATE_SELECTED;
   }
   shouldUpdateAll = true;
 }
@@ -632,6 +753,15 @@ void Canvas::getLayerPos(Layer *layer, double screenX, double screenY, double &l
   layerY = y;
 }
 
+void Canvas::getLayerPosFromCanvasPos(Layer *layer, double canvasX, double canvasY, double &layerX, double &layerY) {
+  double x,y;
+  x = (double)canvasX;
+  y = (double)canvasY;
+  layer->transform.transformForward(x,y,x,y);
+  layerX = x;
+  layerY = y;
+}
+
 void Canvas::getCanvasPos(double screenX, double screenY, double &canvasX, double &canvasY) {
   double x,y;
   x = (double)screenX-screenPosX;
@@ -658,6 +788,27 @@ void Canvas::getScreenPos(Layer *layer, double layerX, double layerY, double &sc
   transform.transformBackward(x,y,x,y);
   screenX = x+screenPosX;
   screenY = y+screenPosY;
+}
+
+unsigned int Canvas::getCanvasColor(double screenX, double screenY) {
+  int x = (int)floor(screenX - screenPosX);
+  int y = (int)floor(screenY - screenPosY);
+  if ((unsigned int)x >= width || (unsigned int)y >= height) return 0;
+  return pixels[x+y*width];
+}
+
+unsigned int Canvas::getLayerColor(double screenX, double screenY) {
+  for (int i = 0; i < layers.size(); i++) {
+    Layer *l = layers[i];
+    if (l->state.active || l->state.selected) {
+      double lx, ly; getLayerPos(l,screenX,screenY,lx,ly);
+      int x = floor(lx), y = floor(ly);
+      if ((unsigned int)x < l->width && (unsigned int)y < l->height) {
+        return l->pixels[x+y*l->width];
+      }
+    }
+  }
+  return 0;
 }
 
 bool justSelection = false;
@@ -1319,6 +1470,16 @@ void Canvas::selectByAlpha(int alphaThreshold) {
   }
 }
 
+void Canvas::selectionAsOutline() {
+  bool one = false; 
+  bool two = false; 
+  for (int i = 0; i < layers.size(); i++) {Layer *l = layers[i]; if (l->state.selected) one = true; if (l->state.active) two = true;}
+  for (int i2 = 0; i2 < layers.size(); i2++) {
+    Layer *l = layers[i2];
+    if ((one && l->state.selected) || ((!one)&&l->state.active) || ((!one)&&(!two))) l->selectionAsOutline();
+  }
+}
+
 void Canvas::selectAllLayers() {
   for (int i = 0; i < layers.size(); i++) {layers[i]->state.selected = true;layers[i]->state.active = false;}
   shouldUpdateAll = true;
@@ -1526,6 +1687,29 @@ Vector Canvas::boundingBox() {
   return ret;
 }
 
+Vector Canvas::getLayerPixelBounding(Layer *l, double canvasX0, double canvasY0, double canvasX1, double canvasY1) {
+  Vector ret;
+  bool first = true;
+  for (int i = 0; i < 4; i++) {
+    Vector k(i & 1 ? canvasX1 : canvasX0, i & 2 ? canvasY1 : canvasY0,0);
+    k = l->transform.transformation * k;
+    if (first || k.x < ret.x) ret.x = k.x;
+    if (first || k.y < ret.y) ret.y = k.y;
+    if (first || k.x > ret.z) ret.z = k.x;
+    if (first || k.y > ret.w) ret.w = k.y;
+    first = false;
+  }
+  if (ret.x < 0) ret.x =0;
+  if (ret.y < 0) ret.y =0;
+  if (ret.x > l->width-1) ret.x = l->width-1; // not perfect but ok
+  if (ret.y > l->height-1) ret.y = l->height-1; // not perfect but ok
+  if (ret.z > l->width) ret.z = l->width;
+  if (ret.w > l->height) ret.w = l->height;
+  if (ret.z < 0) ret.z = 0;
+  if (ret.w < 0) ret.w = 0;
+  return ret;
+}
+
 void Canvas::setBoundingPos(double x, double y) {
   Vector k = boundingBox();
   if (k.z-k.x<=0) return;
@@ -1599,6 +1783,23 @@ void repaintLayer(Layer *layer, bool fullUpdate) {
   shouldUpdate = true;
 }
 
+void alphaPixel(int x, int y, unsigned int col) {
+  if ((unsigned int)x >= glFrameBufferWidth || (unsigned int)y >= glFrameBufferHeight) return;
+  unsigned int p = glFrameBuffer[x+y*glFrameBufferWidth];
+  int sr = col & 255;
+  int sg = (col>>8) & 255;
+  int sb = (col>>16) & 255;
+  int sa = (col>>24) & 255;
+  int dr = p & 255;
+  int dg = (p>>8) & 255;
+  int db = (p>>16) & 255;
+  int da = (p>>24) & 255;
+  int r = (sr-dr)*sa/255+dr;
+  int g = (sg-dg)*sa/255+dg;
+  int b = (sb-db)*sa/255+db;
+  glFrameBuffer[x+y*glFrameBufferWidth] = r|(g<<8)|(b<<16)|(p & 0xff000000);
+}
+
 void blitCanvas() {
   int count = 0;
   Layer *repaintLayer = NULL;
@@ -1623,10 +1824,15 @@ void blitCanvas() {
     shouldUpdateAll = false;
     shouldUpdate = false;
   }
+  Matrix sp = selectionPlane->transform.transformation;
   int time = (int)(glSeconds()*8.0);
   Matrix m = currentCanvas->transform.transformation;
   int gridValX = -currentCanvas->gridOffsetX+currentCanvas->gridStepX * 10000;
   int gridValY = -currentCanvas->gridOffsetY+currentCanvas->gridStepY * 10000;
+  int selectionX0 = -1;
+  int selectionY0 = -1;
+  int selectionX1 = -1;
+  int selectionY1 = -1;
   for (int y = 0; y < currentCanvas->height; y++) {
     int dy = y + currentCanvas->screenPosY;
     if ((unsigned int)dy >= glFrameBufferHeight) continue;
@@ -1685,7 +1891,57 @@ void blitCanvas() {
           }
         }
       }
+      if (showSelectionPlane) {
+        double lxs = lx3*sp.m[0+0*4]+ly3*sp.m[0+1*4]+sp.m[0+3*4];
+        double lys = lx3*sp.m[1+0*4]+ly3*sp.m[1+1*4]+sp.m[1+3*4];
+        int lx = (int)lxs;
+        int ly = (int)lys;
+        if (lx == 0) lx = (int)floor(lxs);
+        if (ly == 0) ly = (int)floor(lys);
+        if ((unsigned int)lx < selectionPlane->width &&  (unsigned int)ly < selectionPlane->height) {
+          unsigned int s = selectionPlane->pixels[lx+ly*selectionPlane->width];
+          if (s != 0) {
+            s = (((x+y+time)/4) & 1) ? 0xffffffff : 0xff0000ff;
+            int r = (col & 255)>>1;
+            int g = ((col>>8) & 255)>>1;
+            int b = ((col>>16) & 255)>>1;
+            r += (s & 255)>>1;
+            g += ((s>>8) & 255)>>1;
+            b += ((s>>16) & 255)>>1;
+            col = (r)|(g<<8)|(b<<16)|(col & 0xff000000);
+            if (showSelectionPlaneBounding) {
+              bool first = selectionX0<0;
+              if (first || dx < selectionX0) selectionX0 = dx;
+              if (first || dy < selectionY0) selectionY0 = dy;
+              if (first || dx > selectionX1) selectionX1 = dx;
+              if (first || dy > selectionY1) selectionY1 = dy;
+            }
+          }
+        }
+      }
       glFrameBuffer[dx+dy*glFrameBufferWidth] = col;
+    }
+  }
+  if (selectionX0>=0 && showSelectionPlaneBounding) {
+    selectionX0 -= 1;
+    selectionY0 -= 1;
+    selectionX1 += 1;
+    selectionY1 += 1;
+    unsigned int col = ((time/4) & 1) ? 0x40ffffff : 0x400000ff;
+
+    for (int x = selectionX0; x <= selectionX1; x++) {
+      if (x >= 0 && x < glFrameBufferWidth) {
+        int y;
+        y = selectionY0; if (y >= 0 && y < glFrameBufferHeight) alphaPixel(x,y,col);
+        y = selectionY1; if (y >= 0 && y < glFrameBufferHeight) alphaPixel(x,y,col);
+      }
+    }
+    for (int y = selectionY0; y <= selectionY1; y++) {
+      if (y >= 0 && y < glFrameBufferHeight) {
+        int x;
+        x = selectionX0; if (x >= 0 && x < glFrameBufferWidth) alphaPixel(x,y,col);
+        x = selectionX1; if (x >= 0 && x < glFrameBufferWidth) alphaPixel(x,y,col);
+      }
     }
   }
 }

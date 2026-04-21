@@ -55,6 +55,30 @@ void drawToolWandView() {
   ImGui::Text("Surrounding"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors);
 }
 
+void drawToolFillView() {
+  float k;
+  k = fillColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLFILLCOLORDISTANCE",&k,0,256)) {fillColorDistance = k;}
+}
+
+void drawToolSelectionView() {
+    if (shift) {ImGui::Text("Add selection");} 
+  else
+    if (ctrl) {ImGui::Text("Remove selection");} 
+  else
+    ImGui::Text("");
+  ImGui::RadioButton("Rectangle##DRAWTOOLSELECTIONVIEWRECT",&selectionTool,SELECTIONTOOL_RECTANGLE);
+  ImGui::RadioButton("Ellipse##DRAWTOOLSELECTIONVIEWELLIPSE",&selectionTool,SELECTIONTOOL_ELLIPSE);
+  ImGui::RadioButton("Lasso##DRAWTOOLSELECTIONVIEWLASSO",&selectionTool,SELECTIONTOOL_LASSO);
+  ImGui::RadioButton("Polygon##DRAWTOOLSELECTIONVIEWPOLYGON",&selectionTool,SELECTIONTOOL_POLYGON);
+  ImGui::Separator();
+  switch(selectionTool) {
+    case SELECTIONTOOL_ELLIPSE:
+    case SELECTIONTOOL_RECTANGLE: {
+      ImGui::Text("Proportional"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLSELECTIONVIEWPROPORTIONAL",&selectionProportional);
+    } break;
+  }
+}
+
 bool notInt(double v) {
   return fabs(v - floor(v))>0.0000001;
 }
@@ -116,34 +140,101 @@ void drawToolMoveView() {
   }
 }
 
-void drawBrushWindow(Brush *brush, int w, int h, bool pencil) {
+bool drawBrushWindow(const char *id, int instanceId, Brush *brush, int w, int h, bool pencil, bool selected) {
   h = h * aspectRatio * main_window_yres / main_window_xres;
-  if (brush->pixelWidth != w || brush->pixelHeight != h || brush->isPencil != pencil) {
-    brush->isPencil = pencil;
-    brush->resize(w,h);
-  } 
-  ImGui::Image((ImTextureID)brush->glHandle,ImVec2(w,h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,1),ImVec4(0,0,0,0.25));
+  BrushInstance *v = brush->getCreateInstance(instanceId,w,h,pencil);
+  ImVec2 cursor = ImGui::GetCursorScreenPos();
+  ImGui::PushID((String(id)+"_").c_str());
+  ImGui::Image((ImTextureID)v->glHandle,ImVec2(w,h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,1));
+  if (selected) ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(cursor.x,cursor.y),ImVec2(cursor.x+w,cursor.y+h),0x400000ff);
+  ImGui::PopID();
+  ImGui::SetCursorScreenPos(cursor);
+  bool ret = ImGui::InvisibleButton(id,ImVec2(w,h));
+  return ret;
 }
 
-void drawBrushEdit(Brush *brush, bool pencil) {
-  drawBrushWindow(brush,toolview_width-10,toolview_width-10, pencil);
+void insertBrush() {
+  if ((unsigned int)currentBrush>=brushes.size()) return;
+  brushes.insert(new Brush(),currentBrush);
+}
+
+void eraseBrush() {
+  if ((unsigned int)currentBrush>=brushes.size()) return;
+  delete brushes[currentBrush];
+  brushes.erase(currentBrush,1);
+  if ((!brushes.empty()) && currentBrush>=brushes.size()) currentBrush = brushes.size()-1;
+}
+
+void drawBrushSelect(bool pencil) {
+  int toolButtonXCount = 4;
+  int toolButtonYCount = 4;
+  int toolButtonHeight = (toolview_width - 16) / toolButtonXCount - 4;
+  int toolButtonWidth = toolButtonHeight;
+  if (roundButton("Insert##DRAWBRUSHSELECTINSERTBRUSH",true)) {insertBrush();}
+  ImGui::SameLine();
+  if (roundButton("Erase##DRAWBRUSHSELECTERASEBRUSH",true)) {eraseBrush();}
+  ImGui::Text("Brushes %d",brushes.size());
+  ImGui::BeginChild("DRAWBRUSHSELECTCHILD", ImVec2(toolview_width,toolButtonHeight*toolButtonYCount));
+  for (int i = 0; i < brushes.size(); i++) {
+    if ((i % toolButtonXCount) != 0) ImGui::SameLine();
+    Brush *brush = brushes[i];
+    if (drawBrushWindow((String("##DRAWBRUSHSELECT")+String::fromInt(i)).c_str(),BRUSHINSTANCE_SELECT,brush,toolButtonWidth,toolButtonHeight, pencil, i == currentBrush)) {
+      brushes[currentBrush]->freeInstance(BRUSHINSTANCE_PAINT);
+      brushes[currentBrush]->freeInstance(BRUSHINSTANCE_EDIT);
+      currentBrush = i;
+    }
+  }
+  ImGui::EndChild();
+  roundButton("Load##DRAWBRUSHSELECTLOADBRUSH",true);
+  ImGui::SameLine();
+  roundButton("Save##DRAWBRUSHSELECTSAVEBRUSH",true);
+  roundButton("Load brushes##DRAWBRUSHSELECTLOADBRUSHES",true);
+  roundButton("Save brushes##DRAWBRUSHSELECTSAVEBRUSHES",true);
+  ImGui::Separator();
+}
+
+void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
+  drawBrushWindow(id,BRUSHINSTANCE_EDIT,brush,toolview_width-10,toolview_width-10, pencil,false);
   ImGui::Text("Size");
   if (ImGui::SliderFloat("##DRAWBRUSHEDITSIZE",&brush->size,1,128)) {if (brush->size<1) brush->size = 1; if (brush->size>128) brush->size = 128; brush->update();}
+  ImGui::Text("Aspect");
+  if (ImGui::SliderFloat("##DRAWBRUSHEDITASPECT",&brush->aspect,1,8)) {if (brush->aspect<1) brush->aspect = 0; if (brush->aspect>8) brush->aspect = 8; brush->update();}
+  ImGui::Text("Rotation");
+  if (ImGui::SliderFloat("##DRAWBRUSHEDITROTATION",&brush->rotation,0,360)) {if (brush->rotation<0) brush->rotation = 0; if (brush->rotation>360) brush->rotation = 360; brush->update();}
   if (!pencil) {
     ImGui::Text("Pressure");
     if (ImGui::SliderFloat("##DRAWBRUSHEDITPRESSURE",&brush->pressure,0,16)) {if (brush->pressure<0) brush->pressure = 0; brush->update();}
     ImGui::Text("Softness");
     float k = brush->softness-1; if (ImGui::SliderFloat("##DRAWBRUSHEDITSOFTNESS",&k,-1,1)) {if (k<-1) k = -1; if (k>1) k = 1; brush->softness = k + 1; brush->update();}
   }
-  ImGui::Text("Just outline"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWBRUSHEDITOUTLINE",&brush->outlinedOnGL)) {brush->update();}
+  ImGui::Text("Edginess");
+  if (ImGui::SliderFloat("##DRAWBRUSHEDITEDGINESS",&brush->edginess,0,1)) {if (brush->edginess<0) brush->edginess = 0; if (brush->edginess>1) brush->edginess = 1; brush->update();}
+  ImGui::Text("Ovality");
+  if (ImGui::SliderFloat("##DRAWBRUSHEDITOVALITY",&brush->ovality,0,1)) {if (brush->ovality<0) brush->ovality = 0; if (brush->ovality>1) brush->ovality = 1; brush->update();}
 }
 
 void drawToolPencilView() {
-  drawBrushEdit(&pencil,true);
+  drawBrushSelect(true);
+  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLPENCILVIEWEDIT",brushes[currentBrush],true);
 }
 
 void drawToolBrushView() {
-  drawBrushEdit(&brush,false);
+  drawBrushSelect(false);
+  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLBRUSHVIEWEDIT",brushes[currentBrush],false);
+}
+
+void drawToolEraserView() {
+  drawBrushSelect(true);
+  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLERASERVIEWEDIT",brushes[currentBrush],true);
+}
+
+void drawToolMagicView() {
+  drawBrushSelect(false);
+  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLMAGICVIEWEDIT",brushes[currentBrush],false);
+}
+
+void drawToolPipetteView() {
+  if (roundButton(pipetteFromLayer ? "From picture##DRAWTOOLPIPETTEVIEWLAYER" : "From layer##DRAWTOOLPIPETTEVIEWLAYER", true)) {pipetteFromLayer = !pipetteFromLayer;}
 }
 
 void drawToolView() {
@@ -163,6 +254,21 @@ void drawToolView() {
     } break;
   case TOOL_PAINTBRUSH: {
       drawToolBrushView();
+    } break;
+  case TOOL_ERASER: {
+      drawToolEraserView();
+    } break;
+  case TOOL_PIPETTE: {
+      drawToolPipetteView();
+    } break;
+  case TOOL_FILL: {
+      drawToolFillView();
+    } break;
+  case TOOL_SELECTION: {
+      drawToolSelectionView();
+    } break;
+  case TOOL_MAGIC: {
+      drawToolMagicView();
     } break;
   }
   ImGui::End();

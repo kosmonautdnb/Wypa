@@ -102,7 +102,7 @@ enum PIXELSTATES {
   PIXELSTATE_NONE = 0,
   PIXELSTATE_UPDATED = 1,
   PIXELSTATE_SELECTED = 2,
-  PIXELSTATE_FILLED = 4
+  PIXELSTATE_TEMP = 4
 };
 
 enum REPAINTSTATES {
@@ -151,8 +151,13 @@ public:
 
   unsigned int getPixel(int x, int y);
   void setPixel(int x, int y, unsigned int rgba);
+  void pixelLine(int x0, int y0, int x1, int y1, unsigned int color);
+  void pixelLineOr(int x0, int y0, int x1, int y1, unsigned int or);
+  void pixelLineEor(int x0, int y0, int x1, int y1, unsigned int eor);
+  void pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int eor);
 
   void init(int width, int height);
+  void clear();
 
   void mirrorHorizontally();
   void mirrorVertically();
@@ -166,6 +171,7 @@ public:
   void fillSelectionWithColor(unsigned int color);
   void expandSelection(int pixels);
   void selectByAlpha(int alphaThreshold);
+  void selectionAsOutline();
 
   bool hasSelection();
   Vector boundingBox();
@@ -271,9 +277,13 @@ public:
   void init(int width, int height);
 
   void getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY);
+  void getLayerPosFromCanvasPos(Layer *layer, double canvasX, double canvasY, double &layerX, double &layerY);
   void getCanvasPos(double screenX, double screenY, double &canvasX, double &canvasY);
   void getScreenPos(double canvasX, double canvasY, double &screeenX, double &screenY);
   void getScreenPos(Layer *layer, double layerX, double layerY, double &screenX, double &screenY);
+
+  unsigned int getCanvasColor(double screenX, double screenY);
+  unsigned int getLayerColor(double screenX, double screenY);
 
   void updateRegion(int screenX0, int screenY0, int screenX1, int screenY1);
   void update(bool forceUpdate);
@@ -300,6 +310,7 @@ public:
   void invertSelection();
   bool hasSelection();
   void selectByAlpha(int alphaThreshold);
+  void selectionAsOutline();
   void selectAllLayers();
   void showAllLayers(bool show);
 
@@ -320,6 +331,7 @@ public:
   void noSelectedLayers();
 
   Vector boundingBox();
+  Vector getLayerPixelBounding(Layer *l, double canvasX0, double canvasY0, double canvasX1, double canvasY1);
   void setBoundingPos(double x, double y);
   void setBoundingSize(double width, double height);
   double getBoundingAngleDegrees();
@@ -330,6 +342,9 @@ extern Canvas *currentCanvas;
 extern Array<Canvas*> canvas;
 extern bool shouldUpdateAll;
 extern bool shouldUpdate;
+extern Layer *selectionPlane;
+extern bool showSelectionPlane;
+extern bool showSelectionPlaneBounding;
 
 void repaintLayer(Layer *layer, bool fullUpdate);
 void blitCanvas();

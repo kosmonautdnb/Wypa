@@ -29,6 +29,7 @@
 #include "IMGUI/IMGUI.H"
 #include "IMGUI/IMGUIGL.HPP"
 #include "DIALOGS.HPP"
+#include "TOOLS.HPP"
 #include <math.h>
 
 int navigator_height = 68;
@@ -115,7 +116,9 @@ void drawNavigator() {
     int gridY = (yp - currentCanvas->gridOffsetY+currentCanvas->gridStepY*10000) / currentCanvas->gridStepY-10000;
     ImGui::Text("%d[%d] %d[%d]",xp,gridX,yp,gridY);
   }
-
+  if (toolW >= 0 || toolH >= 0) {
+    ImGui::Text("%d %d",(int)ceil(toolW),(int)ceil(toolH));
+  }
   ImGui::SetCursorPos(ImVec2(cursor.x+sidebar_width - navigatorWidth - 10,cursor.y));
   updateNavigatorImage();
   ImVec2 cursor2 = ImGui::GetCursorScreenPos();

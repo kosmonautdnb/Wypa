@@ -88,6 +88,7 @@ void drawDialogs() {
   dialogGetLayersFromPicture(false);
   dialogUpdateLayer(false);
   dialogAbout(false);
+  dialogExit(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -116,6 +117,22 @@ void dialogAbout(bool openIt) {
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+extern bool quit;
+
+void dialogExit(bool openIt) {
+  DIALOGSTART("Exit")
+  ImGui::Text("Do you really want to exit? Did you save all your work?");
+  if (ImGui::Button("Exit##DIALOGEXITEXIT")) {
+    quit = true;
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGEXITCLOSE")) {
     ImGui::CloseCurrentPopup();
   }
   DIALOGEND()
@@ -571,7 +588,7 @@ void sortFileNames(Array<File> &files, int column, bool sortOrder) {
 }
 
 unsigned int dialogLoadSaveGameObjectUniqueId = 0;
-String dialogLoadSaveSetFileNameAndPath;
+String dialogLoadSaveSetFileNameAndPath="";
 int dialogLoadSaveModeId = 0;
 
 LOADSAVEFUNC loadSaveFunc = NULL; 
@@ -651,7 +668,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   static bool sortingOrder[4] = {false};
   static String paths[DIALOG_COUNT];
   static String fileNames[DIALOG_COUNT];
-  static String path2;
+  static String path2 = "";
   static String scrollToFileName;
   static String returnToPath;
   static int scrollToHelper = 0;
@@ -736,8 +753,9 @@ void dialogLoadSave(bool openIt, int dialogMode) {
     paths[mode] = appFolder;
     needsRescanFiles=true;
   }
+
   ImGui::SameLine();
-  ImGui::TextWrapped("%s",path2.c_str());
+  ImGui::Text("%s",path2.c_str()); // Text Wrapped has no window Size here
   ImGui::Separator();
   if (paths[mode].length() > 3 && ImGui::Button("..##DIALOGLOADSAVEPATHBACK")) {
     int k = paths[mode].substr(0,paths[mode].length()-1).findLast("/");
@@ -757,7 +775,6 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::Separator();
   int w = main_window_xres/2;
   int h = main_window_yres/2;
-
   if (!driveReady) {
     if (ImGui::Button("Drive not ready.. Retry.##DIALOGLOADSAVERETRY")) {
       needsRescanFiles = true;

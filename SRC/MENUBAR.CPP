@@ -97,7 +97,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Save selected layer(s) as single png")) {dialogLoadSave(true,DIALOG_EXPORTLAYERS);}
       if (ImGui::MenuItem("Save selected layer(s) as multiple pngs")) {dialogLoadSave(true,DIALOG_EXPORTLAYERSRAW);}
       ImGui::Separator();
-      if (ImGui::MenuItem("Exit")) {}
+      if (ImGui::MenuItem("Exit")) {dialogExit(true);}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Edit")) {
@@ -151,6 +151,7 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Expand/shrink selection")) {dialogExpandShrinkSelection(true);}
       if (ImGui::MenuItem("Select by alpha")) {dialogSelectByAlpha(true);}
+      if (ImGui::MenuItem("Selection as outline")) {currentCanvas->selectionAsOutline();}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("View")) {
