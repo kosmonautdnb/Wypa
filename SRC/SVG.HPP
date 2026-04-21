@@ -36,6 +36,9 @@ public:
     h = -1;
     rgba = NULL;
   }
+  ~SVG() {
+    SVG::free();
+  }
   const char *fileName;
   unsigned int glHandle;
   int w,h;

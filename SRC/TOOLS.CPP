@@ -33,6 +33,92 @@
 #include "SERIALZE.HPP"
 #include <math.h>
 
+Brush brush;
+Brush pencil;
+
+double sign2(double a) {
+  return a < 0 ? -1 : a == 0 ? 0 : 1;
+}
+
+void initTools() {
+}
+
+void freeTools() {
+}
+
+void Brush::resize(double newPixelWidth, double newPixelHeight) {
+  if (newPixelWidth<2) return;
+  if (newPixelHeight<2) return;
+  pixelWidth = (int)ceil(newPixelWidth);
+  pixelHeight = (int)ceil(newPixelHeight);
+  values.resize(pixelWidth*pixelHeight);
+  double xf = size < 1 ? 1 : newPixelHeight/size;
+  double yf = xf;
+  double ax = (newPixelWidth-floor(newPixelWidth))*0.5;
+  double ay = (newPixelHeight-floor(newPixelHeight))*0.5;
+  for (int y = 0; y < pixelHeight; y++) {
+    for (int x = 0; x < pixelWidth; x++) {
+      double dx = (double)(x-ax) / newPixelWidth * 2.0 - 1.0;
+      double dy = (double)(y-ay) / newPixelHeight * 2.0 - 1.0;
+      dx *= xf;
+      dy *= yf;
+      double d = 1-sqrt(dx*dx+dy*dy);
+      d = sign2(d)*pow(fabs(d),softness);
+      d *= pressure;
+      if (d > 1) d = 1;
+      values[x+y*pixelWidth] = d;
+    }
+  }
+  updateGLHandle();
+}
+
+void Brush::update() {
+  resize(pixelWidth,pixelHeight);
+}
+
+Brush *Brush::clone() {
+  Brush *ret = new Brush();
+  *ret = *this;
+  ret->glHandle = 0;
+  ret->updateGLHandle();
+  return ret;
+}
+
+void Brush::updateGLHandle() {
+  if (glHandle != 0) {glDeleteTextures(1,&glHandle); glHandle = 0;}
+  glGenTextures(1,&glHandle);
+  glBindTexture(GL_TEXTURE_2D,glHandle);
+  Array<unsigned char> temp;
+  temp.resize(values.size());
+  if (!isPencil) 
+    for (int i = 0; i < temp.size(); i++) {temp[i] = values[i]>=0?values[i]*255:0;}
+  else
+    for (int i = 0; i < temp.size(); i++) {temp[i] = values[i]>=0?255:0;}
+
+  if (outlinedOnGL) {
+    for (int y = 0; y < pixelHeight; y++) {
+      for (int x = 0; x < pixelWidth; x++) {
+        bool outlineHere = false;
+        int pos = x + y * pixelWidth;
+        if (values[pos]<0) {
+          if (x>0&&values[pos-1]>=0) outlineHere = true;
+          if (y>0&&values[pos-pixelWidth]>=0) outlineHere = true;
+          if (x<pixelWidth-1&&values[pos+1]>=0) outlineHere = true;
+          if (y<pixelHeight-1&&values[pos+pixelWidth]>=0) outlineHere = true;
+        }
+        if (outlineHere) temp[pos] = 0xff; else temp[pos] = 0x00;
+      }
+    }
+  }
+
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, pixelWidth, pixelHeight, 0, GL_ALPHA, GL_BYTE, &temp[0]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
 bool isPaintAreaActive() {
   return (!ImGui::GetIO().WantCaptureMouse) && (!ImGui::GetIO().WantCaptureKeyboard);
 }

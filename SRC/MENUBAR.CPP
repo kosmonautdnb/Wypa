@@ -66,6 +66,9 @@ void initMenuBar() {
   setMouseSensitivity();
 }
 
+void freeMenuBar() {
+}
+
 void drawMenuBar() {
   bool on = false;
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10,1));
@@ -77,7 +80,10 @@ void drawMenuBar() {
   double canvasPixelCenterY = currentCanvas->height/2 + currentCanvas->screenPosY;
   if (ImGui::BeginMainMenuBar()) {
     SVG *svg = &svgs["appicon"];
-    ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    ImGui::Image((ImTextureID)0,ImVec2(svg->w,svg->h));
+    cursor.y -= 4;
+    ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
     ImGui::SameLine();
     if (ImGui::BeginMenu("File")) {
       on = true;

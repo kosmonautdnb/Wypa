@@ -133,6 +133,24 @@ void screenSaver() {
   }
 }
 
+extern Array<Canvas *> canvas;
+
+#define SETUPENTITIES(__prefix__) \
+  __prefix__##ColorField();   \
+  __prefix__##Navigator();\
+  __prefix__##MenuBar();\
+  __prefix__##Dialogs();\
+  __prefix__##ToolBar();\
+  __prefix__##ToolView();\
+  __prefix__##LayerView();\
+  __prefix__##Layers();\
+  __prefix__##Tools();
+
+
+void deleteAll() {
+  SETUPENTITIES(free);
+}
+
 int main(int argc, const char *argv[]) {
 
   appFolder = unixFileName(getPath(argv[0]));
@@ -176,12 +194,7 @@ int main(int argc, const char *argv[]) {
   addTempPicture();
   currentCanvas->control.setCanvasTransform(currentCanvas);
   shouldUpdateAll = true;
-  initColorField();   
-  initNavigator();
-  initMenuBar();
-  initDialogs();
-  initToolBar();
-  initToolView();
+  SETUPENTITIES(init);
 
   bool quit = false;
   while(!quit) {
@@ -247,6 +260,8 @@ int main(int argc, const char *argv[]) {
   printf("www.github.com/kosmonautdnb/wypa\n");
   printf("-----------------------\n");
   printf("Have a good day and maybe till next time.\n");
+
+  deleteAll();
 
   return 0;
 }

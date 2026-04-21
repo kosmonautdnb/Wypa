@@ -34,12 +34,16 @@ HashMap<String, SVG> svgs;
 #include "CONFIG.HPP"
 #include "TOOLBAR.HPP"
 
-#define ICONSCALE (16.0/11.0)
-#define ICONSCALEX (20.0/11.0)
-#define ADDICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,11*ICONSCALE,11*ICONSCALE,1*ICONSCALE,aspectRatio)
-#define ADDICONX(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,11*ICONSCALEX,11*ICONSCALEX,1*ICONSCALEX,aspectRatio)
+#define APPICONSCALE (25.0/17.0)
+#define ADDAPPICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,17*APPICONSCALE,17*APPICONSCALE,1*APPICONSCALE,aspectRatio)
 
-#define ADDTOOLBARICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/11.0),aspectRatio)
+#define ICONSCALE (16.0/11.0)
+#define ADDICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,11*ICONSCALE,11*ICONSCALE,1*ICONSCALE,aspectRatio)
+
+#define ICON2SCALE (16.0/24.0)
+#define ADDICON2(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,24*ICON2SCALE,24*ICON2SCALE,1*ICON2SCALE,aspectRatio)
+
+#define ADDTOOLBARICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/24.0),aspectRatio)
 
 SVG *SVG::free() {
   if (rgba != NULL) {::free(rgba); rgba = NULL;}
@@ -90,35 +94,26 @@ void addSVG(const char *id, const char *fileName, int width, int height,double s
   svgs[id].set(fileName,img3.data,img3.width,img3.height);
 }
 
-void colorIcon(const char *id, unsigned int color) {
-  if (!svgs.has(id)) return;
-  SVG *svg = &svgs[id];
-  unsigned int* rgba2 = (unsigned int*)malloc(svg->w*svg->h*4);
-  for (int i = 0; i < svg->w*svg->h; i++) {
-    unsigned int rgba = svg->rgba[i];
-    int r = color & 255;
-    int g = (color>>8) & 255;
-    int b = (color>>16) & 255;
-    int a = (rgba>>24) & 255;
-    rgba2[i] = (r)|(g<<8)|(b<<16)|(a<<24);
-  }
-  svg->set(svg->fileName,rgba2,svg->w,svg->h);
-}
-
 void reloadIcons() {
   svgs.clear();
   loadBaseSVGs();
 }
 
 void loadBaseSVGs() {
-  ADDICON("appicon","3D.SVG");
+  ADDAPPICON("appicon","WYPA.SVG");
   ADDICON("search","SEARCH.SVG");
   double toolbar_width2 = toolbar_width-5;
-  ADDTOOLBARICON("moveTool","SEARCH.SVG");
-  ADDTOOLBARICON("selectionTool","SEARCH.SVG");
-  ADDTOOLBARICON("pencilTool","SEARCH.SVG");
-  ADDTOOLBARICON("paintBrushTool","SEARCH.SVG");
-  ADDTOOLBARICON("eraserTool","SEARCH.SVG");
-  ADDTOOLBARICON("wandTool","SEARCH.SVG");
-  colorIcon("appicon",0x00ffffff);
+  ADDTOOLBARICON("moveTool","MOVE.SVG");
+  ADDTOOLBARICON("selectionTool","SELECT.SVG");
+  ADDTOOLBARICON("pencilTool","PENCIL.SVG");
+  ADDTOOLBARICON("paintBrushTool","BRUSH.SVG");
+  ADDTOOLBARICON("eraserTool","ERASER.SVG");
+  ADDTOOLBARICON("wandTool","WAND.SVG");
+  ADDTOOLBARICON("gradientTool","GRADIENT.SVG");
+  ADDTOOLBARICON("pipetteTool","PIPETTE.SVG");
+  ADDTOOLBARICON("magicTool","BLUR.SVG");
+  ADDTOOLBARICON("fillTool","FILL.SVG");
+  ADDTOOLBARICON("lineTool","LINE.SVG");
+  ADDTOOLBARICON("textTool","TEXT.SVG");
+  ADDICON2("visible","VISIBLE.SVG");
 }

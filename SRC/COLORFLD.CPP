@@ -193,6 +193,10 @@ void initColorField() {
   }
 }
 
+void freeColorField() {
+  glDeleteTextures(1,&colorWheelTexture);
+}
+
 unsigned int swapRB(unsigned int color) {
   return (color & 0xff00ff00)|((color>>16)&0x000000ff)|((color<<16)&0x00ff0000);
 }

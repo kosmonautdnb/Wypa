@@ -34,13 +34,20 @@ enum TOOL {
   TOOL_ERASER = 4,
   TOOL_WAND = 5,
   TOOL_MOVE = 6,
-  TOOL_COUNT = 7
+  TOOL_GRADIENT = 7,
+  TOOL_PIPETTE = 8,
+  TOOL_MAGIC = 9,
+  TOOL_FILL = 10,
+  TOOL_LINE = 11,
+  TOOL_TEXT = 12,
+  TOOL_COUNT = 13
 };
 extern const char *toolNames[TOOL_COUNT];
 
 extern int tool;
 
 void initToolBar();
+void freeToolBar();
 void drawToolBar();
 
 #endif // __TOOLBAR_HPP__

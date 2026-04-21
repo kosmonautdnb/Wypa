@@ -39,12 +39,20 @@ Array<Canvas*> canvas;
 bool shouldUpdateAll = false;
 bool shouldUpdate = false;
 
+void initLayers() {
+}
+
+void freeLayers() {
+  for (int i = 0; i < canvas.size(); i++) delete canvas[i];
+  canvas.clear();
+}
+
 Matrix inverse2(const Matrix &a) {
   return inverse(a); // maybe this inverse is too simple
 }
 
 const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Normal","Add","Sub","Mul","Mul2X","Premultiplied","Max","Min","Screen","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff"};
-
+const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear"};
 void LayerState::clear() {
   active = false;
   selected = false;
@@ -72,6 +80,11 @@ void TransformationState::update() {
 
 void TransformationState::translate(double x, double y) {
   transformation.translate(Vector(x,y));
+  update();
+}
+
+void TransformationState::scale(double x, double y) {
+  transformation.scale3(Vector(x,y,1));
   update();
 }
 
@@ -300,33 +313,26 @@ void layerNewContent(Layer *l, int w, int h) {
   memset(l->pixelStates,0,w*h*sizeof(unsigned char));
 }
 
-void Layer::resizeLayerContent(int newWidth, int newHeight) {
-  if (newWidth <= 0) return;
-  if (newHeight <= 0) return;
-
-  unsigned char *beforeS = new unsigned char[width*height];
-  unsigned int *beforeP = new unsigned int[width*height];
-  memcpy(beforeS,pixelStates,width*height*sizeof(unsigned char));
-  memcpy(beforeP,pixels,width*height*sizeof(unsigned int));
-  int ow = this->width;
-  int oh = this->height;
-
-  layerNewContent(this,newWidth,newHeight);
-
-  for (int y = 0; y < this->height; y++) {
-    int oy = y * oh / this->height;
-    for (int x = 0; x < this->width; x++) {
-      int ox = x * ow / this->width;
-      pixels[x+y*this->width] = beforeP[ox+oy*ow];
-      pixelStates[x+y*this->width] = beforeS[ox+oy*ow];
-    }
-  }
-
-  delete[] beforeP;
-  delete[] beforeS;
+void layerGetContent(Layer *to, Layer *from) {
+  int w = from->width;
+  int h = from->height;
+  layerNewContent(to,w,h);
+  memcpy(to->pixels,from->pixels,w*h*sizeof(unsigned int));
+  memcpy(to->pixelStates,from->pixelStates,w*h*sizeof(unsigned char));
 }
 
-void Layer::bakeLayer() {
+void Layer::resizeLayerContent(int interpolation, int newWidth, int newHeight) {
+  if (newWidth <= 0) return;
+  if (newHeight <= 0) return;
+  TransformationState before = transform;
+  transform.fresh();
+  transform.scale((double)width/newWidth,(double)height/newHeight);
+  bakeLayer(interpolation);
+  transform = before;
+}
+
+void Layer::bakeLayer(int interpolation) {
+
   Vector b = boundingBox();
   int x0 = (int)floor(b.x);
   int y0 = (int)floor(b.y);
@@ -348,21 +354,118 @@ void Layer::bakeLayer() {
 
   Matrix m = transform.transformation;
 
+  double rounding = 0.5;
+  if (interpolation == INTERPOLATION_LINEAR) rounding = 0;
+
   for (int y = y0; y < y1; y++) {
     for (int x = x0; x < x1; x++) {
-      int lx = (int)(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
-      int ly = (int)(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
-      if (lx == 0) lx = (int)floor(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
-      if (ly == 0) ly = (int)floor(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
+      double px = x;
+      double py = y;
+      double lx3 = px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4]+rounding;
+      double ly3 = px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4]+rounding;
+      int lx = (int)lx3;
+      int ly = (int)ly3;
+      if (lx == 0) lx = (int)floor(px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4]+rounding);
+      if (ly == 0) ly = (int)floor(px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4]+rounding);
       if ((unsigned int)lx >= ow || (unsigned int)ly >= oh) continue;
-      pixels[(x-x0)+(y-y0)*this->width] = beforeP[lx+ly*ow];
       pixelStates[(x-x0)+(y-y0)*this->width] = beforeS[lx+ly*ow];
+      switch(interpolation) {
+        case INTERPOLATION_NONE: {
+          pixels[(x-x0)+(y-y0)*this->width] = beforeP[lx+ly*ow];
+        } break;
+        case INTERPOLATION_LINEAR: {
+            double fx = lx3-floor(lx3);
+            double fy = ly3-floor(ly3);
+            unsigned int p00 = beforeP[lx+ly*ow];
+            unsigned int p10 = (lx+1) < ow ? beforeP[(lx+1)+ly*ow] : p00;
+            unsigned int p01 = (ly+1) < oh ? beforeP[lx+(ly+1)*ow] : p00;
+            unsigned int p11 = (ly+1) < oh && (lx+1) < ow ? beforeP[(lx+1)+(ly+1)*ow] : p00;
+            double rt = ((int)(p10 & 255) - (int)(p00 & 255))*fx + (int)(p00 & 255);
+            double gt = ((int)((p10>>8) & 255) - (int)((p00>>8) & 255))*fx + (int)((p00>>8) & 255);
+            double bt = ((int)((p10>>16) & 255) - (int)((p00>>16) & 255))*fx + (int)((p00>>16) & 255);
+            double at = ((int)((p10>>24) & 255) - (int)((p00>>24) & 255))*fx + (int)((p00>>24) & 255);
+            double rb = ((int)(p11 & 255) - (int)(p01 & 255))*fx + (int)(p01 & 255);
+            double gb = ((int)((p11>>8) & 255) - (int)((p01>>8) & 255))*fx + (int)((p01>>8) & 255);
+            double bb = ((int)((p11>>16) & 255) - (int)((p01>>16) & 255))*fx + (int)((p01>>16) & 255);
+            double ab = ((int)((p11>>24) & 255) - (int)((p01>>24) & 255))*fx + (int)((p01>>24) & 255);
+            int r = floor((rb - rt) * fy + rt);
+            int g = floor((gb - gt) * fy + gt);
+            int b = floor((bb - bt) * fy + bt);
+            int a = floor((ab - at) * fy + at);
+            if (r > 255) r = 255;
+            if (g > 255) g = 255;
+            if (b > 255) b = 255;
+            if (a > 255) a = 255;
+            if (r < 0) r = 0;
+            if (g < 0) g = 0;
+            if (b < 0) b = 0;
+            if (a < 0) a = 0;
+            pixels[(x-x0)+(y-y0)*this->width] = (r)|(g<<8)|(b<<16)|(a<<24);
+        } break;
+      }
     }
   }
 
   transform.fresh();
   transform.translate(-x0,-y0);
   transform.update();
+
+  switch(interpolation) {
+    case INTERPOLATION_INTERAREA: {
+      unsigned int *accumulationBuffer = new unsigned int[width*height*5]; 
+      memset(accumulationBuffer,0,width*height*5*sizeof(unsigned int));
+      Matrix m2 = transform.transformation * inverse2(m);
+      for (int y = 0; y < oh; y++) {
+        for (int x = 0; x < ow; x++) {
+          double lx4 = x*m2.m[0+0*4]+y*m2.m[0+1*4]+m2.m[0+3*4]+rounding;
+          double ly4 = x*m2.m[1+0*4]+y*m2.m[1+1*4]+m2.m[1+3*4]+rounding;
+          int lx2 = (int)lx4;
+          int ly2 = (int)ly4;
+          if (lx2 == 0) lx2 = (int)floor(x*m2.m[0+0*4]+y*m2.m[0+1*4]+m2.m[0+3*4]+rounding);
+          if (ly2 == 0) ly2 = (int)floor(x*m2.m[1+0*4]+y*m2.m[1+1*4]+m2.m[1+3*4]+rounding);
+          if ((unsigned int)lx2 >= width || (unsigned int)ly2 >= height) continue;
+          unsigned int ps = beforeP[x+y*ow];
+          int r = (ps) & 255;
+          int g = (ps>>8) & 255;
+          int b = (ps>>16) & 255;
+          int a = (ps>>24) & 255;
+          int pos = (lx2 + ly2 * width)*5;
+          accumulationBuffer[pos+0]+=r;
+          accumulationBuffer[pos+1]+=g;
+          accumulationBuffer[pos+2]+=b;
+          accumulationBuffer[pos+3]+=a;
+          accumulationBuffer[pos+4]+=1;
+        }
+      }
+      Matrix m3 = inverse2(m2);
+      for (int y2 = 0; y2 < height; y2++) {
+        for (int x2 = 0; x2 < width; x2++) {
+          int pos = (x2 + y2 * width)*5;
+          int w = accumulationBuffer[pos+4];
+          if (w > 0) {
+            int r = accumulationBuffer[pos+0]/w;
+            int g = accumulationBuffer[pos+1]/w;
+            int b = accumulationBuffer[pos+2]/w;
+            int a = accumulationBuffer[pos+3]/w;
+            pixels[x2+y2*width] = (r)|(g<<8)|(b<<16)|(a<<24);
+          } else {
+            double x = x2;
+            double y = y2;
+            double lx4 = x*m3.m[0+0*4]+y*m3.m[0+1*4]+m3.m[0+3*4]+rounding;
+            double ly4 = x*m3.m[1+0*4]+y*m3.m[1+1*4]+m3.m[1+3*4]+rounding;
+            int lx2 = (int)lx4;
+            int ly2 = (int)ly4;
+            if (lx2 == 0) lx2 = (int)floor(x*m3.m[0+0*4]+y*m3.m[0+1*4]+m3.m[0+3*4]+rounding);
+            if (ly2 == 0) ly2 = (int)floor(x*m3.m[1+0*4]+y*m3.m[1+1*4]+m3.m[1+3*4]+rounding);
+            unsigned int ps = 0;
+            if ((unsigned int)lx2 < ow && (unsigned int)ly2 < oh) ps = beforeP[lx2+ly2*ow];
+            pixels[x2+y2*width] = ps;
+          }
+        }
+      }
+      delete[] accumulationBuffer;
+    } break;
+  }
 
   delete[] beforeP;
   delete[] beforeS;
@@ -379,32 +482,36 @@ Layer *Layer::clone() {
 }
 
 void Layer::setLayerPos(double x, double y) {
-  Vector b = boundingBox();
-  double moveX = x-b.x;
-  double moveY = y-b.y;
-  Vector k2 = Vector(moveX,moveY,0);
-  transform.translate(-k2.x,-k2.y);
-  transform.update();
+  for (int i = 0; i < 5; i++) { // maybe it's not perfect?
+    Vector b = boundingBox();
+    double moveX = x-b.x;
+    double moveY = y-b.y;
+    Vector k2 = Vector(moveX,moveY,0);
+    transform.translate(-k2.x,-k2.y);
+    transform.update();
+  }
 }
 
 void Layer::setLayerSize(double width, double height) {
   if (width == 0 || height == 0) return;
-  Vector b = boundingBox();
-  double oldWidth = b.z-b.x;
-  double oldHeight = b.w-b.y;
-  if (oldWidth == 0 || oldHeight == 0) return;
-  double scaleX = width / oldWidth;
-  double scaleY = height / oldHeight;
-  if (scaleX == 0 || scaleY == 0) return;
-  Matrix modify;modify.scale3(Vector(1.0/scaleX,1.0/scaleY,1));
-
-  //Vector c((double)width/2.0*0,(double)height/2.0*0,0);
-  //c = inverse2(transform.transformation)*c;
-  Vector c = b.xy();
-  Matrix center; center.translate(Vector(c.x,c.y,0));
-  transform.transformation = transform.transformation * center * modify * inverse2(center);
-  transform.update();
-  shouldUpdateAll = true;
+  for (int i = 0; i < 5; i++) { // maybe it's not perfect?
+    Vector b = boundingBox();
+    double oldWidth = b.z-b.x;
+    double oldHeight = b.w-b.y;
+    if (oldWidth == 0 || oldHeight == 0) return;
+    double scaleX = width / oldWidth;
+    double scaleY = height / oldHeight;
+    if (scaleX == 0 || scaleY == 0) return;
+    Matrix modify;modify.scale3(Vector(1.0/scaleX,1.0/scaleY,1));
+  
+    //Vector c((double)width/2.0*0,(double)height/2.0*0,0);
+    //c = inverse2(transform.transformation)*c;
+    Vector c = b.xy();
+    Matrix center; center.translate(Vector(c.x,c.y,0));
+    transform.transformation = transform.transformation * center * modify * inverse2(center);
+    transform.update();
+    shouldUpdateAll = true;
+  }
 }
 
 double Layer::getAngleDegrees() {
@@ -464,6 +571,7 @@ void CanvasControl::setCanvasTransform(Canvas *canvas) {
   canvas->transform.zoom(zoom);
   canvas->transform.aspect(1*aspectRatio*glFrameBufferHeight/glFrameBufferWidth);
   canvas->transform.pixelSize(pixelSizeX,pixelSizeY);
+  canvas->transform.update();
   shouldUpdateAll = true;
 }
 
@@ -533,6 +641,15 @@ void Canvas::getCanvasPos(double screenX, double screenY, double &canvasX, doubl
   canvasY = y;
 }
 
+void Canvas::getScreenPos(double canvasX, double canvasY, double &screenX, double &screenY) {
+  double x,y;
+  x = (double)canvasX;
+  y = (double)canvasY;
+  transform.transformBackward(x,y,x,y);
+  screenX = x+screenPosX;
+  screenY = y+screenPosY;
+}
+
 void Canvas::getScreenPos(Layer *layer, double layerX, double layerY, double &screenX, double &screenY) {
   double x,y;
   x = (double)layerX;
@@ -576,6 +693,8 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   Vector b2; b2.x = b.z; b2.y = b.w;
   b1 = inverse2(canvas->transform.transformation) * b1;
   b2 = inverse2(canvas->transform.transformation) * b2;
+  b2.x += 1; // no better solution, yet
+  b2.y += 1; // no better solution, yet
   if (b2.x < x0) return;
   if (b2.y < y0) return;
   if (b1.x > x1) return;
@@ -1068,7 +1187,7 @@ void Canvas::rotate90DegreesBackward() {
   shouldUpdateAll = true;
 }
 
-void Canvas::resizeCanvas(double w, double h, bool quantizeLayers) {
+void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpolation) {
   double w2 = canvasX1 - canvasX0;
   double h2 = canvasY1 - canvasY0;
   if (w == 0) w = 1;
@@ -1078,12 +1197,12 @@ void Canvas::resizeCanvas(double w, double h, bool quantizeLayers) {
   Matrix m; m.scale3(Vector(scaleX,scaleY,1));
   for (int i = 0; i < layers.size(); i++) {
     Layer *l = layers[i];
-    if (quantizeLayers) l->bakeLayer();
+    if (quantizeLayers) l->bakeLayer(interpolation);
     l->transform.transformation = l->transform.transformation * m;
     if (quantizeLayers) {
       int wBefore = l->width;
       int hBefore = l->height;
-      l->resizeLayerContent(wBefore/scaleX,hBefore/scaleY);
+      l->resizeLayerContent(interpolation,wBefore/scaleX,hBefore/scaleY);
       int wAfter = l->width;
       int hAfter = l->height;
       if (wBefore == 0) wBefore = 1;
@@ -1388,6 +1507,90 @@ void Canvas::noSelectedLayers() {
   for (int i = 0; i < currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
     l->state.selected = false;
+  }
+}
+
+Vector Canvas::boundingBox() {
+  Vector ret;
+  bool first = true;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      Vector k = layers[i]->boundingBox();
+      if (first || k.x < ret.x) ret.x = k.x;
+      if (first || k.y < ret.y) ret.y = k.y;
+      if (first || k.z > ret.z) ret.z = k.z;
+      if (first || k.w > ret.w) ret.w = k.w;
+      first = false;
+    }
+  }
+  return ret;
+}
+
+void Canvas::setBoundingPos(double x, double y) {
+  Vector k = boundingBox();
+  if (k.z-k.x<=0) return;
+  if (k.w-k.y<=0) return;
+  double updateX = x - k.x;
+  double updateY = y - k.y;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      Layer *l = layers[i]; Vector b2 = l->boundingBox(); l->setLayerPos(b2.x+updateX, b2.y+updateY);
+    }
+  }
+}
+
+void Canvas::setBoundingSize(double width, double height) {
+  Vector k = boundingBox();
+  if (k.z-k.x<=0) return;
+  if (k.w-k.y<=0) return;
+  double updateX = width / (k.z-k.x);
+  double updateY = height / (k.w-k.y);
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      Layer *l = layers[i]; Vector b2 = l->boundingBox(); 
+      l->setLayerPos((b2.x-k.x)*updateX+k.x,(b2.y-k.y)*updateY+k.y);
+      l->setLayerSize((b2.z-b2.x)*updateX, (b2.w-b2.y)*updateY);
+    }
+  }
+}
+
+double Canvas::getBoundingAngleDegrees() {
+  double angle = 0;
+  int k = 0;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      Layer *l = layers[i]; angle += l->getAngleDegrees(); k++;
+    }
+  }
+  if (k > 0) angle = angle / k;
+  return angle;
+}
+
+void Canvas::setBoundingAngleDegrees(double degrees) {
+  double angleDelta = degrees - getBoundingAngleDegrees();
+  angleDelta += 360;
+  if (angleDelta < 0) return;
+  angleDelta = fmod(angleDelta,360);
+
+  Vector center;
+  for (int i2 = 0; i2 < layers.size(); i2++) {
+    if (layers[i2]->state.selected||layers[i2]->state.active) {
+      Layer *l = layers[i2];
+      Vector c = l->boundingBox();
+      center += Vector((c.z-c.x)*0.5+c.x,(c.w-c.y)*0.5+c.y,1);
+    }
+  }
+  if (center.z != 0) center /= center.z;
+
+  Matrix modify; modify = rotationMatrixAngleAxis(-angleDelta*PI/180.0,0,0,1);
+
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      Layer *l = layers[i];
+      Matrix t; t.translate(Vector(center.x,center.y,0));
+      l->transform.transformation = l->transform.transformation * t * modify * inverse2(t);
+      l->transform.update();
+    }
   }
 }
 

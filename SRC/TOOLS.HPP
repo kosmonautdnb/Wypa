@@ -24,11 +24,48 @@
 #ifndef __TOOLS_HPP__
 #define __TOOLS_HPP__
 
+#include "STL/ARRAY.HPP"
+
+class Brush {
+public:
+  Brush() {
+    isPencil = false;
+    pixelWidth = 0;
+    pixelHeight = 0;
+    glHandle = 0;
+    size = 64;
+    pressure = 1;
+    softness = 1;
+    outlinedOnGL = false;
+  }
+  ~Brush() {
+  }
+  bool isPencil;
+  double pixelWidth;
+  double pixelHeight;
+  float size;
+  float pressure;
+  float softness;
+  bool outlinedOnGL;
+  unsigned int glHandle;
+  Array<float> values;
+  Brush *clone();
+  void resize(double newPixelWidth, double newPixelHeight);
+  void updateGLHandle();
+  void update();
+};
+
+extern Brush brush;
+extern Brush pencil;
+
 extern double wandAlphaDistance;
 extern double wandColorDistance;
 extern bool wandByNeighbors;
 
 bool isPaintAreaActive();
+
+void initTools();
+void freeTools();
 
 void useTool();
 

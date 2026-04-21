@@ -28,8 +28,15 @@
 #include "MENUBAR.HPP"
 #include "LAYERS.HPP"
 #include "DIALOGS.HPP"
+#include "SVG.HPP"
 
 bool roundButton(const char *name, bool enabled);
+
+void initLayerView() {
+}
+
+void freeLayerView() {
+}
 
 void drawLayerView() {
   ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height+navigator_height+colorField_height));
@@ -73,8 +80,16 @@ void drawLayerView() {
   for (int i = 0; i < currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
     ImVec2 cursor = ImGui::GetCursorScreenPos();
+
+
+    SVG *svg = &svgs["visible"];
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
-    if (ImGui::Checkbox((String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),&l->state.visible)) {shouldUpdateAll = true;}
+    ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,l->state.visible ? 1:0.5));
+
+
+    ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
+    if (ImGui::InvisibleButton((String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),ImVec2(svg->w,svg->h))) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}
+
     ImGui::SameLine();
     ImGui::Checkbox((String("##LAYERVIEWCHILDSELECTED")+String::fromInt(i)).c_str(),&l->state.selected);
     ImGui::SameLine();

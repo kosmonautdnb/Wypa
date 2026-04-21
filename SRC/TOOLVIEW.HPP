@@ -27,6 +27,7 @@
 extern int toolview_width;
 
 void initToolView();
+void freeToolView();
 void drawToolView();
 
 #endif // __TOOLVIEW_HPP__

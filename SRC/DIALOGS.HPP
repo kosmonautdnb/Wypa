@@ -27,6 +27,7 @@
 #include "STL/STRING.HPP"
 
 void initDialogs();
+void freeDialogs();
 void drawDialogs();
 
 enum DIALOGMODE {

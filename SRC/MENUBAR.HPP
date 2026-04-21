@@ -31,6 +31,7 @@ extern String hex2_(int v);
 String timeDescString();
 
 void initMenuBar();
+void freeMenuBar();
 void drawMenuBar();
 
 #endif //__MENUBAR_HPP__

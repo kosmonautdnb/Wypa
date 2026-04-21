@@ -43,6 +43,7 @@ int navigatorX = 11;
 int navigatorY = 11;
 int navigatorWidth = navigator_height - 10;
 int navigatorHeight = navigatorWidth;
+Canvas *navigatorCanvas = NULL;
 
 void initNavigator() {
   glGenTextures(1,&navigatorTexture);
@@ -53,19 +54,39 @@ void initNavigator() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_2D,0);
+  navigatorCanvas = new Canvas();
+  navigatorCanvas->init(navigatorX, navigatorY);
+}
+
+void freeNavigator() {
+  glDeleteTextures(1,&navigatorTexture);
+  delete navigatorCanvas; navigatorCanvas = NULL;
 }
 
 void updateNavigatorImage() {
+  Vector m(mouseX,mouseY,0);
+  currentCanvas->getCanvasPos(m.x,m.y,m.x,m.y);
+  m.x -= navigatorX/2;
+  m.y -= navigatorY/2;
+  Matrix t; t.translate(m);
+  navigatorCanvas->transform.fresh(); 
+  navigatorCanvas->transform.transformation = t * navigatorCanvas->transform.transformation;
+  navigatorCanvas->transform.update(); 
+
+
+  navigatorCanvas->layers = currentCanvas->layers;
+  navigatorCanvas->update(true);
+  navigatorCanvas->layers.clear();
   unsigned int *dest = glGetTexturePointer(navigatorTexture);
   unsigned int width = glGetTextureWidth(navigatorTexture);
   unsigned int height = glGetTextureHeight(navigatorTexture);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       unsigned int col = 0xff000000;
-      int sx = x + mouseX - currentCanvas->screenPosX - width / 2;
-      int sy = y + mouseY - currentCanvas->screenPosY - height / 2;
-      if (sx >= 0 && sx < currentCanvas->width && sy >= 0 && sy < currentCanvas->height) 
-        col = currentCanvas->pixels[sx+sy*currentCanvas->width];
+      int sx = x;
+      int sy = y;
+      if (sx >= 0 && sx < navigatorCanvas->width && sy >= 0 && sy < navigatorCanvas->height) 
+        col = navigatorCanvas->pixels[sx+sy*navigatorCanvas->width];
       dest[x+y*width] = col;
     }
   }

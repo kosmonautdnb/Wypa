@@ -29,6 +29,9 @@
 #include "STL/MATRIX.HPP"
 #include "STL/VECTOR.HPP"
 
+void initLayers();
+void freeLayers();
+
 enum LAYERMODES {
   LAYERMODE_UNDEFINED = 0,
   LAYERMODE_NORMAL = 1,
@@ -84,6 +87,7 @@ public:
   void update();
 
   void translate(double x, double y);
+  void scale(double x, double y);
   void scaleAround(double scaleX, double scaleY, double centerX, double centerY);
 
   void fresh();
@@ -106,6 +110,14 @@ enum REPAINTSTATES {
   REPAINTSTATE_FULLUPDATE = 1,
   REPAINTSTATE_PIXELUPDATE = 2
 };
+
+enum INTERPOLATION {
+  INTERPOLATION_NONE = 0,
+  INTERPOLATION_INTERAREA = 1,
+  INTERPOLATION_LINEAR = 2,
+  INTERPOLATION_COUNT = 3
+};
+extern const char *interpolationNames[INTERPOLATION_COUNT];
 
 class Layer {
 public:
@@ -159,8 +171,8 @@ public:
   Vector boundingBox();
   void quantizeBoundingBox();
 
-  void resizeLayerContent(int newWidth, int newHeight);
-  void bakeLayer();
+  void resizeLayerContent(int interpolation, int newWidth, int newHeight);
+  void bakeLayer(int interpolation);
   Layer *clone();
 
   void setLayerPos(double x, double y);
@@ -260,6 +272,7 @@ public:
 
   void getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY);
   void getCanvasPos(double screenX, double screenY, double &canvasX, double &canvasY);
+  void getScreenPos(double canvasX, double canvasY, double &screeenX, double &screenY);
   void getScreenPos(Layer *layer, double layerX, double layerY, double &screenX, double &screenY);
 
   void updateRegion(int screenX0, int screenY0, int screenX1, int screenY1);
@@ -274,7 +287,7 @@ public:
   void mirrorVertically();
   void rotate90DegreesForward();
   void rotate90DegreesBackward();
-  void resizeCanvas(double w, double h, bool quantizeLayers);
+  void resizeCanvas(double w, double h, bool quantizeLayers, int interpolation);
   void fitCanvasToLayers();
 
   void mirrorHorizontallyLayers();
@@ -305,6 +318,12 @@ public:
   Layer *getActiveLayer();
   void setActiveLayer(int layer);
   void noSelectedLayers();
+
+  Vector boundingBox();
+  void setBoundingPos(double x, double y);
+  void setBoundingSize(double width, double height);
+  double getBoundingAngleDegrees();
+  void setBoundingAngleDegrees(double degrees);
 };
 
 extern Canvas *currentCanvas;

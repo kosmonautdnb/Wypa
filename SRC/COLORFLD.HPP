@@ -38,6 +38,7 @@ unsigned int getUIntColor(const ImVec4 &k);
 ImVec4 getImVec4Color(unsigned int v);
 
 void initColorField();
+void freeColorField();
 void drawColorField();
 
 void addUsedColor(const ImVec4 &color);

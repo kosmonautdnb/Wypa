@@ -28,6 +28,7 @@ extern int sidebar_width;
 extern int navigator_height;
 
 void initNavigator();
+void freeNavigator();
 void drawNavigator();
 
 #endif //__NAVIGTOR_HPP__

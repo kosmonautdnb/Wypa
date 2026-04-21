@@ -69,6 +69,10 @@ void initDialogs() {
   glBindTexture(GL_TEXTURE_2D,0);
 }
 
+void freeDialogs() {
+  glDeleteTextures(1, &previewTexture);
+}
+
 void drawDialogs() {
   dialogCanvas(false);
   dialogExpandShrinkSelection(false);
@@ -194,6 +198,7 @@ void dialogImageResize(bool openIt) {
   static bool keepAspect = true;
   static bool quantize = false;
   static double aspect = 1;
+  static int interpolation = INTERPOLATION_NONE;
   if (openIt) {
     x0 = currentCanvas->canvasX0;
     y0 = currentCanvas->canvasY0;
@@ -220,8 +225,10 @@ void dialogImageResize(bool openIt) {
   ImGui::PopItemWidth();
   ImGui::Text("Preserve proportions");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEKEEPASPECT",&keepAspect);
   ImGui::Text("Quantize/bake all");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEQUANTIZE",&quantize);
+  ImGui::Text("Interpolation");ImGui::SameLine();ImGui::Combo("##DIALOGIMAGERESIZEINTERPOLATION",&interpolation, interpolationNames, INTERPOLATION_COUNT);
+
   if (ImGui::Button("Resize##DIALOGIMAGERESIZEESIZE")) {
-    currentCanvas->resizeCanvas(w,h,quantize);
+    currentCanvas->resizeCanvas(w,h,quantize,interpolation);
     ImGui::CloseCurrentPopup();
   }
   ImGui::SameLine();
@@ -377,8 +384,8 @@ void dialogSelectByAlpha(bool openIt) {
 }
 
 void dialogBakeLayers(bool openIt) {
+  static int interpolation = INTERPOLATION_NONE;
   DIALOGSTART("Bake layers");
-
   Array<Layer *> layers;
   bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
   if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
@@ -395,12 +402,13 @@ void dialogBakeLayers(bool openIt) {
       ImGui::Text("\"%s\"",layers[i]->name);
     }
     ImGui::EndChild();
+    ImGui::Text("Interpolation");ImGui::SameLine();ImGui::Combo("##DIALOGBAKELAYERSINTERPOLATION",&interpolation, interpolationNames, INTERPOLATION_COUNT);
   }
 
   if (!layers.empty()) {
     if (ImGui::Button("Bake these layers##DIALOGBAKELAYERSAPPLY")) {
       for (int i = 0; i < layers.size(); i++) {
-        layers[i]->bakeLayer();
+        layers[i]->bakeLayer(interpolation);
       }
       shouldUpdateAll = true;
       ImGui::CloseCurrentPopup();

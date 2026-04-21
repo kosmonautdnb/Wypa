@@ -31,9 +31,12 @@
 int toolbar_width = 32;
 int tool = TOOL_NONE;
 
-const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move"};
+const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Magic","Fill","Line","Text"};
 
 void initToolBar() {
+}
+
+void freeToolBar() {
 }
 
 bool imageButton(const char *svgName, const char *id, bool selected) {
@@ -66,6 +69,12 @@ void drawToolBar() {
   toolBarButton("paintBrushTool",TOOL_PAINTBRUSH);
   toolBarButton("eraserTool",TOOL_ERASER);
   toolBarButton("wandTool",TOOL_WAND);
+  toolBarButton("gradientTool",TOOL_GRADIENT);
+  toolBarButton("pipetteTool",TOOL_PIPETTE);
+  toolBarButton("magicTool",TOOL_MAGIC);
+  toolBarButton("fillTool",TOOL_FILL);
+  toolBarButton("lineTool",TOOL_LINE);
+  toolBarButton("textTool",TOOL_TEXT);
   ImGui::End();
   ImGui::PopStyleColor();
 }

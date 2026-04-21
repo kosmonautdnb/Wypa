@@ -24,6 +24,9 @@
 #ifndef __LAYERV_HPP__
 #define __LAYERV_HPP__
 
+void initLayerView();
+void freeLayerView();
+
 void drawLayerView();
 
 #endif //__LAYERV_HPP__
