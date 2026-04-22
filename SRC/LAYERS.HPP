@@ -132,6 +132,7 @@ public:
   char name[LAYERNAMEMAX];
 
   int repaintState;
+  bool justSelection;
 
   Layer() {
     mode = LAYERMODE_NORMAL;
@@ -140,6 +141,7 @@ public:
     pixels = NULL;
     pixelStates = NULL;
     repaintState = REPAINTSTATE_NONE;
+    justSelection = false;
     static int layerCounter = 0; layerCounter++;
     sprintf(name,"Layer %d", layerCounter);
   }
@@ -175,6 +177,7 @@ public:
 
   bool hasSelection();
   Vector boundingBox();
+  Vector selectionBounding();
   void quantizeBoundingBox();
 
   void resizeLayerContent(int interpolation, int newWidth, int newHeight);
@@ -275,9 +278,11 @@ public:
   }
 
   void init(int width, int height);
+  void clearUpdateFlag();
 
   void getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY);
   void getLayerPosFromCanvasPos(Layer *layer, double canvasX, double canvasY, double &layerX, double &layerY);
+  void getCanvasPosFromLayerPos(Layer *layer, double layerX, double layerY, double &canvasX, double &canvasY);
   void getCanvasPos(double screenX, double screenY, double &canvasX, double &canvasY);
   void getScreenPos(double canvasX, double canvasY, double &screeenX, double &screenY);
   void getScreenPos(Layer *layer, double layerX, double layerY, double &screenX, double &screenY);
@@ -304,6 +309,9 @@ public:
   void mirrorVerticallyLayers();
   void rotate90DegreesForwardLayers();
   void rotate90DegreesBackwardLayers();
+  Layer *getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, bool keepCanvasSize);
+  void mergeDownLayers();
+  void insertMergeOfLayers();
 
   void selectAll();
   void selectNone(bool all);

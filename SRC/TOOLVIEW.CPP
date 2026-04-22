@@ -194,23 +194,43 @@ void drawBrushSelect(bool pencil) {
 }
 
 void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
+  ImGui::InputText("##DRAWBRUSHEDITNAME",brush->name,BRUSHNAMEMAX);
   drawBrushWindow(id,BRUSHINSTANCE_EDIT,brush,toolview_width-10,toolview_width-10, pencil,false);
   ImGui::Text("Size");
-  if (ImGui::SliderFloat("##DRAWBRUSHEDITSIZE",&brush->size,1,128)) {if (brush->size<1) brush->size = 1; if (brush->size>128) brush->size = 128; brush->update();}
+  ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITSIZE",&brush->size,1,128)) {if (brush->size<1) brush->size = 1; if (brush->size>128) brush->size = 128; brush->update();}
+  if (!pencil) {
+    ImGui::Text("Pressure");
+    if (ImGui::SliderFloat("##DRAWBRUSHEDITPRESSURE",&brush->pressure,0,2)) {if (brush->pressure<0) brush->pressure = 0; brush->update();}
+  }
+  ImGui::Text("Opacity");
+  if (ImGui::SliderFloat("##DRAWBRUSHEDITOPACITY",&brush->opacity,0,1)) {if (brush->opacity<0) brush->opacity = 0; if (brush->opacity>1) brush->opacity = 1; brush->update();}
   ImGui::Text("Aspect");
   if (ImGui::SliderFloat("##DRAWBRUSHEDITASPECT",&brush->aspect,1,8)) {if (brush->aspect<1) brush->aspect = 0; if (brush->aspect>8) brush->aspect = 8; brush->update();}
   ImGui::Text("Rotation");
   if (ImGui::SliderFloat("##DRAWBRUSHEDITROTATION",&brush->rotation,0,360)) {if (brush->rotation<0) brush->rotation = 0; if (brush->rotation>360) brush->rotation = 360; brush->update();}
   if (!pencil) {
-    ImGui::Text("Pressure");
-    if (ImGui::SliderFloat("##DRAWBRUSHEDITPRESSURE",&brush->pressure,0,16)) {if (brush->pressure<0) brush->pressure = 0; brush->update();}
     ImGui::Text("Softness");
     float k = brush->softness-1; if (ImGui::SliderFloat("##DRAWBRUSHEDITSOFTNESS",&k,-1,1)) {if (k<-1) k = -1; if (k>1) k = 1; brush->softness = k + 1; brush->update();}
   }
-  ImGui::Text("Edginess");
-  if (ImGui::SliderFloat("##DRAWBRUSHEDITEDGINESS",&brush->edginess,0,1)) {if (brush->edginess<0) brush->edginess = 0; if (brush->edginess>1) brush->edginess = 1; brush->update();}
+  ImGui::Text("Edge");
+  ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITEDGINESS",&brush->edginess,0,1)) {if (brush->edginess<0) brush->edginess = 0; if (brush->edginess>1) brush->edginess = 1; brush->update();}
   ImGui::Text("Ovality");
   if (ImGui::SliderFloat("##DRAWBRUSHEDITOVALITY",&brush->ovality,0,1)) {if (brush->ovality<0) brush->ovality = 0; if (brush->ovality>1) brush->ovality = 1; brush->update();}
+  float k;
+  ImGui::Separator();
+  ImGui::PushItemWidth(7*5+16*2);
+  ImGui::Text("Rate");
+  ImGui::SameLine(); if (ImGui::SliderFloat("##DRAWBRUSHEDITRATE",&brush->rate,0,1)) {if (brush->rate<0) brush->rate = 0; if (brush->rate>1) brush->rate = 1; brush->update();}
+  ImGui::Text("Width");
+  ImGui::SameLine(); k = (double)brush->size/(double)brush->aspect; if (ImGui::InputFloat("##DRAWBRUSHEDITWIDTH",&k,1,1)) {if (k<1) k = 1; if (k > 128) k = 128; brush->aspect = (float)((double)brush->size/(double)k); brush->update();}
+  ImGui::Text("Height");
+  ImGui::SameLine(); k = brush->size; if (ImGui::InputFloat("##DRAWBRUSHEDITHEIGHT",&k,1,1)) {double widthBefore = (double)brush->size/(double)brush->aspect; if (widthBefore == 0) widthBefore = 1; if(k<1) k = 1; if (k>128) k = 128; brush->size = k; brush->aspect = (float)((double)brush->size/widthBefore); brush->update();}
+  ImGui::Text("SpreadX");
+  ImGui::SameLine(); if (ImGui::InputFloat("##DRAWBRUSHEDITRANDOMX",&brush->randomX)) {brush->update();}
+  ImGui::Text("SpreadY");
+  ImGui::SameLine();if (ImGui::InputFloat("##DRAWBRUSHEDITRANDOMY",&brush->randomY)) {brush->update();}
+  ImGui::Text("Rotate"); ImGui::SameLine(); ImGui::Checkbox("##DRAWBRUSHEDITFOLLOWROTATION",&brush->followRotation);
+  ImGui::PopItemWidth();
 }
 
 void drawToolPencilView() {
@@ -224,8 +244,8 @@ void drawToolBrushView() {
 }
 
 void drawToolEraserView() {
-  drawBrushSelect(true);
-  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLERASERVIEWEDIT",brushes[currentBrush],true);
+  drawBrushSelect(false);
+  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLERASERVIEWEDIT",brushes[currentBrush],false);
 }
 
 void drawToolMagicView() {
@@ -238,6 +258,7 @@ void drawToolPipetteView() {
 }
 
 void drawToolView() {
+  if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
   ImGui::Begin("TOOLVIEW", NULL, ImVec2(toolview_width,main_window_yres-menuBar_height),1.0,FROZENWINDOW);
   ImGui::Text("%s",toolNames[tool]);

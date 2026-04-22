@@ -55,19 +55,23 @@ void scrollByCanvasBorders() {
 }
 
 void BrushInstance::resize(Brush *base, double newPixelWidth, double newPixelHeight) {
-  if (newPixelWidth<2) return;
-  if (newPixelHeight<2) return;
+  if (newPixelWidth<1) newPixelWidth=1;
+  if (newPixelHeight<1) newPixelHeight=1;
   pixelWidth = (int)ceil(newPixelWidth);
   pixelHeight = (int)ceil(newPixelHeight);
   values.resize(pixelWidth*pixelHeight);
   double xf = base->size < 1 ? 1 : newPixelHeight/base->size;
-  if (xf < 1) xf = 1;
+  double a = base->aspect == 0 ? 1 : base->aspect;
+  if (a >= 1) a = 1;
+  if (xf < 1.0/a) xf = 1.0/a;
   double yf = xf;
   double ax = (newPixelWidth-floor(newPixelWidth))*0.5;
   double ay = (newPixelHeight-floor(newPixelHeight))*0.5;
   double k = 0.1;
   double o = base->ovality + 1;
   double r = -base->rotation * PI / 180.0;
+  bool isSinglePixel = pixelHeight < 3 && pixelWidth < 3;
+  double pressure = powd(base->pressure,3);
   for (int y = 0; y < pixelHeight; y++) {
     for (int x = 0; x < pixelWidth; x++) {
       double dx = (double)(x-ax) / newPixelWidth * 2.0 - 1.0;
@@ -86,28 +90,32 @@ void BrushInstance::resize(Brush *base, double newPixelWidth, double newPixelHei
       double r = 1-maxd(rx,ry);
       d = base->edginess * (r-d) + d;
       d = powd(d,base->softness);
-      d *= base->pressure;
+      d *= pressure;
       if (d > 1) d = 1;
+      if (isSinglePixel) d = 1;
+      if (isPencil) d = d >= 0 ? 1 : 0;
+      //d *= base->opacity;
       values[x+y*pixelWidth] = d;
     }
   }
-  updateGLHandle(isPencil);
+  updateGLHandle();
 }
 
 void BrushInstance::update(Brush *base) {
   resize(base, pixelWidth, pixelHeight);
 }
 
-void BrushInstance::updateGLHandle(bool pencil) {
+void BrushInstance::updateGLHandle() {
   if (glHandle != 0) {glDeleteTextures(1,&glHandle); glHandle = 0;}
   glGenTextures(1,&glHandle);
   glBindTexture(GL_TEXTURE_2D,glHandle);
   Array<unsigned char> temp;
   temp.resize(values.size());
-  if (!pencil) 
-    for (int i = 0; i < temp.size(); i++) {temp[i] = values[i]>=0?values[i]*255:0;}
-  else
-    for (int i = 0; i < temp.size(); i++) {temp[i] = values[i]>=0?255:0;}
+  double minv = 1; double maxv = 0;
+  for (int i = 0; i < temp.size(); i++) {if (values[i]<0) continue; if (values[i]<minv) minv = values[i];if (values[i]>maxv) maxv = values[i];}
+  if (maxv==minv) maxv = minv+0.1;
+  double d = 255.0/(maxv-minv);
+  for (int i2 = 0; i2 < temp.size(); i2++) {temp[i2] = values[i2]>=0?(values[i2]-minv)*d:0;}
 
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, pixelWidth, pixelHeight, 0, GL_ALPHA, GL_BYTE, &temp[0]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -140,6 +148,16 @@ void Brush::freeInstance(int brushInstance) {
 void Brush::update() {
   for (int i = 0; i < BRUSHINSTANCE_COUNT; i++)
     if (instances[i] != NULL) instances[i]->update(this);
+}
+
+double Brush::pixelWidth() {
+  double ret = size;
+  if (aspect != 0 && size / aspect > ret) ret = size / aspect;
+  return ret;
+}
+
+double Brush::pixelHeight() {
+  return pixelWidth();
 }
 
 bool isPaintAreaActive() {
@@ -373,7 +391,7 @@ bool isFillAccepted(unsigned int destColor, unsigned int checkColor) {
   int gd = dg - sg;
   int bd = db - sb;
   int ad = da - sa;
-  double colorDist = sqrt(rd*rd+gd*gd+bd*bd);
+  double colorDist = sqrt(rd*rd+gd*gd+bd*bd+ad*ad);
   return colorDist<fillColorDistance;
 }
 
@@ -429,9 +447,11 @@ void useToolSelection() {
   static Layer *selectionToolLayer = activeLayer;
   bool layerSwitched = selectionToolLayer != activeLayer;
   selectionToolLayer = activeLayer;
-  if ( (!ImGui::IsMouseDown(0)) || (layerSwitched) || (ImGui::IsMouseDown(1) && selectionTool != SELECTIONTOOL_POLYGON)) {
+  if (selectionToolLayer != NULL && selectionToolLayer->width * selectionToolLayer->height==0) return;
+  if (selectionToolLayer == NULL||  (!ImGui::IsMouseDown(0)) || (layerSwitched) || (ImGui::IsMouseDown(1) && selectionTool != SELECTIONTOOL_POLYGON)) {
     if (selectionToolActive) {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
+      if (layerSwitched) return;
       if (!ImGui::IsMouseDown(1)) {
         switch(selectionTool) {
           case SELECTIONTOOL_ELLIPSE:
@@ -566,6 +586,306 @@ void useToolSelection() {
   }
 }
 
+bool paintingOn = false;
+Array<float> paintValues;
+Array<unsigned int> paintBackground;
+
+double paintingPointX0 = 0;
+double paintingPointY0 = 0;
+double paintingPointX1 = 0;
+double paintingPointY1 = 0;
+
+void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double angle) {
+  double xs = (rand() & 1023)/1023.0*2.0-1.0;
+  double ys = (rand() & 1023)/1023.0*2.0-1.0;
+  canvasX += xs * brush->randomX;
+  canvasY += ys * brush->randomY;
+  bool pencil = tool == TOOL_PENCIL;
+  BrushInstance *b = brush->getCreateInstance(BRUSHINSTANCE_PAINT,brush->pixelWidth(),brush->pixelHeight(),pencil);
+  double toolWidth = b->pixelWidth*0.5;
+  double toolHeight = b->pixelHeight*0.5;
+  Vector layerBoundings;
+  bool first = true;
+  int layerUpdateX0 = 0;
+  int layerUpdateY0 = 0;
+  int layerUpdateX1 = layer->width;
+  int layerUpdateY1 = layer->height;
+  for (int i = 0; i < 4; i++) {
+    Vector k(i & 1 ? canvasX-toolWidth : canvasX+toolWidth,i & 2 ? canvasY-toolHeight : canvasY+toolHeight,0);
+    double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(layer,k.x,k.y,lx0,ly0);
+    if (first || lx0 < layerBoundings.x) layerBoundings.x = lx0;
+    if (first || ly0 < layerBoundings.y) layerBoundings.y = ly0;
+    if (first || lx0 > layerBoundings.z) layerBoundings.z = lx0;
+    if (first || ly0 > layerBoundings.w) layerBoundings.w = ly0;
+    first = false;
+  }
+  layerBoundings.z += 1;
+  layerBoundings.w += 1;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  double tpx = canvasX-toolWidth, tpy = canvasY-toolHeight;
+  Matrix t; t.translate(Vector(tpx,tpy,0));
+  Matrix m = inverse(t)*inverse(layer->transform.transformation);
+  bool interpolate = false;
+  if (brush->followRotation) {
+    interpolate = true;
+    if (angle >= 0) {b->followedRotation = angle;}
+    Matrix toCenter; toCenter.translate(Vector(toolWidth,toolHeight,0));
+    m = toCenter * rotationMatrixAngleAxis(b->followedRotation, 0, 0, 1) * inverse(toCenter) * m;
+  }
+  for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
+    for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
+      double px = x*m.m[4*0+0]+y*m.m[4*1+0]+m.m[4*3+0];
+      double py = x*m.m[4*0+1]+y*m.m[4*1+1]+m.m[4*3+1];
+      int bx = (int)px;
+      int by = (int)py;
+      if (bx == 0) bx = (int)floor(px);
+      if (by == 0) by = (int)floor(py);
+      if ((unsigned int)bx < b->pixelWidth && (unsigned int)by < b->pixelHeight) {
+        int p = x + y * layer->width;
+        float here = b->values[bx+by*b->pixelWidth];
+        if (interpolate) {
+          float hereX = here;
+          float hereY = here;
+          float hereXY = here;
+          if (bx + 1 < b->pixelWidth) hereX = b->values[bx+1+by*b->pixelWidth];;
+          if (by + 1 < b->pixelHeight) hereY = b->values[bx+(by+1)*b->pixelWidth];;
+          if (bx + 1 < b->pixelWidth && by + 1 < b->pixelHeight) hereXY = b->values[bx+1+(by+1)*b->pixelWidth];;
+          float xf = px-bx;
+          float yf = py-by;
+          float top = (hereX-here)*xf + here;
+          float bottom = (hereXY-hereY)*xf + hereY;
+          here = (bottom-top)*yf+top;
+        }
+        if (here >= 0) {
+          float value = paintValues[p];
+          value = 1-(1-here)*(1-value);
+          paintValues[p] = value;
+        }
+      }
+    }
+  }
+  if (tool != TOOL_ERASER) addUsedColor(foregroundColor);
+}
+
+void useToolPainting() {
+  if (!paintingOn && ImGui::IsMouseClicked(1)) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY)); addUsedColor(foregroundColor);}
+  if ((unsigned int)currentBrush >= brushes.size()) return;
+  Brush *brush = brushes[currentBrush];
+  static double rateCounter = 0;
+  static bool waitForMouse0 = false;
+  if (waitForMouse0) {
+    if (ImGui::IsMouseDown(0)) return;
+    waitForMouse0 = false;
+  }
+  Layer *activeLayer = currentCanvas->getActiveLayer();
+  static Layer *paintToolLayer = activeLayer;
+  bool layerSwitched = paintToolLayer != activeLayer;
+  paintToolLayer = activeLayer;
+  if (paintToolLayer != NULL && paintToolLayer->width * paintToolLayer->height==0) return;
+  if ( paintToolLayer == NULL || (!ImGui::IsMouseDown(0)) || layerSwitched || ImGui::IsMouseDown(1)) {
+    if (paintingOn) {
+      paintingOn = false;
+      if (layerSwitched) return;
+      if (ImGui::IsMouseDown(1)) {
+        memcpy(paintToolLayer->pixels,&paintBackground[0],paintToolLayer->width * paintToolLayer->height * sizeof(unsigned int));
+        waitForMouse0 = true;
+        shouldUpdateAll = true;
+      }
+    } 
+    return;
+  }
+  if (isPaintAreaActive()) {
+    double lx,ly; currentCanvas->getCanvasPos(mouseX,mouseY,lx,ly);
+    static double dx2,dy2;
+    static bool initRotation = false;
+    static double initialAngle = 0;
+    if (!paintingOn) {
+      paintingOn = true;
+      paintingPointX0 = lx;
+      paintingPointY0 = ly;
+      paintingPointX1 = lx;
+      paintingPointY1 = ly;
+      paintValues.resize(paintToolLayer->width * paintToolLayer->height);
+      paintBackground.resize(paintToolLayer->width * paintToolLayer->height);
+      memset(&paintValues[0],0,paintToolLayer->width * paintToolLayer->height * sizeof(float));
+      memcpy(&paintBackground[0],paintToolLayer->pixels,paintToolLayer->width * paintToolLayer->height * sizeof(unsigned int));
+      currentCanvas->clearUpdateFlag();
+      rateCounter = 1;
+      initRotation = true;
+      initialAngle = 0;
+      dx2 = 1;
+      dy2 = 0;
+    }
+    paintingPointX0 = paintingPointX1;
+    paintingPointY0 = paintingPointY1;
+    paintingPointX1 = lx;
+    paintingPointY1 = ly;
+
+    int layerUpdateX0 = 0;
+    int layerUpdateY0 = 0;
+    int layerUpdateX1 = paintToolLayer->width;
+    int layerUpdateY1 = paintToolLayer->height;
+    double toolWidth = brush->pixelWidth()*0.5+brush->randomX;
+    double toolHeight = brush->pixelHeight()*0.5+brush->randomY;
+    Vector layerBoundings;
+    bool first = true;
+    for (int i = 0; i < 8; i++) {
+      Vector k;
+      if (i < 4) 
+        k = Vector(i & 1 ? paintingPointX0-toolWidth : paintingPointX0+toolWidth,i & 2 ? paintingPointY0-toolHeight : paintingPointY0+toolHeight,0);
+      else 
+        k = Vector(i & 1 ? paintingPointX1-toolWidth : paintingPointX1+toolWidth,i & 2 ? paintingPointY1-toolHeight : paintingPointY1+toolHeight,0);
+      double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(paintToolLayer,k.x,k.y,lx0,ly0);
+      if (first || lx0 < layerBoundings.x) layerBoundings.x = lx0;
+      if (first || ly0 < layerBoundings.y) layerBoundings.y = ly0;
+      if (first || lx0 > layerBoundings.z) layerBoundings.z = lx0;
+      if (first || ly0 > layerBoundings.w) layerBoundings.w = ly0;
+      first = false;
+    }
+    layerBoundings.z += 1;
+    layerBoundings.w += 1;
+    if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
+    if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
+    if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
+    if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+
+    double px0 = paintingPointX0; double py0 = paintingPointY0; currentCanvas->getLayerPosFromCanvasPos(paintToolLayer,px0,py0,px0,py0);
+    double px1 = paintingPointX1; double py1 = paintingPointY1; currentCanvas->getLayerPosFromCanvasPos(paintToolLayer,px1,py1,px1,py1);
+
+    int lpx0 = (int)floor(px0);
+    int lpy0 = (int)floor(py0);
+    int lpx1 = (int)floor(px1);
+    int lpy1 = (int)floor(py1);
+    int deltaX = lpx1-lpx0;
+    int deltaY = lpy1-lpy0;
+    int delta = abs(deltaX);
+    if (abs(deltaY)>delta) delta = abs(deltaY);
+
+    double px = lpx0;
+    double py = lpy0;
+    double ax = delta == 0 ? 0 : (double)(lpx1-lpx0)/delta;
+    double ay = delta == 0 ? 0 : (double)(lpy1-lpy0)/delta;
+    Matrix m2 = inverse(paintToolLayer->transform.transformation);
+    for (int i3 = 0; i3 < delta+1; i3++) {
+      double angle = -1;
+      if (brush->followRotation) {
+        double dx = paintingPointX1 - paintingPointX0;
+        double dy = paintingPointY1 - paintingPointY0;
+        if (delta > 0) {
+          double l = sqrt(dx*dx+dy*dy);
+          if (l != 0) {dx /= l; dy /= l;}
+          dx2 = (dx-dx2)*(1.0/delta)+dx2;
+          dy2 = (dy-dy2)*(1.0/delta)+dy2;
+        }
+        if (dx != 0 || dy != 0) {
+          if (initRotation) {
+            initialAngle = atan2(dx,dy) + PI*0.5;
+            dx2 = dx;
+            dy2 = dy;
+          }
+          initRotation = false;
+        }
+        if (dx2 != 0 || dy2 != 0) {
+          angle = atan2(dx2,dy2)-initialAngle + PI*0.5 + PI * 8;
+        }
+      }
+      rateCounter += powd(brush->rate,2.0);
+      if (rateCounter>0.99) {
+        rateCounter = 0;
+        double cx = px*m2.m[4*0+0]+py*m2.m[4*1+0]+m2.m[4*3+0];
+        double cy = px*m2.m[4*0+1]+py*m2.m[4*1+1]+m2.m[4*3+1];
+        drawTool(paintToolLayer,brush,cx,cy,angle);
+      }
+      px += ax;
+      py += ay;
+    }
+
+    for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
+      for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
+        int p = x + y * paintToolLayer->width;
+        float value = paintValues[p];
+        unsigned int col = paintBackground[p];
+        switch(tool) {
+          case TOOL_PAINTBRUSH:
+          case TOOL_PENCIL: {
+            float rd = col & 255;
+            float gd = (col>>8) & 255;
+            float bd = (col>>16) & 255;
+            int ad = (col>>24) & 255;
+            float rs = foregroundColor.x*255.f;
+            float gs = foregroundColor.y*255.f;
+            float bs = foregroundColor.z*255.f;
+            int as = foregroundColor.w*value*255.f*brush->opacity;
+            if (rs < 0) rs = 0;
+            if (gs < 0) gs = 0;
+            if (bs < 0) bs = 0;
+            if (as < 0) as = 0;
+            if (rs > 255) rs = 255;
+            if (gs > 255) gs = 255;
+            if (bs > 255) bs = 255;
+            if (as > 255) as = 255;
+            //int a = ad>as?ad:as;
+            int a = 255-(255-ad)*(255-as)/255; if (a > 255) a = 255;
+            if (a > 0) {
+              rd *= ad;
+              gd *= ad;
+              bd *= ad;
+              rd /= a;
+              gd /= a;
+              bd /= a;
+            }
+            int r = (rs-rd)*as/255+rd;
+            int g = (gs-gd)*as/255+gd;
+            int b = (bs-bd)*as/255+bd;
+            paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
+          } break;
+          case TOOL_ERASER: {
+            int ad = (col>>24) & 255;
+            ad *= 1-value;
+            if (ad < 0) ad = 0;
+            paintToolLayer->pixels[p] = (col & 0x00ffffff)|(ad<<24);
+          } break;
+        }
+      }
+    }
+
+    first = true;
+    for (int i2 = 0; i2 < 4; i2++) {
+      Vector k(i2 & 1 ? layerUpdateX1 : layerUpdateX0,i2 & 2 ? layerUpdateY1 : layerUpdateY0,0);
+      double lx0,ly0; currentCanvas->getScreenPos(paintToolLayer,k.x,k.y,lx0,ly0);
+      lx0 -= currentCanvas->screenPosX;
+      ly0 -= currentCanvas->screenPosY;
+      if (first || lx0 < layerBoundings.x) layerBoundings.x = lx0;
+      if (first || ly0 < layerBoundings.y) layerBoundings.y = ly0;
+      if (first || lx0 > layerBoundings.z) layerBoundings.z = lx0;
+      if (first || ly0 > layerBoundings.w) layerBoundings.w = ly0;
+      first = false;
+    }
+    layerBoundings.z += 1;
+    layerBoundings.w += 1;
+    layerUpdateX0 = 0;
+    layerUpdateY0 = 0;
+    layerUpdateX1 = currentCanvas->width;
+    layerUpdateY1 = currentCanvas->height;
+    if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
+    if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
+    if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
+    if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+
+    static int someTimer = 0; someTimer++; if ((someTimer & 15)==0) currentCanvas->clearUpdateFlag();
+    for (int y2 = layerUpdateY0; y2 < layerUpdateY1; y2++) {
+      for (int x2 = layerUpdateX0; x2 < layerUpdateX1; x2++) {
+        currentCanvas->pixelStates[x2+y2*currentCanvas->width] |= PIXELSTATE_UPDATED;
+      }
+    }
+
+    repaintLayer(paintToolLayer,false);
+  }
+}
+
 void useTool() {
   switch(tool) {
   case TOOL_WAND: {
@@ -582,6 +902,18 @@ void useTool() {
     } break;
   case TOOL_SELECTION: {
     useToolSelection();
+    } break;
+  case TOOL_PENCIL: {
+    useToolPainting();
+    } break;
+  case TOOL_ERASER: {
+    useToolPainting();
+    } break;
+  case TOOL_PAINTBRUSH: {
+    useToolPainting();
+    } break;
+  case TOOL_MAGIC: {
+    useToolPainting();
     } break;
   }
 }

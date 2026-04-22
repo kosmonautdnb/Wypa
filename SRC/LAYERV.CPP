@@ -29,6 +29,7 @@
 #include "LAYERS.HPP"
 #include "DIALOGS.HPP"
 #include "SVG.HPP"
+#include "TOOLBAR.HPP"
 
 bool roundButton(const char *name, bool enabled);
 
@@ -39,6 +40,7 @@ void freeLayerView() {
 }
 
 void drawLayerView() {
+  if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height+navigator_height+colorField_height));
   ImGui::Begin("LAYERVIEW", NULL, ImVec2(sidebar_width,main_window_yres-(menuBar_height+navigator_height+colorField_height)),1.0,FROZENWINDOW);
 

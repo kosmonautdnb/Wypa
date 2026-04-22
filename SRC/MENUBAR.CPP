@@ -122,18 +122,22 @@ void drawMenuBar() {
     if (ImGui::BeginMenu("Layer")) {
       on = true;
       bool one = false;
-      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) one = true;
+      int count = 0;
+      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (ImGui::MenuItem("Add layer")) {dialogAddLayer(true);}
-      if (ImGui::MenuItem("Delete layer(s)")) {dialogDeleteLayers(true);}
+      if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
       if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
       if (ImGui::MenuItem("Select all layers")) {currentCanvas->selectAllLayers();}
-      if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {currentCanvas->duplicateLayers();}
+      if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {dialogDuplicate(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Copy layer(s)",NULL,false,one)) {currentCanvas->copy();}
       if (ImGui::MenuItem("Paste",NULL,false,copyLayer != NULL)) {currentCanvas->paste();}
-      if (ImGui::MenuItem("Bake layer(s)")) {dialogBakeLayers(true);}
+      if (ImGui::MenuItem("Bake layer(s)",NULL,false,one)) {dialogBakeLayers(true);}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Merge down layer(s)",NULL,false,count > 1)) {dialogMergeDown(true);}
+      if (ImGui::MenuItem("Insert merge of layer(s)",NULL,false,count > 0)) {currentCanvas->insertMergeOfLayers();}
       ImGui::Separator();
       if (ImGui::MenuItem("Mirror horizontally",NULL,false,one)) {currentCanvas->mirrorHorizontallyLayers();}
       if (ImGui::MenuItem("Mirror vertically",NULL,false,one)) {currentCanvas->mirrorVerticallyLayers();}
@@ -169,7 +173,7 @@ void drawMenuBar() {
       ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu("Pictures")) {
+    if (ImGui::BeginMenu((String("Pictures[")+String::fromInt(canvas.size()) + "]##MENUBARPICTURES").c_str())) {
       on = true;
       for (int i = 0; i < canvas.size(); i++) {
         bool isIt = canvas[i] == currentCanvas;

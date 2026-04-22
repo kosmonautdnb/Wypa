@@ -171,7 +171,7 @@ int main(int argc, const char *argv[]) {
     exit(0);
   }
 
-  glClearColor(0.6,0.8,1.0,0);
+  glClearColor(0,0,0,0);
   glClear(GL_COLOR_BUFFER_BIT);
 
   InitImGui(glFrameBufferWidth,glFrameBufferHeight);
@@ -230,7 +230,8 @@ int main(int argc, const char *argv[]) {
       currentCanvas->control.setCanvasTransform(currentCanvas);
     }
 
-    //select();
+    if (fullScreen) glClear(GL_COLOR_BUFFER_BIT);
+
     blitCanvas();
     
     ImGuiNewFrame();

@@ -58,6 +58,10 @@ void clearPreview() {
   updatePreview();
 }
 
+void noUndoMessage() {
+  ImGui::TextColored(ImVec4(1,0,0,1),"Be aware that there is no <undo> for this!!");
+}
+
 void initDialogs() {
   glGenTextures(1,&previewTexture);
   glBindTexture(GL_TEXTURE_2D,previewTexture);
@@ -89,6 +93,8 @@ void drawDialogs() {
   dialogUpdateLayer(false);
   dialogAbout(false);
   dialogExit(false);
+  dialogDuplicate(false);
+  dialogMergeDown(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -285,6 +291,7 @@ void dialogExpandShrinkSelection(bool openIt) {
 
 void dialogDeletePicture(bool openIt) {
   DIALOGSTART("Delete current picture?");
+  noUndoMessage();
   ImGui::Text("Do you want to delete the current picture \"%s\"?",currentCanvas->pictureName);
   if (ImGui::Button("Delete##DIALOGDELETEPICTUREDELETE")) {
     for (int i = 0; i < canvas.size(); i++) {
@@ -320,6 +327,7 @@ void dialogAddLayer(bool openIt) {
     h = currentCanvas->canvasY1-currentCanvas->canvasY0;
   }
   DIALOGSTART("Add layer");
+  noUndoMessage();
   ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGADDLAYERNAME",layerName,LAYERNAMEMAX);
   ImGui::PushItemWidth(64+16*2);
   ImGui::Text("Layer width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERWIDTH",&w);
@@ -357,6 +365,7 @@ void dialogDeleteLayers(bool openIt) {
   if (layers.empty()) {
     ImGui::Text("No layers selected or active");
   } else {
+    noUndoMessage();
     ImGui::Text("Layers to delete");
     ImGui::BeginChild("DELETELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
     for (int i = 0; i < layers.size(); i++) {
@@ -376,6 +385,70 @@ void dialogDeleteLayers(bool openIt) {
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGDELETELAYERSCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogMergeDown(bool openIt) {
+  DIALOGSTART("Merge down layers");
+
+  Array<Layer *> layers;
+  bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+
+  if (layers.empty()) {
+    ImGui::Text("No layers selected or active");
+  } else {
+    noUndoMessage();
+    ImGui::Text("Layers to merge");
+    ImGui::BeginChild("MERGEDOWNLAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
+    for (int i = 0; i < layers.size(); i++) {
+      ImGui::Text("\"%s\"",layers[i]->name);
+    }
+    ImGui::EndChild();
+  }
+
+  if (!layers.empty()) {
+    if (ImGui::Button("Merge down these layers##DIALOGMERGEDOWNLAYERSMERGE")) {
+      currentCanvas->mergeDownLayers();
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGMERGEDOWNLAYERSCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogDuplicate(bool openIt) {
+  DIALOGSTART("Duplicate layers");
+
+  Array<Layer *> layers;
+  bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+
+  if (layers.empty()) {
+    ImGui::Text("No layers selected or active");
+  } else {
+    noUndoMessage();
+    ImGui::Text("Layers to duplicate");
+    ImGui::BeginChild("DUPLICATELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
+    for (int i = 0; i < layers.size(); i++) {
+      ImGui::Text("\"%s\"",layers[i]->name);
+    }
+    ImGui::EndChild();
+  }
+
+  if (!layers.empty()) {
+    if (ImGui::Button("Duplicate these layers##DIALOGDUPLICATELAYERSDUPLICATE")) {
+      currentCanvas->duplicateLayers();
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGDUPLICATELAYERSCLOSE")) {
     ImGui::CloseCurrentPopup();
   }
   DIALOGEND()
@@ -700,6 +773,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   }
   bool result = false;
   DIALOGSTART(dialogCaption[mode])
+  noUndoMessage();
   if (paths[mode].empty()) {paths[mode] = getCWD();}
   if (needsRescanFiles) {
     clearPreview();

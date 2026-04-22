@@ -27,6 +27,7 @@
 #include "STL/GL.H"
 #include "STL/ARRAY.HPP"
 #include <string.h>
+#include <stdio.h>
 
 enum BRUSHINSTANCE {
   BRUSHINSTANCE_PAINT = 0,
@@ -42,19 +43,23 @@ public:
     pixelWidth = 0;
     pixelHeight = 0;
     glHandle = 0;
+    followedRotation = 0;
   }
   ~BrushInstance() {
     if (glHandle != 0) {glDeleteTextures(1,&glHandle); glHandle = 0;}
   }
-  double pixelWidth;
-  double pixelHeight;
+  float followedRotation;
+  int pixelWidth;
+  int pixelHeight;
   bool isPencil;
   unsigned int glHandle;
   Array<float> values;
   void resize(class Brush *base, double newPixelWidth, double newPixelHeight);
   void update(class Brush *base);
-  void updateGLHandle(bool pencil);
+  void updateGLHandle();
 };
+
+#define BRUSHNAMEMAX 16
 
 class Brush {
 public:
@@ -66,6 +71,13 @@ public:
     ovality = 0;
     aspect = 1;
     rotation = 0;
+    randomX = 0;
+    randomY = 0;
+    opacity = 1;
+    rate = 1;
+    followRotation = false;
+    static int counter = 0; counter++; counter &= 1023;
+    sprintf(name,"Brush %d",counter);
     memset(instances,0,sizeof(instances));
   }
   ~Brush() {
@@ -74,6 +86,7 @@ public:
   BrushInstance *getCreateInstance(int brushInstance, int w, int h, bool pencil);
   void freeInstance(int brushInstance);
   BrushInstance * instances[BRUSHINSTANCE_COUNT];
+  char name[BRUSHNAMEMAX];
   float size;
   float pressure;
   float softness;
@@ -81,7 +94,14 @@ public:
   float ovality;
   float aspect;
   float rotation;
+  float randomX;
+  float randomY;
+  float opacity;
+  float rate;
+  bool followRotation;
   void update();
+  double pixelWidth();
+  double pixelHeight();
 };
 
 extern Array<Brush *> brushes;

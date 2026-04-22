@@ -28,8 +28,8 @@
 #include "LAYERS.HPP"
 #include "IMGUI/IMGUI.H"
 #include "IMGUI/IMGUIGL.HPP"
-#include "DIALOGS.HPP"
 #include "TOOLS.HPP"
+#include "TOOLBAR.HPP"
 #include <math.h>
 
 int navigator_height = 68;
@@ -94,9 +94,9 @@ void updateNavigatorImage() {
 }
 
 void drawNavigator() {
+  if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height));
   ImGui::Begin("NAVIGATOR", NULL, ImVec2(sidebar_width,navigator_height),1.0,FROZENWINDOW);
-  drawDialogs();
 
   ImVec2 cursor = ImGui::GetCursorPos();
   int nameSize = 7*(PICTURENAMEMAX);

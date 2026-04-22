@@ -31,6 +31,7 @@
 #include "SERIALZE.HPP"
 #include "TOOLBAR.HPP"
 #include "TOOLVIEW.HPP"
+#include "SERIALZE.HPP"
 #include <math.h>
 
 Layer *copyLayer = NULL;
@@ -330,6 +331,7 @@ void Layer::expandSelection(int pixels) {
   if (pixels == 0) return;
   unsigned char *before = new unsigned char[width*height];
   bool forward = pixels > 0;
+  initStatusBar();
   for (int i = 0; i < abs(pixels); i++) {
     memcpy(before,pixelStates,width*height*sizeof(unsigned char));
     for (int y = 0; y < height; y++) {
@@ -352,6 +354,7 @@ void Layer::expandSelection(int pixels) {
         }
       }
     }
+    updateStatusBar();
   }
   delete[] before;
   shouldUpdateAll = true;
@@ -405,6 +408,29 @@ Vector Layer::boundingBox() {
     if (i == 0 || k.y < ret.y) ret.y = k.y;
     if (i == 0 || k.x > ret.z) ret.z = k.x;
     if (i == 0 || k.y > ret.w) ret.w = k.y;
+  }
+  return ret;
+}
+
+Vector Layer::selectionBounding() {
+  if (!hasSelection()) return boundingBox();
+  Vector ret;
+  bool first = true;
+  Matrix invM = inverse2(transform.transformation);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      if (pixelStates[x+y*width] && PIXELSTATE_SELECTED) {
+        Vector k00(x,y,0);
+        Vector k11(x+1,y+1,0);
+        k00 = invM * k00;
+        k11 = invM * k11;
+        if (first || k00.x < ret.x) ret.x = k00.x;
+        if (first || k00.y < ret.y) ret.y = k00.y;
+        if (first || k11.x > ret.z) ret.z = k11.x;
+        if (first || k11.y > ret.w) ret.w = k11.y;
+        first = false;
+      }
+    }
   }
   return ret;
 }
@@ -743,6 +769,10 @@ void Canvas::init(int width, int height) {
   this->canvasY1 = height;
 }
 
+void Canvas::clearUpdateFlag() {
+  for (int i = 0; i < width * height; i++) pixelStates[i] &= ~PIXELSTATE_UPDATED;
+}
+
 void Canvas::getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY) {
   double x,y;
   x = (double)screenX-screenPosX;
@@ -760,6 +790,15 @@ void Canvas::getLayerPosFromCanvasPos(Layer *layer, double canvasX, double canva
   layer->transform.transformForward(x,y,x,y);
   layerX = x;
   layerY = y;
+}
+
+void Canvas::getCanvasPosFromLayerPos(Layer *layer, double layerX, double layerY, double &canvasX, double &canvasY) {
+  double x,y;
+  x = (double)layerX;
+  y = (double)layerY;
+  layer->transform.transformBackward(x,y,x,y);
+  canvasX = x;
+  canvasY = y;
 }
 
 void Canvas::getCanvasPos(double screenX, double screenY, double &canvasX, double &canvasY) {
@@ -810,8 +849,6 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY) {
   }
   return 0;
 }
-
-bool justSelection = false;
 
 void fillCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, unsigned int color, unsigned char additionalPixelState) {
   if (x0 < 0) x0 = 0;
@@ -876,7 +913,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
 
       unsigned char a = canvas->pixelStates[x+y*canvas->width];
       if (!(a & PIXELSTATE_UPDATED)) continue;
-      if (justSelection && (!(layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED))) continue;
+      if (layer->justSelection && (!(layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED))) continue;
       canvas->pixelStates[x+y*canvas->width] = a | (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED);
 
       unsigned int col = 0xffff00ff;
@@ -1201,6 +1238,8 @@ void Canvas::updateLayer(Layer *layer, bool forceUpdate) {
   Vector b2; b2.x = b.z; b2.y = b.w;
   b1 = inverse2(transform.transformation) * b1;
   b2 = inverse2(transform.transformation) * b2;
+  b2.x += 1;
+  b2.y += 1;
   if (b2.x < x0) return;
   if (b2.y < y0) return;
   if (b1.x > x1) return;
@@ -1336,6 +1375,47 @@ void Canvas::rotate90DegreesBackward() {
   canvasY1 = cMY + cWidth * 0.5;
 
   shouldUpdateAll = true;
+}
+
+void Canvas::mergeDownLayers() {
+  int lastPos = 0;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      lastPos = i;
+    }
+  }
+  if ((unsigned int)lastPos >= layers.size()) return;
+  Layer *l = getSelectionAsLayer(false,false,false);
+  if (l == NULL) return;
+  sprintf(l->name,layers[lastPos]->name);
+  for (int i2 = 0; i2 < layers.size(); i2++) {
+    if (layers[i2]->state.selected || layers[i2]->state.active) {
+      if (lastPos>i2) lastPos--;
+      delete layers[i2];
+      layers.erase(i2,1);
+      i2--;
+    }
+  }
+  shouldUpdateAll = true;
+  if ((unsigned int)lastPos > layers.size()) {delete l; return;}
+  layers.insert(l,lastPos);
+  setActiveLayer(lastPos);
+}
+
+void Canvas::insertMergeOfLayers() {
+  int pos = 0;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      pos = i;
+      break;
+    }
+  }
+  Layer *l = getSelectionAsLayer(false,false,false);
+  if (l == NULL) return;
+  sprintf(l->name,"merged");
+  shouldUpdateAll = true;
+  layers.insert(l,pos);
+  setActiveLayer(pos);
 }
 
 void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpolation) {
@@ -1558,18 +1638,12 @@ Layer *layerFromCanvas(Canvas *canvas) {
   return ret;
 }
 
-Layer *Canvas::getSelectionAsLayer(bool pixelSelection,bool selectAllLayers, bool keepCanvasSize) {
-  Layer *l = NULL;
-  bool one = false; for (int i = 0; i < layers.size(); i++) {Layer *l = layers[i]; if (l->state.selected) one = true;}
-  Array<Layer*> selection;
-  for (int i2 = 0; i2 < layers.size(); i2++) {
-    Layer *l = layers[i2];
-    if ((one && l->state.selected) || ((!one)&&l->state.active) || (selectAllLayers)) if (l->hasSelection()||selectAllLayers||(!pixelSelection)) selection.push_back(l);
-  }
-  if (selection.empty()) return l;
+Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, bool keepCanvasSize) {
+  Layer *ret = NULL;
   Vector boundingBox;
-  for (int i3 = 0; i3 < selection.size(); i3++) {
-    Vector here = selection[i3]->boundingBox();
+  for (int i3 = 0; i3 < layers.size(); i3++) {
+    layers[i3]->justSelection = layers[i3]->hasSelection();
+    Vector here = pixelSelection ? layers[i3]->selectionBounding() : layers[i3]->boundingBox();
     if (i3 == 0 || here.x < boundingBox.x) boundingBox.x = here.x;
     if (i3 == 0 || here.y < boundingBox.y) boundingBox.y = here.y;
     if (i3 == 0 || here.z > boundingBox.z) boundingBox.z = here.z;
@@ -1583,7 +1657,7 @@ Layer *Canvas::getSelectionAsLayer(bool pixelSelection,bool selectAllLayers, boo
   int h = y1-y0;
   Canvas *copyCanvas = new Canvas();
   if (!keepCanvasSize) {
-    if (w<1||h<1) return l;
+    if (w<1||h<1) return NULL;
     copyCanvas->init(w,h);
     copyCanvas->canvasX0 = 0;
     copyCanvas->canvasY0 = 0;
@@ -1594,7 +1668,7 @@ Layer *Canvas::getSelectionAsLayer(bool pixelSelection,bool selectAllLayers, boo
   } else {
     w = canvasX1-canvasX0;
     h = canvasY1-canvasY0;
-    if (w<1||h<1) return l;
+    if (w<1||h<1) return NULL;
     copyCanvas->init(w,h);
     copyCanvas->canvasX0 = 0;
     copyCanvas->canvasY0 = 0;
@@ -1604,15 +1678,29 @@ Layer *Canvas::getSelectionAsLayer(bool pixelSelection,bool selectAllLayers, boo
     copyCanvas->transform.translate(canvasX0,canvasY0);
   }
   copyCanvas->transform.update();
-  copyCanvas->layers = selection;
+  copyCanvas->layers = layers;
   hilightSelection = false;
-  justSelection = pixelSelection;
   copyCanvas->update(true);
-  justSelection = false;
   copyCanvas->layers.clear();
-  l = layerFromCanvas(copyCanvas);
-  sprintf(l->name,"paste");
+  ret= layerFromCanvas(copyCanvas);
+  sprintf(ret->name,"paste");
   delete copyCanvas;
+  for (int i4 = 0; i4 < layers.size(); i4++) {
+    layers[i4]->justSelection = false;
+  }
+  return ret;
+}
+
+Layer *Canvas::getSelectionAsLayer(bool pixelSelection,bool selectAllLayers, bool keepCanvasSize) {
+  Layer *l = NULL;
+  bool one = false; for (int i = 0; i < layers.size(); i++) {Layer *l = layers[i]; if (l->state.selected) one = true;}
+  Array<Layer*> selection;
+  for (int i2 = 0; i2 < layers.size(); i2++) {
+    Layer *l = layers[i2];
+    if ((one && l->state.selected) || ((!one)&&l->state.active) || selectAllLayers) selection.push_back(l);
+  }
+  if (selection.empty()) return l;
+  l = getMergedLayer(selection,pixelSelection,keepCanvasSize);
   return l;
 }
 
@@ -1634,6 +1722,7 @@ void Canvas::copy() {
   if (copyLayer != NULL) {delete copyLayer; copyLayer = NULL;}
   copyLayer = getSelectionAsLayer(true,false,false);
   selectNone(true);
+  noSelectedLayers();
 }
 
 void Canvas::paste() {

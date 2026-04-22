@@ -56,6 +56,8 @@ void dialogGetLayersFromPicture(bool openIt);
 void dialogUpdateLayer(bool openIt);
 void dialogAbout(bool openIt);
 void dialogExit(bool openIt);
+void dialogDuplicate(bool openIt);
+void dialogMergeDown(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

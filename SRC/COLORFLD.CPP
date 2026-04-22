@@ -30,7 +30,10 @@
 #include "IMGUI/IMGUI.H"
 #include "IMGUI/IMGUIGL.HPP"
 #include "DIALOGS.HPP"
+#include "TOOLBAR.HPP"
 #include <math.h>
+
+unsigned int colorField_height = 380;
 
 unsigned int getUIntColor(const ImVec4 &k) {
   int r = k.x * 255.f;
@@ -68,8 +71,6 @@ void addUsedColor(const ImVec4 &color) {
     colorTraceBacks[0] = getUIntColor(color);
   }
 }
-
-unsigned int colorField_height = 380;
 
 ImVec4 foregroundColor(0,1,1,1);
 
@@ -269,12 +270,50 @@ void colorDisplay(ImVec4 *c) {
     ImGui::PopID();
   }
   ImGui::EndChild();
-  if (colorItem("","##DIALOGCOLORCOLORHEX",c)) {
-    getHsl(*c,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);
+}
+
+void removeColor() {
+  for (int i = 0; i < palette.size(); i++) {
+    if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
+      palette.erase(i,1); 
+      int pos = i; 
+      if (pos>=palette.size()) pos = palette.size()-1; 
+      if ((unsigned int)pos<palette.size()) foregroundColor = palette[pos];
+      return;
+    }
   }
 }
 
+ImVec4 getUnusedColor() {
+  for (int i = 0; i < 256; i++) {
+    int r = rand() & 255;
+    int g = rand() & 255;
+    int b = rand() & 255;
+    int a = (rand() & 127)+128;
+    unsigned int col = r|(g<<8)|(b<<16)|(a<<24);
+    bool found = false;
+    for (int j = 0; j < palette.size(); j++) {
+      if (getUIntColor(palette[i])==col) {found = true; break;}
+    }
+    if (!found) return ImVec4(r/255.f,g/255.f,b/255.f,a/255.f);
+  }
+  return ImVec4(0,0,0,0);
+}
+
+void insertColor() {
+  for (int i = 0; i < palette.size(); i++) {
+    if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
+      palette.insert(getUnusedColor(),i); 
+      foregroundColor = palette[i];
+      return;
+    }
+  }
+  palette.push_back(getUnusedColor()); 
+  foregroundColor = palette[palette.size()-1];
+}
+
 void drawColorField() {
+  if (fullScreen) return;
   if (colorWheelAspectRatio != aspectRatio) initColorField();
   ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height+navigator_height));
   ImGui::Begin("COLORFIELD", NULL, ImVec2(sidebar_width,colorField_height),1.0,FROZENWINDOW);
@@ -283,6 +322,7 @@ void drawColorField() {
       showPalette = false;
     }
     ImGui::PushItemWidth(7*4+16*2);
+    ImGui::SameLine();colorItem("","##DRAWCOLORFIELDPALETTEPALETTEHEX",&foregroundColor);
     if (paletteColorsPerRow<1) paletteColorsPerRow = 1;
     if (paletteColorsPerRow>32) paletteColorsPerRow = 32;
     if (roundButton("Load palette##DRAWCOLORFIELDPALETTELOAD",true)) {
@@ -292,15 +332,35 @@ void drawColorField() {
     if (roundButton("Save palette##DRAWCOLORFIELDPALETTESAVE",!palette.empty())) {
       dialogLoadSave(true,DIALOG_SAVEPALETTE);
     }
-    colorItem("","##DRAWCOLORFIELDPALETTEPALETTEHEX",&foregroundColor);
-    ImGui::Text("Palette colors"); int cols = palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; palette.resize(cols);}
+    ImGui::Text("Palette colors"); int cols = palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; if (cols < 0) cols = 0; palette.resize(cols);}
     ImGui::Text("Colors per row"); ImGui::SameLine(); ImGui::InputInt("##DRAWPALETTECOLORFIELDROWCOLS",&paletteColorsPerRow, 1, 1);
-    int b = (sidebar_width-40) / (paletteColorsPerRow);
+    if (paletteColorsPerRow > 16) paletteColorsPerRow = 16;
+    if (paletteColorsPerRow < 1) paletteColorsPerRow = 1;
+    if (roundButton("Insert color##DRAWCOLORFIELDPALETTEINSERT",true)) {
+      insertColor();
+    }
+    ImGui::SameLine();
+    if (roundButton("Remove color##DRAWCOLORFIELDPALETTEREMOVE",!palette.empty())) {
+      removeColor();
+    }
+    ImGui::BeginChild("DRAWCOLORFIELDCHILD",ImVec2(sidebar_width,ImGui::GetWindowSize().y-(ImGui::GetCursorScreenPos().y-ImGui::GetWindowPos().y)));
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    cursor.y += 3;
+    ImGui::SetCursorScreenPos(cursor);
+    int b = (sidebar_width-40-16) / (paletteColorsPerRow);
     b -= 1; // rounding
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0,0));
     for (int i = 0; i < palette.size(); i++) {
       ImGui::PushID((String("##DRAWCOLORFIELDPALETTEPALETTEBUTTON")+String::fromInt(i)).c_str());
-      if ((i % paletteColorsPerRow) != 0) ImGui::SameLine();
+      if ((i % paletteColorsPerRow) != 0) {
+        ImGui::SameLine();
+      } else {
+        ImGui::Text("");
+        ImVec2 cursor2 = ImGui::GetCursorScreenPos();
+        cursor2.x += 2;
+        ImGui::SetCursorScreenPos(cursor2);
+        ImGui::SameLine();
+      }
       ImVec4 c3 = palette[i];
       int a = ImGui::GetIO().MouseClicked[0];
       ImGui::GetIO().MouseClicked[0] = ImGui::GetIO().MouseClicked[0] || ImGui::GetIO().MouseClicked[1];
@@ -311,16 +371,35 @@ void drawColorField() {
           foregroundColor = c3;
         }
       }
+      if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
+        ImVec2 p00 = ImGui::GetItemRectMin();
+        ImVec2 p11 = ImGui::GetItemRectMax();
+        p00.x -= 1;
+        p00.y -= 1;
+        ImGui::GetWindowDrawList()->AddRect(p00,p11,0xff0000ff);
+        p00.x -= 1;
+        p00.y -= 1;
+        p11.x += 1;
+        p11.y += 1;
+        ImGui::GetWindowDrawList()->AddRect(p00,p11,0xff000000);
+      }
       ImGui::GetIO().MouseClicked[0] = a;
       ImGui::PopID();
     }
     ImGui::PopStyleVar();
+    ImGui::EndChild();
     ImGui::PopItemWidth();
   } else {
-    colorDisplay(&foregroundColor);
-    ImGui::SameLine(); if (roundButton("Palette##DRAWCOLORFIELDPALETTE",true)) {
+    if (roundButton("Palette##DRAWCOLORFIELDPALETTE",true)) {
       showPalette = true;
     }
+    ImGui::SameLine();
+    ImVec4 *c = &foregroundColor;
+    if (colorItem("","##DIALOGCOLORCOLORHEX",c)) {
+      float h,s,l;
+      getHsl(*c,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);
+    }
+    colorDisplay(&foregroundColor);
   }
   ImGui::End();
 }
