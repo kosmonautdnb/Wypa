@@ -75,10 +75,10 @@ void drawToolBar() {
     toolBarButton("paintBrushTool",TOOL_PAINTBRUSH);
     toolBarButton("eraserTool",TOOL_ERASER);
     toolBarButton("fillTool",TOOL_FILL);
-    toolBarButton("gradientTool",TOOL_GRADIENT);
-    toolBarButton("magicTool",TOOL_MAGIC);
     toolBarButton("lineTool",TOOL_LINE);
+    toolBarButton("gradientTool",TOOL_GRADIENT);
     toolBarButton("textTool",TOOL_TEXT);
+    //toolBarButton("magicTool",TOOL_MAGIC);
     ImGui::End();
   }
   if (fullScreen) {

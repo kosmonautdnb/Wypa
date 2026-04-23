@@ -56,7 +56,7 @@ public:
   Array<float> values;
   void resize(class Brush *base, double newPixelWidth, double newPixelHeight);
   void update(class Brush *base);
-  void updateGLHandle();
+  void updateGLHandle(class Brush *base);
 };
 
 #define BRUSHNAMEMAX 16
@@ -107,6 +107,50 @@ public:
 extern Array<Brush *> brushes;
 extern int currentBrush;
 
+class GradientElement {
+public:
+  GradientElement() {
+    static int counter = 0; counter++; counter &= 65535;
+    id = counter;
+    color = 0xff000000;
+    position = 0;
+    isStep = false;
+  }
+  ~GradientElement() {
+  }
+  unsigned int id;
+  unsigned int color;
+  bool isStep;
+  float position;
+};
+
+class Gradient {
+public:
+  Gradient() {
+    positionMin = 0;
+    positionMax = 0;
+    lastAccessPoint = 0;
+    inverted = false;
+    doubleSided = false;
+    round = false;
+  }
+  ~Gradient() {
+  }
+  int lastAccessPoint;
+  float positionMin;
+  float positionMax;
+  unsigned int getColor(float between0And1);
+  unsigned int getColor2D(float dx,float dy);
+  bool inverted;
+  bool doubleSided;
+  bool round;
+  void sort();
+  void update();
+  Array<GradientElement> elements;
+};
+
+extern Gradient gradient;
+
 extern double wandAlphaDistance;
 extern double wandColorDistance;
 extern bool wandByNeighbors;
@@ -126,11 +170,19 @@ extern int selectionTool;
 extern bool selectionProportional;
 extern double toolW,toolH;
 
+extern float lineWidth;
+extern bool lineCap;
+extern bool lineAntialiasing;
+
+extern bool toolOutline;
+
 bool isPaintAreaActive();
 
 void initTools();
 void freeTools();
 
 void useTool();
+
+void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask);
 
 #endif //__TOOLS_HPP__

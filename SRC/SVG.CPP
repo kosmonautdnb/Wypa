@@ -102,6 +102,7 @@ void reloadIcons() {
 void loadBaseSVGs() {
   ADDAPPICON("appicon","WYPA.SVG");
   ADDICON("search","SEARCH.SVG");
+  ADDICON("delete","DELETE.SVG");
   double toolbar_width2 = toolbar_width-5;
   ADDTOOLBARICON("moveTool","MOVE.SVG");
   ADDTOOLBARICON("selectionTool","SELECT.SVG");

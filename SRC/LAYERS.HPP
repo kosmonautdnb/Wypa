@@ -102,7 +102,8 @@ enum PIXELSTATES {
   PIXELSTATE_NONE = 0,
   PIXELSTATE_UPDATED = 1,
   PIXELSTATE_SELECTED = 2,
-  PIXELSTATE_TEMP = 4
+  PIXELSTATE_TEMP = 4,
+  PIXELSTATE_OUTLINE = 8
 };
 
 enum REPAINTSTATES {
@@ -133,6 +134,7 @@ public:
 
   int repaintState;
   bool justSelection;
+  bool hasOutline;
 
   Layer() {
     mode = LAYERMODE_NORMAL;
@@ -142,6 +144,7 @@ public:
     pixelStates = NULL;
     repaintState = REPAINTSTATE_NONE;
     justSelection = false;
+    hasOutline = false;
     static int layerCounter = 0; layerCounter++;
     sprintf(name,"Layer %d", layerCounter);
   }
@@ -160,6 +163,7 @@ public:
 
   void init(int width, int height);
   void clear();
+  void updatePixelStates(unsigned char and, unsigned char or, unsigned char eor);
 
   void mirrorHorizontally();
   void mirrorVertically();
@@ -171,6 +175,9 @@ public:
   void selectNone();
   void invertSelection();
   void fillSelectionWithColor(unsigned int color);
+  void fillSelectionWithAlpha(unsigned char alpha);
+  void invertSelectionColor();
+  void invertSelectionAlpha();
   void expandSelection(int pixels);
   void selectByAlpha(int alphaThreshold);
   void selectionAsOutline();
@@ -190,6 +197,10 @@ public:
   void setAngleDegrees(double degrees);
 
   void enlargenLayerBy(int left, int top, int right, int bottom);
+  void antialiasSelected();
+  void colorFromAlpha();
+  void applyAlphaMask(Layer *source);
+  void quantize(const Array<unsigned int> &colors);
 };
 
 class CanvasControl {
@@ -279,6 +290,7 @@ public:
 
   void init(int width, int height);
   void clearUpdateFlag();
+  void updatePixelStates(unsigned char and, unsigned char or, unsigned char eor);
 
   void getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY);
   void getLayerPosFromCanvasPos(Layer *layer, double canvasX, double canvasY, double &layerX, double &layerY);
@@ -312,11 +324,15 @@ public:
   Layer *getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, bool keepCanvasSize);
   void mergeDownLayers();
   void insertMergeOfLayers();
+  void insertAlphaMasks();
+  void applyAlphaMaskToBelow();
+  void quantizeLayers();
 
   void selectAll();
   void selectNone(bool all);
   void invertSelection();
   bool hasSelection();
+  void copyActiveSelectionToLayer(int layerIndexSource,int layerIndexDest);
   void selectByAlpha(int alphaThreshold);
   void selectionAsOutline();
   void selectAllLayers();
@@ -327,13 +343,19 @@ public:
   void compactLayers();
 
   void fillSelectionWithColor(unsigned int color);
+  void fillSelectionWithAlpha(unsigned char alpha);
+  void invertSelectionColor();
+  void invertSelectionAlpha();
   void expandSelection(int pixels);
+  void antialiasSelected();
   
   Layer *getSelectionAsLayer(bool pixelSelection, bool selectAllLayers, bool keepCanvasSize);
   void duplicateLayers();
+  void insertLayerLikeThisLayer();
   void copy();
   void paste();
 
+  int getActiveLayerIndex();
   Layer *getActiveLayer();
   void setActiveLayer(int layer);
   void noSelectedLayers();
@@ -353,6 +375,7 @@ extern bool shouldUpdate;
 extern Layer *selectionPlane;
 extern bool showSelectionPlane;
 extern bool showSelectionPlaneBounding;
+extern bool clearOutlineAfterNextPaint;
 
 void repaintLayer(Layer *layer, bool fullUpdate);
 void blitCanvas();

@@ -30,6 +30,8 @@
 #include "STL/ARRAY.HPP"
 #include "STL/DOS.HPP"
 #include "STL/PSDIMAGE.HPP"
+#include "TOOLVIEW.HPP"
+#include "TOOLS.HPP"
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = RGBAImage::fromMemory(&(arr[0]), arr.size());
 
@@ -235,7 +237,17 @@ void loadPalette(const char *shortPath, const char *longFileName) {
   if (sscanf(lines[0].c_str(),"%d",&a[0])==1) paletteColorsPerRow = a[0];
   palette.clear();
   for (int i = 1; i < lines.size(); i++) {
-    if (sscanf(lines[i].c_str(),"%d %d %d %d",&a[0],&a[1],&a[2],&a[3])==4) palette.push_back(getImVec4Color(a[0]+(a[1]<<8)+(a[2]<<16)+(a[3]<<24)));
+    if (sscanf(lines[i].c_str(),"%d %d %d %d",&a[0],&a[1],&a[2],&a[3])==4) {
+      if (a[0]<0) a[0] = 0;
+      if (a[1]<0) a[1] = 0;
+      if (a[2]<0) a[2] = 0;
+      if (a[3]<0) a[3] = 0;
+      if (a[0]>255) a[0] = 255;
+      if (a[1]>255) a[1] = 255;
+      if (a[2]>255) a[2] = 255;
+      if (a[3]>255) a[3] = 255;
+      palette.push_back(getImVec4Color(a[0]+(a[1]<<8)+(a[2]<<16)+(a[3]<<24)));
+    }
   }
 }
 
@@ -248,7 +260,65 @@ void savePalette(const char *shortPath, const char *longFileName) {
     int g = int(palette[i].y*255.f);
     int b = int(palette[i].z*255.f);
     int a = int(palette[i].w*255.f);
+    if (r < 0) r = 0;
+    if (g < 0) g = 0;
+    if (b < 0) b = 0;
+    if (a < 0) a = 0;
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+    if (a > 255) a = 255;
     fprintf(out,"%d %d %d %d\n",r,g,b,a);
+  }
+  fclose(out);
+  renameTempFile(shortPath, longFileName);
+}
+
+void loadGradient(const char *shortPath, const char *longFileName) {
+  Array<unsigned char> arr;
+  getFileArray(&arr,String(shortPath)+String(longFileName));
+  if (arr.empty()) return;
+  const char *str = (char*)&arr[0];
+  Array<String> lines = getLines(str);
+  if (lines.size()<1) return;
+  gradient.elements.clear();
+  float pos;
+  int a[4]; 
+  char step;
+  for (int i = 0; i < lines.size(); i++) {
+    if (sscanf(lines[i].c_str(),"%f %d %d %d %d %c",&pos,&a[0],&a[1],&a[2],&a[3],&step)==6) {
+      if (a[0]<0) a[0] = 0;
+      if (a[1]<0) a[1] = 0;
+      if (a[2]<0) a[2] = 0;
+      if (a[3]<0) a[3] = 0;
+      if (a[0]>255) a[0] = 255;
+      if (a[1]>255) a[1] = 255;
+      if (a[2]>255) a[2] = 255;
+      if (a[3]>255) a[3] = 255;
+      GradientElement e;
+      e.color = a[0]+(a[1]<<8)+(a[2]<<16)+(a[3]<<24);
+      e.isStep = step == 's' ? true : false;
+      if (pos < 0) pos = 0;
+      if (pos > 100000) pos = 100000;
+      e.position = pos;
+      gradient.elements.push_back(e);
+    }
+  }
+  updateGradient();
+}
+
+void saveGradient(const char *shortPath, const char *longFileName) {
+  FILE *out = createTempFile(shortPath,"w");
+
+  for (int i = 0; i < gradient.elements.size(); i++) {
+    GradientElement *e = &gradient.elements[i];
+    float pos = e->position;
+    int r = e->color & 255;
+    int g = (e->color>>8) & 255;
+    int b = (e->color>>16) & 255;
+    int a = (e->color>>24) & 255;
+    bool step = e->isStep;
+    fprintf(out,"%f %d %d %d %d %c\n",pos,r,g,b,a,step ? 's' : 'l');
   }
   fclose(out);
   renameTempFile(shortPath, longFileName);

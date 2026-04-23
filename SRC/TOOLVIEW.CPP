@@ -31,16 +31,52 @@
 #include "SVG.HPP"
 #include "TOOLS.HPP"
 #include "LAYERS.HPP"
+#include "COLORFLD.HPP"
+#include "DIALOGS.HPP"
 #include <math.h>
 
 int toolview_width = 120;
 
 bool roundButton(const char *name, bool enabled);
 
+GLuint gradientTexture = 0;
+
+const int gradientTextureWidth = 100;
+const int gradientTextureHeight = 50;
+unsigned int gradientTextureContent[gradientTextureWidth*gradientTextureHeight];
+
 void initToolView() {
+  glGenTextures(1,&gradientTexture);
+  glBindTexture(GL_TEXTURE_2D,gradientTexture);
+  memset(gradientTextureContent,0,sizeof(gradientTextureContent));
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, gradientTextureContent);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void repaintGradientTexture(Gradient *gradient) {
+  for (int y = 0; y < gradientTextureHeight; y++) {
+    for (int x = 0; x < gradientTextureWidth; x++) {
+      float fx = (float)x / (gradientTextureWidth-1);
+      float fy = (float)y / (gradientTextureHeight-1);
+      if (gradient->round) {
+        fx = fx * 2 - 1;
+        fy = fy * 2 - 1;
+      }
+      unsigned int col = gradient->getColor2D(fx,fy);
+      gradientTextureContent[x+y*gradientTextureWidth] = col;
+    }
+  }
+  glBindTexture(GL_TEXTURE_2D,gradientTexture);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, gradientTextureContent);
+  glBindTexture(GL_TEXTURE_2D,0);
 }
 
 void freeToolView() {
+  glDeleteTextures(1,&gradientTexture);
 }
 
 void drawToolWandView() {
@@ -126,6 +162,12 @@ void drawToolMoveView() {
       if (roundButton("Fit boundings##DRAWTOOLMOVEVIEWFITTOCANVAS",somethingToFit)) {
         l->quantizeBoundingBox();
       }
+      ImGui::Separator();
+      if (roundButton("Reset transform##DRAWTOOLMOVEVIEWRESETLAYERTRANSFORM",true)) {
+        l->transform.fresh();
+        l->transform.translate(-b.x,-b.y);
+        shouldUpdateAll = true;
+      }
     } else {
       k = x0; ImGui::Text("Bounding pos x"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGPOSX",&k)) {currentCanvas->setBoundingPos(k,y0); shouldUpdateAll = true;} if (notIntPosX(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;}
       k = y0; ImGui::Text("Bounding pos y"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGPOSY",&k)) {currentCanvas->setBoundingPos(x0,k); shouldUpdateAll = true;} if (notIntPosY(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;}
@@ -195,6 +237,7 @@ void drawBrushSelect(bool pencil) {
 
 void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
   ImGui::InputText("##DRAWBRUSHEDITNAME",brush->name,BRUSHNAMEMAX);
+  ImGui::SameLine(); ImGui::Checkbox("##DRAWBRUSHEDITOUTLINE",&toolOutline);
   drawBrushWindow(id,BRUSHINSTANCE_EDIT,brush,toolview_width-10,toolview_width-10, pencil,false);
   ImGui::Text("Size");
   ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITSIZE",&brush->size,1,128)) {if (brush->size<1) brush->size = 1; if (brush->size>128) brush->size = 128; brush->update();}
@@ -257,6 +300,76 @@ void drawToolPipetteView() {
   if (roundButton(pipetteFromLayer ? "From picture##DRAWTOOLPIPETTEVIEWLAYER" : "From layer##DRAWTOOLPIPETTEVIEWLAYER", true)) {pipetteFromLayer = !pipetteFromLayer;}
 }
 
+void drawToolLineView() {
+  ImGui::Text("Line width");
+  ImGui::InputFloat("##DRAWTOOLLINEVIEWLINEWIDTH",&lineWidth); if (lineWidth < 0) lineWidth = 0;
+  ImGui::Text("Line cap"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLLINEVIEWLINECAP",&lineCap);
+  ImGui::Text("Antialiasing"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLLINEVIEWLINEANTIALIASING",&lineAntialiasing);
+}
+
+void updateGradient() {
+  gradient.update();
+  repaintGradientTexture(&gradient);
+}
+
+void drawToolGradientView() {
+  static String neededScroll = "";
+  if (roundButton("Load##DRAWTOOLGRADIENTVIEWLOAD",true)) {dialogLoadSave(true,DIALOG_LOADGRADIENT);}
+  ImGui::SameLine();
+  if (roundButton("Save##DRAWTOOLGRADIENTVIEWSAVE",!gradient.elements.empty())) {dialogLoadSave(true,DIALOG_SAVEGRADIENT);}
+  ImGui::Image((ImTextureID)gradientTexture,ImVec2(gradientTextureWidth,gradientTextureHeight));
+  ImVec2 minB = ImGui::GetItemRectMin();
+  ImVec2 maxB = ImGui::GetItemRectMax();
+  minB.x -= 1;
+  minB.y -= 1;
+  ImGui::GetWindowDrawList()->AddRect(minB,maxB,0xff000000);
+  ImGui::Text("Start %f", gradient.positionMin);
+  ImGui::Text("End   %f", gradient.positionMax);
+  ImGui::Text("Inverted"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWINVERTED",&gradient.inverted)) updateGradient();
+  ImGui::Text("Double sided"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWDOUBLESIDED",&gradient.doubleSided)) updateGradient();
+  ImGui::Text("Circular"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWCIRCULAR",&gradient.round)) updateGradient();
+  if (roundButton("Add element##DRAWTOOLGRADIENTVIEWADDELEMENT",true)) {
+    gradient.elements.push_back(GradientElement());
+    updateGradient();
+  }
+  ImGui::BeginChild("DRAWTOOLGRADIENTVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
+  for (int i = 0; i < gradient.elements.size(); i++) {
+    GradientElement *e = &gradient.elements[i];
+    String id = String("##DRAWTOOLGRADIENTVIEWELEMENT")+String::fromInt(e->id);
+    if (id == neededScroll) {
+      ImGui::SetScrollPosHere();
+      neededScroll = "";
+    }
+    ImGui::PushItemWidth(7*5);
+    if (ImGui::InputFloat((id+"FLOAT").c_str(),&e->position,0,0,2)) {if (e->position<0) e->position = 0; if (e->position>100000) e->position = 100000; neededScroll = id; updateGradient();}
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+    if (ImGui::Checkbox((id+"STEP").c_str(),&e->isStep)) updateGradient();
+    ImGui::SameLine();
+    ImGui::PushID((id+"IMAGEBUTTON").c_str());
+    SVG *svg = &svgs["delete"];
+    if (ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h))) {
+      gradient.elements.erase(i,1);
+      updateGradient();
+      if ((unsigned int)i<gradient.elements.size()) e = &gradient.elements[i]; else e = NULL;
+      i--;
+    }
+    ImGui::PopID();
+    if (e != NULL) {
+      ImVec4 chere = getImVec4Color(e->color);
+      ImGui::Text(" "); ImGui::SameLine();
+      ImVec2 cursor = ImGui::GetCursorScreenPos();
+      if (colorItem("", (id+"COLOR").c_str(), &chere)) {e->color = getUIntColor(chere); addUsedColor(chere); updateGradient();}
+      ImGui::SetCursorScreenPos(cursor);
+      if (ImGui::InvisibleButton((id+"INVISIBLE").c_str(),ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+        e->color = getUIntColor(foregroundColor); addUsedColor(foregroundColor); updateGradient();
+        updateGradient();
+      }
+    }
+  }
+  ImGui::EndChild();
+}
+
 void drawToolView() {
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
@@ -290,6 +403,12 @@ void drawToolView() {
     } break;
   case TOOL_MAGIC: {
       drawToolMagicView();
+    } break;
+  case TOOL_LINE: {
+      drawToolLineView();
+    } break;
+  case TOOL_GRADIENT: {
+      drawToolGradientView();
     } break;
   }
   ImGui::End();

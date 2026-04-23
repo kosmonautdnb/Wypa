@@ -26,6 +26,7 @@
 
 #include "IMGUI/IMGUI.H"
 #include "STL/ARRAY.HPP"
+#include "STL/STRING.HPP"
 
 extern unsigned int colorField_height;
 extern ImVec4 foregroundColor;
@@ -41,6 +42,7 @@ void initColorField();
 void freeColorField();
 void drawColorField();
 
+bool colorItem(const String &name, const String &id, ImVec4 *color);
 void addUsedColor(const ImVec4 &color);
 
 #endif // __COLORFLD_HPP__

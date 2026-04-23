@@ -628,11 +628,12 @@ const char *png = ".png";
 const char *psd = ".psd";
 const char *all = "*.*";
 const char *pal = "*.pa2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRaw,insertPSD};
+const char *grad = "*.gr2";
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd,grad,grad};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRaw,insertPSD,loadGradient,saveGradient};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {

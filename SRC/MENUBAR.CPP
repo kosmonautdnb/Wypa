@@ -89,7 +89,7 @@ void drawMenuBar() {
       on = true;
       if (ImGui::MenuItem("New image")) {dialogNewImage(true);}
       ImGui::Separator();
-      if (ImGui::MenuItem("Load image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
+      if (ImGui::MenuItem("Import image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
       if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
       if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
       ImGui::Separator();
@@ -104,6 +104,11 @@ void drawMenuBar() {
       on = true;
       if (ImGui::MenuItem("Fill with foreground color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));}
       if (ImGui::MenuItem("Erase selection",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(0x00000000);}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Antialias selected",NULL,false,currentCanvas->hasSelection())) {currentCanvas->antialiasSelected();}
+      if (ImGui::MenuItem("Fill selection with foreground alpha",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithAlpha(getUIntColor(foregroundColor)>>24);}
+      if (ImGui::MenuItem("Invert selection color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->invertSelectionColor();}
+      if (ImGui::MenuItem("Invert selection alpha",NULL,false,currentCanvas->hasSelection())) {currentCanvas->invertSelectionAlpha();}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Image")) {
@@ -125,6 +130,7 @@ void drawMenuBar() {
       int count = 0;
       for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (ImGui::MenuItem("Add layer")) {dialogAddLayer(true);}
+      if (ImGui::MenuItem("Insert layer like this layer",NULL,false,count == 1)) {currentCanvas->insertLayerLikeThisLayer();}
       if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
@@ -138,6 +144,9 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Merge down layer(s)",NULL,false,count > 1)) {dialogMergeDown(true);}
       if (ImGui::MenuItem("Insert merge of layer(s)",NULL,false,count > 0)) {currentCanvas->insertMergeOfLayers();}
+      if (ImGui::MenuItem("Insert alpha mask above layer(s)",NULL,false,count > 0)) {currentCanvas->insertAlphaMasks();}
+      if (ImGui::MenuItem("Apply alpha mask to below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}
+      if (ImGui::MenuItem("Quantize layer(s) to palette",NULL,false,one)) {currentCanvas->quantizeLayers();}
       ImGui::Separator();
       if (ImGui::MenuItem("Mirror horizontally",NULL,false,one)) {currentCanvas->mirrorHorizontallyLayers();}
       if (ImGui::MenuItem("Mirror vertically",NULL,false,one)) {currentCanvas->mirrorVerticallyLayers();}

@@ -30,4 +30,6 @@ void initToolView();
 void freeToolView();
 void drawToolView();
 
+void updateGradient();
+
 #endif // __TOOLVIEW_HPP__

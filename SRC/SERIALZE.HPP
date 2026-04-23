@@ -46,6 +46,9 @@ void insertPSD(const char *shortPath, const char *longFileName);
 void loadPalette(const char *shortPath, const char *longFileName);
 void savePalette(const char *shortPath, const char *longFileName);
 
+void loadGradient(const char *shortPath, const char *longFileName);
+void saveGradient(const char *shortPath, const char *longFileName);
+
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);
 
