@@ -34,7 +34,7 @@ int toolbar_bottom_height = 32;
 int tool = TOOL_NONE;
 bool fullScreen = false;
 
-const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Magic","Fill","Line","Text"};
+const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Magic","Fill","Line","Text","Measure"};
 
 void initToolBar() {
 }
@@ -78,7 +78,8 @@ void drawToolBar() {
     toolBarButton("lineTool",TOOL_LINE);
     toolBarButton("gradientTool",TOOL_GRADIENT);
     toolBarButton("textTool",TOOL_TEXT);
-    //toolBarButton("magicTool",TOOL_MAGIC);
+    toolBarButton("magicTool",TOOL_MAGIC);
+    toolBarButton("measureTool",TOOL_MEASURE);
     ImGui::End();
   }
   if (fullScreen) {

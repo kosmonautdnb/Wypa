@@ -92,6 +92,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Import image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
       if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
       if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
+      if (ImGui::MenuItem("Insert svg layer (experimental)")) {dialogLoadSave(true,DIALOG_INSERTSVG);}
       ImGui::Separator();
       if (ImGui::MenuItem("Export png")) {dialogLoadSave(true,DIALOG_EXPORTPNG);}
       if (ImGui::MenuItem("Save selected layer(s) as single png")) {dialogLoadSave(true,DIALOG_EXPORTLAYERS);}
@@ -122,6 +123,8 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Resize image")) {dialogImageResize(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Fit canvas to layers")) {currentCanvas->fitCanvasToLayers();}
+      if (ImGui::MenuItem("Crop canvas by alpha")) {currentCanvas->cropCanvasByAlpha(1);}
+      if (ImGui::MenuItem("Fit canvas to selection")) {currentCanvas->fitCanvasToSelection();}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Layer")) {
@@ -154,10 +157,14 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Rotate -90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesBackwardLayers();}
       ImGui::Separator();
       if (ImGui::MenuItem("Update layer",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {dialogUpdateLayer(true);}
+      if (ImGui::MenuItem("Crop layer(s) by alpha",NULL,false,one)) {currentCanvas->cropLayersByAlpha(1);}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Selection")) {
       on = true;
+      bool one = false;
+      int count = 0;
+      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (ImGui::MenuItem("Select all")) {currentCanvas->selectAll();}
       if (ImGui::MenuItem("Select none")) {currentCanvas->selectNone(true);}
       if (ImGui::MenuItem("Invert selection")) {currentCanvas->invertSelection();}
@@ -165,6 +172,9 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Expand/shrink selection")) {dialogExpandShrinkSelection(true);}
       if (ImGui::MenuItem("Select by alpha")) {dialogSelectByAlpha(true);}
       if (ImGui::MenuItem("Selection as outline")) {currentCanvas->selectionAsOutline();}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Apply selections to layer",NULL,false,count>1&&(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->getLayerSelectionFromLayers(currentCanvas->getActiveLayer());}
+      if (ImGui::MenuItem("Clear all other layer selections",NULL,false,(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->clearAllOtherLayerSelections(currentCanvas->getActiveLayer());}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("View")) {

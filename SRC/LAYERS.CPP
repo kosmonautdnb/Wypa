@@ -128,6 +128,140 @@ void TransformationState::pixelSize(double x, double y) {
 }
 
 
+void ColorTransform::reset() {
+  brightness = 0;
+  contrast = 1;
+  gamma = 1;
+  gammaInvert = false;
+  saturation = 1;
+  addRed = 0;
+  addGreen = 0;
+  addBlue = 0;
+  addAlpha = 0;
+  scaleRed = 1;
+  scaleGreen = 1;
+  scaleBlue = 1;
+  scaleAlpha = 1;
+  hue = 0;
+  shouldUpdate = true;
+}
+
+void ColorTransform::update() {
+  if (!shouldUpdate) return;
+  shouldUpdate = false;
+  double gam = gammaInvert ? ((gamma!=0) ? 1.0/gamma:1) : gamma;
+  for (int j = 0; j < 5; j++) {
+    unsigned int *table = r;
+    switch(j) {
+    case 0: {table = r;} break;
+    case 1: {table = g;} break;
+    case 2: {table = b;} break;
+    case 3: {table = a;} break;
+    case 4: {table = grey;} break;
+    }
+    for (int i = 0; i < 256; i++) {
+      double v = j < 4 ? i : 0;
+      ImVec4 col2(0,0,0,0); 
+      if (j<3 && hue != 0) {
+        double h = j * 120 + hue;
+        h /= 360.0;
+        if (h < 0) h = 0;
+        h = fmod(h,1);
+        if (h > 1) h = 1;
+        col2 = hsl(h,1,0.5);
+        col2.x *= v;
+        col2.y *= v;
+        col2.z *= v;
+        switch(j) {
+        case 0: {v = col2.x;} break;
+        case 1: {v = col2.y;} break;
+        case 2: {v = col2.z;} break;
+        }
+      }
+      if (j < 3) {
+        double center = 127.5;
+        v = (v-center) * contrast + center;
+        v = v + brightness*255.0;
+        if (v < 0) v = 0;
+        if (v > 255) v = 255;
+      }
+      switch(j) {
+      case 0: {v *= scaleRed;} break;
+      case 1: {v *= scaleGreen;} break;
+      case 2: {v *= scaleBlue;} break;
+      case 3: {v *= scaleAlpha;} break;
+      }
+      if (j < 3) v *= saturation;
+      switch(j) {
+      case 0: {v += addRed;} break;
+      case 1: {v += addGreen;} break;
+      case 2: {v += addBlue;} break;
+      case 3: {v += addAlpha;} break;
+      }
+      if (v < 0) v = 0;
+      if (v > 255) v = 255;
+      if (col2.x < 0) col2.x = 0;
+      if (col2.x > 255) col2.x = 255;
+      if (col2.y < 0) col2.y = 0;
+      if (col2.y > 255) col2.y = 255;
+      if (col2.z < 0) col2.z = 0;
+      if (col2.z > 255) col2.z = 255;
+      v = powd(v/255.0,gam)*255.0;
+      col2.x = powd(col2.x/255.0,gam)*255.0;
+      col2.y = powd(col2.y/255.0,gam)*255.0;
+      col2.z = powd(col2.z/255.0,gam)*255.0;
+      if (j < 4) {
+        int vi = (int)floor(v);            
+        if (vi < 0) vi = 0;
+        if (vi > 255) vi = 255;
+        vi <<= j * 8;
+        table[i] = vi;
+        int rc = col2.x;
+        int gc = col2.y;
+        int bc = col2.z;
+        if (rc < 0) rc = 0;
+        if (gc < 0) gc = 0;
+        if (bc < 0) bc = 0;
+        if (rc > 255) rc = 255;
+        if (gc > 255) gc = 255;
+        if (bc > 255) bc = 255;
+        switch(j) {
+        case 0: {table[i] |= (gc<<8)|(bc<<16);} break;
+        case 1: {table[i] |= rc|(bc<<16);} break;
+        case 2: {table[i] |= rc|(gc<<8);} break;
+        }
+      }
+      if (j == 4) {
+        v = (1-saturation) * i;
+        int vi = (int)floor(v);            
+        if (vi < 0) vi = 0;
+        if (vi > 255) vi = 255;
+        table[i] = vi|(vi<<8)|(vi<<16);
+      }
+    }
+  }
+}
+
+unsigned int ColorTransform::applyColorTransform(unsigned int pixel) {
+  unsigned int colr = r[pixel & 255];
+  unsigned int colg = g[(pixel>>8) & 255];
+  unsigned int colb = b[(pixel>>16) & 255];
+  unsigned int cola = a[(pixel>>24) & 255];
+  unsigned int grey2 = grey[((pixel & 255)+((pixel>>8) & 255)+((pixel>>16) & 255))/3];
+  int r2 = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey2 & 255);
+  colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+  int g2 = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey2 & 255);
+  colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+  int b2 = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey2 & 255);
+  colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+  int a2 = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey2 & 255);
+  if (r2 > 255) r2 = 255;
+  if (g2 > 255) g2 = 255;
+  if (b2 > 255) b2 = 255;
+  if (a2 > 255) a2 = 255;
+  return r2|(g2<<8)|(b2<<16)|(a2<<24);
+}
+
 unsigned int Layer::getPixel(int x, int y) {
   if ((unsigned int)x<width&&(unsigned int)y<height) return pixels[x+y*width];
   return 0x00000000;
@@ -463,15 +597,38 @@ Vector Layer::selectionBounding() {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if (pixelStates[x+y*width] && PIXELSTATE_SELECTED) {
-        Vector k00(x,y,0);
-        Vector k11(x+1,y+1,0);
-        k00 = invM * k00;
-        k11 = invM * k11;
-        if (first || k00.x < ret.x) ret.x = k00.x;
-        if (first || k00.y < ret.y) ret.y = k00.y;
-        if (first || k11.x > ret.z) ret.z = k11.x;
-        if (first || k11.y > ret.w) ret.w = k11.y;
-        first = false;
+        for (int i = 0; i < 4; i++) {
+          Vector k(x+(i & 1 ? 1 : 0),y+(i & 2 ? 1 : 0),0);
+          k = invM * k;
+          if (first || k.x < ret.x) ret.x = k.x;
+          if (first || k.y < ret.y) ret.y = k.y;
+          if (first || k.x > ret.z) ret.z = k.x;
+          if (first || k.y > ret.w) ret.w = k.y;
+          first = false;
+        }
+      }
+    }
+  }
+  return ret;
+}
+
+Vector Layer::boundingByAlpha(double alphaThreshold) {
+  Vector ret;
+  bool first = true;
+  Matrix invM = inverse2(transform.transformation);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int a = pixels[x+y*width]>>24;
+      if (a >= alphaThreshold) {
+        for (int i = 0; i < 4; i++) {
+          Vector k(x+(i & 1 ? 1 : 0),y+(i & 2 ? 1 : 0),0);
+          k = invM * k;
+          if (first || k.x < ret.x) ret.x = k.x;
+          if (first || k.y < ret.y) ret.y = k.y;
+          if (first || k.x > ret.z) ret.z = k.x;
+          if (first || k.y > ret.w) ret.w = k.y;
+          first = false;
+        }
       }
     }
   }
@@ -721,6 +878,31 @@ void Layer::setAngleDegrees(double degrees) {
   rotateByDegrees(modify);
 }
 
+void Layer::snapToGrid(class Canvas *canvas) {
+  if (canvas->gridStepX == 0 || canvas->gridStepY == 0) return;
+  Vector k = boundingBox();
+  int px = floor(k.x);
+  int py = floor(k.y);
+  int mx2 = px - canvas->gridOffsetX;
+  int my2 = py - canvas->gridOffsetY;
+  int mx = mx2;
+  int my = my2;
+  mx += canvas->gridStepX/2;
+  my += canvas->gridStepY/2;
+  mx /= canvas->gridStepX;
+  my /= canvas->gridStepY;
+  if (mx2 < 0) mx -= 1;
+  if (my2 < 0) my -= 1;
+  mx *= canvas->gridStepX;
+  my *= canvas->gridStepY;
+  mx += canvas->gridOffsetX;
+  my += canvas->gridOffsetY;
+  mx = mx - px;
+  my = my - py;
+  setLayerPos(px+mx,py+my);
+  shouldUpdateAll = true;
+}
+
 void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
   int newWidth = width + left + right;
   int newHeight = height + top + bottom;
@@ -752,6 +934,27 @@ void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
   Matrix modify; modify.translate(Vector(left,top,0));
   transform.transformation = modify * transform.transformation;
   transform.update();
+  shouldUpdateAll = true;
+}
+
+void Layer::cropByAlpha(double alphaThreshold) {
+  bool first = true;
+  int minX = 0, minY = 0, maxX = 0, maxY = 0;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int a = pixels[x+y*width]>>24;
+      if (a >= alphaThreshold) {
+        if (first || x < minX) minX = x;
+        if (first || y < minY) minY = y;
+        if (first || x > maxX) maxX = x;
+        if (first || y > maxY) maxY = y;
+        first = false;
+      }
+    }
+  }
+  maxX++;
+  maxY++;
+  enlargenLayerBy(-minX,-minY,-(width-maxX),-(height-maxY));
   shouldUpdateAll = true;
 }
 
@@ -796,6 +999,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
   initStatusBar();
   for (int i = 0; i < width * height; i++) {
     unsigned int col = pixels[i];
+    if (useColorTransform) col = colorTransform.applyColorTransform(col);
     int rs = col & 255;
     int gs = (col>>8) & 255;
     int bs = (col>>16) & 255;
@@ -817,7 +1021,53 @@ void Layer::quantize(const Array<unsigned int> &colors) {
     pixels[i] = colors[found];
     if ((i & 65535) == 0) updateStatusBar();
   }
+  useColorTransform = false;
   shouldUpdateAll = true;
+}
+
+ColorTransform copiedColorTransform;
+
+void Layer::copyColorTransform() {
+  copiedColorTransform = colorTransform;
+}
+
+void Layer::pasteColorTransform() {
+  colorTransform = copiedColorTransform;
+  colorTransform.shouldUpdate = true;
+  shouldUpdateAll = true;
+}
+
+void Layer::bakeColorTransform(bool onlyInSelection) {
+  for (int i = 0; i < width*height; i++) {
+    if (onlyInSelection && (!(pixelStates[i] & PIXELSTATE_SELECTED))) continue;
+    pixels[i] = colorTransform.applyColorTransform(pixels[i]);
+  }
+  shouldUpdateAll = true;
+}
+
+
+void Layer::addSelectionFromLayer(Layer *source) {
+  if (source == NULL || (!source->hasSelection())) return;
+  Layer *s = source;
+  Layer *d = this;
+  Matrix m = s->transform.transformation * inverse2(d->transform.transformation);
+  for (int y = 0; y < d->height; y++) {
+    for (int x = 0; x < d->width; x++) {
+      unsigned int ps = d->pixelStates[x+y*d->width];
+      double lx = x * m.m[4*0+0] + y * m.m[4*1+0] + m.m[4*3+0];
+      double ly = x * m.m[4*0+1] + y * m.m[4*1+1] + m.m[4*3+1];
+      int lx2 = (int)lx;
+      int ly2 = (int)ly;
+      if (lx2 == 0) lx2 = (int)floor(lx);
+      if (ly2 == 0) ly2 = (int)floor(ly);
+      if ((unsigned int)lx2 < s->width && (unsigned int)ly2 < s->height) {
+        ps |= s->pixelStates[lx2+ly2*s->width] & PIXELSTATE_SELECTED;
+      }
+      d->pixelStates[x+y*d->width] = ps;
+    }
+  }
+  shouldUpdateAll = true;
+
 }
 
 void CanvasControl::setCanvasTransform(Canvas *canvas) {
@@ -954,14 +1204,18 @@ unsigned int Canvas::getCanvasColor(double screenX, double screenY) {
   return pixels[x+y*width];
 }
 
-unsigned int Canvas::getLayerColor(double screenX, double screenY) {
+unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColorTransform) {
   for (int i = 0; i < layers.size(); i++) {
     Layer *l = layers[i];
     if (l->state.active || l->state.selected) {
       double lx, ly; getLayerPos(l,screenX,screenY,lx,ly);
       int x = floor(lx), y = floor(ly);
       if ((unsigned int)x < l->width && (unsigned int)y < l->height) {
-        return l->pixels[x+y*l->width];
+        unsigned int col = l->pixels[x+y*l->width];
+        if (useColorTransform && l->useColorTransform) {
+          col = l->colorTransform.applyColorTransform(col);
+        }
+        return col;
       }
     }
   }
@@ -1021,6 +1275,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   Matrix lm = layer->transform.transformation;
   Matrix m = lm * cm;
 
+  if (layer->useColorTransform) {
+    layer->colorTransform.update();
+  }
+
   for (int y = y0; y < y1; y++) {
     for (int x = x0; x < x1; x++) {
       int lx = (int)(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
@@ -1035,10 +1293,35 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       canvas->pixelStates[x+y*canvas->width] = a | (layer->pixelStates[lx+ly*layer->width] & (PIXELSTATE_SELECTED|PIXELSTATE_OUTLINE));
 
       unsigned int col = 0xffff00ff;
+      unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
+      unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
+
+      if (layer->useColorTransform) {
+        int r = rgb1 & 255;
+        int g = (rgb1>>8) & 255;
+        int b = (rgb1>>16) & 255;
+        int a = (rgb1>>24) & 255;
+        unsigned int colr = layer->colorTransform.r[r];
+        unsigned int colg = layer->colorTransform.g[g];
+        unsigned int colb = layer->colorTransform.b[b];
+        unsigned int cola = layer->colorTransform.a[a];
+        unsigned int grey = layer->colorTransform.grey[(r+g+b)/3];
+        r = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey & 255);
+        colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+        g = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey & 255);
+        colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+        b = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey & 255);
+        colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+        a = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey & 255);
+        if (r > 255) r = 255;
+        if (g > 255) g = 255;
+        if (b > 255) b = 255;
+        if (a > 255) a = 255;
+        rgb1 = r|(g<<8)|(b<<16)|(a<<24);
+      }
+
       switch(layer->mode) {
       case LAYERMODE_NORMAL: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int a = (rgb1 >> 24)*alpha;
           int r = ((int)(rgb1 & 255)-(int)(rgb0 & 255))*a/255+(int)(rgb0 & 255);
           int g = ((int)((rgb1>>8) & 255)-(int)((rgb0>>8) & 255))*a/255+(int)((rgb0>>8) & 255);
@@ -1047,8 +1330,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_ADD: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
           int r = (int)(rgb0 & 255)+(int)(rgb1 & 255)*alpha2;
           int g = (int)((rgb0>>8) & 255)+(int)((rgb1>>8) & 255)*alpha2;
@@ -1060,8 +1341,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_SUB: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
           int r = (int)(rgb0 & 255)-(int)(rgb1 & 255)*alpha2;
           int g = (int)((rgb0>>8) & 255)-(int)((rgb1>>8) & 255)*alpha2;
@@ -1073,8 +1352,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_MUL: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int r = (int)(rgb0 & 255)*(int)(rgb1 & 255);
           int g = (int)((rgb0>>8) & 255)*(int)((rgb1>>8) & 255);
           int b = (int)((rgb0>>16) & 255)*(int)((rgb1>>16) & 255);
@@ -1089,8 +1366,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_MUL2X: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int r = (int)(rgb0 & 255)*(int)(rgb1 & 255);
           int g = (int)((rgb0>>8) & 255)*(int)((rgb1>>8) & 255);
           int b = (int)((rgb0>>16) & 255)*(int)((rgb1>>16) & 255);
@@ -1111,8 +1386,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_PREMULTIPLIEDALPHA: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int a = (rgb1 >> 24)*alpha;
           int a2 = 255-a;
           int r = (int)(rgb0 & 255)*a2/255+(int)(rgb1 & 255)*alpha;
@@ -1125,8 +1398,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_MAX: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int r = maxi((int)(rgb0 & 255),(int)(rgb1 & 255));
           int g = maxi((int)((rgb0>>8) & 255),(int)((rgb1>>8) & 255));
           int b = maxi((int)((rgb0>>16) & 255),(int)((rgb1>>16) & 255));
@@ -1138,8 +1409,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_MIN: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int r = mini((int)(rgb0 & 255),(int)(rgb1 & 255));
           int g = mini((int)((rgb0>>8) & 255),(int)((rgb1>>8) & 255));
           int b = mini((int)((rgb0>>16) & 255),(int)((rgb1>>16) & 255));
@@ -1151,8 +1420,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_SCREEN: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int r = 255-(255-(int)(rgb0 & 255))*(255-(int)(rgb1 & 255))/255;
           int g = 255-(255-(int)((rgb0>>8) & 255))*(255-(int)((rgb1>>8) & 255))/255;
           int b = 255-(255-(int)((rgb0>>16) & 255))*(255-(int)((rgb1>>16) & 255))/255;
@@ -1164,8 +1431,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_COLOR: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int rd = (rgb0&255);
           int gd = ((rgb0>>8)&255);
           int bd = ((rgb0>>16)&255);
@@ -1189,8 +1454,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_LUMINANCE: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int rd = (rgb0&255);
           int gd = ((rgb0>>8)&255);
           int bd = ((rgb0>>16)&255);
@@ -1214,8 +1477,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_SOFTLIGHT: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int rd = (rgb0&255);
           int gd = ((rgb0>>8)&255);
           int bd = ((rgb0>>16)&255);
@@ -1233,8 +1494,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_HARDLIGHT: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int rd = (rgb0&255);
           int gd = ((rgb0>>8)&255);
           int bd = ((rgb0>>16)&255);
@@ -1252,8 +1511,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_LINEARLIGHT: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int rd = (rgb0&255);
           int gd = ((rgb0>>8)&255);
           int bd = ((rgb0>>16)&255);
@@ -1277,8 +1534,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_PINLIGHT: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int rd = (rgb0&255);
           int gd = ((rgb0>>8)&255);
           int bd = ((rgb0>>16)&255);
@@ -1299,8 +1554,6 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_DIFFERENCE: {
-          unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
-          unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
           int rd = (rgb0&255);
           int gd = ((rgb0>>8)&255);
           int bd = ((rgb0>>16)&255);
@@ -1617,6 +1870,56 @@ void Canvas::fitCanvasToLayers() {
   Vector boundingBox;
   for (int i3 = 0; i3 < layers.size(); i3++) {
     Vector here = layers[i3]->boundingBox();
+    if (i3 == 0 || here.x < boundingBox.x) boundingBox.x = here.x;
+    if (i3 == 0 || here.y < boundingBox.y) boundingBox.y = here.y;
+    if (i3 == 0 || here.z > boundingBox.z) boundingBox.z = here.z;
+    if (i3 == 0 || here.w > boundingBox.w) boundingBox.w = here.w;
+  }
+  double x0 = floor(boundingBox.x); // the inverse is too bad here
+  double y0 = floor(boundingBox.y);
+  double x1 = floor(boundingBox.z);
+  double y1 = floor(boundingBox.w);
+  if (floor(x1)-floor(x0)<1) x1 = x0 + 1;
+  if (floor(y1)-floor(y0)<1) y1 = y0 + 1;
+  canvasX0 = x0;
+  canvasY0 = y0;
+  canvasX1 = x1;
+  canvasY1 = y1;
+  shouldUpdateAll = true;
+}
+
+void Canvas::fitCanvasToSelection() {
+  if (layers.empty()) return;
+  Vector boundingBox;
+  for (int i3 = 0; i3 < layers.size(); i3++) {
+    if (layers[i3]->state.active || layers[i3]->state.selected) {
+      if (layers[i3]->hasSelection()) {
+        Vector here = layers[i3]->selectionBounding();
+        if (i3 == 0 || here.x < boundingBox.x) boundingBox.x = here.x;
+        if (i3 == 0 || here.y < boundingBox.y) boundingBox.y = here.y;
+        if (i3 == 0 || here.z > boundingBox.z) boundingBox.z = here.z;
+        if (i3 == 0 || here.w > boundingBox.w) boundingBox.w = here.w;
+      }
+    }
+  }
+  double x0 = floor(boundingBox.x); // the inverse is too bad here
+  double y0 = floor(boundingBox.y);
+  double x1 = floor(boundingBox.z);
+  double y1 = floor(boundingBox.w);
+  if (floor(x1)-floor(x0)<1) x1 = x0 + 1;
+  if (floor(y1)-floor(y0)<1) y1 = y0 + 1;
+  canvasX0 = x0;
+  canvasY0 = y0;
+  canvasX1 = x1;
+  canvasY1 = y1;
+  shouldUpdateAll = true;
+}
+
+void Canvas::cropCanvasByAlpha(double alpha) {
+  if (layers.empty()) return;
+  Vector boundingBox;
+  for (int i3 = 0; i3 < layers.size(); i3++) {
+    Vector here = layers[i3]->boundingByAlpha(alpha);
     if (i3 == 0 || here.x < boundingBox.x) boundingBox.x = here.x;
     if (i3 == 0 || here.y < boundingBox.y) boundingBox.y = here.y;
     if (i3 == 0 || here.z > boundingBox.z) boundingBox.z = here.z;
@@ -2110,6 +2413,74 @@ void Canvas::setBoundingAngleDegrees(double degrees) {
       Matrix t; t.translate(Vector(center.x,center.y,0));
       l->transform.transformation = l->transform.transformation * t * modify * inverse2(t);
       l->transform.update();
+    }
+  }
+}
+
+void Canvas::cropLayersByAlpha(double alpha) {
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      layers[i]->cropByAlpha(alpha);
+    }
+  }
+}
+
+void Canvas::snapToGrid() {
+  if (gridStepX == 0 || gridStepY == 0) return;
+  Vector k = boundingBox();
+  int px = floor(k.x);
+  int py = floor(k.y);
+  int mx2 = px - gridOffsetX;
+  int my2 = py - gridOffsetY;
+  int mx = mx2;
+  int my = my2;
+  mx += gridStepX/2;
+  my += gridStepY/2;
+  mx /= gridStepX;
+  my /= gridStepY;
+  if (mx2 < 0) mx -= 1;
+  if (my2 < 0) my -= 1;
+  mx *= gridStepX;
+  my *= gridStepY;
+  mx += gridOffsetX;
+  my += gridOffsetY;
+  mx = mx - px;
+  my = my - py;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      Layer *l = layers[i]; Vector b2 = l->boundingBox(); 
+      l->setLayerPos(floor(b2.x)+mx,floor(b2.y)+my);
+    }
+  }
+  shouldUpdateAll = true;
+}
+
+bool Canvas::isOnlyActiveLayerActive() {
+  if (getActiveLayer()==NULL) return false;
+  int count = 0;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      count++;
+    }
+  }
+  return count == 1;
+}
+
+void Canvas::getLayerSelectionFromLayers(Layer *l) {
+  if (l == NULL) return;
+  l->selectNone();
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected&&(layers[i] != l)) {
+      l->addSelectionFromLayer(layers[i]);
+    }
+  }
+}
+
+void Canvas::clearAllOtherLayerSelections(Layer *l) {
+  if (l == NULL) return;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i] != l) {
+      layers[i]->selectNone();
     }
   }
 }

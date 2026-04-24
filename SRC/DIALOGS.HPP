@@ -42,7 +42,8 @@ enum DIALOGMODE {
   DIALOG_INSERTPSD = 8,
   DIALOG_LOADGRADIENT = 9,
   DIALOG_SAVEGRADIENT = 10,
-  DIALOG_COUNT = 11
+  DIALOG_INSERTSVG = 11,
+  DIALOG_COUNT = 12
 };
 
 void dialogCanvas(bool openIt);
@@ -60,6 +61,8 @@ void dialogAbout(bool openIt);
 void dialogExit(bool openIt);
 void dialogDuplicate(bool openIt);
 void dialogMergeDown(bool openIt);
+void dialogInsertSVG(bool openIt,int width, int height);
+void dialogExportLayersRaw(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

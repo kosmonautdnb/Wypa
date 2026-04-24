@@ -29,6 +29,7 @@
 #include "STL/DOS.HPP"
 #include "SVG.HPP"
 #include "SERIALZE.HPP"
+#include <math.h>
 
 #define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize)) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableRenderMouseClicks();
 #define DIALOGEND() ImGui::PopStyleColor(); ImGui::EndPopup();} ImGui::PopStyleColor();
@@ -41,6 +42,9 @@ const unsigned int previewWidth = 64;
 const unsigned int previewHeight = 64;
 unsigned int preview[previewWidth*previewHeight];
 double previewAspect = 1;
+
+String dialogShortPath;
+String dialogLongFileName;
 
 void updatePreview() {
   glBindTexture(GL_TEXTURE_2D,previewTexture);
@@ -95,6 +99,8 @@ void drawDialogs() {
   dialogExit(false);
   dialogDuplicate(false);
   dialogMergeDown(false);
+  dialogInsertSVG(false,0,0);
+  dialogExportLayersRaw(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -422,6 +428,51 @@ void dialogMergeDown(bool openIt) {
   DIALOGEND()
 }
 
+void dialogInsertSVG(bool openIt, int width, int height) {
+  static int w = 0, h = 0;
+  static float scale = 1;
+  if (openIt) {
+    w = width;
+    h = height;
+    scale = 1;
+  }
+  DIALOGSTART("Insert SVG");
+  ImGui::PushItemWidth(64+16*2);
+  ImGui::Text("Layer width %d",(int)ceil(w*scale));
+  ImGui::Text("Layer height %d",(int)ceil(h*scale));
+  ImGui::Text("Scale"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGINSERTSVGSCALE",&scale,0,0,2); if (scale < 0) scale = 0;
+  ImGui::PopItemWidth();
+  if ((int)ceil(w*scale) > 0 && (int)ceil(h*scale) > 0) {
+    if (ImGui::Button("Insert##DIALOGINSERTSVGINSERT")) {
+      insertSVGResized(w, h, scale);
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGINSERTSVGCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogExportLayersRaw(bool openIt) {
+  static bool colorTransformOn = true;
+  if (openIt) {
+    colorTransformOn = true;
+  }
+  DIALOGSTART("Export layers raw");
+  ImGui::Text("Apply color grading?"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGEXPORTLAYERSRAWCOLORGRADINGON",&colorTransformOn);
+  if (ImGui::Button("Save##DIALOGEXPORTLAYERSRAWEXPORT")) {
+    exportLayersRaw(dialogShortPath.c_str(),dialogLongFileName.c_str(),colorTransformOn);
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGEXPORTLAYERSRAWCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
 void dialogDuplicate(bool openIt) {
   DIALOGSTART("Duplicate layers");
 
@@ -620,20 +671,25 @@ void dialogUpdateLayer(bool openIt) {
   DIALOGEND()
 }
 
-
+void exportLayersRawDialogOpen(const char *shortPath, const char *longFileName) {
+  dialogShortPath = String(shortPath);
+  dialogLongFileName = String(longFileName);
+  dialogExportLayersRaw(true);
+}
 
 typedef void (*LOADSAVEFUNC)(const char *shortPath, const char *longFileName);
-const char *images = ".png,.jpg,.tga,.bmp,.psd,.gif,.pic,.pnm,.hdr";
+const char *images = ".png,.jpg,.tga,.bmp,.psd,.gif,.pic,.pnm,.hdr,.svg";
 const char *png = ".png";
 const char *psd = ".psd";
 const char *all = "*.*";
 const char *pal = "*.pa2";
 const char *grad = "*.gr2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd,grad,grad};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRaw,insertPSD,loadGradient,saveGradient};
+const char *svg = "*.svg";
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd,grad,grad,svg};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {

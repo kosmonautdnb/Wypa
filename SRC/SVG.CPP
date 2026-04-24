@@ -44,6 +44,7 @@ HashMap<String, SVG> svgs;
 #define ADDICON2(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,24*ICON2SCALE,24*ICON2SCALE,1*ICON2SCALE,aspectRatio)
 
 #define ADDTOOLBARICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/24.0),aspectRatio)
+#define ADDTOOLBARICONFROMSWIFE(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/11.0),aspectRatio)
 
 SVG *SVG::free() {
   if (rgba != NULL) {::free(rgba); rgba = NULL;}
@@ -116,5 +117,6 @@ void loadBaseSVGs() {
   ADDTOOLBARICON("fillTool","FILL.SVG");
   ADDTOOLBARICON("lineTool","LINE.SVG");
   ADDTOOLBARICON("textTool","TEXT.SVG");
+  ADDTOOLBARICONFROMSWIFE("measureTool","MEASURE.SVG");
   ADDICON2("visible","VISIBLE.SVG");
 }

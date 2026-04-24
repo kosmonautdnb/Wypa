@@ -24,6 +24,7 @@
 #include "STL/GL.H"
 #include "TOOLVIEW.HPP"
 #include "IMGUI/IMGUI.H"
+#include "IMGUI/IMGUIGL.HPP"
 #include "MENUBAR.HPP"
 #include "NAVIGTOR.HPP"
 #include "TOOLBAR.HPP"
@@ -168,6 +169,9 @@ void drawToolMoveView() {
         l->transform.translate(-b.x,-b.y);
         shouldUpdateAll = true;
       }
+      if (roundButton("Snap to grid##DRAWTOOLMOVEVIEWSNAPTOGRID",currentCanvas->gridOn)) {
+        l->snapToGrid(currentCanvas);
+      }
     } else {
       k = x0; ImGui::Text("Bounding pos x"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGPOSX",&k)) {currentCanvas->setBoundingPos(k,y0); shouldUpdateAll = true;} if (notIntPosX(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;}
       k = y0; ImGui::Text("Bounding pos y"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGPOSY",&k)) {currentCanvas->setBoundingPos(x0,k); shouldUpdateAll = true;} if (notIntPosY(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;}
@@ -177,6 +181,9 @@ void drawToolMoveView() {
       if (roundButton("Fit boundings##DRAWTOOLMOVEVIEWFITTOCANVAS",somethingToFit)) {
         for (int i = 0; i < selected.size(); i++)
           selected[i]->quantizeBoundingBox();
+      }
+      if (roundButton("Snap to grid##DRAWTOOLMOVEVIEWBOUNDINGSNAPTOGRID",currentCanvas->gridOn)) {
+        currentCanvas->snapToGrid();
       }
     }
   }
@@ -291,13 +298,11 @@ void drawToolEraserView() {
   if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLERASERVIEWEDIT",brushes[currentBrush],false);
 }
 
-void drawToolMagicView() {
-  drawBrushSelect(false);
-  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLMAGICVIEWEDIT",brushes[currentBrush],false);
-}
-
 void drawToolPipetteView() {
   if (roundButton(pipetteFromLayer ? "From picture##DRAWTOOLPIPETTEVIEWLAYER" : "From layer##DRAWTOOLPIPETTEVIEWLAYER", true)) {pipetteFromLayer = !pipetteFromLayer;}
+  if (pipetteFromLayer) {
+    ImGui::Text("Color grading"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLPIPETTEVIEWLAYERCOLORGRADING",&pipetteWithColorTransform);
+  }
 }
 
 void drawToolLineView() {
@@ -370,6 +375,113 @@ void drawToolGradientView() {
   ImGui::EndChild();
 }
 
+void drawToolMagicView() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  ImGui::Text("Color grading"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSE",&l->useColorTransform)) {
+    shouldUpdateAll = true;
+  }
+  if (l->useColorTransform) {
+    ColorTransform *t = &l->colorTransform;
+    float *v;
+
+    if (roundButton("Reset##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGRESET",true)) {l->colorTransform.reset(); shouldUpdateAll = true;}
+    if (roundButton("Copy##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGCOPY",true)) {l->copyColorTransform();}
+    ImGui::SameLine();
+    if (roundButton("Paste##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGPASTE",true)) {l->pasteColorTransform();}
+
+    ImGui::Text("Hue");
+    v = &t->hue; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWHUE",v,0,360)) {if (*v<0) *v = 0; if (*v>360) *v = 360; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Contrast");
+    v = &t->contrast; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWCONTRAST",v,0,2)) {if (*v<0) *v = 0; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Brightness");
+    v = &t->brightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWBRIGHTNESS",v,-1,1)) {if (*v<-1) *v = -1; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
+
+    ImGui::Text("Scale red");
+    v = &t->scaleRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALERED",v,0,0,2)) {if (*v<-2) *v = -2; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Scale green");
+    v = &t->scaleGreen; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEGREEN",v,0,0,2)) {if (*v<-2) *v = -2; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Scale blue");
+    v = &t->scaleBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEBLUE",v,0,0,2)) {if (*v<-2) *v = -2; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Scale alpha");
+    v = &t->scaleAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEALPHA",v,0,0,2)) {if (*v<-2) *v = -2; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+
+    ImGui::Text("Saturation");
+    v = &t->saturation; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWSATURATION",v,-2,2)) {if (*v<0) *v = 0; if (*v>4) *v = 4; t->shouldUpdate = true; shouldUpdateAll = true;}
+
+    ImGui::Text("Add red");
+    v = &t->addRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWADDRED",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Add green");
+    v = &t->addGreen; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWADDGREEN",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Add blue");
+    v = &t->addBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWADDBLUE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Add alpha");
+    v = &t->addAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWADDALPHA",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+
+    ImGui::Text("Gamma");
+    v = &t->gamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAMMAINVERT",&t->gammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+
+    if (roundButton("Bake selection##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {l->bakeColorTransform(l->hasSelection()); l->useColorTransform = false; shouldUpdateAll = true;}
+  }
+}
+
+void drawToolMeasureView() {
+  double cx0=0,cy0=0,lx0=0,ly0=0;
+  cx0 = mouseX; cy0 = mouseY; currentCanvas->getCanvasPos(cx0,cy0,cx0,cy0); 
+  if (currentCanvas->isOnlyActiveLayerActive()) {lx0 = mouseX; ly0 = mouseY; currentCanvas->getLayerPos(currentCanvas->getActiveLayer(),lx0,ly0,lx0,ly0);}
+
+  ImGui::Text("Cursor");
+  ImGui::Text("CanvasX %.02f", cx0);
+  ImGui::Text("CanvasY %.02f", cy0);
+  if (currentCanvas->isOnlyActiveLayerActive()) {
+    ImGui::Text("LayerX %.02f", lx0);
+    ImGui::Text("LayerY %.02f", ly0);
+  }
+  ImGui::Text("");
+  ImGui::Text("Start point");
+  ImGui::Text("CanvasX %d", (int)floor(measureCX0));
+  ImGui::Text("CanvasY %d", (int)floor(measureCY0));
+  if (currentCanvas->isOnlyActiveLayerActive()) {
+    ImGui::Text("LayerX %d", (int)floor(measureLX0));
+    ImGui::Text("LayerY %d", (int)floor(measureLY0));
+  }
+  if (fabs(measureCX1-measureCX0)>0||fabs(measureCY1-measureCY0)>0) {
+    ImGui::Text("");
+    ImGui::Text("End point");
+    ImGui::Text("CanvasX %d", (int)floor(measureCX1));
+    ImGui::Text("CanvasY %d", (int)floor(measureCY1));
+    if (currentCanvas->isOnlyActiveLayerActive()) {
+      ImGui::Text("LayerX %d", (int)floor(measureLX1));
+      ImGui::Text("LayerY %d", (int)floor(measureLY1));
+    }
+    ImGui::Text("");
+    ImGui::Text("Pixels");
+    int dx,dy;
+    dx = (int)(floor(measureCX1)-floor(measureCX0));
+    dy = (int)(floor(measureCY1)-floor(measureCY0));
+    ImGui::Text("CanvasW %d", dx);
+    ImGui::Text("CanvasH %d", dy);
+    dx = (int)(floor(measureLX1)-floor(measureLX0));
+    dy = (int)(floor(measureLY1)-floor(measureLY0));
+    if (currentCanvas->isOnlyActiveLayerActive()) {
+      ImGui::Text("LayerW %d", dx);
+      ImGui::Text("LayerH %d", dy);
+    }
+    ImGui::Text("");
+    ImGui::Text("Length");
+    double lx,ly;
+    lx = measureCX1-measureCX0;
+    ly = measureCY1-measureCY0;
+    ImGui::Text("Canvas %.02f",sqrt(lx*lx+dy*dy));
+    lx = measureLX1-measureLX0;
+    ly = measureLY1-measureLY0;
+    if (currentCanvas->isOnlyActiveLayerActive()) {
+      ImGui::Text("Layer %.02f",sqrt(lx*lx+dy*dy));
+    }
+  }
+}
+
 void drawToolView() {
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
@@ -401,14 +513,17 @@ void drawToolView() {
   case TOOL_SELECTION: {
       drawToolSelectionView();
     } break;
-  case TOOL_MAGIC: {
-      drawToolMagicView();
-    } break;
   case TOOL_LINE: {
       drawToolLineView();
     } break;
   case TOOL_GRADIENT: {
       drawToolGradientView();
+    } break;
+  case TOOL_MAGIC: {
+      drawToolMagicView();
+    } break;
+  case TOOL_MEASURE: {
+      drawToolMeasureView();
     } break;
   }
   ImGui::End();

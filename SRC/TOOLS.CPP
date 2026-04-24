@@ -475,6 +475,7 @@ void useToolMove() {
 }
 
 bool pipetteFromLayer = false;
+bool pipetteWithColorTransform = false;
 
 void useToolPipette() {
   if ( (!ImGui::IsMouseDown(0)) && (!ImGui::IsMouseDown(1)) ) return;
@@ -482,7 +483,7 @@ void useToolPipette() {
     foregroundColor = getImVec4Color(currentCanvas->getCanvasColor(mouseX,mouseY));
     addUsedColor(foregroundColor);
   } else {
-    foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX,mouseY));
+    foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX,mouseY,pipetteWithColorTransform));
     addUsedColor(foregroundColor);
   }
 }
@@ -751,7 +752,7 @@ void useToolGradient() {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
       if (layerSwitched) return;
       if (!ImGui::IsMouseDown(1)) {
-        applyGradient(activeLayer,&gradient,selectionX0,selectionY0,selectionX1,selectionY1);
+        if (tool == TOOL_GRADIENT) applyGradient(activeLayer,&gradient,selectionX0,selectionY0,selectionX1,selectionY1);
       }
     } 
     return;
@@ -772,6 +773,20 @@ void useToolGradient() {
     lastSelectionY1 = selectionY1;
     selectionX1 = lx;
     selectionY1 = ly;
+    switch(tool) {
+    case TOOL_MEASURE: {
+        measureCX0 = selectionX0;
+        measureCY0 = selectionY0;
+        measureCX1 = selectionX1;
+        measureCY1 = selectionY1;
+        double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,measureCX0,measureCY0,lx0,ly0);
+        double lx1,ly1; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,measureCX1,measureCY1,lx1,ly1);
+        measureLX0 = lx0;
+        measureLY0 = ly0;
+        measureLX1 = lx1;
+        measureLY1 = ly1;
+      } break;
+    }
     scrollByCanvasBorders();
     double x0 = selectionX0 < selectionX1 ? selectionX0 : selectionX1;
     double y0 = selectionY0 < selectionY1 ? selectionY0 : selectionY1;
@@ -1037,7 +1052,7 @@ void useToolPainting() {
   toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
   toolAspectY = currentCanvas->control.pixelSizeY != 0 ? 1.0 / currentCanvas->control.pixelSizeY : 1;
 
-  if (!paintingOn && ImGui::IsMouseClicked(1)) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY)); addUsedColor(foregroundColor);}
+  if (!paintingOn && ImGui::IsMouseClicked(1)) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
   bool useTempBrush = tool == TOOL_LINE;
   if ((unsigned int)currentBrush >= brushes.size() && (!useTempBrush)) return;
   Brush *brush = useTempBrush ? onePixelBrush : brushes[currentBrush];
@@ -1408,6 +1423,15 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
   delete[] tr;
 }
 
+double measureCX0 = 0;
+double measureCY0 = 0;
+double measureLX0 = 0;
+double measureLY0 = 0;
+double measureCX1 = 0;
+double measureCY1 = 0;
+double measureLX1 = 0;
+double measureLY1 = 0;
+
 void useTool() {
   switch(tool) {
   case TOOL_WAND: {
@@ -1441,6 +1465,9 @@ void useTool() {
     useToolPainting();
     } break;
   case TOOL_GRADIENT: {
+    useToolGradient();
+    } break;
+  case TOOL_MEASURE: {
     useToolGradient();
     } break;
   }

@@ -156,6 +156,7 @@ extern double wandColorDistance;
 extern bool wandByNeighbors;
 
 extern bool pipetteFromLayer;
+extern bool pipetteWithColorTransform;
 
 extern double fillColorDistance;
 
@@ -175,6 +176,15 @@ extern bool lineCap;
 extern bool lineAntialiasing;
 
 extern bool toolOutline;
+
+extern double measureCX0;
+extern double measureCY0;
+extern double measureLX0;
+extern double measureLY0;
+extern double measureCX1;
+extern double measureCY1;
+extern double measureLX1;
+extern double measureLY1;
 
 bool isPaintAreaActive();
 

@@ -32,6 +32,10 @@
 #include "STL/PSDIMAGE.HPP"
 #include "TOOLVIEW.HPP"
 #include "TOOLS.HPP"
+#include "STL\NANOSVG.HPP"
+#include "STL\NSVGRAST.HPP"
+#include "DIALOGS.HPP"
+#include <math.h>
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = RGBAImage::fromMemory(&(arr[0]), arr.size());
 
@@ -107,7 +111,7 @@ void renameTempFile(const char *path, const char *fileName) {
 void getFileArray(Array<unsigned char> *arr,const String &maybeExtendedFileName) {
   arr->resize(0);
   String fullFileName = shortFileName(dosFileName(maybeExtendedFileName));
-  FILE *in = fopen(fullFileName.c_str(),"rb");
+  FILE *in = fopen(dosFileName(fullFileName).c_str(),"rb");
   if (in == NULL) return;
   fseek(in,0,SEEK_END);
   unsigned int fileLen = ftell(in);
@@ -151,18 +155,23 @@ void exportPNG(const char *shortPath, const char *longFileName) {
   delete l;
 }
 
-void exportLayersRaw(const char *shortPath, const char *longFileName) {
+void exportLayersRaw(const char *shortPath, const char *longFileName, bool applyColorTransform) {
   int k = 0;
   initStatusBar();
   for (int i = 0; i < currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
-    if (l->state.selected) {
+    if ((l->state.selected||l->state.active) && l->width*l->height>0) {
       tempName = getTempFileName(shortPath);
       RGBAImage img;
-      img.data = l->pixels;
+      img.data = new unsigned int[l->width*l->height];
+      memcpy(img.data,l->pixels,l->width*l->height*sizeof(unsigned int));
+      if (applyColorTransform && l->useColorTransform) {
+        for (int j = 0; j < l->width*l->height; j++) img.data[j] = l->colorTransform.applyColorTransform(img.data[j]);
+      }
       img.width = l->width;
       img.height = l->height;
       img.savePNG(tempName.c_str());
+      delete[] img.data;
       String longName = String(longFileName);
       String name = getName(longName);
       String ext = getExtension(longName);
@@ -176,7 +185,7 @@ void exportLayersRaw(const char *shortPath, const char *longFileName) {
 void insertPSD(const char *shortPath, const char *longFileName) {
   String fullFileName = shortFileName(dosFileName(String(shortPath)+String(longFileName)));
   PSDImage *img = new PSDImage();
-  if (img->Load(fullFileName.c_str())) {
+  if (img->Load(dosFileName(fullFileName).c_str())) {
     int pos = 0;
     for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
     int w = img->header.Columns;
@@ -206,6 +215,60 @@ void insertPSD(const char *shortPath, const char *longFileName) {
     }
   }
   delete img;
+}
+
+NSVGimage* image = NULL;
+
+RGBAImage getSVGImage(const String &fullFileName, float scale) {
+  RGBAImage ret;
+  NSVGimage *svg = nsvgParseFromFile(dosFileName(fullFileName).c_str(), "px", 96);
+  if (svg == NULL) {
+    return ret;
+  }
+  NSVGrasterizer* rast = nsvgCreateRasterizer();
+  int w = ceil(svg->width*scale);
+  int h = ceil(svg->height*scale);
+  unsigned int* img = (unsigned int*)malloc(w*h*4);
+  nsvgRasterize(rast, svg, 0,0,scale, (unsigned char*)img, w, h, w*4);
+  nsvgDelete(image);
+  nsvgDeleteRasterizer(rast);
+  for (int j = 0; j < w * h; j++) {
+    img[j] = swapRB(img[j]);
+  }
+  ret.data = img;
+  ret.width = w;
+  ret.height = h;
+  return ret;
+}
+
+void insertSVGResized(int layerWidth, int layerHeight, float scale)
+{
+  if (image == NULL) return;
+  NSVGrasterizer* rast = nsvgCreateRasterizer();
+  int w = ceil(layerWidth*scale);
+  int h = ceil(layerHeight*scale);
+  unsigned int* img = (unsigned int*)malloc(w*h*4);
+  nsvgRasterize(rast, image, 0,0,scale, (unsigned char*)img, w, h, w*4);
+  nsvgDelete(image);
+  nsvgDeleteRasterizer(rast);
+  Layer *l = new Layer();
+  l->init(w,h);
+  for (int j = 0; j < w * h; j++) {
+    l->pixels[j] = swapRB(img[j]);
+  }
+  free(img);
+  int pos = 0;
+  for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
+  currentCanvas->insertLayer(l,pos);
+}
+
+void insertSVG(const char *shortPath, const char *longFileName) {
+  String fullFileName = shortFileName(dosFileName(String(shortPath)+String(longFileName)));
+  image = nsvgParseFromFile(dosFileName(fullFileName).c_str(), "px", 96);
+  if (image == NULL) {
+    return;
+  }
+  dialogInsertSVG(true,image->width,image->height);
 }
 
 Array<String> getLines(const char *string) {
@@ -327,6 +390,13 @@ void saveGradient(const char *shortPath, const char *longFileName) {
 Layer *loadImage(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAIMAGEFROMFILE(img,filePath,fileName);
+  if (img.data == NULL) {
+    if (toLower(getExtension(fileName)) == ".svg") {
+      String fullFileName = shortFileName(dosFileName(String(filePath)+String(fileName)));
+      img = getSVGImage(fullFileName,1);
+    }
+  }
+
   if (img.data != NULL) {
     ret = new Layer();
     ret->init(img.width,img.height);

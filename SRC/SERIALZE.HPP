@@ -40,8 +40,9 @@ void loadImage(const char *shortPath, const char *longFileName);
 void insertImageLayers(const char *shortPath, const char *longFileName);
 void exportLayers(const char *shortPath, const char *longFileName);
 void exportPNG(const char *shortPath, const char *longFileName);
-void exportLayersRaw(const char *shortPath, const char *longFileName);
+void exportLayersRaw(const char *shortPath, const char *longFileName, bool applyColorTransform);
 void insertPSD(const char *shortPath, const char *longFileName);
+void insertSVG(const char *shortPath, const char *longFileName);
 
 void loadPalette(const char *shortPath, const char *longFileName);
 void savePalette(const char *shortPath, const char *longFileName);
@@ -51,5 +52,7 @@ void saveGradient(const char *shortPath, const char *longFileName);
 
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);
+
+void insertSVGResized(int layerWidth, int layerHeight, float scale);
 
 #endif //__SERIALZE_HPP__

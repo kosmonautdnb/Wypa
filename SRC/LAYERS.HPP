@@ -120,6 +120,36 @@ enum INTERPOLATION {
 };
 extern const char *interpolationNames[INTERPOLATION_COUNT];
 
+class ColorTransform {
+public:
+  ColorTransform() {
+    reset();
+  }
+  float brightness;
+  float contrast;
+  float gamma;
+  bool gammaInvert;
+  float saturation;
+  float addRed;
+  float addGreen;
+  float addBlue;
+  float addAlpha;
+  float scaleRed;
+  float scaleGreen;
+  float scaleBlue;
+  float scaleAlpha;
+  float hue;
+  unsigned int r[256];
+  unsigned int g[256];
+  unsigned int b[256];
+  unsigned int a[256];
+  unsigned int grey[256];
+  bool shouldUpdate;
+  void reset();
+  void update();
+  unsigned int applyColorTransform(unsigned int pixel);
+};
+
 class Layer {
 public:
 
@@ -130,11 +160,13 @@ public:
   unsigned char *pixelStates;
   LayerState state;
   TransformationState transform;
+  ColorTransform colorTransform;
   char name[LAYERNAMEMAX];
 
-  int repaintState;
+  int repaintState;                    
   bool justSelection;
   bool hasOutline;
+  bool useColorTransform;
 
   Layer() {
     mode = LAYERMODE_NORMAL;
@@ -145,6 +177,7 @@ public:
     repaintState = REPAINTSTATE_NONE;
     justSelection = false;
     hasOutline = false;
+    useColorTransform = false;
     static int layerCounter = 0; layerCounter++;
     sprintf(name,"Layer %d", layerCounter);
   }
@@ -185,6 +218,7 @@ public:
   bool hasSelection();
   Vector boundingBox();
   Vector selectionBounding();
+  Vector boundingByAlpha(double alphaThreshold);
   void quantizeBoundingBox();
 
   void resizeLayerContent(int interpolation, int newWidth, int newHeight);
@@ -195,12 +229,20 @@ public:
   void setLayerSize(double width, double height);
   double getAngleDegrees();
   void setAngleDegrees(double degrees);
+  void snapToGrid(class Canvas *canvas);
 
   void enlargenLayerBy(int left, int top, int right, int bottom);
+  void cropByAlpha(double alphaThreshold);
   void antialiasSelected();
   void colorFromAlpha();
   void applyAlphaMask(Layer *source);
   void quantize(const Array<unsigned int> &colors);
+
+  void copyColorTransform();
+  void pasteColorTransform();
+  void bakeColorTransform(bool onlyInSelection);
+
+  void addSelectionFromLayer(Layer *source);
 };
 
 class CanvasControl {
@@ -300,7 +342,7 @@ public:
   void getScreenPos(Layer *layer, double layerX, double layerY, double &screenX, double &screenY);
 
   unsigned int getCanvasColor(double screenX, double screenY);
-  unsigned int getLayerColor(double screenX, double screenY);
+  unsigned int getLayerColor(double screenX, double screenY, bool useColorTransform);
 
   void updateRegion(int screenX0, int screenY0, int screenX1, int screenY1);
   void update(bool forceUpdate);
@@ -316,6 +358,8 @@ public:
   void rotate90DegreesBackward();
   void resizeCanvas(double w, double h, bool quantizeLayers, int interpolation);
   void fitCanvasToLayers();
+  void fitCanvasToSelection();
+  void cropCanvasByAlpha(double alpha);
 
   void mirrorHorizontallyLayers();
   void mirrorVerticallyLayers();
@@ -366,6 +410,13 @@ public:
   void setBoundingSize(double width, double height);
   double getBoundingAngleDegrees();
   void setBoundingAngleDegrees(double degrees);
+  void snapToGrid();
+
+  void cropLayersByAlpha(double alpha);
+  bool isOnlyActiveLayerActive();
+  void getLayerSelectionFromLayers(Layer *l);
+  void clearAllOtherLayerSelections(Layer *l);
+
 };
 
 extern Canvas *currentCanvas;
