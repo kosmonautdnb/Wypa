@@ -60,6 +60,7 @@ public:
 };
 
 #define BRUSHNAMEMAX 16
+#define BRUSHDISTANCEFIELDSIZE 128
 
 class Brush {
 public:
@@ -75,18 +76,23 @@ public:
     randomY = 0;
     opacity = 1;
     rate = 1;
+    isDistanceField = false;
+    distanceField = NULL;
     followRotation = false;
     static int counter = 0; counter++; counter &= 1023;
     sprintf(name,"Brush %d",counter);
     memset(instances,0,sizeof(instances));
   }
   ~Brush() {
-    for (int i = 0; i < BRUSHINSTANCE_COUNT; i++) if (instances[i] != NULL) delete instances[i];
+    for (int i = 0; i < BRUSHINSTANCE_COUNT; i++) if (instances[i] != NULL) {delete instances[i]; instances[i] = NULL;}
+    if (distanceField != NULL) {delete[] distanceField; distanceField = NULL;}
   }
   BrushInstance *getCreateInstance(int brushInstance, int w, int h, bool pencil);
   void freeInstance(int brushInstance);
   BrushInstance * instances[BRUSHINSTANCE_COUNT];
   char name[BRUSHNAMEMAX];
+  bool isDistanceField;
+  float *distanceField;
   float size;
   float pressure;
   float softness;
@@ -103,6 +109,8 @@ public:
   double pixelWidth();
   double pixelHeight();
 };
+
+void scanSampleDistanceField(class Brush *brush, const class RGBAImage &image);
 
 extern Array<Brush *> brushes;
 extern int currentBrush;
@@ -185,6 +193,9 @@ extern double measureCX1;
 extern double measureCY1;
 extern double measureLX1;
 extern double measureLY1;
+
+extern Array<unsigned short> quantization;
+void reCreateQuantization();
 
 bool isPaintAreaActive();
 

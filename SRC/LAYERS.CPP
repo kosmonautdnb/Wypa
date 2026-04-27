@@ -46,6 +46,7 @@ Layer *selectionPlane;
 bool showSelectionPlane = false;
 bool showSelectionPlaneBounding = false;
 bool clearOutlineAfterNextPaint = false;
+bool shouldRecreateQuantization = true;
 
 
 void initLayers() {
@@ -127,13 +128,251 @@ void TransformationState::pixelSize(double x, double y) {
   scaleAround(1.0/x,1.0/y,0,0);
 }
 
+void ColorTransform::processingGet() {
+  double gam0 = pictureGammaInvert ? ((pictureGamma!=0) ? 1.0/pictureGamma:1) : pictureGamma;
+  double gam1 = gammaInvert ? ((gamma!=0) ? 1.0/gamma:1) : gamma;
+  float h = hue;
+  float s = saturation;
+  float l = lightness;
+  float cv = contrast;
+  float bv = brightness;
+  float sr = scaleRed;
+  float sg = scaleGreen;
+  float sb = scaleBlue;
+  float sa = scaleAlpha;
+  float ar = addRed/3.0;
+  float ag = addGreen/3.0;
+  float ab = addBlue/3.0;
+  float aa = addAlpha;
+  for (int i = 0; i < 4*256*4; i++) {
+    int channel = i % 4;
+    int value = (i / 4) % 256;
+    int component = (i/256/4);
+    float rf=0,gf=0,bf=0,af=0;
+    if (component < 3) {
+      double h2 = component * 120.0 + h;
+      h2 /= 360.0;
+      if (h2 < 0) h2 = 0;
+      h2 = fmod(h2,1);
+      if (h2 > 1) h2 = 1;
+      ImVec4 col = hsl(h2,s,l);
+      float value2 = powd(value/255.0,gam0)*255.0;
+      value2 = (value2 - 128) * cv + 128 + bv * 255;
+      rf = col.x * value2;
+      gf = col.y * value2;
+      bf = col.z * value2;
+      rf *= sr;
+      gf *= sg;
+      bf *= sb;
+      rf += ar;
+      gf += ag;
+      bf += ab;
+      if (invertR) {rf = -rf; rf += 255.0/3.0;}
+      if (invertG) {gf = -gf; gf += 255.0/3.0;}
+      if (invertB) {bf = -bf; bf += 255.0/3.0;}
+    }
+    if (component == 3) {
+      af = value;
+      af *= sa;
+      af += aa;
+      if (invertA) af = 255-af;
+    }
+    float f = rf;
+    switch(channel) {
+    case 0: {f = rf;} break;
+    case 1: {f = gf;} break;
+    case 2: {f = bf;} break;
+    case 3: {f = af;} break;
+    }    
+    if (f < 0) f = 0;
+    if (f > 255) f = 255;
+    f = powd(f/255.0,gam1)*255.0;
+    processing[i] = f;
+  }
+}
+
+void ColorTransform::fromProcessing() {
+  float minR[5];
+  float minG[5];
+  float minB[5];
+  float minA[5];
+  int component = 0;
+  for (component = 0; component < 4; component++) {
+    for (int value = 0; value < 256; value++) {
+      int i = value + component * 256;
+      float rf = processing[i*4+0];
+      float gf = processing[i*4+1];
+      float bf = processing[i*4+2];
+      float af = processing[i*4+3];
+      if (value == 0 || rf < minR[component]) minR[component] = rf;
+      if (value == 0 || gf < minG[component]) minG[component] = gf;
+      if (value == 0 || bf < minB[component]) minB[component] = bf;
+      if (value == 0 || af < minA[component]) minA[component] = af;
+    }
+  }
+  for (component = 0; component < 4; component++) {
+    for (int value = 0; value < 256; value++) {
+      int i = value + component * 256;
+      float rf = processing[i*4+0];
+      float gf = processing[i*4+1];
+      float bf = processing[i*4+2];
+      float af = processing[i*4+3];
+      rf -= minR[component];
+      gf -= minG[component];
+      bf -= minB[component];
+      af -= minA[component];
+      processing[i*4+0] = rf;
+      processing[i*4+1] = gf;
+      processing[i*4+2] = bf;
+      processing[i*4+3] = af;
+    }
+  }
+
+  float maxR[5];
+  float maxG[5];
+  float maxB[5];
+  float maxA[5];
+
+  for (component = 0; component < 4; component++) {
+    for (int value = 0; value < 256; value++) {
+      int i = value + component * 256;
+      float rf = processing[i*4+0];
+      float gf = processing[i*4+1];
+      float bf = processing[i*4+2];
+      float af = processing[i*4+3];
+      if (value == 0 || rf > maxR[component]) maxR[component] = rf;
+      if (value == 0 || gf > maxG[component]) maxG[component] = gf;
+      if (value == 0 || bf > maxB[component]) maxB[component] = bf;
+      if (value == 0 || af > maxA[component]) maxA[component] = af;
+    }
+  }
+
+  float radd = 0;
+  float gadd = 0;
+  float badd = 0;
+  float aadd = 0;
+  for (component = 0; component < 4; component++) {
+    radd += minR[component];
+    gadd += minG[component];
+    badd += minB[component];
+    aadd += minA[component];
+  }
+
+  for (component = 0; component < 4; component++) {
+    float spaceR = (maxR[component]);
+    float spaceG = (maxG[component]);
+    float spaceB = (maxB[component]);
+    float spaceA = (maxA[component]);
+    float addiToR = floor(radd+0.5);
+    float addiToG = floor(gadd+0.5);
+    float addiToB = floor(badd+0.5);
+    float addiToA = floor(aadd+0.5);
+    if (addiToR < 0 && addiToR < -spaceR) {addiToR = -spaceR;}
+    if (addiToG < 0 && addiToG < -spaceG) {addiToG = -spaceG;}
+    if (addiToB < 0 && addiToB < -spaceB) {addiToB = -spaceB;}
+    if (addiToA < 0 && addiToA < -spaceA) {addiToA = -spaceA;}
+    if (addiToR >= 0) {addiToR = 0;} // just sub if negative add is needed
+    if (addiToG >= 0) {addiToG = 0;}
+    if (addiToB >= 0) {addiToB = 0;}
+    if (addiToA >= 0) {addiToA = 0;}
+    radd -= addiToR;
+    gadd -= addiToG;
+    badd -= addiToB;
+    aadd -= addiToA;
+    for (int value = 0; value < 256; value++) {
+      int i = value + component * 256;
+      processing[i*4+0] += addiToR;
+      processing[i*4+1] += addiToG;
+      processing[i*4+2] += addiToB;
+      processing[i*4+3] += addiToA;
+      if (addiToR < 0 && processing[i*4+0]<0) processing[i*4+0] = 0;
+      if (addiToG < 0 && processing[i*4+1]<0) processing[i*4+1] = 0;
+      if (addiToB < 0 && processing[i*4+2]<0) processing[i*4+2] = 0;
+      if (addiToA < 0 && processing[i*4+3]<0) processing[i*4+3] = 0;
+    }
+  }
+
+  // new maxs
+  for (component = 0; component < 4; component++) {
+    for (int value = 0; value < 256; value++) {
+      int i = value + component * 256;
+      float rf = processing[i*4+0];
+      float gf = processing[i*4+1];
+      float bf = processing[i*4+2];
+      float af = processing[i*4+3];
+      if (value == 0 || rf > maxR[component]) maxR[component] = rf;
+      if (value == 0 || gf > maxG[component]) maxG[component] = gf;
+      if (value == 0 || bf > maxB[component]) maxB[component] = bf;
+      if (value == 0 || af > maxA[component]) maxA[component] = af;
+    }
+  }
+
+  for (component = 0; component < 4; component++) {
+    float spaceR = (255-maxR[component]);
+    float spaceG = (255-maxG[component]);
+    float spaceB = (255-maxB[component]);
+    float spaceA = (255-maxA[component]);
+    float addiToR = floor(radd+0.5);
+    float addiToG = floor(gadd+0.5);
+    float addiToB = floor(badd+0.5);
+    float addiToA = floor(aadd+0.5);
+    if (addiToR >= 0 && addiToR > spaceR) {addiToR = spaceR;}
+    if (addiToG >= 0 && addiToG > spaceG) {addiToG = spaceG;}
+    if (addiToB >= 0 && addiToB > spaceB) {addiToB = spaceB;}
+    if (addiToA >= 0 && addiToA > spaceA) {addiToA = spaceA;}
+    if (addiToR < 0) {addiToR = 0;} // just add if positive add is needed
+    if (addiToG < 0) {addiToG = 0;}
+    if (addiToB < 0) {addiToB = 0;}
+    if (addiToA < 0) {addiToA = 0;}
+    radd -= addiToR;
+    gadd -= addiToG;
+    badd -= addiToB;
+    aadd -= addiToA;
+    for (int value = 0; value < 256; value++) {
+      int i = value + component * 256;
+      processing[i*4+0] += addiToR;
+      processing[i*4+1] += addiToG;
+      processing[i*4+2] += addiToB;
+      processing[i*4+3] += addiToA;
+    }
+  }
+
+  for (component = 0; component < 4; component++) {
+    for (int value = 0; value < 256; value++) {
+      int i = value + component * 256;
+      int ri = processing[i*4+0];
+      int gi = processing[i*4+1];
+      int bi = processing[i*4+2];
+      int ai = processing[i*4+3];
+      if (ri < 0) ri = 0;
+      if (gi < 0) gi = 0;
+      if (bi < 0) bi = 0;
+      if (ai < 0) ai = 0;
+      if (ri > 255) ri = 255;
+      if (gi > 255) gi = 255;
+      if (bi > 255) bi = 255;
+      if (ai > 255) ai = 255;
+      unsigned int col = ri|(gi<<8)|(bi<<16)|(ai<<24);
+      switch(component) {
+      case 0:  {r[value] = col;} break;
+      case 1:  {g[value] = col;} break;
+      case 2:  {b[value] = col;} break;
+      case 3:  {a[value] = col;} break;
+      }
+    }
+  }
+}
 
 void ColorTransform::reset() {
+  hue = 0;
+  saturation = 1;
+  lightness = 0.5;
   brightness = 0;
   contrast = 1;
   gamma = 1;
   gammaInvert = false;
-  saturation = 1;
+  pictureGamma = 1;
+  pictureGammaInvert = false;
   addRed = 0;
   addGreen = 0;
   addBlue = 0;
@@ -142,104 +381,22 @@ void ColorTransform::reset() {
   scaleGreen = 1;
   scaleBlue = 1;
   scaleAlpha = 1;
-  hue = 0;
+  invertR = false;
+  invertG = false;
+  invertB = false;
+  invertA = false;
+  posterizeRed = 0;
+  posterizeGreen = 0;
+  posterizeBlue = 0;
+  posterizeAlpha = 0;
   shouldUpdate = true;
 }
 
 void ColorTransform::update() {
   if (!shouldUpdate) return;
   shouldUpdate = false;
-  double gam = gammaInvert ? ((gamma!=0) ? 1.0/gamma:1) : gamma;
-  for (int j = 0; j < 5; j++) {
-    unsigned int *table = r;
-    switch(j) {
-    case 0: {table = r;} break;
-    case 1: {table = g;} break;
-    case 2: {table = b;} break;
-    case 3: {table = a;} break;
-    case 4: {table = grey;} break;
-    }
-    for (int i = 0; i < 256; i++) {
-      double v = j < 4 ? i : 0;
-      ImVec4 col2(0,0,0,0); 
-      if (j<3 && hue != 0) {
-        double h = j * 120 + hue;
-        h /= 360.0;
-        if (h < 0) h = 0;
-        h = fmod(h,1);
-        if (h > 1) h = 1;
-        col2 = hsl(h,1,0.5);
-        col2.x *= v;
-        col2.y *= v;
-        col2.z *= v;
-        switch(j) {
-        case 0: {v = col2.x;} break;
-        case 1: {v = col2.y;} break;
-        case 2: {v = col2.z;} break;
-        }
-      }
-      if (j < 3) {
-        double center = 127.5;
-        v = (v-center) * contrast + center;
-        v = v + brightness*255.0;
-        if (v < 0) v = 0;
-        if (v > 255) v = 255;
-      }
-      switch(j) {
-      case 0: {v *= scaleRed;} break;
-      case 1: {v *= scaleGreen;} break;
-      case 2: {v *= scaleBlue;} break;
-      case 3: {v *= scaleAlpha;} break;
-      }
-      if (j < 3) v *= saturation;
-      switch(j) {
-      case 0: {v += addRed;} break;
-      case 1: {v += addGreen;} break;
-      case 2: {v += addBlue;} break;
-      case 3: {v += addAlpha;} break;
-      }
-      if (v < 0) v = 0;
-      if (v > 255) v = 255;
-      if (col2.x < 0) col2.x = 0;
-      if (col2.x > 255) col2.x = 255;
-      if (col2.y < 0) col2.y = 0;
-      if (col2.y > 255) col2.y = 255;
-      if (col2.z < 0) col2.z = 0;
-      if (col2.z > 255) col2.z = 255;
-      v = powd(v/255.0,gam)*255.0;
-      col2.x = powd(col2.x/255.0,gam)*255.0;
-      col2.y = powd(col2.y/255.0,gam)*255.0;
-      col2.z = powd(col2.z/255.0,gam)*255.0;
-      if (j < 4) {
-        int vi = (int)floor(v);            
-        if (vi < 0) vi = 0;
-        if (vi > 255) vi = 255;
-        vi <<= j * 8;
-        table[i] = vi;
-        int rc = col2.x;
-        int gc = col2.y;
-        int bc = col2.z;
-        if (rc < 0) rc = 0;
-        if (gc < 0) gc = 0;
-        if (bc < 0) bc = 0;
-        if (rc > 255) rc = 255;
-        if (gc > 255) gc = 255;
-        if (bc > 255) bc = 255;
-        switch(j) {
-        case 0: {table[i] |= (gc<<8)|(bc<<16);} break;
-        case 1: {table[i] |= rc|(bc<<16);} break;
-        case 2: {table[i] |= rc|(gc<<8);} break;
-        }
-      }
-      if (j == 4) {
-        v = (1-saturation) * i;
-        int vi = (int)floor(v);            
-        if (vi < 0) vi = 0;
-        if (vi > 255) vi = 255;
-        table[i] = vi|(vi<<8)|(vi<<16);
-      }
-    }
-  }
+  processingGet();
+  fromProcessing();
 }
 
 unsigned int ColorTransform::applyColorTransform(unsigned int pixel) {
@@ -247,19 +404,30 @@ unsigned int ColorTransform::applyColorTransform(unsigned int pixel) {
   unsigned int colg = g[(pixel>>8) & 255];
   unsigned int colb = b[(pixel>>16) & 255];
   unsigned int cola = a[(pixel>>24) & 255];
-  unsigned int grey2 = grey[((pixel & 255)+((pixel>>8) & 255)+((pixel>>16) & 255))/3];
-  int r2 = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey2 & 255);
+  int r2 = (colr & 255)+(colg & 255)+(colb & 255)+(cola & 255);
   colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
-  int g2 = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey2 & 255);
+  int g2 = (colr & 255)+(colg & 255)+(colb & 255)+(cola & 255);
   colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
-  int b2 = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey2 & 255);
+  int b2 = (colr & 255)+(colg & 255)+(colb & 255)+(cola & 255);
   colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
-  int a2 = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey2 & 255);
+  int a2 = (colr & 255)+(colg & 255)+(colb & 255)+(cola & 255);
   if (r2 > 255) r2 = 255;
   if (g2 > 255) g2 = 255;
   if (b2 > 255) b2 = 255;
   if (a2 > 255) a2 = 255;
   return r2|(g2<<8)|(b2<<16)|(a2<<24);
+}
+
+unsigned int ColorTransform::applyPosterize(unsigned int pixel) {
+  int r = pixel & 255;
+  int g = (pixel>>8) & 255;
+  int b = (pixel>>16) & 255;
+  int a = (pixel>>24) & 255;
+  if (posterizeRed>0) r = (int)(r / posterizeRed)*posterizeRed;
+  if (posterizeGreen>0) g = (int)(g / posterizeGreen)*posterizeGreen;
+  if (posterizeBlue>0) b = (int)(b / posterizeBlue)*posterizeBlue;
+  if (posterizeAlpha>0) a = (int)(a / posterizeAlpha)*posterizeAlpha;
+  return r|(g<<8)|(b<<16)|(a<<24);
 }
 
 unsigned int Layer::getPixel(int x, int y) {
@@ -546,19 +714,19 @@ void Layer::selectByAlpha(int alphaThreshold) {
 }
 
 void Layer::selectionAsOutline() {
-  int addX[] = {-1,1,0,0};
-  int addY[] = {0,0,-1,1};
+  int addX[4] = {-1,1,0,0};
+  int addY[4] = {0,0,-1,1};
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       int pos = x + y * width;
       pixelStates[pos] &= ~PIXELSTATE_TEMP;
       if (!(pixelStates[pos] & PIXELSTATE_SELECTED)) {
         bool outline = false;
-        for (int i = 0; i <= 4; i++) {
+        for (int i = 0; i < 4; i++) {
           int x3 = x + addX[i];
           int y3 = y + addY[i];
           int pos3 = x3 + y3 * width;
-          if ((unsigned int)x3 < width && (unsigned int)y3 < height && (pixelStates[pos3] & PIXELSTATE_SELECTED)) pixelStates[pos3] |= PIXELSTATE_TEMP;
+          if ((unsigned int)x3 < width && (unsigned int)y3 < height && (pixelStates[pos3] & PIXELSTATE_SELECTED)) pixelStates[pos] |= PIXELSTATE_TEMP;
         }
       }
     }
@@ -1000,6 +1168,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
   for (int i = 0; i < width * height; i++) {
     unsigned int col = pixels[i];
     if (useColorTransform) col = colorTransform.applyColorTransform(col);
+    if (usePosterize) col = colorTransform.applyPosterize(col);
     int rs = col & 255;
     int gs = (col>>8) & 255;
     int bs = (col>>16) & 255;
@@ -1037,10 +1206,55 @@ void Layer::pasteColorTransform() {
   shouldUpdateAll = true;
 }
 
-void Layer::bakeColorTransform(bool onlyInSelection) {
+unsigned int quantizingPalette[256];
+
+__inline unsigned int quantizeColorFast(unsigned int col) {
+
+  if (shouldRecreateQuantization) {
+    reCreateQuantization();
+    int k = palette.size();
+    if (k > 256) k = 256;
+    for (int i = 0; i < k; i++) {
+      quantizingPalette[i] = getUIntColor(palette[i]);
+    }
+  }
+  shouldRecreateQuantization = false;
+
+  if (quantization.size() != 64*64*64) return col;
+  int r = col & 255;
+  int g = (col>>8) & 255;
+  int b = (col>>16) & 255;
+  r >>= 2;
+  g >>= 2;
+  b >>= 2;
+  unsigned short q = quantization[r+g*64+b*64*64];
+  int pal = q & 255;
+  bool checkEdges = q & (0x1<<8);
+  if (!checkEdges) {
+    col = quantizingPalette[pal];
+  } else {
+    int ld = 256*256*5;
+    for (int k = 0; k < 8; k++) {
+      unsigned int col2 = quantizingPalette[quantization[(r+(k&1))+(g+(k&2)/2)*64+(b+(k&4)/4)*64*64] & 255];
+      int rd = (int)(col2 & 255)-r;
+      int gd = (int)((col2>>8) & 255)-g;
+      int bd = (int)((col2>>16) & 255)-b;
+      int d = rd*rd+gd*gd+bd*bd;
+      if (d < ld) {ld = d; col = col2;}
+    }
+  }
+  return col;
+}
+
+void Layer::bakeMagic(bool onlyInSelection) {
+  bool quantize = useQuantization && (quantization.size() == 64*64*64);
   for (int i = 0; i < width*height; i++) {
     if (onlyInSelection && (!(pixelStates[i] & PIXELSTATE_SELECTED))) continue;
-    pixels[i] = colorTransform.applyColorTransform(pixels[i]);
+    unsigned int col = pixels[i];
+    if (useColorTransform) col = colorTransform.applyColorTransform(col);
+    if (usePosterize) col = colorTransform.applyPosterize(col);
+    if (quantize) col = quantizeColorFast(col);
+    pixels[i] = col;
   }
   shouldUpdateAll = true;
 }
@@ -1212,8 +1426,10 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColor
       int x = floor(lx), y = floor(ly);
       if ((unsigned int)x < l->width && (unsigned int)y < l->height) {
         unsigned int col = l->pixels[x+y*l->width];
-        if (useColorTransform && l->useColorTransform) {
-          col = l->colorTransform.applyColorTransform(col);
+        if (useColorTransform) {
+          if (l->useColorTransform) col = l->colorTransform.applyColorTransform(col);
+          if (l->usePosterize) col = l->colorTransform.applyPosterize(col);
+          if (l->useQuantization) col = quantizeColorFast(col);
         }
         return col;
       }
@@ -1279,6 +1495,20 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
     layer->colorTransform.update();
   }
 
+  if (layer->useQuantization) {
+    if (shouldRecreateQuantization) {
+      reCreateQuantization();
+      int k = palette.size();
+      if (k > 256) k = 256;
+      for (int i = 0; i < k; i++) {
+        quantizingPalette[i] = getUIntColor(palette[i]);
+      }
+    }
+    shouldRecreateQuantization = false;
+  }
+
+  bool quantize = layer->useQuantization && (quantization.size() == 64*64*64);
+
   for (int y = y0; y < y1; y++) {
     for (int x = x0; x < x1; x++) {
       int lx = (int)(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
@@ -1297,27 +1527,69 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
 
       if (layer->useColorTransform) {
-        int r = rgb1 & 255;
-        int g = (rgb1>>8) & 255;
-        int b = (rgb1>>16) & 255;
-        int a = (rgb1>>24) & 255;
-        unsigned int colr = layer->colorTransform.r[r];
-        unsigned int colg = layer->colorTransform.g[g];
-        unsigned int colb = layer->colorTransform.b[b];
-        unsigned int cola = layer->colorTransform.a[a];
-        unsigned int grey = layer->colorTransform.grey[(r+g+b)/3];
-        r = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey & 255);
-        colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
-        g = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey & 255);
-        colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
-        b = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey & 255);
-        colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
-        a = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255)+(grey & 255);
-        if (r > 255) r = 255;
-        if (g > 255) g = 255;
-        if (b > 255) b = 255;
-        if (a > 255) a = 255;
-        rgb1 = r|(g<<8)|(b<<16)|(a<<24);
+        if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
+          int r = rgb1 & 255;
+          int g = (rgb1>>8) & 255;
+          int b = (rgb1>>16) & 255;
+          int a = (rgb1>>24) & 255;
+          unsigned int colr = layer->colorTransform.r[r];
+          unsigned int colg = layer->colorTransform.g[g];
+          unsigned int colb = layer->colorTransform.b[b];
+          unsigned int cola = layer->colorTransform.a[a];
+          r = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255);
+          colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+          g = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255);
+          colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+          b = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255);
+          colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
+          a = (colr & 255)+(colg & 255)+(colb & 255) +(cola & 255);
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          if (a > 255) a = 255;
+          rgb1 = r|(g<<8)|(b<<16)|(a<<24);
+        }
+      }
+
+      if (layer->usePosterize) {
+        if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
+          int r = rgb1 & 255;
+          int g = (rgb1>>8) & 255;
+          int b = (rgb1>>16) & 255;
+          int a = (rgb1>>24) & 255;
+          if (layer->colorTransform.posterizeRed>0) r = (int)(r / layer->colorTransform.posterizeRed)*layer->colorTransform.posterizeRed;
+          if (layer->colorTransform.posterizeGreen>0) g = (int)(g / layer->colorTransform.posterizeGreen)*layer->colorTransform.posterizeGreen;
+          if (layer->colorTransform.posterizeBlue>0) b = (int)(b / layer->colorTransform.posterizeBlue)*layer->colorTransform.posterizeBlue;
+          if (layer->colorTransform.posterizeAlpha>0) a = (int)(a / layer->colorTransform.posterizeAlpha)*layer->colorTransform.posterizeAlpha;
+          rgb1 = r|(g<<8)|(b<<16)|(a<<24);
+        }
+      }
+
+      if (quantize) {
+        if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
+          int r = rgb1 & 255;
+          int g = (rgb1>>8) & 255;
+          int b = (rgb1>>16) & 255;
+          r >>= 2;
+          g >>= 2;
+          b >>= 2;
+          unsigned short q = quantization[r+g*64+b*64*64];
+          int pal = q & 255;
+          bool checkEdges = q & (0x1<<8);
+          if (!checkEdges) {
+            rgb1 = quantizingPalette[pal];
+          } else {
+            int ld = 256*256*5;
+            for (int k = 0; k < 8; k++) {
+              unsigned int col = quantizingPalette[quantization[(r+(k&1))+(g+(k&2)/2)*64+(b+(k&4)/4)*64*64] & 255];
+              int rd = (int)(col & 255)-r;
+              int gd = (int)((col>>8) & 255)-g;
+              int bd = (int)((col>>16) & 255)-b;
+              int d = rd*rd+gd*gd+bd*bd;
+              if (d < ld) {ld = d; rgb1 = col;}
+            }
+          }
+        }
       }
 
       switch(layer->mode) {
@@ -2571,9 +2843,9 @@ void blitCanvas() {
         }
       }
       if (lx3 < currentCanvas->canvasX0 || ly3 < currentCanvas->canvasY0 || lx3 >= currentCanvas->canvasX1 || ly3 >= currentCanvas->canvasY1) {
-        col >>= 2;
-        col &= 0x3f3f3f3f;
-        col |= 0x40404040;
+        col >>= 3;
+        col &= 0x1f1f1f1f;
+        col |= 0x20202020;
       }
       if (currentCanvas->gridOn) {
         int lx2x = (int)((x+1)*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]+4*100000)-4*100000;

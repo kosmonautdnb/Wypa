@@ -133,6 +133,53 @@ void screenSaver() {
   }
 }
 
+void splashScreen() {
+  static bool splashScreenOn = true;
+  static Layer *splash = NULL;
+  static GLuint glHandle = 0;
+  if (splashScreenOn) {
+    if (splash == NULL) {
+      splash = loadImage("", fromLocalFileName("./DATA/SPLASH.PNG"));
+      if (splash == NULL) {
+        splashScreenOn = false;
+      } else {
+        glGenTextures(1,&glHandle);
+        glBindTexture(GL_TEXTURE_2D,glHandle);
+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, splash->width, splash->height, 0, GL_RGBA, GL_BYTE, splash->pixels);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      }
+    }
+    ImGui::SetNextWindowPos(ImVec2(0,0));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0,0,0,0.8));
+    ImGui::Begin("SPLASHSCREEN", NULL, ImVec2(main_window_xres,main_window_yres),0.95,FROZENWINDOW);
+    float scale = 6;
+    ImGui::SetWindowFontScale(scale);
+    if (splash != NULL) {
+      int w = splash->width;
+      int h = splash->height;
+      if (aspectRatio != 0) {w = w / aspectRatio * main_window_xres/main_window_yres;}
+      ImGui::SetCursorScreenPos(ImVec2(main_window_xres/2-w/2,main_window_yres/2-h/2));
+      ImGui::Image((ImTextureID)glHandle,ImVec2(w,h));
+    }
+
+    char *descLine = "Wypa";
+    ImVec2 textSize = ImGui::CalcTextSize(descLine);
+    ImGui::SetCursorScreenPos(ImVec2(main_window_xres/2-textSize.x/2+scale,main_window_yres/2-textSize.y/2+scale));
+    ImGui::TextColored(ImVec4(0,0,0,0.125),"%s",descLine);
+    ImGui::SetCursorScreenPos(ImVec2(main_window_xres/2-textSize.x/2,main_window_yres/2-textSize.y/2));
+    ImGui::TextColored(ImVec4(1,1,1,1),"%s",descLine);
+    ImGui::End();
+    ImGui::PopStyleColor();
+    if (ImGui::IsMouseDown(0)||ImGui::IsMouseDown(1)) {
+      splashScreenOn = false;
+      glDeleteTextures(1,&glHandle);
+    }
+  }
+}
+
 extern Array<Canvas *> canvas;
 
 #define SETUPENTITIES(__prefix__) \
@@ -242,6 +289,7 @@ int main(int argc, const char *argv[]) {
     drawToolBar();
     drawToolView();
     screenSaver();
+    splashScreen();
     ImGui::Render();
       
     if (refreshMasked) glRefreshMasked(); else glRefresh();

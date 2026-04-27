@@ -125,11 +125,16 @@ public:
   ColorTransform() {
     reset();
   }
+  float processing[256*4*4];
+  float hue;
+  float saturation;
+  float lightness;
   float brightness;
   float contrast;
   float gamma;
   bool gammaInvert;
-  float saturation;
+  float pictureGamma;
+  bool pictureGammaInvert;
   float addRed;
   float addGreen;
   float addBlue;
@@ -138,16 +143,25 @@ public:
   float scaleGreen;
   float scaleBlue;
   float scaleAlpha;
-  float hue;
+  bool invertR;
+  bool invertG;
+  bool invertB;
+  bool invertA;
+  float posterizeRed;
+  float posterizeGreen;
+  float posterizeBlue;
+  float posterizeAlpha;
+  void processingGet();
+  void fromProcessing();
   unsigned int r[256];
   unsigned int g[256];
   unsigned int b[256];
   unsigned int a[256];
-  unsigned int grey[256];
   bool shouldUpdate;
   void reset();
   void update();
   unsigned int applyColorTransform(unsigned int pixel);
+  unsigned int applyPosterize(unsigned int pixel);
 };
 
 class Layer {
@@ -167,6 +181,9 @@ public:
   bool justSelection;
   bool hasOutline;
   bool useColorTransform;
+  bool useQuantization;
+  bool usePosterize;
+  bool showColorTransformOnlyInSelection;
 
   Layer() {
     mode = LAYERMODE_NORMAL;
@@ -178,6 +195,9 @@ public:
     justSelection = false;
     hasOutline = false;
     useColorTransform = false;
+    useQuantization = false;
+    usePosterize = false;
+    showColorTransformOnlyInSelection = false;
     static int layerCounter = 0; layerCounter++;
     sprintf(name,"Layer %d", layerCounter);
   }
@@ -240,7 +260,7 @@ public:
 
   void copyColorTransform();
   void pasteColorTransform();
-  void bakeColorTransform(bool onlyInSelection);
+  void bakeMagic(bool onlyInSelection);
 
   void addSelectionFromLayer(Layer *source);
 };
@@ -427,6 +447,8 @@ extern Layer *selectionPlane;
 extern bool showSelectionPlane;
 extern bool showSelectionPlaneBounding;
 extern bool clearOutlineAfterNextPaint;
+
+extern bool shouldRecreateQuantization;
 
 void repaintLayer(Layer *layer, bool fullUpdate);
 void blitCanvas();

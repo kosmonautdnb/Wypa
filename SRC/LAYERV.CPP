@@ -63,8 +63,12 @@ void drawLayerView() {
     ImGui::PopItemWidth();
   }
 
-  if (roundButton("Add layer##LAYERVIEWADLAYER",true)) {
+  if (roundButton("Add layer##LAYERVIEWADDLAYER",true)) {
     dialogAddLayer(true);
+  }
+  ImGui::SameLine();
+  if (roundButton("Bake layers##LAYERVIEWBAKELAYERS",true)) {
+    dialogBakeLayers(true);
   }
   if (roundButton(currentCanvas->justSingle?"Single off##LAYERVIEWSINGLE":"Single on ##LAYERVIEWSINGLE",true)) {
     currentCanvas->justSingle = !currentCanvas->justSingle;

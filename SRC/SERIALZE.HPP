@@ -30,6 +30,8 @@
 #define SHORTFILENAME(__str__) (longFileNames ? shortFileName(__str__) : unixFileName(__str__))
 extern bool longFileNames;
 
+String fromLocalFileName(const String &str);
+
 void updateStatusBar();
 void initStatusBar();
 
@@ -49,6 +51,8 @@ void savePalette(const char *shortPath, const char *longFileName);
 
 void loadGradient(const char *shortPath, const char *longFileName);
 void saveGradient(const char *shortPath, const char *longFileName);
+
+void loadBrushShape(const char *shortPath, const char *longFileName);
 
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);

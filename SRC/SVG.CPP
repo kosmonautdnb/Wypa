@@ -33,18 +33,19 @@ HashMap<String, SVG> svgs;
 #include "STL\IMAGE.HPP"
 #include "CONFIG.HPP"
 #include "TOOLBAR.HPP"
+#include "SERIALZE.HPP"
 
 #define APPICONSCALE (25.0/17.0)
-#define ADDAPPICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,17*APPICONSCALE,17*APPICONSCALE,1*APPICONSCALE,aspectRatio)
+#define ADDAPPICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,17*APPICONSCALE,17*APPICONSCALE,1*APPICONSCALE,aspectRatio)
 
 #define ICONSCALE (16.0/11.0)
-#define ADDICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,11*ICONSCALE,11*ICONSCALE,1*ICONSCALE,aspectRatio)
+#define ADDICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,11*ICONSCALE,11*ICONSCALE,1*ICONSCALE,aspectRatio)
 
 #define ICON2SCALE (16.0/24.0)
-#define ADDICON2(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,24*ICON2SCALE,24*ICON2SCALE,1*ICON2SCALE,aspectRatio)
+#define ADDICON2(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,24*ICON2SCALE,24*ICON2SCALE,1*ICON2SCALE,aspectRatio)
 
-#define ADDTOOLBARICON(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/24.0),aspectRatio)
-#define ADDTOOLBARICONFROMSWIFE(__a__,__b__) addSVG(__a__,"DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/11.0),aspectRatio)
+#define ADDTOOLBARICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/24.0),aspectRatio)
+#define ADDTOOLBARICONFROMSWIFE(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/11.0),aspectRatio)
 
 SVG *SVG::free() {
   if (rgba != NULL) {::free(rgba); rgba = NULL;}
@@ -74,7 +75,7 @@ SVG *SVG::set(const char *fileName, unsigned int *rgba, int w, int h) {
 void addSVG(const char *id, const char *fileName, int width, int height,double scale, double aspect) {
   NSVGimage* image;
   NSVGrasterizer* rast = nsvgCreateRasterizer();
-  image = nsvgParseFromFile(fileName, "px", 96);
+  image = nsvgParseFromFile(fromLocalFileName(fileName).c_str(), "px", 96);
   if (image == NULL) {
     printf("some problem with loading the svg\n");
     exit(0);

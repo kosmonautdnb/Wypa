@@ -48,4 +48,6 @@ void addUsedColor(const ImVec4 &color);
 ImVec4 hsl(double h,double s,double l);
 void getHsl(const ImVec4 &rgb, float *hv, float *sv, float *lv);
 
+void updatePalette();
+
 #endif // __COLORFLD_HPP__

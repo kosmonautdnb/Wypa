@@ -31,6 +31,7 @@
 #include "TOOLBAR.HPP"
 #include "TOOLVIEW.HPP"
 #include "SERIALZE.HPP"
+#include "IMAGE.HPP"
 #include <math.h>
 
 
@@ -61,6 +62,26 @@ void scrollByCanvasBorders() {
   if (mouseX > currentCanvas->screenPosX + currentCanvas->width - scrollborderSize)  currentCanvas->control.moveByPixels(currentCanvas,-scrollKeyPixels,0);
   if (mouseY < currentCanvas->screenPosY + scrollborderSize)  currentCanvas->control.moveByPixels(currentCanvas,0,scrollKeyPixels);
   if (mouseY > currentCanvas->screenPosY + currentCanvas->height - scrollborderSize)  currentCanvas->control.moveByPixels(currentCanvas,0,-scrollKeyPixels);
+}
+
+float sampleDistanceField(float *field, double dx, double dy, int fieldWidth, int fieldHeight) {
+  if (field == NULL) return 0;
+  dx = dx * 0.5 + 0.5;
+  dy = dy * 0.5 + 0.5;
+  dx *= fieldWidth;
+  dy *= fieldHeight;
+  int x = (int)floor(dx);
+  int y = (int)floor(dy);
+  if ((unsigned int)x >= fieldWidth || (unsigned int)y >= fieldHeight) return -1;
+  float p00 = field[x+y*fieldWidth];
+  float p10 = x+1<fieldWidth?field[x+1+y*fieldWidth]:p00;
+  float p01 = y+1<fieldHeight?field[x+(y+1)*fieldWidth]:p00;
+  float p11 = x+1<fieldWidth&&y+1<fieldHeight?field[x+1+(y+1)*fieldWidth]:p00;
+  float xf = dx - x;
+  float yf = dy - y;
+  float top = (p10-p00)*xf+p00;
+  float bottom = (p11-p01)*xf+p01;
+  return (bottom-top)*yf+top;
 }
 
 void BrushInstance::resize(Brush *base, double newPixelWidth, double newPixelHeight) {
@@ -94,6 +115,9 @@ void BrushInstance::resize(Brush *base, double newPixelWidth, double newPixelHei
       dx = powd(dx,o);
       dy = powd(dy,o);
       double d = 1-sqrt(dx*dx+dy*dy);
+      if (base->isDistanceField) {
+        d = sampleDistanceField(base->distanceField,dx,dy,BRUSHDISTANCEFIELDSIZE,BRUSHDISTANCEFIELDSIZE);
+      }
       double rx = fabs(dx);
       double ry = fabs(dy);
       double r = 1-maxd(rx,ry);
@@ -167,6 +191,94 @@ double Brush::pixelWidth() {
 
 double Brush::pixelHeight() {
   return pixelWidth();
+}
+
+__inline float scanSampleDistanceField2(const RGBAImage &image,float x,float y) {
+  int px = (int)floor(x);
+  int py = (int)floor(y);
+  if ((unsigned int)px >= image.width || (unsigned int)py >= image.height) return 0;
+  unsigned int col = image.data[px+py*image.width];
+  int a = col >> 24;
+  return a / 255.f;
+}
+
+__inline float scanSampleDistanceField(const RGBAImage &image,float x,float y, bool forward) {
+  float d = scanSampleDistanceField2(image,x,y);
+  if (forward) return (d < 0.5);
+  return d >= 0.5;
+}
+
+__inline bool scanSampleDistanceFieldIsForward(const RGBAImage &image,float x,float y) {
+  float d = scanSampleDistanceField2(image,x,y);
+  return d >= 0.5;
+}
+
+
+void normalizeDistanceField(float *field, int w, int h) {
+  float maxV = 0;
+  for (int i = 0; i < w*h; i++) {
+    if (field[i] > maxV) maxV = field[i];
+  }
+  if (maxV != 0) {
+    for (int i = 0; i < w*h; i++) {
+      field[i]/=maxV;
+    }
+  }
+}
+
+void scanSampleDistanceField(Brush *brush, const RGBAImage &image) {
+  if (brush->distanceField != NULL) {
+    delete[] brush->distanceField;
+    brush->distanceField = NULL;
+  }
+  brush->distanceField = new float[BRUSHDISTANCEFIELDSIZE*BRUSHDISTANCEFIELDSIZE];
+  int maxRad = image.width;
+  if (image.height > maxRad) maxRad = image.height;
+  float scale = (float)image.width / BRUSHDISTANCEFIELDSIZE;
+  initStatusBar();
+  for (int y = 0; y < BRUSHDISTANCEFIELDSIZE; y++) {
+    updateStatusBar();
+    float distanceFieldPosY = ((float)y - (float)BRUSHDISTANCEFIELDSIZE/2)*scale + (float)image.height/2;
+    int dy = (int)floor(distanceFieldPosY);
+    for (int x = 0; x < BRUSHDISTANCEFIELDSIZE; x++) {
+      float distanceFieldPosX = ((float)x - (float)BRUSHDISTANCEFIELDSIZE/2)*scale + (float)image.width/2;
+      int dx = (int)floor(distanceFieldPosX);
+      float distance = -1;
+      if ((unsigned int)dx<image.width&&(unsigned int)dy<image.height) {
+        bool isForward = scanSampleDistanceFieldIsForward(image,dx,dy);
+        for (int rad = 0; rad <= maxRad; rad++) {
+          for (int x0 = -rad; x0 <= rad; x0++) {
+            int y0;
+            y0 = rad;
+            if (scanSampleDistanceField(image,x0+dx,y0+dy,isForward)) {
+              float d = sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
+            }
+            y0 = -rad;
+            if (scanSampleDistanceField(image,x0+dx,y0+dy,isForward)) {
+              float d = sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
+            }
+          }
+          for (int y0 = -rad; y0 <= rad; y0++) {
+            int x0;
+            x0 = rad;
+            if (scanSampleDistanceField(image,x0+dx,y0+dy,isForward)) {
+              float d = sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
+            }
+            x0 = -rad;
+            if (scanSampleDistanceField(image,x0+dx,y0+dy,isForward)) {
+              float d = sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
+            }
+          }
+          if (distance >= 0) break;
+        } 
+        if (!isForward) distance *= -1;
+        brush->distanceField[x+y*BRUSHDISTANCEFIELDSIZE] = distance;
+      } else {
+        brush->distanceField[x+y*BRUSHDISTANCEFIELDSIZE] = -1;
+      }
+    }
+  }
+  normalizeDistanceField(brush->distanceField,BRUSHDISTANCEFIELDSIZE,BRUSHDISTANCEFIELDSIZE);
 }
 
 __inline bool rightRange(Gradient *gradient, int index, float value) {
@@ -273,6 +385,57 @@ void Gradient::update() {
 
 bool isPaintAreaActive() {
   return (!ImGui::GetIO().WantCaptureMouse) && (!ImGui::GetIO().WantCaptureKeyboard);
+}
+
+Array<unsigned short> quantization;
+
+void reCreateQuantization() {
+  if (palette.size()>256 || palette.empty()) {quantization.clear(); return;}
+  if (quantization.empty()) quantization.resize(64*64*64);
+  Array<unsigned int> colors; colors.resize(palette.size());
+  for (int i = 0; i < palette.size(); i++) colors[i] = getUIntColor(palette[i]);
+  for (int r = 0; r < 64; r++) {
+    int rs = r * 4;
+    for (int g = 0; g < 64; g++) {
+      int gs = g * 4;
+      for (int b = 0; b < 64; b++) {
+        int bs = b * 4;
+        int found = 0;
+        int ld = 256*256*5;
+        for (int i = 0; i < palette.size(); i++) {
+          unsigned int col = colors[i];
+          int rd = (int)(col & 255)-rs;
+          int gd = (int)((col>>8) & 255)-gs;
+          int bd = (int)((col>>16) & 255)-bs;
+          int dist = rd*rd+gd*gd+bd*bd;
+          if (dist < ld) {
+            ld = dist;
+            found = i;
+          }
+        }
+        quantization[r+g*64+b*64*64] = found;
+      }
+    }
+  }
+
+  for (int z = 0; z < 64-1; z++) {
+    for (int y = 0; y < 64-1; y++) {
+      for (int x = 0; x < 64-1; x++) {
+        int here = quantization[x+y*64+z*64*64] & 255;
+        bool found = false;
+        for (int z2 = 0; z2 < 2; z2++) {
+          for (int y2 = 0; y2 < 2; y2++) {
+            for (int x2 = 0; x2 < 2; x2++) {
+              int there = quantization[(x+x2)+(y+y2)*64+(z+z2)*64*64] & 255;
+              if (here != there) {found = true;}
+            }
+          }
+        }
+        if (found) quantization[x+y*64+z*64*64] |= 0x01<<8;
+      }
+    }
+  }
+
 }
 
 void moveSelectedLayersByCanvasPixels(double x, double y) {
@@ -798,7 +961,7 @@ void useToolGradient() {
     y1 = floor(y1);
     selectionToolActive = true;
     showSelectionPlane = true;
-    showSelectionPlaneBounding = selectionTool == SELECTIONTOOL_ELLIPSE;
+    showSelectionPlaneBounding = tool == TOOL_MEASURE;
     double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionPolygonX1,lastSelectionPolygonY1,lx0,ly0);
     double lx1,ly1; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
     double lx2,ly2; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionX1,lastSelectionY1,lx2,ly2);

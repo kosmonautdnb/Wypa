@@ -245,7 +245,9 @@ void drawBrushSelect(bool pencil) {
 void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
   ImGui::InputText("##DRAWBRUSHEDITNAME",brush->name,BRUSHNAMEMAX);
   ImGui::SameLine(); ImGui::Checkbox("##DRAWBRUSHEDITOUTLINE",&toolOutline);
-  drawBrushWindow(id,BRUSHINSTANCE_EDIT,brush,toolview_width-10,toolview_width-10, pencil,false);
+  if (drawBrushWindow(id,BRUSHINSTANCE_EDIT,brush,toolview_width-10,toolview_width-10, pencil,false)) {
+    dialogLoadSave(true,DIALOG_LOADBRUSHSHAPE);
+  }
   ImGui::Text("Size");
   ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITSIZE",&brush->size,1,128)) {if (brush->size<1) brush->size = 1; if (brush->size>128) brush->size = 128; brush->update();}
   if (!pencil) {
@@ -301,7 +303,7 @@ void drawToolEraserView() {
 void drawToolPipetteView() {
   if (roundButton(pipetteFromLayer ? "From picture##DRAWTOOLPIPETTEVIEWLAYER" : "From layer##DRAWTOOLPIPETTEVIEWLAYER", true)) {pipetteFromLayer = !pipetteFromLayer;}
   if (pipetteFromLayer) {
-    ImGui::Text("Color grading"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLPIPETTEVIEWLAYERCOLORGRADING",&pipetteWithColorTransform);
+    ImGui::Text("With magic"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLPIPETTEVIEWLAYERCOLORGRADING",&pipetteWithColorTransform);
   }
 }
 
@@ -378,36 +380,50 @@ void drawToolGradientView() {
 void drawToolMagicView() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
-  ImGui::Text("Color grading"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSE",&l->useColorTransform)) {
+  ColorTransform *t = &l->colorTransform;
+  float *v;
+
+  ImGui::Text("In selection");ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWJUSTINSELECTION",&l->showColorTransformOnlyInSelection)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {l->bakeMagic(l->hasSelection()); l->useColorTransform = false; l->usePosterize = false; l->useQuantization = false; shouldUpdateAll = true;}
+  ImGui::Separator();
+  if (roundButton("Reset##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGRESET",true)) {l->colorTransform.reset(); shouldUpdateAll = true;}
+  if (roundButton("Copy##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGCOPY",true)) {l->copyColorTransform();}
+  ImGui::SameLine();
+  if (roundButton("Paste##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGPASTE",true)) {l->pasteColorTransform();}
+  ImGui::Separator();
+
+  ImGui::BeginChild("DRAWTOOLMAGICVIEWCHILD",ImVec2(toolview_width, main_window_yres-ImGui::GetCursorScreenPos().y));
+
+  ImGui::Text("Colorgrading"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSECOLORTRANSFORM",&l->useColorTransform)) {
     shouldUpdateAll = true;
   }
   if (l->useColorTransform) {
-    ColorTransform *t = &l->colorTransform;
-    float *v;
 
-    if (roundButton("Reset##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGRESET",true)) {l->colorTransform.reset(); shouldUpdateAll = true;}
-    if (roundButton("Copy##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGCOPY",true)) {l->copyColorTransform();}
-    ImGui::SameLine();
-    if (roundButton("Paste##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGPASTE",true)) {l->pasteColorTransform();}
+    ImGui::Text("Picture Gamma");
+    v = &t->pictureGamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPICTUREGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAPICTUREGAMMAINVERT",&t->pictureGammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
 
     ImGui::Text("Hue");
     v = &t->hue; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWHUE",v,0,360)) {if (*v<0) *v = 0; if (*v>360) *v = 360; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Saturation");
+    v = &t->saturation; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWSATURATION",v,0,2)) {if (*v<0) *v = 0; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Lightness");
+    v = &t->lightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWLIGHTNESS",v,0,1)) {if (*v<0) *v = 0; if (*v>4) *v = 4; t->shouldUpdate = true; shouldUpdateAll = true;}
+
     ImGui::Text("Contrast");
     v = &t->contrast; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWCONTRAST",v,0,2)) {if (*v<0) *v = 0; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Brightness");
     v = &t->brightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWBRIGHTNESS",v,-1,1)) {if (*v<-1) *v = -1; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
 
     ImGui::Text("Scale red");
-    v = &t->scaleRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALERED",v,0,0,2)) {if (*v<-2) *v = -2; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    v = &t->scaleRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALERED",v,0,0,2)) {if (*v<-512) *v = -512; if (*v>512) *v = 512; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Scale green");
-    v = &t->scaleGreen; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEGREEN",v,0,0,2)) {if (*v<-2) *v = -2; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    v = &t->scaleGreen; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEGREEN",v,0,0,2)) {if (*v<-512) *v = -512; if (*v>512) *v = 512;  t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Scale blue");
-    v = &t->scaleBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEBLUE",v,0,0,2)) {if (*v<-2) *v = -2; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    v = &t->scaleBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEBLUE",v,0,0,2)) {if (*v<-512) *v = -512; if (*v>512) *v = 512;  t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Scale alpha");
-    v = &t->scaleAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEALPHA",v,0,0,2)) {if (*v<-2) *v = -2; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    v = &t->scaleAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALEALPHA",v,0,0,2)) {if (*v<-512) *v = -512; if (*v>512) *v = 512;  t->shouldUpdate = true; shouldUpdateAll = true;}
 
-    ImGui::Text("Saturation");
-    v = &t->saturation; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWSATURATION",v,-2,2)) {if (*v<0) *v = 0; if (*v>4) *v = 4; t->shouldUpdate = true; shouldUpdateAll = true;}
 
     ImGui::Text("Add red");
     v = &t->addRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWADDRED",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
@@ -418,12 +434,43 @@ void drawToolMagicView() {
     ImGui::Text("Add alpha");
     v = &t->addAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWADDALPHA",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
 
-    ImGui::Text("Gamma");
+    ImGui::Text("Invert R"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERTR",&t->invertR)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Invert G"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERTG",&t->invertG)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Invert B"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERTB",&t->invertB)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Invert A"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERTA",&t->invertA)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+
+    ImGui::Text("Monitor gamma");
     v = &t->gamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAMMAINVERT",&t->gammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
-
-    if (roundButton("Bake selection##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {l->bakeColorTransform(l->hasSelection()); l->useColorTransform = false; shouldUpdateAll = true;}
+    ImGui::Separator();
   }
+
+  ImGui::Text("Posterize"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEPOSTERIZE",&l->usePosterize)) {
+    shouldUpdateAll = true;
+  }
+  if (l->usePosterize) {
+    ImGui::Text("Posterize R");
+    v = &t->posterizeRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZERED",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Posterize G");
+    v = &t->posterizeGreen; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREEN",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Posterize B");
+    v = &t->posterizeBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEBLUE",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Posterize A");
+    v = &t->posterizeAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Separator();
+  }
+
+  if (palette.size()>=0 && palette.size()<=256) {
+    ImGui::Text("Fast quant"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEQUANTIZATION",&l->useQuantization)) {
+      shouldUpdateAll = true;
+    }
+    ImGui::Separator();
+  } else {
+    if (palette.size()>256) ImGui::Text("Quantization\nonly with\npalettes\n<=256 colors");
+    ImGui::Separator();
+  }
+
+  ImGui::EndChild();
 }
 
 void drawToolMeasureView() {
@@ -479,6 +526,9 @@ void drawToolMeasureView() {
     if (currentCanvas->isOnlyActiveLayerActive()) {
       ImGui::Text("Layer %.02f",sqrt(lx*lx+dy*dy));
     }
+    //lx = measureCX0; ly = measureCY0; currentCanvas->getScreenPos(lx,ly,lx,ly); ImVec2 l0(lx,ly);
+    //lx = measureCX1; ly = measureCY1; currentCanvas->getScreenPos(lx,ly,lx,ly); ImVec2 l1(lx,ly);
+    //ImGui::GetWindowDrawList()->AddLine(l0,l1,0xff0000ff,4);
   }
 }
 

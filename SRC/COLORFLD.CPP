@@ -35,6 +35,11 @@
 
 unsigned int colorField_height = 380;
 
+void updatePalette() {
+  shouldRecreateQuantization = true;
+  shouldUpdateAll = true;
+}
+
 unsigned int getUIntColor(const ImVec4 &k) {
   int r = k.x * 255.f;
   int g = k.y * 255.f;
@@ -192,6 +197,7 @@ void initColorField() {
   for (int i = 0; i < 256; i++) {
     palette.push_back(ImVec4((rand()&255)/255.f,(rand()&255)/255.f,(rand()&255)/255.f,1));
   }
+  updatePalette();
 }
 
 void freeColorField() {
@@ -332,16 +338,18 @@ void drawColorField() {
     if (roundButton("Save palette##DRAWCOLORFIELDPALETTESAVE",!palette.empty())) {
       dialogLoadSave(true,DIALOG_SAVEPALETTE);
     }
-    ImGui::Text("Palette colors"); int cols = palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; if (cols < 0) cols = 0; palette.resize(cols);}
+    ImGui::Text("Palette colors"); int cols = palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; if (cols < 0) cols = 0; palette.resize(cols); updatePalette();}
     ImGui::Text("Colors per row"); ImGui::SameLine(); ImGui::InputInt("##DRAWPALETTECOLORFIELDROWCOLS",&paletteColorsPerRow, 1, 1);
     if (paletteColorsPerRow > 16) paletteColorsPerRow = 16;
     if (paletteColorsPerRow < 1) paletteColorsPerRow = 1;
     if (roundButton("Insert color##DRAWCOLORFIELDPALETTEINSERT",true)) {
       insertColor();
+      updatePalette();
     }
     ImGui::SameLine();
     if (roundButton("Remove color##DRAWCOLORFIELDPALETTEREMOVE",!palette.empty())) {
       removeColor();
+      updatePalette();
     }
     ImGui::BeginChild("DRAWCOLORFIELDCHILD",ImVec2(sidebar_width,ImGui::GetWindowSize().y-(ImGui::GetCursorScreenPos().y-ImGui::GetWindowPos().y)));
     ImVec2 cursor = ImGui::GetCursorScreenPos();
@@ -367,6 +375,7 @@ void drawColorField() {
       if (ImGui::ImageButton((ImTextureID)0, ImVec2(b,14), ImVec2(0,0), ImVec2(1,1), -1, c3, c3)) {
         if (ImGui::IsMouseDown(1)) {
           palette[i] = foregroundColor;
+          updatePalette();
         } else {
           foregroundColor = c3;
         }

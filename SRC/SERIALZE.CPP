@@ -44,6 +44,12 @@
 bool longFileNames = false;
 char longFileNameBuffer[MAX_LFN_PATH];
 
+String fromLocalFileName(const String &str) {
+  String ret = unixFileName(str);
+  if (ret.startsWith("./")) ret = appFolder + ret.substr(2);
+  return ret;
+}
+
 int statusBarProgress = 0;
 
 void updateStatusBar() {
@@ -221,7 +227,7 @@ NSVGimage* image = NULL;
 
 RGBAImage getSVGImage(const String &fullFileName, float scale) {
   RGBAImage ret;
-  NSVGimage *svg = nsvgParseFromFile(dosFileName(fullFileName).c_str(), "px", 96);
+  NSVGimage *svg = nsvgParseFromFile(dosFileName(shortFileName(dosFileName(fullFileName))).c_str(), "px", 96);
   if (svg == NULL) {
     return ret;
   }
@@ -230,7 +236,7 @@ RGBAImage getSVGImage(const String &fullFileName, float scale) {
   int h = ceil(svg->height*scale);
   unsigned int* img = (unsigned int*)malloc(w*h*4);
   nsvgRasterize(rast, svg, 0,0,scale, (unsigned char*)img, w, h, w*4);
-  nsvgDelete(image);
+  nsvgDelete(svg);
   nsvgDeleteRasterizer(rast);
   for (int j = 0; j < w * h; j++) {
     img[j] = swapRB(img[j]);
@@ -239,6 +245,16 @@ RGBAImage getSVGImage(const String &fullFileName, float scale) {
   ret.width = w;
   ret.height = h;
   return ret;
+}
+
+float getSVGImageScaleForWidth(const String &fullFileName, float width) {
+  NSVGimage *svg = nsvgParseFromFile(dosFileName(shortFileName(dosFileName(fullFileName))).c_str(), "px", 96);
+  if (svg == NULL) {
+    return 0;
+  }
+  float scale = (float)width/svg->width;
+  nsvgDelete(svg);
+  return scale;
 }
 
 void insertSVGResized(int layerWidth, int layerHeight, float scale)
@@ -312,6 +328,7 @@ void loadPalette(const char *shortPath, const char *longFileName) {
       palette.push_back(getImVec4Color(a[0]+(a[1]<<8)+(a[2]<<16)+(a[3]<<24)));
     }
   }
+  updatePalette();
 }
 
 void savePalette(const char *shortPath, const char *longFileName) {
@@ -385,6 +402,22 @@ void saveGradient(const char *shortPath, const char *longFileName) {
   }
   fclose(out);
   renameTempFile(shortPath, longFileName);
+}
+
+#define SVGSAMPLEBRUSHWIDTH 256
+
+void loadBrushShape(const char *shortPath, const char *longFileName) {
+  if ((unsigned int)currentBrush>=brushes.size()) return;
+  Brush *brush = brushes[currentBrush];
+  String fullFileName = shortFileName(dosFileName(String(shortPath)+String(longFileName)));
+  float scale = getSVGImageScaleForWidth(fullFileName, SVGSAMPLEBRUSHWIDTH);
+  if (scale == 0) {brush->isDistanceField = false; brush->update(); return;}
+  RGBAImage rgba = getSVGImage(fullFileName,scale);
+  if (rgba.data == NULL) {brush->isDistanceField = false; brush->update(); return;}
+  scanSampleDistanceField(brush, rgba);
+  brush->isDistanceField = true;
+  brush->update();
+  rgba.free();
 }
 
 Layer *loadImage(const String &filePath, const String &fileName) {
