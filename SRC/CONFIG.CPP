@@ -42,3 +42,5 @@ bool refreshMasked = true;
 int version = 10;
 double zoomStep = 1.25;
 double scrollKeyPixels = main_window_xres/20;
+unsigned int undoStageCount = 10;
+bool useUndo = true;

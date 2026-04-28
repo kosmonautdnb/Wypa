@@ -34,7 +34,19 @@
 #include "SERIALZE.HPP"
 #include "TOOLS.HPP"
 #include "COLORFLD.HPP"
+#include "UNDO.HPP"
 #include <math.h>
+
+unsigned int pixelsUpdateCounter = 0;
+unsigned int pixelStatesUpdateCounter = 0;
+
+void updatedPixels() {
+  pixelsUpdateCounter++;
+}
+
+void updatedPixelStates() {
+  pixelStatesUpdateCounter++;
+}
 
 Layer *copyLayer = NULL;
 Canvas *currentCanvas = NULL;
@@ -144,29 +156,58 @@ void ColorTransform::processingGet() {
   float ag = addGreen/3.0;
   float ab = addBlue/3.0;
   float aa = addAlpha;
+  Vector a(0.25,0.6,0.15); a = normalize(a);
   for (int i = 0; i < 4*256*4; i++) {
     int channel = i % 4;
     int value = (i / 4) % 256;
     int component = (i/256/4);
     float rf=0,gf=0,bf=0,af=0;
     if (component < 3) {
-      double h2 = component * 120.0 + h;
-      h2 /= 360.0;
+      ImVec4 c2(component == 0?1:0,component == 1?1:0,component == 2?1:0,1); 
+      if (perceptional) {
+        c2.x *= a.x;
+        c2.y *= a.y;
+        c2.z *= a.z;
+      }
+      float value2 = powd(value/255.0,gam0);
+      value2 = ((value2*255-128)*cv+128)/255.0;
+      if (value2 < 0) value2 = 0;
+      if (value2 > 1) value2 = 1;
+      value2 += bv;
+      c2.x *= value2;
+      c2.y *= value2;
+      c2.z *= value2;
+      if (c2.x < 0) c2.x = 0;
+      if (c2.y < 0) c2.y = 0;
+      if (c2.z < 0) c2.z = 0;
+      if (c2.x > 1) c2.x = 1;
+      if (c2.y > 1) c2.y = 1;
+      if (c2.z > 1) c2.z = 1;
+      float h2,s2,l2; getHsl(c2,&h2,&s2,&l2); h2 = (h2 * 360 + h)/360.0;
       if (h2 < 0) h2 = 0;
       h2 = fmod(h2,1);
       if (h2 > 1) h2 = 1;
-      ImVec4 col = hsl(h2,s,l);
-      float value2 = powd(value/255.0,gam0)*255.0;
-      value2 = (value2 - 128) * cv + 128 + bv * 255;
-      rf = col.x * value2;
-      gf = col.y * value2;
-      bf = col.z * value2;
+      ImVec4 col = hsl(h2,s*s2,l*l2*2);
+      rf = col.x*255;
+      gf = col.y*255;
+      bf = col.z*255;
       rf *= sr;
       gf *= sg;
       bf *= sb;
       rf += ar;
       gf += ag;
       bf += ab;
+      if (perceptional) {
+        rf /= a.x;
+        gf /= a.y;
+        bf /= a.z;
+      }
+      if (rf < 0) rf = 0;
+      if (gf < 0) gf = 0;
+      if (bf < 0) bf = 0;
+      if (rf > 255) rf = 255;
+      if (gf > 255) gf = 255;
+      if (bf > 255) bf = 255;
       if (invertR) {rf = -rf; rf += 255.0/3.0;}
       if (invertG) {gf = -gf; gf += 255.0/3.0;}
       if (invertB) {bf = -bf; bf += 255.0/3.0;}
@@ -389,6 +430,8 @@ void ColorTransform::reset() {
   posterizeGreen = 0;
   posterizeBlue = 0;
   posterizeAlpha = 0;
+  ditherStrength = 0;
+  perceptional = false;
   shouldUpdate = true;
 }
 
@@ -454,6 +497,7 @@ void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
     px += xa;
     py += ya;
   }
+  updatedPixels();
 }
 
 void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int or) {
@@ -475,6 +519,7 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int or) {
     px += xa;
     py += ya;
   }
+  updatedPixels();
 }
 
 void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
@@ -496,6 +541,7 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
     px += xa;
     py += ya;
   }
+  updatedPixels();
 }
 
 void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
@@ -517,6 +563,7 @@ void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
     px += xa;
     py ++;
   }
+  updatedPixels();
 }
 
 void Layer::init(int width, int height) {
@@ -550,6 +597,8 @@ void Layer::clear() {
   if (width*height == 0) return;
   memset(pixels,0,width*height*sizeof(unsigned int));
   memset(pixelStates,0,width*height*sizeof(unsigned char));
+  updatedPixels();
+  updatedPixelStates();
 }
 
 void Layer::updatePixelStates(unsigned char and, unsigned char or, unsigned char eor) {
@@ -560,6 +609,7 @@ void Layer::updatePixelStates(unsigned char and, unsigned char or, unsigned char
     a ^= eor;
     pixelStates[i] = a;
   }
+  updatedPixelStates();
 }
 
 void Layer::mirrorHorizontally() {
@@ -625,21 +675,25 @@ void Layer::rotateByDegrees(double degrees) {
 void Layer::selectAll() {
   for (int i = 0; i < width * height; i++) pixelStates[i] |= PIXELSTATE_SELECTED;
   shouldUpdateAll = true;
+  updatedPixelStates();
 }
 
 void Layer::selectNone() {
   for (int i = 0; i < width * height; i++) pixelStates[i] &= ~PIXELSTATE_SELECTED;
   shouldUpdateAll = true;
+  updatedPixelStates();
 }
 
 void Layer::invertSelection() {
   for (int i = 0; i < width * height; i++) pixelStates[i] ^= PIXELSTATE_SELECTED;
   shouldUpdateAll = true;
+  updatedPixelStates();
 }
 
 void Layer::fillSelectionWithColor(unsigned int color) {
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = color;
   shouldUpdateAll = true;
+  updatedPixels();
   addUsedColor(getImVec4Color(color));
 }
 
@@ -647,6 +701,7 @@ void Layer::fillSelectionWithAlpha(unsigned char alpha) {
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) {
       pixels[i] = (pixels[i] & 0x00ffffff) | (alpha << 24);
   }
+  updatedPixels();
   shouldUpdateAll = true;
 }
 
@@ -664,11 +719,13 @@ unsigned int invertAlpha(unsigned int col) {
 
 void Layer::invertSelectionColor() {
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = invertColor(pixels[i]);
+  updatedPixels();
   shouldUpdateAll = true;
 }
 
 void Layer::invertSelectionAlpha() {
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = invertAlpha(pixels[i]);
+  updatedPixels();
   shouldUpdateAll = true;
 }
 
@@ -703,6 +760,7 @@ void Layer::expandSelection(int pixels) {
   }
   delete[] before;
   shouldUpdateAll = true;
+  updatedPixelStates();
 }
 
 void Layer::selectByAlpha(int alphaThreshold) {
@@ -710,6 +768,7 @@ void Layer::selectByAlpha(int alphaThreshold) {
     pixelStates[i] = pixelStates[i] & (~PIXELSTATE_SELECTED);
     if ((pixels[i]>>24) >= alphaThreshold) pixelStates[i] |= PIXELSTATE_SELECTED;
   }
+  updatedPixelStates();
   shouldUpdateAll = true;
 }
 
@@ -735,6 +794,7 @@ void Layer::selectionAsOutline() {
     pixelStates[i] &= ~PIXELSTATE_SELECTED;
     if (pixelStates[i] & PIXELSTATE_TEMP) pixelStates[i] |= PIXELSTATE_SELECTED;
   }
+  updatedPixelStates();
   shouldUpdateAll = true;
 }
 
@@ -826,6 +886,8 @@ void layerNewContent(Layer *l, int w, int h) {
   l->pixelStates = new unsigned char[w*h];
   memset(l->pixels,0,w*h*sizeof(unsigned int));
   memset(l->pixelStates,0,w*h*sizeof(unsigned char));
+  updatedPixels();
+  updatedPixelStates();
 }
 
 void layerGetContent(Layer *to, Layer *from) {
@@ -984,6 +1046,8 @@ void Layer::bakeLayer(int interpolation) {
 
   delete[] beforeP;
   delete[] beforeS;
+  updatedPixels();
+  updatedPixelStates();
 }
 
 Layer *Layer::clone() {
@@ -1103,6 +1167,8 @@ void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
   transform.transformation = modify * transform.transformation;
   transform.update();
   shouldUpdateAll = true;
+  updatedPixels();
+  updatedPixelStates();
 }
 
 void Layer::cropByAlpha(double alphaThreshold) {
@@ -1136,6 +1202,7 @@ void Layer::colorFromAlpha() {
     int a = col>>24;
     pixels[i]=(a)|(a<<8)|(a<<16)|0xff000000;
   }
+  updatedPixels();
   shouldUpdateAll = true;
 }
 
@@ -1159,6 +1226,7 @@ void Layer::applyAlphaMask(Layer *source) {
       }
     }
   }
+  updatedPixels();
   shouldUpdateAll = true;
 }
 
@@ -1190,6 +1258,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
     pixels[i] = colors[found];
     if ((i & 65535) == 0) updateStatusBar();
   }
+  updatedPixels();
   useColorTransform = false;
   shouldUpdateAll = true;
 }
@@ -1208,7 +1277,7 @@ void Layer::pasteColorTransform() {
 
 unsigned int quantizingPalette[256];
 
-__inline unsigned int quantizeColorFast(unsigned int col) {
+__inline unsigned int quantizeColorFast(unsigned int col, float ditherStrength, int x, int y) {
 
   if (shouldRecreateQuantization) {
     reCreateQuantization();
@@ -1224,6 +1293,18 @@ __inline unsigned int quantizeColorFast(unsigned int col) {
   int r = col & 255;
   int g = (col>>8) & 255;
   int b = (col>>16) & 255;
+  if (ditherStrength > 0) {
+    float lBefore = (float)(r+g+b)/255.f/3.f;
+    if (lBefore != 0) {
+      float scale = (lBefore+ditherStrength)/lBefore;
+      r *= scale;
+      g *= scale;
+      b *= scale;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+    }
+  }
   r >>= 2;
   g >>= 2;
   b >>= 2;
@@ -1253,10 +1334,11 @@ void Layer::bakeMagic(bool onlyInSelection) {
     unsigned int col = pixels[i];
     if (useColorTransform) col = colorTransform.applyColorTransform(col);
     if (usePosterize) col = colorTransform.applyPosterize(col);
-    if (quantize) col = quantizeColorFast(col);
+    if (quantize) col = quantizeColorFast(col, colorTransform.ditherStrength, i % width, i / width);
     pixels[i] = col;
   }
   shouldUpdateAll = true;
+  updatedPixels();
 }
 
 
@@ -1280,8 +1362,12 @@ void Layer::addSelectionFromLayer(Layer *source) {
       d->pixelStates[x+y*d->width] = ps;
     }
   }
+  updatedPixelStates();
   shouldUpdateAll = true;
+}
 
+unsigned int Layer::byteCount() {
+  return undoData.completeByteCount + width*height*sizeof(unsigned int) + width*height*sizeof(unsigned char);
 }
 
 void CanvasControl::setCanvasTransform(Canvas *canvas) {
@@ -1429,7 +1515,7 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColor
         if (useColorTransform) {
           if (l->useColorTransform) col = l->colorTransform.applyColorTransform(col);
           if (l->usePosterize) col = l->colorTransform.applyPosterize(col);
-          if (l->useQuantization) col = quantizeColorFast(col);
+          if (l->useQuantization) col = quantizeColorFast(col, l->colorTransform.ditherStrength,x,y);
         }
         return col;
       }
@@ -1570,6 +1656,18 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
+          if (layer->colorTransform.ditherStrength > 0 && ((lx+ly)&1)) {
+            float lBefore = (float)(r+g+b)/255.f/3.f;
+            if (lBefore != 0) {
+              float scale = (lBefore+layer->colorTransform.ditherStrength)/lBefore;
+              r *= scale;
+              g *= scale;
+              b *= scale;
+              if (r > 255) r = 255;
+              if (g > 255) g = 255;
+              if (b > 255) b = 255;
+            }
+          }
           r >>= 2;
           g >>= 2;
           b >>= 2;
@@ -2299,6 +2397,7 @@ void Canvas::copyActiveSelectionToLayer(int layerIndexSource,int layerIndexDest)
       d->pixelStates[x+y*d->width] = ps;
     }
   }
+  updatedPixelStates();
   shouldUpdateAll = true;
 }
 
@@ -2428,6 +2527,8 @@ Layer *layerFromCanvas(Canvas *canvas) {
   for (int i = 0; i < ret->width*ret->height; i++) ret->pixels[i] = canvas->pixels[i];
   ret->transform.transformation = inverse2(canvas->transform.transformation);
   ret->transform.update();
+  updatedPixels();
+  updatedPixelStates();
   return ret;
 }
 
@@ -2544,6 +2645,8 @@ void Canvas::paste() {
   insertLayer(copyLayer,layerPos);
   setActiveLayer(layerPos);
   copyLayer = NULL;
+  updatedPixels();
+  updatedPixelStates();
 }
 
 int Canvas::getActiveLayerIndex() {
@@ -2725,6 +2828,13 @@ void Canvas::snapToGrid() {
     }
   }
   shouldUpdateAll = true;
+}
+
+void Canvas::centerCanvas() {
+  double lx0 = canvasX0, ly0 = canvasY0; getScreenPos(lx0,ly0,lx0,ly0);
+  double lx1 = canvasX1, ly1 = canvasY1; getScreenPos(lx1,ly1,lx1,ly1);
+  control.scrollX = (lx1-lx0)*0.5-width/2;
+  control.scrollY = (ly1-ly0)*0.5-height/2;
 }
 
 bool Canvas::isOnlyActiveLayerActive() {
@@ -2953,6 +3063,8 @@ void addPicture(String fileName) {
   currentCanvas->setActiveLayer(0);
   currentCanvas->fitCanvasToLayers();
   shouldUpdateAll = true;
+  updatedPixels();
+  updatedPixelStates();
 }
 
 void insertPicture(String fileName) {
@@ -2963,6 +3075,8 @@ void insertPicture(String fileName) {
   currentCanvas->layers.insert(l,pos);
   currentCanvas->setActiveLayer(pos);
   shouldUpdateAll = true;
+  updatedPixels();
+  updatedPixelStates();
 }
 
 void addTempPicture() {
@@ -2971,6 +3085,8 @@ void addTempPicture() {
   canvas.push_back(currentCanvas);
   canvasDefault(currentCanvas);
   shouldUpdateAll = true;
+  updatedPixels();
+  updatedPixelStates();
 }
 
 void newPicture(int w, int h,const String &pictureName) {
@@ -2988,4 +3104,6 @@ void newPicture(int w, int h,const String &pictureName) {
   currentCanvas->fitCanvasToLayers();
   currentCanvas->setActiveLayer(0);
   shouldUpdateAll = true;
+  updatedPixels();
+  updatedPixelStates();
 }

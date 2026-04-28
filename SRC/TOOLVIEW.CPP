@@ -303,7 +303,7 @@ void drawToolEraserView() {
 void drawToolPipetteView() {
   if (roundButton(pipetteFromLayer ? "From picture##DRAWTOOLPIPETTEVIEWLAYER" : "From layer##DRAWTOOLPIPETTEVIEWLAYER", true)) {pipetteFromLayer = !pipetteFromLayer;}
   if (pipetteFromLayer) {
-    ImGui::Text("With magic"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLPIPETTEVIEWLAYERCOLORGRADING",&pipetteWithColorTransform);
+    ImGui::Text("Postprocessing"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLPIPETTEVIEWLAYERCOLORGRADING",&pipetteWithColorTransform);
   }
 }
 
@@ -403,6 +403,11 @@ void drawToolMagicView() {
     v = &t->pictureGamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPICTUREGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAPICTUREGAMMAINVERT",&t->pictureGammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
 
+    ImGui::Text("Contrast");
+    v = &t->contrast; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWCONTRAST",v,0,2)) {if (*v<0) *v = 0; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Brightness");
+    v = &t->brightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWBRIGHTNESS",v,-1,1)) {if (*v<-1) *v = -1; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
+
     ImGui::Text("Hue");
     v = &t->hue; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWHUE",v,0,360)) {if (*v<0) *v = 0; if (*v>360) *v = 360; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Saturation");
@@ -410,10 +415,7 @@ void drawToolMagicView() {
     ImGui::Text("Lightness");
     v = &t->lightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWLIGHTNESS",v,0,1)) {if (*v<0) *v = 0; if (*v>4) *v = 4; t->shouldUpdate = true; shouldUpdateAll = true;}
 
-    ImGui::Text("Contrast");
-    v = &t->contrast; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWCONTRAST",v,0,2)) {if (*v<0) *v = 0; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;}
-    ImGui::Text("Brightness");
-    v = &t->brightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWBRIGHTNESS",v,-1,1)) {if (*v<-1) *v = -1; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Perceptional"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICPERCEPTIONAL",&t->perceptional)) {t->shouldUpdate = true; shouldUpdateAll = true;}
 
     ImGui::Text("Scale red");
     v = &t->scaleRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALERED",v,0,0,2)) {if (*v<-512) *v = -512; if (*v>512) *v = 512; t->shouldUpdate = true; shouldUpdateAll = true;}
@@ -463,6 +465,10 @@ void drawToolMagicView() {
   if (palette.size()>=0 && palette.size()<=256) {
     ImGui::Text("Fast quant"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEQUANTIZATION",&l->useQuantization)) {
       shouldUpdateAll = true;
+    }
+    if (l->useQuantization) {
+      ImGui::Text("Dithering");
+      v = &t->ditherStrength; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWDITHERSTRENGTH",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
     }
     ImGui::Separator();
   } else {

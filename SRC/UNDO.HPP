@@ -21,44 +21,17 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef __UNDO_HPP__
+#define __UNDO_HPP__
 
-#include "STL/TYPES.HPP"
-#include "STL/STRING.HPP"
+extern int availableUndos;
+extern int availableRedos;
 
-#ifndef PI
-#define PI 3.14159265358979323846
-#endif // PI
+void beforeUndoPoint();
+void afterUndoPoint();
+void forceUndoPoint();
 
-#define FROZENWINDOW (ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoCollapse)
-#define UNUSED(__p__) (void)(__p__)
-#define SCREENSAVERTIMEINSECONDS (60*5)
+void undo();
+void redo();
 
-#define CONTROLKEY_NONE 0
-#define CONTROLKEY_SHIFT 1
-#define CONTROLKEY_CTRL 2
-#define CONTROLKEY_ALT 4
-
-extern double fps;
-extern double timeDelta;
-extern double mouseDX,mouseDY;
-extern unsigned int mouseB;
-extern bool shift,ctrl,alt;
-extern const char *appName;
-extern String appFolder;
-extern unsigned int controlKeyId;
-extern int version;
-
-extern uint32_t main_window_xres;
-extern uint32_t main_window_yres;
-extern double aspectRatio;
-extern const char *logFileName;
-extern bool refreshMasked;
-extern double zoomStep;
-extern double scrollKeyPixels;
-
-extern bool useUndo;
-extern unsigned int undoStageCount;
-
-#endif //__CONFIG_H__
+#endif // __UNDO_HPP__

@@ -38,6 +38,7 @@
 #include "TOOLBAR.HPP"
 #include "TOOLVIEW.HPP"
 #include "TOOLS.HPP"
+#include "UNDO.HPP"
 #include <math.h>
 
 bool roundButton(const char *name, bool enabled) {
@@ -163,6 +164,15 @@ void splashScreen() {
       if (aspectRatio != 0) {w = w / aspectRatio * main_window_xres/main_window_yres;}
       ImGui::SetCursorScreenPos(ImVec2(main_window_xres/2-w/2,main_window_yres/2-h/2));
       ImGui::Image((ImTextureID)glHandle,ImVec2(w,h));
+      ImGui::SetWindowFontScale(1);
+      ImVec2 m = ImGui::GetItemRectMax();
+      String text2 = String("Version ")+String::fromInt(version / 100) + String(".") + String((version%100)<10 ? "0" : "") + String::fromInt(version % 100);
+      ImVec2 textSize = ImGui::CalcTextSize(text2.c_str());
+      ImVec2 textPos;
+      textPos.x = m.x - textSize.x;
+      textPos.y = m.y - textSize.y;
+      ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),ImGui::GetWindowFontSize(),textPos,0xff000000,text2.c_str());
+      ImGui::SetWindowFontScale(scale);
     }
 
     char *descLine = "Wypa";
@@ -245,6 +255,9 @@ int main(int argc, const char *argv[]) {
   shouldUpdateAll = true;
   SETUPENTITIES(init);
 
+  beforeUndoPoint();
+  afterUndoPoint();
+
   while(!quit) {
 
     if (currentKey == GL_VK_ESCAPE) quit = true;
@@ -255,7 +268,7 @@ int main(int argc, const char *argv[]) {
       if (currentKey == '-') {
         currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,1.0/zoomStep);
       }
-  
+ 
       if (currentKey == '+') {
         currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,zoomStep);
       }

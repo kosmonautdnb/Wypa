@@ -29,6 +29,11 @@
 #include "STL/MATRIX.HPP"
 #include "STL/VECTOR.HPP"
 
+extern unsigned int pixelsUpdateCounter;
+extern unsigned int pixelStatesUpdateCounter;
+void updatedPixels();
+void updatedPixelStates();
+
 void initLayers();
 void freeLayers();
 
@@ -151,6 +156,8 @@ public:
   float posterizeGreen;
   float posterizeBlue;
   float posterizeAlpha;
+  float ditherStrength;
+  bool perceptional;
   void processingGet();
   void fromProcessing();
   unsigned int r[256];
@@ -164,17 +171,57 @@ public:
   unsigned int applyPosterize(unsigned int pixel);
 };
 
+class LayerUndoData {
+public:
+  LayerUndoData() {
+    rleDataPixels_forward = NULL;
+    rleDataPixelStates_forward = NULL;
+    rleDataPixels_backward = NULL;
+    rleDataPixelStates_backward = NULL;
+    width_forward = 0;
+    height_forward = 0;
+    width_backward = 0;
+    height_backward = 0;
+    completeByteCount = 0;
+    updatePixelsCount = 0;
+    updatePixelStatesCount = 0;
+  }
+  ~LayerUndoData() {
+    freeIt();
+  }
+  void freeIt() {
+    if (rleDataPixels_forward != NULL) {delete[] rleDataPixels_forward; rleDataPixels_forward = NULL;}
+    if (rleDataPixelStates_forward != NULL) {delete[] rleDataPixelStates_forward; rleDataPixelStates_forward = NULL;}
+    if (rleDataPixels_backward != NULL) {delete[] rleDataPixels_backward; rleDataPixels_backward = NULL;}
+    if (rleDataPixelStates_backward != NULL) {delete[] rleDataPixelStates_backward; rleDataPixelStates_backward = NULL;}
+    completeByteCount = 0;
+    updatePixelsCount = 0;
+    updatePixelStatesCount = 0;
+  }
+  int width_forward,height_forward;
+  int width_backward,height_backward;
+  unsigned char *rleDataPixels_forward;
+  unsigned char *rleDataPixelStates_forward;
+  unsigned char *rleDataPixels_backward;
+  unsigned char *rleDataPixelStates_backward;
+  unsigned int completeByteCount;
+  unsigned int updatePixelsCount;
+  unsigned int updatePixelStatesCount;
+};
+
 class Layer {
 public:
 
   int mode;
   int width;
   int height;
+  unsigned int id;
   unsigned int *pixels;
   unsigned char *pixelStates;
   LayerState state;
   TransformationState transform;
   ColorTransform colorTransform;
+  LayerUndoData undoData;
   char name[LAYERNAMEMAX];
 
   int repaintState;                    
@@ -200,6 +247,8 @@ public:
     showColorTransformOnlyInSelection = false;
     static int layerCounter = 0; layerCounter++;
     sprintf(name,"Layer %d", layerCounter);
+    static unsigned int idCounter = 0; idCounter++;
+    id = idCounter;
   }
 
   ~Layer() {
@@ -263,7 +312,55 @@ public:
   void bakeMagic(bool onlyInSelection);
 
   void addSelectionFromLayer(Layer *source);
+
+  unsigned int byteCount();
 };
+
+#define S_LAYER(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_INT("mode",(__o__)->mode);\
+  S_INT("width",(__o__)->width);\
+  S_INT("height",(__o__)->height);\
+  S_UINT("id",(__o__)->id);\
+  S_RGBAIMAGE("pixels",(__o__)->pixels,(__o__)->width,(__o__)->height);\
+  S_PACKEDARRAY("pixelStates",(__o__)->pixelStates,(__o__)->width*(__o__)->height*sizeof(unsigned char));\
+  S_BOOL("state.active",(__o__)->state.active);\
+  S_BOOL("state.selected",(__o__)->state.selected);\
+  S_BOOL("state.visible",(__o__)->state.visible);\
+  S_FLOAT("state.alpha",(__o__)->state.alpha);\
+  S_MATRIX("transform.transformation",(__o__)->transform.transformation);\
+  S_FLOAT("colorTransform.hue",(__o__)->colorTransform.hue);\
+  S_FLOAT("colorTransform.saturation",(__o__)->colorTransform.saturation);\
+  S_FLOAT("colorTransform.lightness",(__o__)->colorTransform.lightness);\
+  S_FLOAT("colorTransform.brightness",(__o__)->colorTransform.brightness);\
+  S_FLOAT("colorTransform.contrast",(__o__)->colorTransform.contrast);\
+  S_FLOAT("colorTransform.gamma",(__o__)->colorTransform.gamma);\
+  S_BOOL("colorTransform.gammaInvert",(__o__)->colorTransform.gammaInvert);\
+  S_FLOAT("colorTransform.pictureGamma",(__o__)->colorTransform.pitctureGamma);\
+  S_BOOL("colorTransform.pictureGammaInvert",(__o__)->colorTransform.pictureGammaInvert);\
+  S_FLOAT("colorTransform.addRed",(__o__)->colorTransform.addRed);\
+  S_FLOAT("colorTransform.addGreen",(__o__)->colorTransform.addGreen);\
+  S_FLOAT("colorTransform.addBlue",(__o__)->colorTransform.addBlue);\
+  S_FLOAT("colorTransform.addAlpha",(__o__)->colorTransform.addAlpha);\
+  S_FLOAT("colorTransform.scaleRed",(__o__)->colorTransform.scaleRed);\
+  S_FLOAT("colorTransform.scaleGreen",(__o__)->colorTransform.scaleGreen);\
+  S_FLOAT("colorTransform.scaleBlue",(__o__)->colorTransform.scaleBlue);\
+  S_FLOAT("colorTransform.scaleAlpha",(__o__)->colorTransform.scaleAlpha);\
+  S_BOOL("colorTransform.intertR",(__o__)->colorTransform.invertR);\
+  S_BOOL("colorTransform.invertG",(__o__)->colorTransform.invertG);\
+  S_BOOL("colorTransform.invertB",(__o__)->colorTransform.invertB);\
+  S_BOOL("colorTransform.invertA",(__o__)->colorTransform.invertA);\
+  S_FLOAT("colorTransform.posterizeRed",(__o__)->colorTransform.posterizeRed);\
+  S_FLOAT("colorTransform.posterizeGreen",(__o__)->colorTransform.posterizeGreen);\
+  S_FLOAT("colorTransform.posterizeBlue",(__o__)->colorTransform.posterizeBlue);\
+  S_FLOAT("colorTransform.posterizeAlpha",(__o__)->colorTransform.posterizeAlpha);\
+  S_FLOAT("colorTransform.ditherStrength",(__o__)->colorTransform.ditherStrength);\
+  S_BOOL("colorTransform.perceptional",(__o__)->colorTransform.perceptional);\
+  S_BOOL("useColorTransform",(__o__)->useColorTransform);\
+  S_BOOL("useQuantization",(__o__)->useQuantization);\
+  S_BOOL("usePosterize",(__o__)->usePosterize);\
+  S_BOOL("showColorTransformOnlyInSelection",(__o__)->showColorTransformOnlyInSelection);\
+  S_NAME("name", (__o__)->name)
 
 class CanvasControl {
 public:
@@ -431,6 +528,7 @@ public:
   double getBoundingAngleDegrees();
   void setBoundingAngleDegrees(double degrees);
   void snapToGrid();
+  void centerCanvas();
 
   void cropLayersByAlpha(double alpha);
   bool isOnlyActiveLayerActive();

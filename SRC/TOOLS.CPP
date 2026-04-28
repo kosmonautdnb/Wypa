@@ -32,6 +32,7 @@
 #include "TOOLVIEW.HPP"
 #include "SERIALZE.HPP"
 #include "IMAGE.HPP"
+#include "UNDO.HPP"
 #include <math.h>
 
 
@@ -480,6 +481,7 @@ bool isWandAccepted(unsigned int destColor, unsigned int checkColor) {
 void useToolWand() {
   if (!isPaintAreaActive()) return;
   if (!ImGui::IsMouseClicked(0)) return;
+  beforeUndoPoint();
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
   if ((unsigned int)lx>=l->width||(unsigned int)ly>=l->height) return;
@@ -517,9 +519,12 @@ void useToolWand() {
   }
 
   repaintLayer(l,true);
+  afterUndoPoint();
+  updatedPixelStates();
 }
 
 void placeCorner(double mouseX, double mouseY) {
+  beforeUndoPoint();
   Array<Layer *> selected;
   for (int i = 0; i < currentCanvas->layers.size(); i++) {if (currentCanvas->layers[i]->state.selected||currentCanvas->layers[i]->state.active) selected.push_back(currentCanvas->layers[i]);}
   if (selected.empty()) return;
@@ -595,10 +600,27 @@ void placeCorner(double mouseX, double mouseY) {
     }
   }
   shouldUpdateAll = true;
+  afterUndoPoint();
+  updatedPixels();
+  updatedPixelStates();
+}
+
+void mouseClickUndo() {
+  static unsigned int counter = 3;
+  if (ImGui::IsMouseDown(0)||ImGui::IsMouseDown(1)) {
+    if (counter != 0) beforeUndoPoint();
+    counter = 0;
+  } else {
+    counter++;
+    if (counter == 2) afterUndoPoint();
+  }
 }
 
 void useToolMove() {
   if (!isPaintAreaActive()) return;
+
+  mouseClickUndo();
+
   if (ImGui::IsMouseDown(0)) {
     if (ctrl)
       placeCorner(mouseX,mouseY);
@@ -672,6 +694,9 @@ bool isFillAccepted(unsigned int destColor, unsigned int checkColor) {
 
 void useToolFill() {
   if (!isPaintAreaActive()) return;
+
+  mouseClickUndo();
+
   if (!ImGui::IsMouseClicked(0)) return;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
@@ -701,6 +726,7 @@ void useToolFill() {
     l->pixels[i] = getUIntColor(foregroundColor);
   }
   repaintLayer(l,true);
+  updatedPixels();
 }
 
 int selectionTool = SELECTIONTOOL_RECTANGLE;
@@ -721,16 +747,21 @@ double toolAspectX = 1;
 double toolAspectY = 1;
 
 void useToolSelection() {
+
   Layer *activeLayer = currentCanvas->getActiveLayer();
   static Layer *selectionToolLayer = activeLayer;
   bool layerSwitched = selectionToolLayer != activeLayer;
   selectionToolLayer = activeLayer;
   if (selectionToolLayer != NULL && selectionToolLayer->width * selectionToolLayer->height==0) return;
-  if (selectionToolLayer == NULL||  (!ImGui::IsMouseDown(0)) || layerSwitched || (ImGui::IsMouseDown(1) && selectionTool != SELECTIONTOOL_POLYGON)) {
+
+  mouseClickUndo();
+
+  if (selectionToolLayer == NULL ||  (!ImGui::IsMouseDown(0)) || layerSwitched || (ImGui::IsMouseDown(1) && selectionTool != SELECTIONTOOL_POLYGON)) {
     if (selectionToolActive) {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
       if (layerSwitched) return;
       if (!ImGui::IsMouseDown(1)) {
+        updatedPixelStates();
         switch(selectionTool) {
           case SELECTIONTOOL_ELLIPSE:
           case SELECTIONTOOL_RECTANGLE: {
@@ -903,6 +934,9 @@ void applyGradient(Layer *layer, Gradient *gradient, double cx0, double cy0, dou
 }
 
 void useToolGradient() {
+
+  mouseClickUndo();
+
   toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
   toolAspectY = currentCanvas->control.pixelSizeY != 0 ? 1.0 / currentCanvas->control.pixelSizeY : 1;
   Layer *activeLayer = currentCanvas->getActiveLayer();
@@ -915,7 +949,7 @@ void useToolGradient() {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
       if (layerSwitched) return;
       if (!ImGui::IsMouseDown(1)) {
-        if (tool == TOOL_GRADIENT) applyGradient(activeLayer,&gradient,selectionX0,selectionY0,selectionX1,selectionY1);
+        if (tool == TOOL_GRADIENT) {applyGradient(activeLayer,&gradient,selectionX0,selectionY0,selectionX1,selectionY1); updatedPixels();}
       }
     } 
     return;
@@ -984,6 +1018,7 @@ double paintingPointLastY1 = 0;
 bool toolOutline = true;
 
 void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double angle, bool justSelection, bool paintJustIntoOutline) {
+
   double xs = (rand() & 1023)/1023.0*2.0-1.0;
   double ys = (rand() & 1023)/1023.0*2.0-1.0;
   canvasX += xs * brush->randomX * toolAspectX;
@@ -1071,6 +1106,7 @@ bool lineAntialiasing = true;
 
 
 void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, double canvasY1, bool justSelection) {
+
   if (lineWidth == 0) return;
   Vector layerBoundings;
   bool first = true;
@@ -1215,6 +1251,8 @@ void useToolPainting() {
   toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
   toolAspectY = currentCanvas->control.pixelSizeY != 0 ? 1.0 / currentCanvas->control.pixelSizeY : 1;
 
+  mouseClickUndo();
+
   if (!paintingOn && ImGui::IsMouseClicked(1)) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
   bool useTempBrush = tool == TOOL_LINE;
   if ((unsigned int)currentBrush >= brushes.size() && (!useTempBrush)) return;
@@ -1254,6 +1292,7 @@ void useToolPainting() {
         waitForMouse0 = true;
         shouldUpdateAll = true;
       }
+      updatedPixels();
     } 
     return;
   }

@@ -30,6 +30,7 @@
 #include "COLORFLD.HPP"
 #include "STL/DOS.HPP"
 #include "DIALOGS.HPP"
+#include "UNDO.HPP"
 #include <math.h>
 
 int menuBar_height = 17;
@@ -103,6 +104,11 @@ void drawMenuBar() {
     }
     if (ImGui::BeginMenu("Edit")) {
       on = true;
+      if (useUndo) {
+        if (ImGui::MenuItem((String("Undo[") + String::fromInt(availableUndos) + String("]##UNDO")).c_str(),NULL,false,availableUndos>0)) {undo();}
+        if (ImGui::MenuItem("Redo",NULL,false,availableRedos>0)) {redo();}
+        ImGui::Separator();
+      }
       if (ImGui::MenuItem("Fill with foreground color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));}
       if (ImGui::MenuItem("Erase selection",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(0x00000000);}
       ImGui::Separator();
@@ -110,6 +116,8 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Fill selection with foreground alpha",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithAlpha(getUIntColor(foregroundColor)>>24);}
       if (ImGui::MenuItem("Invert selection color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->invertSelectionColor();}
       if (ImGui::MenuItem("Invert selection alpha",NULL,false,currentCanvas->hasSelection())) {currentCanvas->invertSelectionAlpha();}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Undo enabled",NULL,useUndo,true)) {useUndo = !useUndo;}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Image")) {
@@ -185,6 +193,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
       ImGui::Separator();
       if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
+      if (ImGui::MenuItem("Center")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Filter")) {
