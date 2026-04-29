@@ -109,6 +109,28 @@ public:
   double pixelWidth();
   double pixelHeight();
 };
+#define S_BRUSH(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_NAME("name",(__o__)->name,BRUSHNAMEMAX);\
+  S_BOOL("isDistanceField",(__o__)->isDistanceField);\
+  if ((__o__)->isDistanceField)\
+  {\
+    if ((!save)&&(__o__)->distanceField==NULL) (__o__)->distanceField = new float[BRUSHDISTANCEFIELDSIZE*BRUSHDISTANCEFIELDSIZE];\
+    if ((__o__)->distanceField != NULL) S_BASE64("distanceField",(__o__)->distanceField,BRUSHDISTANCEFIELDSIZE*BRUSHDISTANCEFIELDSIZE*sizeof(float));\
+  }\
+  S_FLOAT("size",(__o__)->size);\
+  S_FLOAT("pressure",(__o__)->pressure);\
+  S_FLOAT("softness",(__o__)->softness);\
+  S_FLOAT("edginess",(__o__)->edginess);\
+  S_FLOAT("ovality",(__o__)->ovality);\
+  S_FLOAT("aspect",(__o__)->aspect);\
+  S_FLOAT("rotation",(__o__)->rotation);\
+  S_FLOAT("randomX",(__o__)->randomX);\
+  S_FLOAT("randomY",(__o__)->randomY);\
+  S_FLOAT("opacity",(__o__)->opacity);\
+  S_FLOAT("rate",(__o__)->rate);\
+  S_BOOL("followRotation",(__o__)->followRotation);\
+  S_OBJECT_CLOSE();
 
 void scanSampleDistanceField(class Brush *brush, const class RGBAImage &image);
 

@@ -52,6 +52,11 @@ void savePalette(const char *shortPath, const char *longFileName);
 void loadGradient(const char *shortPath, const char *longFileName);
 void saveGradient(const char *shortPath, const char *longFileName);
 
+void loadBrush(const char *shortPath, const char *longFileName);
+void saveBrush(const char *shortPath, const char *longFileName);
+void loadBrushes(const char *shortPath, const char *longFileName);
+void saveBrushes(const char *shortPath, const char *longFileName);
+
 void loadBrushShape(const char *shortPath, const char *longFileName);
 
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);

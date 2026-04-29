@@ -61,4 +61,7 @@ extern double scrollKeyPixels;
 extern bool useUndo;
 extern unsigned int undoStageCount;
 
+extern bool debugWindowOn;
+void showDebugWindow();
+
 #endif //__CONFIG_H__

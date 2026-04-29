@@ -35,9 +35,12 @@
 #include "STL\NANOSVG.HPP"
 #include "STL\NSVGRAST.HPP"
 #include "DIALOGS.HPP"
+#include "STL/PARSON.HPP"
+#include "STL/JSONWRT.HPP"
+#include "STL/MINIZ.HPP"
 #include <math.h>
 
-#define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = RGBAImage::fromMemory(&(arr[0]), arr.size());
+#define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
 
 #define LONGFILENAME(__str__) (longFileNames ? longFileName(__str__) : unixFileName(__str__))
 #define SHORTFILENAME(__str__) (longFileNames ? shortFileName(__str__) : unixFileName(__str__))
@@ -49,6 +52,301 @@ String fromLocalFileName(const String &str) {
   if (ret.startsWith("./")) ret = appFolder + ret.substr(2);
   return ret;
 }
+
+String toLocalFileName(const String &str) {
+  String ret = unixFileName(str);
+  if (ret.startsWith(appFolder)) ret = String("./") + ret.substr(appFolder.length());
+  return ret;
+}
+
+enum JSONTYPE {
+  JSONTYPE_NULL = 0,
+  JSONTYPE_BOOL = 1,
+  JSONTYPE_INT = 2,
+  JSONTYPE_UINT = 3,
+  JSONTYPE_FLOAT = 4,
+  JSONTYPE_DOUBLE = 5,
+  JSONTYPE_STRING = 6,
+  JSONTYPE_NAME = 7,
+  JSONTYPE_ARRAY_OPEN = 8,
+  JSONTYPE_ARRAY_CLOSE = 9,
+  JSONTYPE_OBJECT_OPEN = 10,
+  JSONTYPE_OBJECT_CLOSE = 11,
+  JSONTYPE_VECTOR = 12,
+  JSONTYPE_QUATERNION = 13,
+  JSONTYPE_FLOAT4 = 14,
+  JSONTYPE_MATRIX = 15,
+  JSONTYPE_FILENAME = 16,
+  JSONTYPE_BASE64 = 17
+};
+
+JSON_Value * json_parse_string(const char *string);
+
+#define JSONPORTIONLENGTH ((sizeof(float)*128*128*4/3+128)*2) // ensure the biggest element is atleast one time writable (in this case the distanceField of the brushes
+
+void loadArray(Array<char> *arr, FILE *in) {
+  fseek(in,0,SEEK_END);
+  unsigned int fileLen = ftell(in);
+  fseek(in,0,SEEK_SET);
+  arr->resize(fileLen);
+  fread(&(*arr)[0],1,fileLen,in);
+}
+
+void readJson(Array<char> *arr, String *string) {
+  arr->resize(string->length()+1);
+  (*arr)[string->length()] = 0x00;
+  for (int i = 0; i < string->length(); i++) {
+    (*arr)[i] = (*string)[i];
+  }
+}
+
+void writeJson(Array<char> *arr, String *string) {
+  string->resize(arr->size());
+  for (int i = 0; i < string->length(); i++) {
+    (*string)[i] = (*arr)[i];
+  }
+}
+
+#define STARTSERIALIZATION(__save__) int arrayIndex = 0; bool error = false; JSON_Value *jval; Array<JSON_Value*> jvals; Array<char> jsonArray; jsonArray.resize(JSONPORTIONLENGTH); jsonArray[0] = '{'; char *jsonPos = &jsonArray[1]; bool jsonIsSaving = __save__; if (!jsonIsSaving) {readJson(&jsonArray,string);jval=json_parse_string_with_comments(&jsonArray[0]); jvals.push_back(jval); jsonPos = (char*)&jvals; if (jval==NULL) error = true;}
+#define FINISHSERIALIZATION() {if (jsonIsSaving) {if (jsonPos[-1] == ',' ) jsonPos--; sprintf(jsonPos,"}");jsonPos++;jsonArray.resize((unsigned int)(jsonPos-&jsonArray[0]));writeJson(&jsonArray,string);}}
+
+#define S_NULL(__name__)  {jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_NULL, __name__, NULL, jsonIsSaving,arrayIndex);}
+#define S_BOOL(__name__, __v__)  {bool *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_BOOL, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_INT(__name__, __v__)  {int *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_INT, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_UINT(__name__, __v__)  {unsigned int *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_UINT, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_FLOAT(__name__, __v__)  {float *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_FLOAT, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_DOUBLE(__name__, __v__)  {double *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_DOUBLE, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_STRING(__name__, __v__)  {String *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_STRING, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_BASE64(__name__, __v__, __l__)  {currentBase64Length = __l__; jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_BASE64, __name__, (__v__), jsonIsSaving,arrayIndex);}
+#define S_NAME(__name__, __v__, __l__)  {currentNameLength = __l__; char *typeSafe = (__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_NAME, __name__, (__v__), jsonIsSaving,arrayIndex);}
+#define S_ARRAY_OPEN(__name__)  jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_ARRAY_OPEN, __name__, NULL, jsonIsSaving,arrayIndex)
+#define S_ARRAY_CLOSE()  jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_ARRAY_CLOSE, NULL, NULL, jsonIsSaving,arrayIndex)
+#define S_OBJECT_OPEN(__name__)  jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_OBJECT_OPEN, __name__, NULL, jsonIsSaving,arrayIndex)
+#define S_OBJECT_CLOSE()  jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_OBJECT_CLOSE, NULL, NULL, jsonIsSaving,arrayIndex)
+#define S_FILENAME(__name__, __v__)  {String *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_FILENAME, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+
+//char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+Array<unsigned char> invBase64;
+
+String encodeBase64(void *data, unsigned int len) {
+  unsigned char *src = (unsigned char *)data;
+  String ret;
+  ret.resize((len+2)/3*4);
+  for (int i = 0; i < ret.size()/4; i++) {
+    unsigned char a0 = src[i*3+0];
+    unsigned char a1 = src[i*3+1];
+    unsigned char a2 = src[i*3+2];
+    unsigned char d0 = (a0>>2);
+    unsigned char d1 = ((a0&3)<<4)|(a1>>4);
+    unsigned char d2 = ((a1&15)<<2)|(a2>>6);
+    unsigned char d3 = a2&63;
+    ret[i*4+0] = base64[d0];
+    ret[i*4+1] = base64[d1];
+    ret[i*4+2] = base64[d2];
+    ret[i*4+3] = base64[d3];
+  }
+  for (int i2 = 0; i2 < len % 3; i2++) ret[ret.size()-i2-1] = '=';
+  return ret;
+}
+
+void decodeBase64(const String &base64String, void *dest) {
+  if (invBase64.empty()) {
+    invBase64.resize(256);
+    for (int i = 0; i < 256; i++) invBase64[i] = 0;
+    if (strlen(base64) != 64) {glDone(); printf("base64 seems corrupt\n"); exit(0);}
+    for (int j = 0; j < 64; j++) invBase64[((unsigned char)base64[j]) & 255] = j;
+  }
+  int outputSize = base64String.length()*3/4;
+  if (base64String.length()>=1) if (base64String[base64String.length()-1] == '=') outputSize--;
+  if (base64String.length()>=2) if (base64String[base64String.length()-2] == '=') outputSize--;
+  int k = 0;
+  unsigned char *dest2 = (unsigned char*)dest;
+  for (int i = 0; i < outputSize; i++) {
+    unsigned char a,b,val;
+    switch(i % 3) {
+    case 0: {a = invBase64[base64String[k]]; b = invBase64[base64String[k+1]]; val = (a<<2)+((b>>4)&3);} break;
+    case 1: {a = invBase64[base64String[k+1]]; b = invBase64[base64String[k+2]]; val = (a<<4)+((b>>2)&15);} break;
+    case 2: {a = invBase64[base64String[k+2]]; b = invBase64[base64String[k+3]]; val = ((a&3)<<6)+(b & 63); k+=4;} break;
+    }
+    dest2[i] = val;
+  }
+}
+
+int currentNameLength = 0;
+int currentBase64Length = 0;
+int arraySize = 0; 
+#define S_ARRAY(__name__,__array__,__elementFunc__) {\
+  int k = arrayIndex;\
+  S_ARRAY_OPEN(__name__);\
+  if (!jsonIsSaving) {\
+    (__array__).clear(); (__array__).resize(arraySize);\
+  }\
+  for (int i = 0; i < (__array__).size(); i++) {\
+    arrayIndex = i;\
+    __elementFunc__;\
+  }\
+  S_ARRAY_CLOSE();\
+  arrayIndex = k;\
+}
+#define S_ARRAY_POINTER_RESIZE(__array__,__type__,__count__) {\
+  if (!jsonIsSaving) {\
+    for (int i1 = 0; i1 < (__array__).size(); i1++) if ((__array__)[i1] != NULL) {delete (__array__)[i1]; (__array__)[i1]=NULL;}\
+    (__array__).clear(); (__array__).resize(__count__);\
+    for (int i2 = 0; i2 < (__array__).size(); i2++) (__array__)[i2] = new (__type__);\
+  }\
+}
+#define S_CARRAY(__name__,__array__,__elementFunc__,__count__) {\
+  int k = arrayIndex;\
+  S_ARRAY_OPEN(__name__);\
+  for (int i = 0; i < (__count__); i++) {\
+    arrayIndex = i;\
+    __elementFunc__;\
+  }\
+  S_ARRAY_CLOSE();\
+  arrayIndex = k;\
+}
+
+char tempBuffer[256];
+
+#define _D(__double__) doubleToString(__double__).c_str()
+#define _F(__float__) floatToString(__float__).c_str()
+String doubleToString(double v) {
+  String ret = String::fromDouble(v);
+  int pointPos = ret.find(".");
+  if (pointPos>=0) {
+    for (int i = ret.length()-1; i >= pointPos; i--) {
+      if (ret[i]=='0'||ret[i]=='.') {ret.resize(i);continue;}
+      break;
+    }
+    if (ret.empty()) ret = "0";
+  }
+  return ret;
+}
+String floatToString(float v) {
+  return doubleToString(v);
+}
+
+void jsonSerialize(void *json, void **jsonPos, int type, const char *name, void *data, bool save, int arrayIndex) {
+  if (save) {
+    Array<char> *w = (Array<char>*)json;
+    char *oldPos = *(char**)jsonPos;
+    char *newPos = oldPos;
+    size_t len = &(*w)[w->size()] - oldPos;
+    switch(type) {
+      case JSONTYPE_NULL: {newPos = json_null( oldPos, name, &len );} break;
+      case JSONTYPE_BOOL: {newPos = json_bool( oldPos, name, *((bool*)data), &len );} break;
+      case JSONTYPE_INT: {newPos = json_int( oldPos, name, *((int*)data), &len );} break;
+      case JSONTYPE_UINT: {newPos = json_uint( oldPos, name, *((unsigned int*)data), &len );} break;
+      case JSONTYPE_FLOAT: {double v = *((float*)data); newPos = json_double( oldPos, name, v, &len );} break;
+      case JSONTYPE_DOUBLE: {newPos = json_double( oldPos, name, *((double*)data), &len );} break;
+      case JSONTYPE_STRING: {String str = *(String*)data; newPos = json_str( oldPos, name, str.c_str() != NULL ? str.c_str() : "", &len );} break;
+      case JSONTYPE_NAME: {String str = (const char *)data; newPos = json_str( oldPos, name, str.c_str() != NULL ? str.c_str() : "", &len );} break;
+      case JSONTYPE_ARRAY_OPEN: {newPos = json_arrOpen( oldPos, name, &len );} break;
+      case JSONTYPE_ARRAY_CLOSE: {newPos = json_arrClose( oldPos,&len );} break;
+      case JSONTYPE_OBJECT_OPEN: {newPos = json_objOpen( oldPos, name, &len );} break;
+      case JSONTYPE_OBJECT_CLOSE: {newPos = json_objClose( oldPos,&len );} break;
+      case JSONTYPE_FILENAME: {String str = toLocalFileName(*(String*)data); newPos = json_str( oldPos, name, str.c_str() != NULL ? str.c_str() : "", &len );} break;
+      case JSONTYPE_BASE64: { String str = encodeBase64(data,currentBase64Length); newPos = json_str( oldPos, name, str.c_str() != NULL ? str.c_str() : "", &len );} break;
+    }
+    int posInString = (int)(newPos - &(*w)[0]);
+    if (posInString > w->size()-JSONPORTIONLENGTH) {
+      w->resize(w->size() + JSONPORTIONLENGTH*2);
+      newPos = &(*w)[0] + posInString;
+    }
+    *jsonPos = newPos;
+  }
+  if (!save) {
+    Array<JSON_Value*> *jvals = *(Array<JSON_Value*>**)jsonPos;
+    JSON_Value *jval = jvals->back();
+    JSON_Value *val = NULL;
+    switch(json_value_get_type(jval)) {
+      case JSONObject: {val = json_object_get_value(json_value_get_object(jval), name);} break;
+      case JSONArray: {val = json_array_get_value(json_value_get_array(jval), arrayIndex);} break;
+    }
+    bool has = json_value_get_type(val)!=JSONError;
+    switch(type) {
+      case JSONTYPE_NULL: {} break;
+      case JSONTYPE_BOOL: {if(!has)break;*((bool*)data) = json_value_get_boolean(val)?true:false;} break;
+      case JSONTYPE_INT: {if(!has)break;*((int*)data) = (int)json_value_get_number(val);} break;
+      case JSONTYPE_UINT: {if(!has)break;*((unsigned int*)data) = (unsigned int)json_value_get_number(val);} break;
+      case JSONTYPE_FLOAT: {if(!has)break;*((float*)data) = (float)json_value_get_number(val);} break;
+      case JSONTYPE_DOUBLE: {if(!has)break;*((double*)data) = (double)json_value_get_number(val);} break;
+      case JSONTYPE_STRING: {if(!has)break;*(String*)data = (const char *)json_value_get_string(val);} break;
+      case JSONTYPE_NAME: {if(!has)break;sprintf((char*)data,"%s",(const char *)json_value_get_string(val));} break;
+      case JSONTYPE_ARRAY_OPEN: {jvals->push_back(val);arraySize=json_array_get_count(json_value_get_array(val));} break;
+      case JSONTYPE_ARRAY_CLOSE: {jvals->pop_back();} break;
+      case JSONTYPE_OBJECT_OPEN: {jvals->push_back(val);} break;
+      case JSONTYPE_OBJECT_CLOSE: {jvals->pop_back();} break;
+      case JSONTYPE_FILENAME: {if(!has)break;*(String*)data = fromLocalFileName((const char *)json_value_get_string(val));} break;
+      case JSONTYPE_BASE64: {if(!has)break; decodeBase64(String((const char *)json_value_get_string(val)),data); } break;
+    }
+  }
+}
+
+String tempName;
+
+String getTempFileName(const char *path) {
+  String name = String(path)+"TMP.TMP";
+  dosRemoveFile(name.c_str());
+  return name;
+}
+
+FILE *createTempFile(const char *path, const char *writeMode) {
+  tempName = getTempFileName(path);
+  return fopen(dosFileName(tempName).c_str(),writeMode);
+}
+
+void renameTempFile(const char *path, const char *fileName) {
+  String tempName = String(path)+"TMP.TMP";
+  String fullName = String(path) + fileName;
+  if (!doslfnDeleteFiles(fullName.c_str(),false)) {
+    dosRemoveFile(fullName.c_str());
+  }
+  if (!doslfnRename(tempName.c_str(),fullName.c_str())) {
+    rename(tempName.c_str(),fullName.c_str());
+  }
+}
+
+String getStringFromFile(const char *shortPath, const char *longFileName) {
+  String fullFileName = shortFileName(dosFileName(String(shortPath)+String(longFileName)));
+  String string;
+  FILE *in = fopen(dosFileName(fullFileName).c_str(),"rb");
+  if (in == NULL) return String("");
+  fseek(in,0,SEEK_END);
+  unsigned int fileLen = ftell(in);
+  if (fileLen == 0) return String("");
+  fseek(in,0,SEEK_SET);
+  string.resize(fileLen);
+  fread(&string[0],1,fileLen,in);
+  fclose(in);
+  return string;
+}
+
+void putStringToFile(const String &string, const char *shortPath, const char *longFileName) {
+  FILE *out = createTempFile(shortPath,"wb");
+  if (!string.empty()) fwrite(&string[0],1,string.size(),out);
+  fclose(out);
+  renameTempFile(shortPath, longFileName);
+}
+
+
+bool serializeBrushes(Array<Brush*> &brushes, bool save, String *string) {
+  STARTSERIALIZATION(save);
+  if (error) {return false;}
+
+  S_ARRAY_OPEN("brushes");
+  S_ARRAY_POINTER_RESIZE(brushes,Brush,arraySize);
+  for (int i2 = 0; i2 < brushes.size(); i2++) {
+    arrayIndex = i2;
+    S_BRUSH(NULL,brushes[i2]);
+  }
+  S_ARRAY_CLOSE();
+
+  FINISHSERIALIZATION();
+  return true;
+}
+
 
 int statusBarProgress = 0;
 
@@ -88,30 +386,6 @@ String shortFileName(const String &a) {
   if (a[0]>='A'&&a[0]<='B') return unixFileName(a);
   if (!doslfnShortPath(longFileNameBuffer,dosFileName(a).c_str())) return unixFileName(a);
   return unixFileName(String(longFileNameBuffer));
-}
-
-String tempName;
-
-String getTempFileName(const char *path) {
-  String name = String(path)+"TMP.TMP";
-  dosRemoveFile(name.c_str());
-  return name;
-}
-
-FILE *createTempFile(const char *path, const char *writeMode) {
-  tempName = getTempFileName(path);
-  return fopen(dosFileName(tempName).c_str(),writeMode);
-}
-
-void renameTempFile(const char *path, const char *fileName) {
-  String tempName = String(path)+"TMP.TMP";
-  String fullName = String(path) + fileName;
-  if (!doslfnDeleteFiles(fullName.c_str(),false)) {
-    dosRemoveFile(fullName.c_str());
-  }
-  if (!doslfnRename(tempName.c_str(),fullName.c_str())) {
-    rename(tempName.c_str(),fullName.c_str());
-  }
 }
 
 void getFileArray(Array<unsigned char> *arr,const String &maybeExtendedFileName) {
@@ -171,8 +445,12 @@ void exportLayersRaw(const char *shortPath, const char *longFileName, bool apply
       RGBAImage img;
       img.data = new unsigned int[l->width*l->height];
       memcpy(img.data,l->pixels,l->width*l->height*sizeof(unsigned int));
-      if (applyColorTransform && l->useColorTransform) {
-        for (int j = 0; j < l->width*l->height; j++) img.data[j] = l->colorTransform.applyColorTransform(img.data[j]);
+      if (applyColorTransform) {
+        for (int j = 0; j < l->width*l->height; j++) {
+          if (l->colorTransform.useColorTransform) img.data[j] = l->colorTransform.applyColorTransform(img.data[j]);
+          if (l->colorTransform.usePosterize) img.data[j] = l->colorTransform.applyPosterize(img.data[j]);
+          if (l->colorTransform.useQuantization) img.data[j] = quantizeFast(img.data[j], l->colorTransform.ditherStrength, j % l->width, j / l->width);
+        }
       }
       img.width = l->width;
       img.height = l->height;
@@ -404,6 +682,125 @@ void saveGradient(const char *shortPath, const char *longFileName) {
   renameTempFile(shortPath, longFileName);
 }
 
+class ZipDesc {
+public:
+  ZipDesc() {
+    sprintf(fileName,"");
+    data = NULL;
+    dataSize = 0;
+  }
+  ZipDesc(const String &fileName, void *data, int dataSize) {
+    sprintf(this->fileName,"%s",fileName.c_str());
+    this->data = data;
+    this->dataSize = dataSize;
+  }
+  char fileName[512];
+  void *data;
+  int dataSize;
+};
+
+bool writeZippedFiles(const Array<ZipDesc> &desc, const char *shortPath, const char *longFileName) {
+  mz_zip_archive zip;
+  mz_zip_zero_struct(&zip);
+  String zipName = getTempFileName(shortPath);
+  if (!mz_zip_writer_init_file(&zip, zipName.c_str(), 0)) return false;
+  for (int i = 0; i < desc.size(); i++) {
+    if (!mz_zip_writer_add_mem(&zip, desc[i].fileName, desc[i].data, desc[i].dataSize, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME)) {
+    }
+  }
+  if (!mz_zip_writer_finalize_archive(&zip)) return false;
+  if (!mz_zip_writer_end(&zip)) return false;
+  renameTempFile(shortPath, longFileName);
+  return true;
+}
+
+bool readZippedFile(const char *shortPath, const char *longFileName, const char *inZipFileName, Array<unsigned char> &array) {
+  bool ret = false;
+  String fullFileName = shortFileName(dosFileName(String(shortPath)+String(longFileName)));
+  String fileName = dosFileName(fullFileName);
+  String toLookFor = toLower(unixFileName(inZipFileName));
+  FILE *in = fopen(fileName.c_str(),"rb"); if (in == NULL) return ret;
+  mz_zip_archive zip;  mz_zip_archive_file_stat file_stat;  mz_zip_zero_struct(&zip);
+
+  if (mz_zip_reader_init_cfile(&zip, in, 0, MZ_ZIP_FLAG_ASCII_FILENAME)) {
+    unsigned int fileCount = mz_zip_reader_get_num_files(&zip);
+    for (int i = 0; i < fileCount; i++) {
+      if (mz_zip_reader_file_stat(&zip, i, &file_stat)) {
+        String a = (const char *)file_stat.m_filename; a = toLower(unixFileName(a));
+        if (a == toLookFor) {
+          array.resize((size_t)file_stat.m_uncomp_size);
+          if (mz_zip_reader_extract_to_mem(&zip,i, &(array[0]), array.size(), MZ_ZIP_FLAG_ASCII_FILENAME)) {
+            ret = true;
+          }
+          break;
+        }
+      }
+    }
+    mz_zip_reader_end(&zip);
+  }
+  fclose(in);
+  return ret;
+}
+
+String getStringFromZippedFile(const char *shortPath, const char *longFileName, const char *inZipFileName) {
+  static Array<unsigned char> array;
+  readZippedFile(shortPath, longFileName, inZipFileName, array);
+  String ret;
+  ret.resize(array.size());
+  memcpy(&ret[0],&array[0],array.size()*sizeof(unsigned char));
+  return ret;
+}
+
+void getBrushesArray(Array<Brush *> &dest, const char *shortPath, const char *longFileName) {
+  //String string = getStringFromFile(shortPath,longFileName);
+  String string = getStringFromZippedFile(shortPath,longFileName,"brushes.jsn");
+  if (!string.empty()) {
+    serializeBrushes(dest, false, &string);
+  }
+}
+
+void putBrushesArray(Array<Brush *> &source, const char *shortPath, const char *longFileName) {
+  if (!source.empty()) {
+    String string;
+    serializeBrushes(source, true, &string);
+    //putStringToFile(string, shortPath,longFileName);
+    Array<ZipDesc> desc; desc.push_back(ZipDesc("brushes.jsn",&string[0], string.size())); writeZippedFiles(desc, shortPath, longFileName);
+  }
+}
+
+void loadBrush(const char *shortPath, const char *longFileName) {
+  if ((unsigned int)currentBrush<=brushes.size()) {
+    Array<Brush *> brushesHere; getBrushesArray(brushesHere, shortPath, longFileName);
+    if (brushesHere.size()>0) {
+      delete brushes[currentBrush];
+      brushes[currentBrush] = brushesHere[0];
+      brushes[currentBrush]->update();
+    }
+  }
+}
+
+void saveBrush(const char *shortPath, const char *longFileName) {
+  if ((unsigned int)currentBrush<=brushes.size()) {
+    Array<Brush *> brushesHere; 
+    brushesHere.push_back(brushes[currentBrush]);
+    putBrushesArray(brushesHere, shortPath, longFileName);
+  }
+}
+
+void loadBrushes(const char *shortPath, const char *longFileName) {
+  Array<Brush *> brushesHere; getBrushesArray(brushesHere, shortPath, longFileName);
+  for (int i = 0; i < brushes.size(); i++) delete brushes[i];
+  brushes.resize(brushesHere.size());
+  for (int i2 = 0; i2 < brushes.size(); i2++) brushes[i2] = brushesHere[i2];
+  currentBrush = 0;
+}
+
+void saveBrushes(const char *shortPath, const char *longFileName) {
+  Array<Brush *> brushesHere; 
+  for (int i = 0; i < brushes.size(); i++) brushesHere.push_back(brushes[i]);
+  putBrushesArray(brushesHere, shortPath, longFileName);
+}
+
 #define SVGSAMPLEBRUSHWIDTH 256
 
 void loadBrushShape(const char *shortPath, const char *longFileName) {
@@ -440,15 +837,15 @@ Layer *loadImage(const String &filePath, const String &fileName) {
 }
 
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName) {
-  RGBAIMAGEFROMFILE(image, path, fileName);
-  if (image.data != NULL && image.width > 0 && image.height > 0) {
+  Layer *l = loadImage(String(path), String(fileName));
+  if (l != NULL && l->width > 0 && l->height > 0) {
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
-        rgba[x+y*width] = image.data[x*image.width/width + y*image.height/height * image.width];
+        rgba[x+y*width] = l->pixels[x*l->width/width + y*l->height/height * l->width];
       }
     }
-    double aspect = (double)image.width/image.height;
-    image.free();
+    double aspect = (double)l->width/l->height;
+    delete l;
     return aspect;
   }
   return 0;

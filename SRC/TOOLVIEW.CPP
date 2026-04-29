@@ -234,11 +234,11 @@ void drawBrushSelect(bool pencil) {
     }
   }
   ImGui::EndChild();
-  roundButton("Load##DRAWBRUSHSELECTLOADBRUSH",true);
+  if (roundButton("Load##DRAWBRUSHSELECTLOADBRUSH",true)) {dialogLoadSave(true,DIALOG_LOADBRUSH);}
   ImGui::SameLine();
-  roundButton("Save##DRAWBRUSHSELECTSAVEBRUSH",true);
-  roundButton("Load brushes##DRAWBRUSHSELECTLOADBRUSHES",true);
-  roundButton("Save brushes##DRAWBRUSHSELECTSAVEBRUSHES",true);
+  if (roundButton("Save##DRAWBRUSHSELECTSAVEBRUSH",true)) {dialogLoadSave(true,DIALOG_SAVEBRUSH);}  
+  if (roundButton("Load brushes##DRAWBRUSHSELECTLOADBRUSHES",true)) {dialogLoadSave(true,DIALOG_LOADBRUSHES);}
+  if (roundButton("Save brushes##DRAWBRUSHSELECTSAVEBRUSHES",true)) {dialogLoadSave(true,DIALOG_SAVEBRUSHES);}  
   ImGui::Separator();
 }
 
@@ -384,7 +384,7 @@ void drawToolMagicView() {
   float *v;
 
   ImGui::Text("In selection");ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWJUSTINSELECTION",&l->showColorTransformOnlyInSelection)) {t->shouldUpdate = true; shouldUpdateAll = true;}
-  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {l->bakeMagic(l->hasSelection()); l->useColorTransform = false; l->usePosterize = false; l->useQuantization = false; shouldUpdateAll = true;}
+  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {l->bakeMagic(l->hasSelection()); l->colorTransform.useColorTransform = false; l->colorTransform.usePosterize = false; l->colorTransform.useQuantization = false; shouldUpdateAll = true;}
   ImGui::Separator();
   if (roundButton("Reset##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGRESET",true)) {l->colorTransform.reset(); shouldUpdateAll = true;}
   if (roundButton("Copy##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGCOPY",true)) {l->copyColorTransform();}
@@ -394,10 +394,10 @@ void drawToolMagicView() {
 
   ImGui::BeginChild("DRAWTOOLMAGICVIEWCHILD",ImVec2(toolview_width, main_window_yres-ImGui::GetCursorScreenPos().y));
 
-  ImGui::Text("Colorgrading"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSECOLORTRANSFORM",&l->useColorTransform)) {
+  ImGui::Text("Colorgrading"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSECOLORTRANSFORM",&l->colorTransform.useColorTransform)) {
     shouldUpdateAll = true;
   }
-  if (l->useColorTransform) {
+  if (l->colorTransform.useColorTransform) {
 
     ImGui::Text("Picture Gamma");
     v = &t->pictureGamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPICTUREGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
@@ -447,10 +447,10 @@ void drawToolMagicView() {
     ImGui::Separator();
   }
 
-  ImGui::Text("Posterize"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEPOSTERIZE",&l->usePosterize)) {
+  ImGui::Text("Posterize"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEPOSTERIZE",&l->colorTransform.usePosterize)) {
     shouldUpdateAll = true;
   }
-  if (l->usePosterize) {
+  if (l->colorTransform.usePosterize) {
     ImGui::Text("Posterize R");
     v = &t->posterizeRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZERED",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Posterize G");
@@ -463,10 +463,10 @@ void drawToolMagicView() {
   }
 
   if (palette.size()>=0 && palette.size()<=256) {
-    ImGui::Text("Fast quant"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEQUANTIZATION",&l->useQuantization)) {
+    ImGui::Text("Fast quant"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEQUANTIZATION",&l->colorTransform.useQuantization)) {
       shouldUpdateAll = true;
     }
-    if (l->useQuantization) {
+    if (l->colorTransform.useQuantization) {
       ImGui::Text("Dithering");
       v = &t->ditherStrength; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWDITHERSTRENGTH",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
     }

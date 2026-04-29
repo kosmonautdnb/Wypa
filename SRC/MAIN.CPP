@@ -301,6 +301,7 @@ int main(int argc, const char *argv[]) {
     drawLayerView();
     drawToolBar();
     drawToolView();
+    showDebugWindow();
     screenSaver();
     splashScreen();
     ImGui::Render();

@@ -41,7 +41,8 @@ enum TOOL {
   TOOL_LINE = 11,
   TOOL_TEXT = 12,
   TOOL_MEASURE = 13,
-  TOOL_COUNT = 14
+  TOOL_TILING = 14,
+  TOOL_COUNT = 15
 };
 extern const char *toolNames[TOOL_COUNT];
 

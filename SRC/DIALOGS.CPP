@@ -461,7 +461,7 @@ void dialogExportLayersRaw(bool openIt) {
     colorTransformOn = true;
   }
   DIALOGSTART("Export layers raw");
-  ImGui::Text("Apply color grading?"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGEXPORTLAYERSRAWCOLORGRADINGON",&colorTransformOn);
+  ImGui::Text("Apply postprocessing?"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGEXPORTLAYERSRAWCOLORGRADINGON",&colorTransformOn);
   if (ImGui::Button("Save##DIALOGEXPORTLAYERSRAWEXPORT")) {
     exportLayersRaw(dialogShortPath.c_str(),dialogLongFileName.c_str(),colorTransformOn);
     ImGui::CloseCurrentPopup();
@@ -684,12 +684,13 @@ const char *psd = ".psd";
 const char *all = "*.*";
 const char *pal = "*.pa2";
 const char *grad = "*.gr2";
+const char *brush = "*.br2";
 const char *svg = "*.svg";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd,grad,grad,svg,svg};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, loadImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {
@@ -874,7 +875,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();ImGui::InputText("##DIALOGLOADSAVEFILTER",filter,FILTERNAMEMAX);
   ImGui::SameLine();
   ImGui::Text("Preview"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGLOADSAVEPREVIEW",&previewOn)) {if (previewOn) clearPreview();}
-  if (previewOn) {
+  if (previewOn && previewAspect != 0) {
     ImGui::BeginTooltip();
     ImGui::Image((ImTextureID)previewTexture,ImVec2(previewWidth,previewHeight*aspectRatio*main_window_yres/main_window_xres/previewAspect));
     ImGui::EndTooltip();

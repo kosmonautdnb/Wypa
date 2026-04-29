@@ -201,11 +201,16 @@ void drawMenuBar() {
       ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu((String("Pictures[")+String::fromInt(canvas.size()) + "]##MENUBARPICTURES").c_str())) {
+    bool hasUpdates = false;
+    for (int i = 0; i < canvas.size(); i++) {
+      if (canvas[i]->hasUpdates()) {hasUpdates = true; break;}
+    }
+
+    if (ImGui::BeginMenu((String(hasUpdates?".":"")+String("Pictures[")+String::fromInt(canvas.size()) + "]##MENUBARPICTURES").c_str())) {
       on = true;
       for (int i = 0; i < canvas.size(); i++) {
         bool isIt = canvas[i] == currentCanvas;
-        if (ImGui::MenuItem((String(canvas[i]->pictureName)+String("##MENUBARPICTURES")+String::fromInt(i)).c_str(),NULL,isIt)) {
+        if (ImGui::MenuItem((String(canvas[i]->hasUpdates()?".":" ")+String(canvas[i]->pictureName)+String("##MENUBARPICTURES")+String::fromInt(i)).c_str(),NULL,isIt)) {
           currentCanvas = canvas[i];
           shouldUpdateAll = true;
         }
@@ -218,6 +223,7 @@ void drawMenuBar() {
 
     if (ImGui::BeginMenu("Help")) {
       if (ImGui::MenuItem("About")) {dialogAbout(true);}
+      if (ImGui::MenuItem("Show debug window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
       on = true;
       ImGui::EndMenu();
     }

@@ -31,8 +31,11 @@
 
 extern unsigned int pixelsUpdateCounter;
 extern unsigned int pixelStatesUpdateCounter;
-void updatedPixels();
-void updatedPixelStates();
+void updatedPixels(class Layer *l);
+void updatedPixelStates(class Layer *l);
+void reverseLastUpdatedPixels(class Layer *l);
+void reverseLastUpdatedPixelStates(class Layer *l);
+void signSave(class Layer *l);
 
 void initLayers();
 void freeLayers();
@@ -128,6 +131,9 @@ extern const char *interpolationNames[INTERPOLATION_COUNT];
 class ColorTransform {
 public:
   ColorTransform() {
+    useColorTransform = false;
+    useQuantization = false;
+    usePosterize = false;
     reset();
   }
   float processing[256*4*4];
@@ -167,9 +173,14 @@ public:
   bool shouldUpdate;
   void reset();
   void update();
+  bool useColorTransform;
+  bool useQuantization;
+  bool usePosterize;
   unsigned int applyColorTransform(unsigned int pixel);
   unsigned int applyPosterize(unsigned int pixel);
 };
+
+unsigned int quantizeFast(unsigned int col, float ditherStrength, int x, int y);
 
 class LayerUndoData {
 public:
@@ -185,6 +196,14 @@ public:
     completeByteCount = 0;
     updatePixelsCount = 0;
     updatePixelStatesCount = 0;
+    updatePixelsCountOfLastUndo = -1;
+    updatePixelStatesCountOfLastUndo = -1;
+    updatePixelsCountOfLastSave = -1;
+    updatePixelStatesCountOfLastSave = -1;
+      updatePixelsCount2 = 0; // just used by undo.cpp actually no need to initialize this (this is implemented somehow rather suboptimal)
+      updatePixelStatesCount2 = 0; // just used by undo.cpp actually no need to initialize this
+      updatePixelsCountOfLastUndo2 = -1; // just used by undo.cpp actually no need to initialize this
+      updatePixelStatesCountOfLastUndo2 = -1; // just used by undo.cpp actually no need to initialize this
   }
   ~LayerUndoData() {
     freeIt();
@@ -195,9 +214,16 @@ public:
     if (rleDataPixels_backward != NULL) {delete[] rleDataPixels_backward; rleDataPixels_backward = NULL;}
     if (rleDataPixelStates_backward != NULL) {delete[] rleDataPixelStates_backward; rleDataPixelStates_backward = NULL;}
     completeByteCount = 0;
-    updatePixelsCount = 0;
-    updatePixelStatesCount = 0;
   }
+  void signUndo() {
+    updatePixelsCountOfLastUndo = updatePixelsCount;
+    updatePixelStatesCountOfLastUndo = updatePixelStatesCount;
+  }
+  void signSave() {
+    updatePixelsCountOfLastSave = updatePixelsCount;
+    updatePixelStatesCountOfLastSave = updatePixelStatesCount;
+  }
+
   int width_forward,height_forward;
   int width_backward,height_backward;
   unsigned char *rleDataPixels_forward;
@@ -207,6 +233,14 @@ public:
   unsigned int completeByteCount;
   unsigned int updatePixelsCount;
   unsigned int updatePixelStatesCount;
+  int updatePixelsCountOfLastUndo;
+  int updatePixelStatesCountOfLastUndo;
+  int updatePixelsCountOfLastSave;
+  int updatePixelStatesCountOfLastSave;
+    unsigned int updatePixelsCount2;
+    unsigned int updatePixelStatesCount2;
+    int updatePixelsCountOfLastUndo2;
+    int updatePixelStatesCountOfLastUndo2;
 };
 
 class Layer {
@@ -227,9 +261,6 @@ public:
   int repaintState;                    
   bool justSelection;
   bool hasOutline;
-  bool useColorTransform;
-  bool useQuantization;
-  bool usePosterize;
   bool showColorTransformOnlyInSelection;
 
   Layer() {
@@ -241,9 +272,6 @@ public:
     repaintState = REPAINTSTATE_NONE;
     justSelection = false;
     hasOutline = false;
-    useColorTransform = false;
-    useQuantization = false;
-    usePosterize = false;
     showColorTransformOnlyInSelection = false;
     static int layerCounter = 0; layerCounter++;
     sprintf(name,"Layer %d", layerCounter);
@@ -314,6 +342,7 @@ public:
   void addSelectionFromLayer(Layer *source);
 
   unsigned int byteCount();
+  bool hasUpdates();
 };
 
 #define S_LAYER(__name__,__o__)\
@@ -360,7 +389,8 @@ public:
   S_BOOL("useQuantization",(__o__)->useQuantization);\
   S_BOOL("usePosterize",(__o__)->usePosterize);\
   S_BOOL("showColorTransformOnlyInSelection",(__o__)->showColorTransformOnlyInSelection);\
-  S_NAME("name", (__o__)->name)
+  S_NAME("name", (__o__)->name);\
+  S_OBJECT_CLOSE();
 
 class CanvasControl {
 public:
@@ -535,6 +565,7 @@ public:
   void getLayerSelectionFromLayers(Layer *l);
   void clearAllOtherLayerSelections(Layer *l);
 
+  bool hasUpdates();
 };
 
 extern Canvas *currentCanvas;

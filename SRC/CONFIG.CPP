@@ -24,6 +24,7 @@
 #include "CONFIG.HPP"
 #include "IMGUI/IMGUI.H"
 #include "STL/STRING.HPP"
+#include "LAYERS.HPP"
 
 double fps = 30.0;
 double timeDelta = 0;
@@ -44,3 +45,72 @@ double zoomStep = 1.25;
 double scrollKeyPixels = main_window_xres/20;
 unsigned int undoStageCount = 10;
 bool useUndo = true;
+
+bool debugWindowOn = false;
+
+extern int undoStackBytes;
+
+#ifdef __WATCOMC__
+#include <i86.h>
+#endif
+#ifdef __DJGPP__
+#include <dos.h>
+#endif
+
+struct meminfo {
+    unsigned LargestBlockAvail;
+    unsigned MaxUnlockedPage;
+    unsigned LargestLockablePage;
+    unsigned LinAddrSpace;
+    unsigned NumFreePagesAvail;
+    unsigned NumPhysicalPagesFree;
+    unsigned TotalPhysicalPages;
+    unsigned FreeLinAddrSpace;
+    unsigned SizeOfPageFile;
+    unsigned Reserved[3];
+} MemInfo;
+
+int getAdditionalMemoryFreeBytes() {
+#ifdef __WATCOMC__
+  union REGS regs;
+  struct SREGS sregs;
+  memset( &regs, 0, sizeof(regs) );
+  memset( &sregs, 0, sizeof(sregs) );
+  regs.w.ax = 0x500;
+  sregs.es = FP_SEG( &MemInfo );
+  regs.x.edi = FP_OFF( &MemInfo );
+  int386x( 0x31, &regs, &regs, &sregs );
+  int pageSize = 4096;
+  int mem = 0;
+  if (mem == 0 && MemInfo.LargestBlockAvail != 0xffffffff) mem = MemInfo.LargestBlockAvail;
+  return mem;
+#else
+  return -1;
+#endif
+}
+
+int getLayersByteCount() {
+  int ret = 0;
+  for (int i = 0; i < canvas.size(); i++) {
+    for (int j = 0; j < canvas[i]->layers.size(); j++) {
+      ret += canvas[i]->layers[j]->byteCount();
+    }
+  }
+  return ret;
+}
+
+void showDebugWindow() {
+  if (!debugWindowOn) return;
+  ImGui::PushStyleColor(ImGuiCol_TitleBg,ImVec4(0,0.75,0.75,0.5));
+  ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1,1,1,1));
+  ImGui::Begin("Debug window", NULL, ImVec2(main_window_xres/3,main_window_yres/3),0.25);
+  ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1));
+  ImGui::Text("Undo stack %.02fkb", undoStackBytes/1024.f);
+  ImGui::Text("Layers %.02fkb", getLayersByteCount()/1024.f);
+  ImGui::Text("Free memory %.02fkb", getAdditionalMemoryFreeBytes()/1024.f);
+  ImGui::Text("FPS %.02f",fps);
+  ImGui::PopStyleColor();
+  ImGui::End();
+  ImGui::PopStyleColor();
+  ImGui::PopStyleColor();
+}

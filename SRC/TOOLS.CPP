@@ -520,7 +520,7 @@ void useToolWand() {
 
   repaintLayer(l,true);
   afterUndoPoint();
-  updatedPixelStates();
+  updatedPixelStates(l);
 }
 
 void placeCorner(double mouseX, double mouseY) {
@@ -601,8 +601,6 @@ void placeCorner(double mouseX, double mouseY) {
   }
   shouldUpdateAll = true;
   afterUndoPoint();
-  updatedPixels();
-  updatedPixelStates();
 }
 
 void mouseClickUndo() {
@@ -663,6 +661,7 @@ bool pipetteFromLayer = false;
 bool pipetteWithColorTransform = false;
 
 void useToolPipette() {
+  if (!isPaintAreaActive()) return;
   if ( (!ImGui::IsMouseDown(0)) && (!ImGui::IsMouseDown(1)) ) return;
   if (!pipetteFromLayer) {
     foregroundColor = getImVec4Color(currentCanvas->getCanvasColor(mouseX,mouseY));
@@ -726,7 +725,7 @@ void useToolFill() {
     l->pixels[i] = getUIntColor(foregroundColor);
   }
   repaintLayer(l,true);
-  updatedPixels();
+  updatedPixels(l);
 }
 
 int selectionTool = SELECTIONTOOL_RECTANGLE;
@@ -761,7 +760,6 @@ void useToolSelection() {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
       if (layerSwitched) return;
       if (!ImGui::IsMouseDown(1)) {
-        updatedPixelStates();
         switch(selectionTool) {
           case SELECTIONTOOL_ELLIPSE:
           case SELECTIONTOOL_RECTANGLE: {
@@ -771,6 +769,7 @@ void useToolSelection() {
                 if (!ctrl) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
               }
             }
+            updatedPixelStates(activeLayer);
             shouldUpdateAll = true;
           } break;
           case SELECTIONTOOL_POLYGON:
@@ -795,6 +794,7 @@ void useToolSelection() {
                 if (!ctrl) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
               }
             }
+            updatedPixelStates(activeLayer);
             shouldUpdateAll = true;
           } break;
         }
@@ -949,7 +949,7 @@ void useToolGradient() {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
       if (layerSwitched) return;
       if (!ImGui::IsMouseDown(1)) {
-        if (tool == TOOL_GRADIENT) {applyGradient(activeLayer,&gradient,selectionX0,selectionY0,selectionX1,selectionY1); updatedPixels();}
+        if (tool == TOOL_GRADIENT) {applyGradient(activeLayer,&gradient,selectionX0,selectionY0,selectionX1,selectionY1); updatedPixels(activeLayer);}
       }
     } 
     return;
@@ -1271,7 +1271,7 @@ void useToolPainting() {
 
   if (paintToolLayer != NULL && (!paintingOn) && toolOutline && isPaintAreaActive()) {
     double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
-    paintToolLayer->updatePixelStates(~PIXELSTATE_OUTLINE,0,0);
+    paintToolLayer->updatePixelStates(~PIXELSTATE_OUTLINE,0,0); reverseLastUpdatedPixelStates(paintToolLayer);
     drawTool(paintToolLayer,brush,cx,cy,0,false,true);
 
     double toolWidth = (brush->pixelWidth()*0.5+brush->randomX) * toolAspectX;
@@ -1292,7 +1292,7 @@ void useToolPainting() {
         waitForMouse0 = true;
         shouldUpdateAll = true;
       }
-      updatedPixels();
+      updatedPixels(paintToolLayer);
     } 
     return;
   }
