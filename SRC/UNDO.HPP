@@ -31,6 +31,8 @@ void beforeUndoPoint();
 void afterUndoPoint();
 void forceUndoPoint();
 
+void signSaveForUndo();
+
 void undo();
 void redo();
 

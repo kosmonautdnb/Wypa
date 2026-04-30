@@ -43,14 +43,14 @@ void freeLayers();
 enum LAYERMODES {
   LAYERMODE_UNDEFINED = 0,
   LAYERMODE_NORMAL = 1,
-  LAYERMODE_ADD = 2,
-  LAYERMODE_SUB = 3,
-  LAYERMODE_MUL = 4,
-  LAYERMODE_MUL2X = 5,
-  LAYERMODE_PREMULTIPLIEDALPHA = 6,
-  LAYERMODE_MAX = 7,
-  LAYERMODE_MIN = 8,
-  LAYERMODE_SCREEN = 9,
+  LAYERMODE_PREMULTIPLIEDALPHA = 2,
+  LAYERMODE_SCREEN = 3,
+  LAYERMODE_ADD = 4,
+  LAYERMODE_SUB = 5,
+  LAYERMODE_MUL = 6,
+  LAYERMODE_MUL2X = 7,
+  LAYERMODE_MAX = 8,
+  LAYERMODE_MIN = 9,
   LAYERMODE_COLOR = 10,
   LAYERMODE_LUMINANCE = 11,
   LAYERMODE_SOFTLIGHT = 12,
@@ -82,6 +82,13 @@ public:
 
   void clear();
 };
+#define S_LAYERSTATE(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_BOOL("active",(__o__)->active);\
+  S_BOOL("selected",(__o__)->selected);\
+  S_BOOL("visible",(__o__)->visible);\
+  S_FLOAT("alpha",(__o__)->alpha);\
+  S_OBJECT_CLOSE();
 
 class TransformationState {
 public:
@@ -103,6 +110,12 @@ public:
   void aspect(double aspect);
   void pixelSize(double x, double y);
 };
+#define S_TRANSFORMATIONSTATE(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_MATRIX("transformation",(__o__)->transformation);\
+  (__o__)->inverseTransformation = inverse2((__o__)->transformation);\
+  S_OBJECT_CLOSE();
+
 
 #define LAYERNAMEMAX (16)
 
@@ -111,7 +124,10 @@ enum PIXELSTATES {
   PIXELSTATE_UPDATED = 1,
   PIXELSTATE_SELECTED = 2,
   PIXELSTATE_TEMP = 4,
-  PIXELSTATE_OUTLINE = 8
+  PIXELSTATE_OUTLINE = 8,
+  PIXELSTATE_GRID = 16,
+  PIXELSTATE_CANVAS_UPDATED = 32,
+  PIXELSTATE_CANVAS_GRID = 64
 };
 
 enum REPAINTSTATES {
@@ -136,7 +152,6 @@ public:
     usePosterize = false;
     reset();
   }
-  float processing[256*4*4];
   float hue;
   float saturation;
   float lightness;
@@ -164,8 +179,11 @@ public:
   float posterizeAlpha;
   float ditherStrength;
   bool perceptional;
-  void processingGet();
-  void fromProcessing();
+  bool useColorTransform;
+  bool useQuantization;
+  bool usePosterize;
+  float *processingGet();
+  void fromProcessing(float *processing);
   unsigned int r[256];
   unsigned int g[256];
   unsigned int b[256];
@@ -173,12 +191,43 @@ public:
   bool shouldUpdate;
   void reset();
   void update();
-  bool useColorTransform;
-  bool useQuantization;
-  bool usePosterize;
   unsigned int applyColorTransform(unsigned int pixel);
   unsigned int applyPosterize(unsigned int pixel);
+  int byteCount();
 };
+#define S_COLORTRANSFORM(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_FLOAT("hue",(__o__)->hue);\
+  S_FLOAT("saturation",(__o__)->saturation);\
+  S_FLOAT("lightness",(__o__)->lightness);\
+  S_FLOAT("brightness",(__o__)->brightness);\
+  S_FLOAT("contrast",(__o__)->contrast);\
+  S_FLOAT("gamma",(__o__)->gamma);\
+  S_BOOL("gammaInvert",(__o__)->gammaInvert);\
+  S_FLOAT("pictureGamma",(__o__)->pictureGamma);\
+  S_BOOL("pictureGammaInvert",(__o__)->pictureGammaInvert);\
+  S_FLOAT("addRed",(__o__)->addRed);\
+  S_FLOAT("addGreen",(__o__)->addGreen);\
+  S_FLOAT("addBlue",(__o__)->addBlue);\
+  S_FLOAT("addAlpha",(__o__)->addAlpha);\
+  S_FLOAT("scaleRed",(__o__)->scaleRed);\
+  S_FLOAT("scaleGreen",(__o__)->scaleGreen);\
+  S_FLOAT("scaleBlue",(__o__)->scaleBlue);\
+  S_FLOAT("scaleAlpha",(__o__)->scaleAlpha);\
+  S_BOOL("invertR",(__o__)->invertR);\
+  S_BOOL("invertG",(__o__)->invertG);\
+  S_BOOL("invertB",(__o__)->invertB);\
+  S_BOOL("invertA",(__o__)->invertA);\
+  S_FLOAT("posterizeRed",(__o__)->posterizeRed);\
+  S_FLOAT("posterizeGreen",(__o__)->posterizeGreen);\
+  S_FLOAT("posterizeBlue",(__o__)->posterizeBlue);\
+  S_FLOAT("posterizeAlpha",(__o__)->posterizeAlpha);\
+  S_FLOAT("ditherStrength",(__o__)->ditherStrength);\
+  S_BOOL("perceptional",(__o__)->perceptional);\
+  S_BOOL("useColorTransform",(__o__)->useColorTransform);\
+  S_BOOL("usePosterize",(__o__)->usePosterize);\
+  if (!save) (__o__)->shouldUpdate = true;\
+  S_OBJECT_CLOSE();
 
 unsigned int quantizeFast(unsigned int col, float ditherStrength, int x, int y);
 
@@ -200,29 +249,17 @@ public:
     updatePixelStatesCountOfLastUndo = -1;
     updatePixelsCountOfLastSave = -1;
     updatePixelStatesCountOfLastSave = -1;
-      updatePixelsCount2 = 0; // just used by undo.cpp actually no need to initialize this (this is implemented somehow rather suboptimal)
-      updatePixelStatesCount2 = 0; // just used by undo.cpp actually no need to initialize this
-      updatePixelsCountOfLastUndo2 = -1; // just used by undo.cpp actually no need to initialize this
-      updatePixelStatesCountOfLastUndo2 = -1; // just used by undo.cpp actually no need to initialize this
+    undoLayer = NULL;
   }
   ~LayerUndoData() {
     freeIt();
   }
-  void freeIt() {
-    if (rleDataPixels_forward != NULL) {delete[] rleDataPixels_forward; rleDataPixels_forward = NULL;}
-    if (rleDataPixelStates_forward != NULL) {delete[] rleDataPixelStates_forward; rleDataPixelStates_forward = NULL;}
-    if (rleDataPixels_backward != NULL) {delete[] rleDataPixels_backward; rleDataPixels_backward = NULL;}
-    if (rleDataPixelStates_backward != NULL) {delete[] rleDataPixelStates_backward; rleDataPixelStates_backward = NULL;}
-    completeByteCount = 0;
-  }
-  void signUndo() {
-    updatePixelsCountOfLastUndo = updatePixelsCount;
-    updatePixelStatesCountOfLastUndo = updatePixelStatesCount;
-  }
-  void signSave() {
-    updatePixelsCountOfLastSave = updatePixelsCount;
-    updatePixelStatesCountOfLastSave = updatePixelStatesCount;
-  }
+
+  void freeIt();
+  void signUndo();
+  void signSave();
+  void signWith(LayerUndoData *source);
+  int byteCount();
 
   int width_forward,height_forward;
   int width_backward,height_backward;
@@ -237,11 +274,32 @@ public:
   int updatePixelStatesCountOfLastUndo;
   int updatePixelsCountOfLastSave;
   int updatePixelStatesCountOfLastSave;
-    unsigned int updatePixelsCount2;
-    unsigned int updatePixelStatesCount2;
-    int updatePixelsCountOfLastUndo2;
-    int updatePixelStatesCountOfLastUndo2;
+  class Layer *undoLayer;
 };
+
+class LayerAdditionalToolInfo {
+public:
+  LayerAdditionalToolInfo() {
+    tilingOffsetX = 0;
+    tilingOffsetY = 0;
+    tilingWidth = 8;
+    tilingHeight = 8;
+    showTilingGrid = true;
+  }
+  int tilingOffsetX;
+  int tilingOffsetY;
+  int tilingWidth;
+  int tilingHeight;
+  bool showTilingGrid;
+};
+#define S_LAYERADDITIONALTOOLINFO(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_INT("tilingOffsetX",(__o__)->tilingOffsetX);\
+  S_INT("tilingOffsetY",(__o__)->tilingOffsetY);\
+  S_INT("tilingWidth",(__o__)->tilingWidth);\
+  S_INT("tilingHeight",(__o__)->tilingHeight);\
+  S_BOOL("showTilingGrid",(__o__)->showTilingGrid);\
+  S_OBJECT_CLOSE();
 
 class Layer {
 public:
@@ -256,6 +314,7 @@ public:
   TransformationState transform;
   ColorTransform colorTransform;
   LayerUndoData undoData;
+  LayerAdditionalToolInfo toolInfo;
   char name[LAYERNAMEMAX];
 
   int repaintState;                    
@@ -292,6 +351,7 @@ public:
   void pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int eor);
 
   void init(int width, int height);
+  void invalidateContent();
   void clear();
   void updatePixelStates(unsigned char and, unsigned char or, unsigned char eor);
 
@@ -334,6 +394,7 @@ public:
   void colorFromAlpha();
   void applyAlphaMask(Layer *source);
   void quantize(const Array<unsigned int> &colors);
+  void updateTilingGrid(bool visible);
 
   void copyColorTransform();
   void pasteColorTransform();
@@ -350,46 +411,14 @@ public:
   S_INT("mode",(__o__)->mode);\
   S_INT("width",(__o__)->width);\
   S_INT("height",(__o__)->height);\
+  S_NAME("name",(__o__)->name,LAYERNAMEMAX);\
+  S_ZIPLAYERDATA(i,__o__);\
   S_UINT("id",(__o__)->id);\
-  S_RGBAIMAGE("pixels",(__o__)->pixels,(__o__)->width,(__o__)->height);\
-  S_PACKEDARRAY("pixelStates",(__o__)->pixelStates,(__o__)->width*(__o__)->height*sizeof(unsigned char));\
-  S_BOOL("state.active",(__o__)->state.active);\
-  S_BOOL("state.selected",(__o__)->state.selected);\
-  S_BOOL("state.visible",(__o__)->state.visible);\
-  S_FLOAT("state.alpha",(__o__)->state.alpha);\
-  S_MATRIX("transform.transformation",(__o__)->transform.transformation);\
-  S_FLOAT("colorTransform.hue",(__o__)->colorTransform.hue);\
-  S_FLOAT("colorTransform.saturation",(__o__)->colorTransform.saturation);\
-  S_FLOAT("colorTransform.lightness",(__o__)->colorTransform.lightness);\
-  S_FLOAT("colorTransform.brightness",(__o__)->colorTransform.brightness);\
-  S_FLOAT("colorTransform.contrast",(__o__)->colorTransform.contrast);\
-  S_FLOAT("colorTransform.gamma",(__o__)->colorTransform.gamma);\
-  S_BOOL("colorTransform.gammaInvert",(__o__)->colorTransform.gammaInvert);\
-  S_FLOAT("colorTransform.pictureGamma",(__o__)->colorTransform.pitctureGamma);\
-  S_BOOL("colorTransform.pictureGammaInvert",(__o__)->colorTransform.pictureGammaInvert);\
-  S_FLOAT("colorTransform.addRed",(__o__)->colorTransform.addRed);\
-  S_FLOAT("colorTransform.addGreen",(__o__)->colorTransform.addGreen);\
-  S_FLOAT("colorTransform.addBlue",(__o__)->colorTransform.addBlue);\
-  S_FLOAT("colorTransform.addAlpha",(__o__)->colorTransform.addAlpha);\
-  S_FLOAT("colorTransform.scaleRed",(__o__)->colorTransform.scaleRed);\
-  S_FLOAT("colorTransform.scaleGreen",(__o__)->colorTransform.scaleGreen);\
-  S_FLOAT("colorTransform.scaleBlue",(__o__)->colorTransform.scaleBlue);\
-  S_FLOAT("colorTransform.scaleAlpha",(__o__)->colorTransform.scaleAlpha);\
-  S_BOOL("colorTransform.intertR",(__o__)->colorTransform.invertR);\
-  S_BOOL("colorTransform.invertG",(__o__)->colorTransform.invertG);\
-  S_BOOL("colorTransform.invertB",(__o__)->colorTransform.invertB);\
-  S_BOOL("colorTransform.invertA",(__o__)->colorTransform.invertA);\
-  S_FLOAT("colorTransform.posterizeRed",(__o__)->colorTransform.posterizeRed);\
-  S_FLOAT("colorTransform.posterizeGreen",(__o__)->colorTransform.posterizeGreen);\
-  S_FLOAT("colorTransform.posterizeBlue",(__o__)->colorTransform.posterizeBlue);\
-  S_FLOAT("colorTransform.posterizeAlpha",(__o__)->colorTransform.posterizeAlpha);\
-  S_FLOAT("colorTransform.ditherStrength",(__o__)->colorTransform.ditherStrength);\
-  S_BOOL("colorTransform.perceptional",(__o__)->colorTransform.perceptional);\
-  S_BOOL("useColorTransform",(__o__)->useColorTransform);\
-  S_BOOL("useQuantization",(__o__)->useQuantization);\
-  S_BOOL("usePosterize",(__o__)->usePosterize);\
+  S_LAYERSTATE("state",&(__o__)->state);\
+  S_TRANSFORMATIONSTATE("transform",&(__o__)->transform);\
+  S_COLORTRANSFORM("colorTransform",&(__o__)->colorTransform);\
+  S_LAYERADDITIONALTOOLINFO("toolInfo",&(__o__)->toolInfo);\
   S_BOOL("showColorTransformOnlyInSelection",(__o__)->showColorTransformOnlyInSelection);\
-  S_NAME("name", (__o__)->name);\
   S_OBJECT_CLOSE();
 
 class CanvasControl {
@@ -414,6 +443,15 @@ public:
   void zoomTo(Canvas *canvas, double screenPixelCenterX, double screenPixelCenterY,double zoom);
   void zoomBy(Canvas *canvas, double screenPixelCenterX, double screenPixelCenterY,double step);
 };
+#define S_CANVASCONTROL(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_DOUBLE("zoom",(__o__)->zoom);\
+  S_DOUBLE("pixelSizeX",(__o__)->pixelSizeX);\
+  S_DOUBLE("pixelSizeY",(__o__)->pixelSizeY);\
+  S_DOUBLE("scrollX",(__o__)->scrollX);\
+  S_DOUBLE("scrollY",(__o__)->scrollY);\
+  S_OBJECT_CLOSE();
+
 
 #define PICTURENAMEMAX 16
 
@@ -566,7 +604,27 @@ public:
   void clearAllOtherLayerSelections(Layer *l);
 
   bool hasUpdates();
+  void signSave();
 };
+#define S_CANVAS(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  if (!save) canvasDefault(__o__);\
+  S_STRING("fileName",(__o__)->fileName);\
+  S_NAME("pictureName", (__o__)->pictureName,PICTURENAMEMAX);\
+  S_BOOL("gridOn",(__o__)->gridOn);\
+  S_INT("gridStepX",(__o__)->gridStepX);\
+  S_INT("gridStepY",(__o__)->gridStepY);\
+  S_INT("gridOffsetX",(__o__)->gridOffsetX);\
+  S_INT("gridOffsetY",(__o__)->gridOffsetY);\
+  S_INT("canvasX0",(__o__)->canvasX0);\
+  S_INT("canvasY0",(__o__)->canvasY0);\
+  S_INT("canvasX1",(__o__)->canvasX1);\
+  S_INT("canvasY1",(__o__)->canvasY1);\
+  S_CANVASCONTROL("control",&(__o__)->control);\
+  Canvas *helperCanvas = __o__; S_POINTER_ARRAY("layers",helperCanvas->layers,Layer,S_LAYER(NULL,helperCanvas->layers[i]));\
+  S_OBJECT_CLOSE();
+
+
 
 extern Canvas *currentCanvas;
 extern Array<Canvas*> canvas;
@@ -582,7 +640,9 @@ extern bool shouldRecreateQuantization;
 void repaintLayer(Layer *layer, bool fullUpdate);
 void blitCanvas();
 
+void canvasDefault(Canvas *canvas);
 void addPicture(String fileName);
+void addCanvas(Canvas *canvas);
 void insertPicture(String fileName);
 void addTempPicture();
 void newPicture(int w, int h,const String &pictureName);

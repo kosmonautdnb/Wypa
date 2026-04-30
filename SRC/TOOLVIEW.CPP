@@ -34,6 +34,7 @@
 #include "LAYERS.HPP"
 #include "COLORFLD.HPP"
 #include "DIALOGS.HPP"
+#include "STL/IMAGE.HPP"
 #include <math.h>
 
 int toolview_width = 120;
@@ -41,10 +42,14 @@ int toolview_width = 120;
 bool roundButton(const char *name, bool enabled);
 
 GLuint gradientTexture = 0;
-
 const int gradientTextureWidth = 100;
 const int gradientTextureHeight = 50;
 unsigned int gradientTextureContent[gradientTextureWidth*gradientTextureHeight];
+
+GLuint tilingTexture = 0;
+const int tilingTextureWidth = 100;
+const int tilingTextureHeight = 100;
+unsigned int tilingTextureContent[tilingTextureWidth*tilingTextureHeight];
 
 void initToolView() {
   glGenTextures(1,&gradientTexture);
@@ -56,6 +61,21 @@ void initToolView() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_2D,0);
+
+  glGenTextures(1,&tilingTexture);
+  glBindTexture(GL_TEXTURE_2D,tilingTexture);
+  memset(tilingTextureContent,0,sizeof(tilingTextureContent));
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, tilingTextureContent);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void freeToolView() {
+  glDeleteTextures(1,&gradientTexture);
+  glDeleteTextures(1,&tilingTexture);
 }
 
 void repaintGradientTexture(Gradient *gradient) {
@@ -74,10 +94,6 @@ void repaintGradientTexture(Gradient *gradient) {
   glBindTexture(GL_TEXTURE_2D,gradientTexture);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, gradientTextureContent);
   glBindTexture(GL_TEXTURE_2D,0);
-}
-
-void freeToolView() {
-  glDeleteTextures(1,&gradientTexture);
 }
 
 void drawToolWandView() {
@@ -538,6 +554,67 @@ void drawToolMeasureView() {
   }
 }
 
+void updateTilingGrid(Layer *l, bool visible) {
+  if (l == NULL) return;
+  l->updateTilingGrid(visible);
+  shouldUpdateAll = true;
+}
+
+void updateTilingImage(const RGBAImage &image) {
+  double px = currentCanvas->control.pixelSizeX;
+  double py = currentCanvas->control.pixelSizeY;
+  for (int y = 0; y < tilingTextureHeight; y++) {
+    for (int x = 0; x < tilingTextureWidth; x++) {
+      unsigned int col = 0x00000000;
+      if (image.data != NULL && image.width > 0 && image.height > 0 && px > 0 && py > 0) {
+        double scaleX = (double)image.width/tilingTextureWidth*px;
+        double scaleY = (double)image.height/tilingTextureHeight*py;
+        double scale = scaleX > scaleY ? scaleX : scaleY;
+        double x2 = (double)(x - tilingTextureWidth*0.5)*scale/px;
+        double y2 = (double)(y - tilingTextureHeight*0.5)*scale/py;
+        x2 += image.width*0.5;
+        y2 += image.height*0.5;
+        int x3 = (int)floor(x2);
+        int y3 = (int)floor(y2);
+        if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
+      }
+      tilingTextureContent[x+y*tilingTextureWidth] = col;
+    }
+  }
+  glBindTexture(GL_TEXTURE_2D,tilingTexture);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, tilingTextureContent);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void drawToolTilingView() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l != NULL) {
+    ImGui::PushItemWidth(7*5);
+    double lx = mouseX,ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
+    int x = (int)floor((lx - l->toolInfo.tilingOffsetX) / (double)l->toolInfo.tilingWidth);
+    int y = (int)floor((ly - l->toolInfo.tilingOffsetY) / (double)l->toolInfo.tilingHeight);
+    ImGui::Text("[%d] [%d]",x,y);
+    ImGui::Text("Cells");
+    ImGui::Text("Offset X"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWOFSX",&l->toolInfo.tilingOffsetX,0,0)) {updateTilingGrid(l,true);}
+    ImGui::Text("Offset Y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWOFSY",&l->toolInfo.tilingOffsetY,0,0)) {updateTilingGrid(l,true);}
+    ImGui::Text("Width"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWGRIDWIDTH",&l->toolInfo.tilingWidth,0,0)) {updateTilingGrid(l,true);}
+    ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWGRIDHEIGHT",&l->toolInfo.tilingHeight,0,0)) {updateTilingGrid(l,true);}
+    ImGui::Text("Show grid"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGVIEWSHOWGRID",&l->toolInfo.showTilingGrid)) {updateTilingGrid(l,true);}
+    if (l->toolInfo.tilingWidth < 1) l->toolInfo.tilingWidth = 1;
+    if (l->toolInfo.tilingHeight < 1) l->toolInfo.tilingHeight = 1;
+    if (l->toolInfo.tilingWidth > 1024) l->toolInfo.tilingWidth = 1024;
+    if (l->toolInfo.tilingHeight > 1024) l->toolInfo.tilingHeight = 1024;
+    ImGui::PopItemWidth();
+    ImGui::Separator();
+    ImGui::Image((ImTextureID)tilingTexture,ImVec2(tilingTextureWidth/(aspectRatio*main_window_yres/main_window_xres),tilingTextureHeight));
+    ImVec2 minB = ImGui::GetItemRectMin();
+    ImVec2 maxB = ImGui::GetItemRectMax();
+    minB.x -= 1;
+    minB.y -= 1;
+    ImGui::GetWindowDrawList()->AddRect(minB,maxB,0xff000000);
+  }
+}
+
 void drawToolView() {
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
@@ -581,7 +658,18 @@ void drawToolView() {
   case TOOL_MEASURE: {
       drawToolMeasureView();
     } break;
+  case TOOL_TILING: {
+      drawToolTilingView();
+    } break;
   }
   ImGui::End();
 }
 
+void toolChangeMessage(int lastTool, int tool) {
+  switch(lastTool) {
+  case TOOL_TILING : {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) updateTilingGrid(l,false);} break;
+  }
+  switch(tool) {
+  case TOOL_TILING : {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) updateTilingGrid(l,true);} break;
+  }
+}

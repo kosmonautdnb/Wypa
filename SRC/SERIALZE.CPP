@@ -38,6 +38,7 @@
 #include "STL/PARSON.HPP"
 #include "STL/JSONWRT.HPP"
 #include "STL/MINIZ.HPP"
+#include "UNDO.HPP"
 #include <math.h>
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
@@ -77,7 +78,7 @@ enum JSONTYPE {
   JSONTYPE_FLOAT4 = 14,
   JSONTYPE_MATRIX = 15,
   JSONTYPE_FILENAME = 16,
-  JSONTYPE_BASE64 = 17
+  JSONTYPE_BASE64 = 17,
 };
 
 JSON_Value * json_parse_string(const char *string);
@@ -124,6 +125,11 @@ void writeJson(Array<char> *arr, String *string) {
 #define S_OBJECT_OPEN(__name__)  jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_OBJECT_OPEN, __name__, NULL, jsonIsSaving,arrayIndex)
 #define S_OBJECT_CLOSE()  jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_OBJECT_CLOSE, NULL, NULL, jsonIsSaving,arrayIndex)
 #define S_FILENAME(__name__, __v__)  {String *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_FILENAME, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_VECTOR(__name__, __v__) {Vector *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_VECTOR, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_MATRIX(__name__, __v__)  {Matrix *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_MATRIX, __name__, &(__v__), jsonIsSaving,arrayIndex);}
+#define S_ZIPLAYERDATA(__index__,__layer__) zipLayerData(String("layer")+String::fromInt(__index__),__layer__,jsonIsSaving)
+
+void zipLayerData(const String &layerName, Layer *layer, bool save);
 
 //char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -189,13 +195,27 @@ int arraySize = 0;
   S_ARRAY_CLOSE();\
   arrayIndex = k;\
 }
+
 #define S_ARRAY_POINTER_RESIZE(__array__,__type__,__count__) {\
   if (!jsonIsSaving) {\
-    for (int i1 = 0; i1 < (__array__).size(); i1++) if ((__array__)[i1] != NULL) {delete (__array__)[i1]; (__array__)[i1]=NULL;}\
+    for (int i1 = 0; i1 < (__array__).size(); i1++) if ((__array__)[i1] != NULL) {delete __array__[i1]; (__array__)[i1]=NULL;}\
     (__array__).clear(); (__array__).resize(__count__);\
-    for (int i2 = 0; i2 < (__array__).size(); i2++) (__array__)[i2] = new (__type__);\
+    for (int i2 = 0; i2 < (__array__).size(); i2++) (__array__)[i2] = new __type__();\
   }\
 }
+
+#define S_POINTER_ARRAY(__name__,__array__,__elementType__,__elementFunc__) {\
+  int k = arrayIndex;\
+  S_ARRAY_OPEN(__name__);\
+  S_ARRAY_POINTER_RESIZE(__array__,__elementType__,arraySize);\
+  for (int i = 0; i < (__array__).size(); i++) {\
+    arrayIndex = i;\
+    __elementFunc__;\
+  }\
+  S_ARRAY_CLOSE();\
+  arrayIndex = k;\
+}
+
 #define S_CARRAY(__name__,__array__,__elementFunc__,__count__) {\
   int k = arrayIndex;\
   S_ARRAY_OPEN(__name__);\
@@ -248,6 +268,8 @@ void jsonSerialize(void *json, void **jsonPos, int type, const char *name, void 
       case JSONTYPE_OBJECT_CLOSE: {newPos = json_objClose( oldPos,&len );} break;
       case JSONTYPE_FILENAME: {String str = toLocalFileName(*(String*)data); newPos = json_str( oldPos, name, str.c_str() != NULL ? str.c_str() : "", &len );} break;
       case JSONTYPE_BASE64: { String str = encodeBase64(data,currentBase64Length); newPos = json_str( oldPos, name, str.c_str() != NULL ? str.c_str() : "", &len );} break;
+      case JSONTYPE_VECTOR: {Vector *v = (Vector*)data; sprintf(tempBuffer,"%s,%s,%s,%s", _D(v->x), _D(v->y), _D(v->z), _D(v->w)); newPos = json_str( oldPos, name, tempBuffer, &len );} break;
+      case JSONTYPE_MATRIX: {double *v = ((Matrix*)data)->m; sprintf(tempBuffer,"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", _D(v[0]), _D(v[1]), _D(v[2]), _D(v[3]), _D(v[4]), _D(v[5]), _D(v[6]), _D(v[7]), _D(v[8]), _D(v[9]), _D(v[10]), _D(v[11]), _D(v[12]), _D(v[13]), _D(v[14]), _D(v[15])); newPos = json_str( oldPos, name, tempBuffer, &len );} break;
     }
     int posInString = (int)(newPos - &(*w)[0]);
     if (posInString > w->size()-JSONPORTIONLENGTH) {
@@ -280,6 +302,8 @@ void jsonSerialize(void *json, void **jsonPos, int type, const char *name, void 
       case JSONTYPE_OBJECT_CLOSE: {jvals->pop_back();} break;
       case JSONTYPE_FILENAME: {if(!has)break;*(String*)data = fromLocalFileName((const char *)json_value_get_string(val));} break;
       case JSONTYPE_BASE64: {if(!has)break; decodeBase64(String((const char *)json_value_get_string(val)),data); } break;
+      case JSONTYPE_VECTOR: {if(!has)break;Vector *v = (Vector*)data; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%lf,%lf,%lf,%lf", &v->x, &v->y, &v->z, &v->w);} break;
+      case JSONTYPE_MATRIX: {if(!has)break;double *v = ((Matrix*)data)->m; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7], &v[8], &v[9], &v[10], &v[11], &v[12], &v[13], &v[14], &v[15]);} break;
     }
   }
 }
@@ -335,13 +359,35 @@ bool serializeBrushes(Array<Brush*> &brushes, bool save, String *string) {
   STARTSERIALIZATION(save);
   if (error) {return false;}
 
-  S_ARRAY_OPEN("brushes");
+  String id = "WYPA BRUSHES"; S_STRING("id",id);
+  S_POINTER_ARRAY("brushes",brushes,Brush,S_BRUSH(NULL,brushes[i]));
+/*  S_ARRAY_OPEN("brushes");
   S_ARRAY_POINTER_RESIZE(brushes,Brush,arraySize);
   for (int i2 = 0; i2 < brushes.size(); i2++) {
     arrayIndex = i2;
     S_BRUSH(NULL,brushes[i2]);
   }
-  S_ARRAY_CLOSE();
+  S_ARRAY_CLOSE();*/
+
+  FINISHSERIALIZATION();
+  return true;
+}
+
+Matrix inverse2(const Matrix &a);
+
+bool serializeCanvas(Array<Canvas*> &canvas, bool save, String *string) {
+  STARTSERIALIZATION(save);
+  if (error) { return false;}
+
+  String id = "WYPA IMAGE FILE"; S_STRING("id",id);
+  S_POINTER_ARRAY("canvas",canvas,Canvas,S_CANVAS(NULL,canvas[i]));
+/*  S_ARRAY_OPEN("canvas");
+  S_ARRAY_POINTER_RESIZE(canvas,Canvas,arraySize);
+  for (int i2 = 0; i2 < canvas.size(); i2++) {
+    arrayIndex = i2;
+    S_CANVAS(NULL,canvas[i2]);
+  }
+  S_ARRAY_CLOSE();*/
 
   FINISHSERIALIZATION();
   return true;
@@ -401,7 +447,7 @@ void getFileArray(Array<unsigned char> *arr,const String &maybeExtendedFileName)
   fclose(in);
 }
 
-void loadImage(const char *shortPath, const char *longFileName) {
+void importImage(const char *shortPath, const char *longFileName) {
   addPicture(String(shortPath)+String(longFileName));
 }
 
@@ -815,6 +861,112 @@ void loadBrushShape(const char *shortPath, const char *longFileName) {
   brush->isDistanceField = true;
   brush->update();
   rgba.free();
+}
+
+mz_zip_archive globalZip;
+const char *readZipShortPath = "";
+const char *readZipLongFileName = "";
+
+void zipLayerData(const String &layerName, Layer *layer, bool save) {
+  updateStatusBar();
+  mz_zip_archive &zip = globalZip;
+  String fileName = layerName + ".png";
+  if (save) {
+    RGBAImage w2;
+    w2.data = layer->pixels;
+    w2.width = layer->width;
+    w2.height = layer->height;
+    if (w2.data != NULL && w2.width>0 && w2.height>0) {
+      dosRemoveFile(fileName.c_str());
+      updateStatusBar();
+      w2.savePNG(fileName.c_str());
+      updateStatusBar();
+      mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
+      updateStatusBar();
+      dosRemoveFile(fileName.c_str());
+      updateStatusBar();
+    }
+  } else {
+    Array<unsigned char> array;
+    if (readZippedFile(readZipShortPath, readZipLongFileName, fileName.c_str(), array)) {
+      updateStatusBar();
+      RGBAImage img = RGBAImage::fromMemory(&array[0],array.size());
+      if (img.data != NULL && img.width>0 && img.height>0) {
+        layer->init(img.width,img.height);
+        memcpy(layer->pixels,img.data,img.width*img.height*sizeof(unsigned int));
+        img.free();
+      }
+    }
+  }
+}
+
+void loadImage(const char *shortPath, const char *longFileName) {
+  initStatusBar();
+  bool allWentWell = true;
+  readZipShortPath = shortPath;
+  readZipLongFileName = longFileName;
+
+  // canvas
+  Array<Canvas *> canvasHere;
+  String string = getStringFromZippedFile(shortPath,longFileName,"canvas.jsn");
+  if (!string.empty()) {
+    if (!serializeCanvas(canvasHere, false, &string)) {allWentWell = false;}
+  } else allWentWell = false;
+
+  // finished
+  if (allWentWell) {
+    if (canvasHere.size()>0) {
+      addCanvas(canvasHere[0]);
+      canvasHere.erase(0,1);
+    }
+  }
+  for (int i = 0; i < canvasHere.size(); i++) delete canvasHere[i];
+  canvasHere.clear();
+}
+
+void saveImage(const char *shortPath, const char *longFileName) {
+  initStatusBar();
+  mz_zip_archive &zip = globalZip;
+  mz_zip_zero_struct(&zip);
+
+  String zipName = getTempFileName(shortPath);
+  if (!mz_zip_writer_init_file(&zip, zipName.c_str(), 0)) return;
+
+  String string; 
+  bool allWentWell = true;
+
+  // canvas
+  Array<Canvas *> canvasHere; canvasHere.push_back(currentCanvas);
+  if (serializeCanvas(canvasHere, true, &string)) {
+    if (!mz_zip_writer_add_mem(&zip, "canvas.jsn", &string[0], string.size(), MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME)) allWentWell = false;
+  } else allWentWell = false;
+
+  updateStatusBar();
+  Layer *l = currentCanvas->getSelectionAsLayer(false,true,true);
+  if (l != NULL) {
+    updateStatusBar();
+    String fileName = "image.png";
+    RGBAImage img;
+    img.data = l->pixels;
+    img.width = l->width;
+    img.height = l->height;
+    dosRemoveFile(fileName.c_str());
+    updateStatusBar();
+    img.savePNG(fileName.c_str());
+    updateStatusBar();
+    mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
+    updateStatusBar();
+    dosRemoveFile(fileName.c_str());
+    updateStatusBar();
+    delete l;
+  }
+
+  if (!mz_zip_writer_finalize_archive(&zip)) allWentWell = false;
+  if (!mz_zip_writer_end(&zip)) allWentWell = false;
+  renameTempFile(shortPath, longFileName);
+
+  // finished
+  if (allWentWell) {currentCanvas->signSave(); signSaveForUndo();}
 }
 
 Layer *loadImage(const String &filePath, const String &fileName) {

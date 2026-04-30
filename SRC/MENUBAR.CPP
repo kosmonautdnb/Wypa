@@ -90,7 +90,10 @@ void drawMenuBar() {
       on = true;
       if (ImGui::MenuItem("New image")) {dialogNewImage(true);}
       ImGui::Separator();
-      if (ImGui::MenuItem("Import image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
+      if (ImGui::MenuItem("Load image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
+      if (ImGui::MenuItem("Save image")) {dialogLoadSave(true,DIALOG_SAVEIMAGE);}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Import image")) {dialogLoadSave(true,DIALOG_IMPORTIMAGE);}
       if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
       if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
       if (ImGui::MenuItem("Insert svg layer (experimental)")) {dialogLoadSave(true,DIALOG_INSERTSVG);}
@@ -223,6 +226,7 @@ void drawMenuBar() {
 
     if (ImGui::BeginMenu("Help")) {
       if (ImGui::MenuItem("About")) {dialogAbout(true);}
+      ImGui::Separator();
       if (ImGui::MenuItem("Show debug window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
       on = true;
       ImGui::EndMenu();

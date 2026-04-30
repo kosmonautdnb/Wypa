@@ -23,6 +23,7 @@
 */
 #include "CONFIG.HPP"
 #include "IMGUI/IMGUI.H"
+#include "STL/GL.H"
 #include "STL/STRING.HPP"
 #include "LAYERS.HPP"
 
@@ -99,14 +100,38 @@ int getLayersByteCount() {
   return ret;
 }
 
+extern Array<float> paintValues;
+extern Array<unsigned int> paintBackground;
+extern Array<unsigned short> quantization;
+extern "C" {extern GLint glFrameBufferMultiSample;}
+
+int getWatcomGLBytes() {
+  int ret = 0;
+  int multiSample = glFrameBufferMultiSample;
+  if (glFrameBuffer != NULL) {
+    ret += glFrameBufferWidth * glFrameBufferHeight * sizeof(unsigned int) * multiSample;
+    if (refreshMasked) ret += glFrameBufferWidth * glFrameBufferHeight * sizeof(unsigned int) * multiSample;
+  }
+  if (glDepthBuffer != NULL) ret += glFrameBufferWidth * glFrameBufferHeight * sizeof(float) * multiSample;
+  if (glStencilBuffer != NULL) ret += glFrameBufferWidth * glFrameBufferHeight * sizeof(unsigned char) * multiSample;
+  return ret;
+}
+
 void showDebugWindow() {
   if (!debugWindowOn) return;
+  int additionalSize = 0;
+  additionalSize += paintValues.allocatedSize * sizeof(float);
+  additionalSize += paintBackground.allocatedSize * sizeof(unsigned int);
+  additionalSize += quantization.allocatedSize * sizeof(unsigned short);
+
   ImGui::PushStyleColor(ImGuiCol_TitleBg,ImVec4(0,0.75,0.75,0.5));
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1,1,1,1));
   ImGui::Begin("Debug window", NULL, ImVec2(main_window_xres/3,main_window_yres/3),0.25);
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1));
   ImGui::Text("Undo stack %.02fkb", undoStackBytes/1024.f);
   ImGui::Text("Layers %.02fkb", getLayersByteCount()/1024.f);
+  ImGui::Text("Framebuffer %.02fkb",getWatcomGLBytes()/1024.f);
+  ImGui::Text("Additional memory %.02fkb",additionalSize/1024.f);
   ImGui::Text("Free memory %.02fkb", getAdditionalMemoryFreeBytes()/1024.f);
   ImGui::Text("FPS %.02f",fps);
   ImGui::PopStyleColor();

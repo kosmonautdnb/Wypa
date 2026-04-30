@@ -34,6 +34,8 @@ bool isForcedUndoPoint = false;
 
 void calcUndoStackByteCount();
 
+Array<unsigned int> rleTemp;
+
 class UndoPacket {
 public:
   UndoPacket() {
@@ -51,16 +53,18 @@ public:
     undoCanvas = currentCanvas;
     for (int i = 0; i < undoCanvas->layers.size(); i++) {
       if (undoCanvas->layers[i]->state.active || undoCanvas->layers[i]->state.selected) {
-        Layer *l2 = undoCanvas->layers[i];
-        int id = l2->id; 
-        Layer *l = l2->clone(); l->id = id; memcpy(l->pixelStates,l2->pixelStates,l->width*l->height*sizeof(unsigned char)); // sorry
+        Layer *l2 = undoCanvas->layers[i]; int id = l2->id; 
+        Layer *l = l2->clone(); l->id = id; 
+        memcpy(l->pixelStates,l2->pixelStates,l->width*l->height*sizeof(unsigned char)); // sorry (not cloned before)
         undoLayers.push_back(l);
       }
     }
   }
 
   void freeIt() {
-    for (int i = 0; i < undoLayers.size(); i++) {delete undoLayers[i];}
+    for (int i = 0; i < undoLayers.size(); i++) {
+      delete undoLayers[i];
+    }
     undoLayers.clear();
   }
 
@@ -75,6 +79,8 @@ public:
     if (a->height != b->height) return false;
     if (memcmp(a->pixels,b->pixels,a->width*a->height*sizeof(unsigned int))!=0) return false;
     if (memcmp(a->pixelStates,b->pixelStates,a->width*a->height*sizeof(unsigned char))!=0) return false;
+    if (memcmp(&a->colorTransform,&b->colorTransform,sizeof(ColorTransform))!=0) return false; // be aware to add undoPoints "only at paint tool" use
+    if (memcmp(&a->toolInfo,&b->toolInfo,sizeof(LayerAdditionalToolInfo))!=0) return false; // be aware to add undoPoints "only at paint tool" use
     return true;
   }
 
@@ -111,10 +117,11 @@ public:
     unsigned int *a = (unsigned int *)a2;
     unsigned int *b = (unsigned int *)b2;
     int ints = bytes / 4; // some elements are missing here
-    static Array<unsigned int> data; data.resize(ints); unsigned int *writeTo = &data[0]; int writePos = 0;
+    Array<unsigned int> &data = rleTemp; data.resize(ints); unsigned int *writeTo = &data[0]; int writePos = 0;
     bool inColorData = true; int pixelCount = 0;
     WRITEDWORDHERE(0x77665544)
     if (doRLE) {
+      int writePosBefore = writePos;
       for (int i = 0; i < ints; i++) {
         bool inColorDataHere = a[i] != b[i];
         if (inColorDataHere != inColorData) {
@@ -126,6 +133,11 @@ public:
           pixelCount = 0;
         } 
         pixelCount++;
+      }
+      if (writePos * 4 > byteCount) {
+        inColorData = true;
+        writePos = writePosBefore;
+        pixelCount = ints;
       }
     } else {
       pixelCount = ints;
@@ -199,11 +211,6 @@ public:
     dest->undoData.rleDataPixels_backward = emptyPixels&&(!needsFullSourcePixels) ? getNoRle(byteCount) : getRleFromDiff(source->pixels,dest->pixels,source->width*source->height*sizeof(unsigned int),doRLE&&(!needsFullSourcePixels),byteCount);
     dest->undoData.rleDataPixelStates_backward = emptyPixelStates&&(!needsFullSourcePixels) ? getNoRle(byteCount) : getRleFromDiff(source->pixelStates,dest->pixelStates,source->width*source->height*sizeof(unsigned char),doRLE&&(!needsFullSourcePixelStates),byteCount);
     dest->undoData.completeByteCount = byteCount;
-
-    dest->undoData.updatePixelsCountOfLastUndo2 = source->undoData.updatePixelsCountOfLastUndo;
-    dest->undoData.updatePixelStatesCountOfLastUndo2 = source->undoData.updatePixelStatesCountOfLastUndo;
-    dest->undoData.updatePixelsCount2 = source->undoData.updatePixelsCount;
-    dest->undoData.updatePixelStatesCount2 = source->undoData.updatePixelStatesCount;
   }
 
   int byteCount() {
@@ -224,18 +231,20 @@ public:
         }
       }
       if (foundSourceLayer < 0) {
-        undoLayers.erase(i,1);
+        delete undoLayers[i]; undoLayers.erase(i,1);
         i--;
         continue;
       }
       bool hasChanged = !isLayerSame(undoLayers[i],source.undoLayers[foundSourceLayer]);
       if ((!hasChanged)&&(!isForcedUndoPoint)) {
-        undoLayers.erase(i,1);
+        delete undoLayers[i]; undoLayers.erase(i,1);
         i--;
         continue;
       }
+      Layer *before = source.undoLayers[foundSourceLayer]; before = before->clone(); before->invalidateContent();
       generateDeltas(undoLayers[i],source.undoLayers[foundSourceLayer]);
-      undoLayers[i]->init(1,1);
+      undoLayers[i]->undoData.undoLayer = before;
+      undoLayers[i]->invalidateContent();
     }
     calcUndoStackByteCount();
   }
@@ -253,29 +262,32 @@ public:
       if (foundLayer < 0) continue;
       Layer *source = undoLayers[i];
       Layer *dest = undoCanvas->layers[foundLayer];
-      int newWidth = forward ? source->undoData.width_forward : source->undoData.width_backward;
-      int newHeight = forward ? source->undoData.height_forward : source->undoData.height_backward;
-      unsigned char *rleStreamPixels = forward ? source->undoData.rleDataPixels_forward : source->undoData.rleDataPixels_backward;
-      unsigned char *rleStreamPixelStates = forward ? source->undoData.rleDataPixelStates_forward : source->undoData.rleDataPixelStates_backward;
-      if (newHeight != dest->height || newWidth != dest->width) {
-        dest->init(newWidth,newHeight);
-      }
-      unpackRleStream(dest->pixels,rleStreamPixels);
-      unpackRleStream(dest->pixelStates,rleStreamPixelStates);
 
       if (!forward)
       {
         // undo
-        dest->undoData.updatePixelsCountOfLastUndo = source->undoData.updatePixelsCountOfLastUndo2;
-        dest->undoData.updatePixelStatesCountOfLastUndo = source->undoData.updatePixelStatesCountOfLastUndo2;
-        dest->undoData.updatePixelsCount = source->undoData.updatePixelsCount2;
-        dest->undoData.updatePixelStatesCount = source->undoData.updatePixelStatesCount2;
+        if (source->undoData.undoLayer != NULL) {
+          int newWidth = source->undoData.width_backward;
+          int newHeight = source->undoData.height_backward;
+          if (newHeight != dest->height || newWidth != dest->width) {
+            dest->init(newWidth,newHeight);
+          }
+          unpackRleStream(dest->pixels, source->undoData.rleDataPixels_backward);
+          unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_backward);
+          dest->undoData.signWith(&source->undoData.undoLayer->undoData);
+          dest->colorTransform = source->undoData.undoLayer->colorTransform;
+        }
       } else {
         // redo
-        dest->undoData.updatePixelsCountOfLastUndo = source->undoData.updatePixelsCountOfLastUndo;
-        dest->undoData.updatePixelStatesCountOfLastUndo = source->undoData.updatePixelStatesCountOfLastUndo;
-        dest->undoData.updatePixelsCount = source->undoData.updatePixelsCount;
-        dest->undoData.updatePixelStatesCount = source->undoData.updatePixelStatesCount;
+        int newWidth = source->undoData.width_forward;
+        int newHeight = source->undoData.height_forward;
+        if (newHeight != dest->height || newWidth != dest->width) {
+          dest->init(newWidth,newHeight);
+        }
+        unpackRleStream(dest->pixels, source->undoData.rleDataPixels_forward);
+        unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_forward);
+        dest->undoData.signWith(&source->undoData);
+        dest->colorTransform = source->colorTransform;
       }
     }
     shouldUpdateAll = true;
@@ -294,6 +306,20 @@ public:
       if (foundLayer >= 0) undoCanvas->layers[foundLayer]->undoData.signUndo();
     }
   }
+
+  void signSave() {
+    if (!doWeHaveTheUndoCanvas()) return;
+    if (currentCanvas->layers.empty()) return;
+    Layer *l = currentCanvas->layers[0];
+    for (int i = 0; i < undoLayers.size(); i++) {
+      undoLayers[i]->undoData.updatePixelsCountOfLastSave = l->undoData.updatePixelsCountOfLastSave;
+      undoLayers[i]->undoData.updatePixelStatesCountOfLastSave = l->undoData.updatePixelStatesCountOfLastSave;
+      if (undoLayers[i]->undoData.undoLayer != NULL) {
+        undoLayers[i]->undoData.undoLayer->undoData.updatePixelsCountOfLastSave = l->undoData.updatePixelsCountOfLastSave;
+        undoLayers[i]->undoData.undoLayer->undoData.updatePixelStatesCountOfLastSave = l->undoData.updatePixelStatesCountOfLastSave;
+      }
+    }
+  }
 };
 
 UndoPacket packetBeforeUndo;
@@ -305,6 +331,8 @@ void calcUndoStackByteCount() {
   for (int i = 0; i < undoStages.size(); i++) {
     undoStackBytes += undoStages[i]->byteCount();
   }
+  undoStackBytes += packetBeforeUndo.byteCount();
+  undoStackBytes += rleTemp.allocatedSize * sizeof(unsigned int);
 }
 
 int availableUndos = 0;
@@ -349,6 +377,11 @@ void forceUndoPoint() {
     afterUndoPoint();
     isForcedUndoPoint = false;
   }
+}
+
+void signSaveForUndo() {
+  packetBeforeUndo.signSave();
+  for (int i = 0; i < undoStages.size(); i++) undoStages[i]->signSave();
 }
 
 void undo() {

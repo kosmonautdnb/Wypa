@@ -31,5 +31,7 @@ void freeToolView();
 void drawToolView();
 
 void updateGradient();
+void updateTilingImage(const class RGBAImage &image);
+void toolChangeMessage(int lastTool, int tool);
 
 #endif // __TOOLVIEW_HPP__

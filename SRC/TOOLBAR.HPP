@@ -47,6 +47,7 @@ enum TOOL {
 extern const char *toolNames[TOOL_COUNT];
 
 extern int tool;
+extern int lastTool;
 extern bool fullScreen;
 
 void initToolBar();

@@ -28,10 +28,13 @@
 #include "CONFIG.HPP"
 #include "SVG.HPP"
 #include "DIALOGS.HPP"
+#include "TOOLVIEW.HPP"
+#include "LAYERS.HPP"
 
 int toolbar_width = 32;
 int toolbar_bottom_height = 32;
 int tool = TOOL_NONE;
+int lastTool = TOOL_NONE;
 bool fullScreen = false;
 
 const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tiling"};
@@ -42,11 +45,14 @@ void initToolBar() {
 void freeToolBar() {
 }
 
-bool imageButton(const char *svgName, const char *id, bool selected) {
+bool imageButton(const char *svgName, const char *id, bool selected, bool hilighted) {
   SVG *svg = &svgs[svgName];
   ImGui::PushID(id);
   ImVec4 col = selected ? ImVec4(0.5,0.5,0.5,1) : ImVec4(1,1,1,1);
   bool ret = ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h),ImVec2(0,0),ImVec2(1,1),0,col);
+  if (hilighted) {
+    ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);
+  }
   if (selected) ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0xc0ffffff);
   if (ImGui::IsItemHovered()) {
     ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x20000000);
@@ -57,8 +63,17 @@ bool imageButton(const char *svgName, const char *id, bool selected) {
 }
 
 bool toolBarButton(const char *svgName, int toolIndex) {
-  bool ret = imageButton(svgName, (String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), toolIndex == tool);
-  if (ret) tool = toolIndex;
+  bool highlighted = false;
+  if (toolIndex == TOOL_MAGIC) {
+    Layer *l = currentCanvas->getActiveLayer();
+    if (l != NULL) {
+      if (l->colorTransform.useColorTransform) highlighted = true;
+      if (l->colorTransform.usePosterize) highlighted = true;
+      if (l->colorTransform.useQuantization) highlighted = true;
+    }
+  }
+  bool ret = imageButton(svgName, (String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), toolIndex == tool, highlighted);
+  if (ret) {lastTool = tool; tool = toolIndex;}
   return ret;
 }
 
@@ -83,6 +98,7 @@ void drawToolBar() {
     toolBarButton("tilingTool",TOOL_TILING);
     ImGui::End();
   }
+  if (lastTool != tool) {toolChangeMessage(lastTool,tool); lastTool = tool;}
   if (fullScreen) {
     ImGui::PopStyleColor();
     ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0,0,0,1));

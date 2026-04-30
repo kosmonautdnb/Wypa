@@ -38,7 +38,7 @@ void initStatusBar();
 String longFileName(const String &a);
 String shortFileName(const String &a);
 
-void loadImage(const char *shortPath, const char *longFileName);
+void importImage(const char *shortPath, const char *longFileName);
 void insertImageLayers(const char *shortPath, const char *longFileName);
 void exportLayers(const char *shortPath, const char *longFileName);
 void exportPNG(const char *shortPath, const char *longFileName);
@@ -58,6 +58,10 @@ void loadBrushes(const char *shortPath, const char *longFileName);
 void saveBrushes(const char *shortPath, const char *longFileName);
 
 void loadBrushShape(const char *shortPath, const char *longFileName);
+
+void loadImage(const char *shortPath, const char *longFileName);
+void saveImage(const char *shortPath, const char *longFileName);
+
 
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);

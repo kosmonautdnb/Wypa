@@ -42,6 +42,7 @@ int currentBrush = 0;
 Brush *onePixelBrush = NULL;
 
 Gradient gradient;
+RGBAImage copiedTiling;
 
 Matrix inverse2(const Matrix &a);
 
@@ -55,6 +56,7 @@ void freeTools() {
   for (int i = 0; i < brushes.size(); i++) delete brushes[i];
   brushes.clear();
   delete onePixelBrush;
+  copiedTiling.free();
 }
 
 double scrollborderSize = 10;
@@ -1634,6 +1636,56 @@ double measureCY1 = 0;
 double measureLX1 = 0;
 double measureLY1 = 0;
 
+RGBAImage getImageFromLayer(Layer *l, int sx,int sy, int width, int height) {
+  RGBAImage ret;
+  if (l == NULL) return ret;
+  if (sx < 0) {width += sx; sx = 0;}
+  if (sy < 0) {height += sy; sy = 0;}
+  if (width > l->width) width = l->width;
+  if (height > l->height) height = l->height;
+  if (width<=0 || height<=0) return ret;
+  ret.width = width;
+  ret.height = height;
+  ret.data = (unsigned int*)malloc(width*height*sizeof(unsigned int));
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      ret.data[x+y*width] = l->pixels[(x+sx)+(y+sy)*l->width];
+    }
+  }
+  return ret;
+}
+
+void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy) {
+  if (c.data == NULL || c.width <= 0 || c.height <= 0) return;
+  for (int y = 0; y < c.height; y++) {
+    for (int x = 0; x < c.width; x++) {
+      int dx = sx + x;
+      int dy = sy + y;
+      if ((unsigned int)dx < l->width && (unsigned int)dy < l->height) l->pixels[dx+dy*l->width] = c.data[x+y*c.width];
+    }
+  }
+  updatedPixels(l);
+}
+
+void useToolTiling() {
+  if (!isPaintAreaActive()) return;
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  mouseClickUndo();
+  double lx = mouseX, ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
+  int sx = (int)floor((lx-l->toolInfo.tilingOffsetX)/l->toolInfo.tilingWidth)*l->toolInfo.tilingWidth;
+  int sy = (int)floor((ly-l->toolInfo.tilingOffsetY)/l->toolInfo.tilingHeight)*l->toolInfo.tilingHeight;
+  if (ImGui::IsMouseClicked(0)) {
+    copiedTiling.free();
+    copiedTiling = getImageFromLayer(l,sx,sy,l->toolInfo.tilingWidth,l->toolInfo.tilingHeight);
+    updateTilingImage(copiedTiling);
+  }
+  if (ImGui::IsMouseDown(1)) {
+    putImageToLayer(l,copiedTiling,sx,sy);
+    repaintLayer(l,true);
+  }
+}
+
 void useTool() {
   switch(tool) {
   case TOOL_WAND: {
@@ -1663,14 +1715,14 @@ void useTool() {
   case TOOL_LINE: {
     useToolPainting();
     } break;
-  case TOOL_MAGIC: {
-    useToolPainting();
-    } break;
   case TOOL_GRADIENT: {
     useToolGradient();
     } break;
   case TOOL_MEASURE: {
     useToolGradient();
+    } break;
+  case TOOL_TILING: {
+    useToolTiling();
     } break;
   }
 }
