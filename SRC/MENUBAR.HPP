@@ -34,4 +34,6 @@ void initMenuBar();
 void freeMenuBar();
 void drawMenuBar();
 
+#define S_MENUBAR_CPP()
+
 #endif //__MENUBAR_HPP__

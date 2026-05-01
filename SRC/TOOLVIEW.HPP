@@ -34,4 +34,8 @@ void updateGradient();
 void updateTilingImage(const class RGBAImage &image);
 void toolChangeMessage(int lastTool, int tool);
 
+bool getTilingAnimationFrameLayerCell(class Layer *l,int frame, int &cx, int &cy, int &outaX, int &outaY);
+
+#define S_TOOLVIEW_CPP()
+
 #endif // __TOOLVIEW_HPP__

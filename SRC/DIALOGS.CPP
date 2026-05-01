@@ -29,6 +29,7 @@
 #include "STL/DOS.HPP"
 #include "SVG.HPP"
 #include "SERIALZE.HPP"
+#include "UNDO.HPP"
 #include <math.h>
 
 #define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize)) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableRenderMouseClicks();
@@ -101,6 +102,7 @@ void drawDialogs() {
   dialogMergeDown(false);
   dialogInsertSVG(false,0,0);
   dialogExportLayersRaw(false);
+  dialogPictureInfo(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -473,6 +475,33 @@ void dialogExportLayersRaw(bool openIt) {
   DIALOGEND()
 }
 
+#define PICTURECOMMENTMAX 256
+char tempCommentBuffer[PICTURECOMMENTMAX];
+
+void dialogPictureInfo(bool openIt) {
+  if (openIt) {
+    sprintf(tempCommentBuffer,"%s",currentCanvas->comment.c_str());
+  }
+  DIALOGSTART("Picture info");
+  int nameSize = 7*(PICTURENAMEMAX);
+  ImGui::PushItemWidth(nameSize);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9,0.9,0.9,1));
+  ImGui::Text("Name"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX);
+  ImGui::Text("Author"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOAUTHOR",currentCanvas->author, PICTURENAMEMAX);
+  ImGui::PopStyleColor();
+  ImGui::PopItemWidth();
+  ImGui::Text("Timestamp %s",currentCanvas->timeStamp.c_str());
+  ImGui::Text("Width %d", currentCanvas->canvasX1-currentCanvas->canvasX0);
+  ImGui::Text("Height %d", currentCanvas->canvasY1-currentCanvas->canvasY0);
+  ImGui::Text("Comment");
+  ImGui::InputTextMultiline("##DIALOGPICTUREINFOCOMMENT", tempCommentBuffer, PICTURECOMMENTMAX);
+  if (ImGui::Button("Close##DIALOGPICTUREINFOCLOSE")) {
+    currentCanvas->comment = String(tempCommentBuffer);
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
 void dialogDuplicate(bool openIt) {
   DIALOGSTART("Duplicate layers");
 
@@ -548,9 +577,11 @@ void dialogBakeLayers(bool openIt) {
 
   if (!layers.empty()) {
     if (ImGui::Button("Bake these layers##DIALOGBAKELAYERSAPPLY")) {
+      beforeUndoPoint();
       for (int i = 0; i < layers.size(); i++) {
         layers[i]->bakeLayer(interpolation);
       }
+      afterUndoPoint();
       shouldUpdateAll = true;
       ImGui::CloseCurrentPopup();
     }

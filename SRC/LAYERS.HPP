@@ -24,6 +24,7 @@
 #ifndef __LAYERS_HPP__
 #define __LAYERS_HPP__
 
+#include "CONFIG.HPP"
 #include "STL/ARRAY.HPP"
 #include "STL/PAIR.HPP"
 #include "STL/MATRIX.HPP"
@@ -178,6 +179,9 @@ public:
   float posterizeBlue;
   float posterizeAlpha;
   float ditherStrength;
+  float middleRedAdjust;
+  float middleGreenAdjust;
+  float middleBlueAdjust;
   bool perceptional;
   bool useColorTransform;
   bool useQuantization;
@@ -223,6 +227,9 @@ public:
   S_FLOAT("posterizeBlue",(__o__)->posterizeBlue);\
   S_FLOAT("posterizeAlpha",(__o__)->posterizeAlpha);\
   S_FLOAT("ditherStrength",(__o__)->ditherStrength);\
+  S_FLOAT("middleRedAdjust",(__o__)->middleRedAdjust);\
+  S_FLOAT("middleGreenAdjust",(__o__)->middleGreenAdjust);\
+  S_FLOAT("middleBlueAdjust",(__o__)->middleBlueAdjust);\
   S_BOOL("perceptional",(__o__)->perceptional);\
   S_BOOL("useColorTransform",(__o__)->useColorTransform);\
   S_BOOL("usePosterize",(__o__)->usePosterize);\
@@ -284,13 +291,33 @@ public:
     tilingOffsetY = 0;
     tilingWidth = 8;
     tilingHeight = 8;
+
+    tilingAnimFPS = 30;
+    tilingAnimFirstFrame = 0;
+    tilingAnimLastFrame = 0;
+    tilingAnimPlaying = false;
+    tilingAnimReverse = false;
+    tilingAnimTime = 0;
+    tilingAnimFrame = 0;
+
     showTilingGrid = true;
+    showTilingGridIndices = true;
   }
   int tilingOffsetX;
   int tilingOffsetY;
   int tilingWidth;
   int tilingHeight;
+
+  float tilingAnimFPS;
+  int tilingAnimFirstFrame;
+  int tilingAnimLastFrame;
+  int tilingAnimFrame;
+  bool tilingAnimPlaying;
+  bool tilingAnimReverse;
+  float tilingAnimTime;
+
   bool showTilingGrid;
+  bool showTilingGridIndices;
 };
 #define S_LAYERADDITIONALTOOLINFO(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
@@ -298,7 +325,13 @@ public:
   S_INT("tilingOffsetY",(__o__)->tilingOffsetY);\
   S_INT("tilingWidth",(__o__)->tilingWidth);\
   S_INT("tilingHeight",(__o__)->tilingHeight);\
+  S_FLOAT("tilingAnimFPS",(__o__)->tilingAnimFPS);\
+  S_INT("tilingAnimFirstFrame",(__o__)->tilingAnimFirstFrame);\
+  S_INT("tilingAnimLastFrame",(__o__)->tilingAnimLastFrame);\
+  S_BOOL("tilingAnimPlaying",(__o__)->tilingAnimPlaying);\
+  S_BOOL("tilingAnimReverse",(__o__)->tilingAnimReverse);\
   S_BOOL("showTilingGrid",(__o__)->showTilingGrid);\
+  S_BOOL("showTilingGridIndices",(__o__)->showTilingGridIndices);\
   S_OBJECT_CLOSE();
 
 class Layer {
@@ -371,6 +404,7 @@ public:
   void expandSelection(int pixels);
   void selectByAlpha(int alphaThreshold);
   void selectionAsOutline();
+  void addSelectionRectangle(int lx0, int ly0, int lx1, int ly1);
 
   bool hasSelection();
   Vector boundingBox();
@@ -412,6 +446,7 @@ public:
   S_INT("width",(__o__)->width);\
   S_INT("height",(__o__)->height);\
   S_NAME("name",(__o__)->name,LAYERNAMEMAX);\
+  if (!save) (__o__)->init(1,1);\
   S_ZIPLAYERDATA(i,__o__);\
   S_UINT("id",(__o__)->id);\
   S_LAYERSTATE("state",&(__o__)->state);\
@@ -456,6 +491,7 @@ public:
 #define PICTURENAMEMAX 16
 
 extern Layer *copyLayer;
+String timeDescString();
 
 class Canvas {
 public:
@@ -473,7 +509,11 @@ public:
   int gridOffsetY;
 
   String fileName;
+  String timeStamp;
+  String comment;
+  String version;
   char pictureName[PICTURENAMEMAX];
+  char author[PICTURENAMEMAX];
 
   int canvasX0, canvasY0, canvasX1, canvasY1;
 
@@ -497,6 +537,10 @@ public:
     pixelStates = NULL;
     static int counter = 0; counter++;
     sprintf(pictureName,"Picture %d",counter);
+    sprintf(author,"");
+    timeStamp = timeDescString();
+    version = String::fromInt(::version);
+    comment = "";
     gridOn = false;
     gridStepX = 8;
     gridStepY = 8;
@@ -609,8 +653,12 @@ public:
 #define S_CANVAS(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
   if (!save) canvasDefault(__o__);\
+  S_STRING("timeStamp",(__o__)->timeStamp);\
+  S_STRING("comment",(__o__)->comment);\
+  S_STRING("version",(__o__)->version);\
   S_STRING("fileName",(__o__)->fileName);\
   S_NAME("pictureName", (__o__)->pictureName,PICTURENAMEMAX);\
+  S_NAME("author", (__o__)->author,PICTURENAMEMAX);\
   S_BOOL("gridOn",(__o__)->gridOn);\
   S_INT("gridStepX",(__o__)->gridStepX);\
   S_INT("gridStepY",(__o__)->gridStepY);\
@@ -646,5 +694,7 @@ void addCanvas(Canvas *canvas);
 void insertPicture(String fileName);
 void addTempPicture();
 void newPicture(int w, int h,const String &pictureName);
+
+#define S_LAYERS_CPP()
 
 #endif //__LAYERS_HPP__

@@ -2,6 +2,8 @@ copy /Y c:\_OPENGL_\GL.H SRC\STL\
 copy /Y c:\_OPENGL_\GLIMPL.CPP SRC\STL\
 
 copy /Y c:\_STL_\ARRAY.HPP SRC\STL\
+copy /Y c:\_STL_\CHARSET.HPP SRC\STL\
+copy /Y c:\_STL_\CHARSET.CPP SRC\STL\
 copy /Y c:\_STL_\DOS.HPP SRC\STL\
 copy /Y c:\_STL_\DOS.CPP SRC\STL\
 copy /Y c:\_STL_\HASHMAP.HPP SRC\STL\

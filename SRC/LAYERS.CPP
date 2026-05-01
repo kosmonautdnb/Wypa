@@ -215,6 +215,47 @@ float *ColorTransform::processingGet() {
       rf = col.x*255;
       gf = col.y*255;
       bf = col.z*255;
+
+      float outputR = 0;
+      float outputG = 0;
+      float outputB = 0;
+      if (middleRedAdjust>0) {
+        float adjust = middleRedAdjust;
+        outputR += rf*(1-adjust)+gf*(adjust);
+        outputG += gf*(1-adjust)+rf*(adjust);
+        outputB += bf;
+      } else {
+        float adjust = -middleRedAdjust;
+        outputR += rf*(1-adjust)+bf*(adjust);
+        outputG += gf;
+        outputB += bf*(1-adjust)+rf*(adjust);
+      }
+      if (middleGreenAdjust>0) {
+        float adjust = middleGreenAdjust;
+        outputR += rf;
+        outputG += gf*(1-adjust)+bf*(adjust);
+        outputB += bf*(1-adjust)+gf*(adjust);
+      } else {
+        float adjust = -middleGreenAdjust;
+        outputR += rf*(1-adjust)+gf*(adjust);
+        outputG += gf*(1-adjust)+rf*(adjust);
+        outputB += bf;
+      }
+      if (middleBlueAdjust>0) {
+        float adjust = middleBlueAdjust;
+        outputR += rf*(1-adjust)+bf*(adjust);
+        outputG += gf;
+        outputB += bf*(1-adjust)+rf*(adjust);
+      } else {
+        float adjust = -middleBlueAdjust;
+        outputR += rf;
+        outputG += gf*(1-adjust)+bf*(adjust);
+        outputB += bf*(1-adjust)+gf*(adjust);
+      }
+      rf = outputR/3.0;
+      gf = outputG/3.0;
+      bf = outputB/3.0;
+
       rf *= sr;
       gf *= sg;
       bf *= sb;
@@ -456,6 +497,9 @@ void ColorTransform::reset() {
   posterizeBlue = 0;
   posterizeAlpha = 0;
   ditherStrength = 0;
+  middleRedAdjust = 0;
+  middleGreenAdjust = 0;
+  middleBlueAdjust = 0;
   perceptional = false;
   shouldUpdate = true;
 }
@@ -874,6 +918,18 @@ void Layer::selectionAsOutline() {
   for (int i = 0; i  < width * height; i++) {
     pixelStates[i] &= ~PIXELSTATE_SELECTED;
     if (pixelStates[i] & PIXELSTATE_TEMP) pixelStates[i] |= PIXELSTATE_SELECTED;
+  }
+  updatedPixelStates(this);
+  shouldUpdateAll = true;
+}
+
+void Layer::addSelectionRectangle(int lx0, int ly0, int lx1, int ly1) {
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      if (x >= lx0 && x < lx1 && y >= ly0 && y < ly1) {
+        pixelStates[x+y*width] |= PIXELSTATE_SELECTED;
+      }
+    }
   }
   updatedPixelStates(this);
   shouldUpdateAll = true;
@@ -3131,14 +3187,14 @@ void blitCanvas() {
           unsigned char stateTopLeft = state;
           state &= currentCanvas->pixelStates[x+1+y*currentCanvas->width];
           state &= currentCanvas->pixelStates[x+(y+1)*currentCanvas->width];
+          if (before & PIXELSTATE_CANVAS_GRID) {
+            if (!(stateTopLeft & PIXELSTATE_CANVAS_GRID)) col = (((x+y+time)/4) & 1) ? 0xff404040 : 0xff400040;
+          }
           if (before & PIXELSTATE_SELECTED) {
             if (!(state & PIXELSTATE_SELECTED)) col = (((x+y+time)/4) & 1) ? 0xffffffff : 0xff0000ff;
           }
           if (before & PIXELSTATE_OUTLINE) {
             if (!(state & PIXELSTATE_OUTLINE)) col = (((x+y+time)/4) & 1) ? 0xffffffff : 0xffff00ff;
-          }
-          if (before & PIXELSTATE_CANVAS_GRID) {
-            if (!(stateTopLeft & PIXELSTATE_CANVAS_GRID)) col = (((x+y+time)/4) & 1) ? 0xffffffff : 0xffff00ff;
           }
         }
       }

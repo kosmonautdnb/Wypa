@@ -207,6 +207,11 @@ extern bool lineAntialiasing;
 
 extern bool toolOutline;
 
+extern bool lockedMouseX;
+extern bool lockedMouseY;
+extern int lockedMousePosX;
+extern int lockedMousePosY;
+
 extern double measureCX0;
 extern double measureCY0;
 extern double measureLX0;
@@ -225,7 +230,24 @@ void initTools();
 void freeTools();
 
 void useTool();
+void toolCanvasStuff();
 
 void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask);
+
+#define S_TOOLS_CPP()\
+  S_INT("currentBrush",currentBrush);\
+  zipGradient(gradient,save);\
+  S_DOUBLE("wandAlphaDistance",wandAlphaDistance);\
+  S_DOUBLE("wandColorDistance",wandColorDistance);\
+  S_BOOL("wandByNeighbors",wandByNeighbors);\
+  S_BOOL("pipetteFromLayer",pipetteFromLayer);\
+  S_BOOL("pipetteWithColorTransform",pipetteWithColorTransform);\
+  S_DOUBLE("fillColorDistance",fillColorDistance);\
+  S_INT("selectionTool",selectionTool);\
+  S_BOOL("selectionProportional",selectionProportional);\
+  S_FLOAT("lineWidth",lineWidth);\
+  S_BOOL("lineCap",lineCap);\
+  S_BOOL("lineAntialiasing",lineAntialiasing);\
+  S_BOOL("toolOutline",toolOutline);
 
 #endif //__TOOLS_HPP__

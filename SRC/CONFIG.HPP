@@ -64,4 +64,7 @@ extern unsigned int undoStageCount;
 extern bool debugWindowOn;
 void showDebugWindow();
 
+#define S_CONFIG_CPP()\
+  S_DOUBLE("aspectRatio",aspectRatio);
+
 #endif //__CONFIG_H__

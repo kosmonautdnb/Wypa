@@ -39,6 +39,12 @@
 #include "STL/JSONWRT.HPP"
 #include "STL/MINIZ.HPP"
 #include "UNDO.HPP"
+#include "LAYERV.HPP"
+#include "MENUBAR.HPP"
+#include "NAVIGTOR.HPP"
+#include "TOOLBAR.HPP"
+#include "TOOLVIEW.HPP"
+#include "UNDO.HPP"
 #include <math.h>
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
@@ -47,6 +53,13 @@
 #define SHORTFILENAME(__str__) (longFileNames ? shortFileName(__str__) : unixFileName(__str__))
 bool longFileNames = false;
 char longFileNameBuffer[MAX_LFN_PATH];
+
+void loadedSomething() {
+  if (tool == TOOL_TILING) {lastTool = -1;}
+}
+
+void savedSomething() {
+}
 
 String fromLocalFileName(const String &str) {
   String ret = unixFileName(str);
@@ -79,6 +92,7 @@ enum JSONTYPE {
   JSONTYPE_MATRIX = 15,
   JSONTYPE_FILENAME = 16,
   JSONTYPE_BASE64 = 17,
+  JSONTYPE_IMVEC4 = 18
 };
 
 JSON_Value * json_parse_string(const char *string);
@@ -128,8 +142,11 @@ void writeJson(Array<char> *arr, String *string) {
 #define S_VECTOR(__name__, __v__) {Vector *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_VECTOR, __name__, &(__v__), jsonIsSaving,arrayIndex);}
 #define S_MATRIX(__name__, __v__)  {Matrix *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_MATRIX, __name__, &(__v__), jsonIsSaving,arrayIndex);}
 #define S_ZIPLAYERDATA(__index__,__layer__) zipLayerData(String("layer")+String::fromInt(__index__),__layer__,jsonIsSaving)
+#define S_IMVEC4(__name__, __v__) {ImVec4 *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_IMVEC4, __name__, &(__v__), jsonIsSaving,arrayIndex);}
 
 void zipLayerData(const String &layerName, Layer *layer, bool save);
+void zipPalette(const Array<ImVec4> &palette, int colorsPerRow, bool save);
+void zipGradient(const Gradient &gradient, bool save);
 
 //char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -270,6 +287,7 @@ void jsonSerialize(void *json, void **jsonPos, int type, const char *name, void 
       case JSONTYPE_BASE64: { String str = encodeBase64(data,currentBase64Length); newPos = json_str( oldPos, name, str.c_str() != NULL ? str.c_str() : "", &len );} break;
       case JSONTYPE_VECTOR: {Vector *v = (Vector*)data; sprintf(tempBuffer,"%s,%s,%s,%s", _D(v->x), _D(v->y), _D(v->z), _D(v->w)); newPos = json_str( oldPos, name, tempBuffer, &len );} break;
       case JSONTYPE_MATRIX: {double *v = ((Matrix*)data)->m; sprintf(tempBuffer,"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", _D(v[0]), _D(v[1]), _D(v[2]), _D(v[3]), _D(v[4]), _D(v[5]), _D(v[6]), _D(v[7]), _D(v[8]), _D(v[9]), _D(v[10]), _D(v[11]), _D(v[12]), _D(v[13]), _D(v[14]), _D(v[15])); newPos = json_str( oldPos, name, tempBuffer, &len );} break;
+      case JSONTYPE_IMVEC4: {ImVec4 *v = (ImVec4*)data; sprintf(tempBuffer,"%s,%s,%s,%s", _D(v->x), _D(v->y), _D(v->z), _D(v->w)); newPos = json_str( oldPos, name, tempBuffer, &len );} break;
     }
     int posInString = (int)(newPos - &(*w)[0]);
     if (posInString > w->size()-JSONPORTIONLENGTH) {
@@ -304,6 +322,7 @@ void jsonSerialize(void *json, void **jsonPos, int type, const char *name, void 
       case JSONTYPE_BASE64: {if(!has)break; decodeBase64(String((const char *)json_value_get_string(val)),data); } break;
       case JSONTYPE_VECTOR: {if(!has)break;Vector *v = (Vector*)data; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%lf,%lf,%lf,%lf", &v->x, &v->y, &v->z, &v->w);} break;
       case JSONTYPE_MATRIX: {if(!has)break;double *v = ((Matrix*)data)->m; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7], &v[8], &v[9], &v[10], &v[11], &v[12], &v[13], &v[14], &v[15]);} break;
+      case JSONTYPE_IMVEC4: {if(!has)break;ImVec4 *v = (ImVec4*)data; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%lf,%lf,%lf,%lf", &v->x, &v->y, &v->z, &v->w);} break;
     }
   }
 }
@@ -361,13 +380,6 @@ bool serializeBrushes(Array<Brush*> &brushes, bool save, String *string) {
 
   String id = "WYPA BRUSHES"; S_STRING("id",id);
   S_POINTER_ARRAY("brushes",brushes,Brush,S_BRUSH(NULL,brushes[i]));
-/*  S_ARRAY_OPEN("brushes");
-  S_ARRAY_POINTER_RESIZE(brushes,Brush,arraySize);
-  for (int i2 = 0; i2 < brushes.size(); i2++) {
-    arrayIndex = i2;
-    S_BRUSH(NULL,brushes[i2]);
-  }
-  S_ARRAY_CLOSE();*/
 
   FINISHSERIALIZATION();
   return true;
@@ -375,19 +387,28 @@ bool serializeBrushes(Array<Brush*> &brushes, bool save, String *string) {
 
 Matrix inverse2(const Matrix &a);
 
+#define S_WORKSPACE(__name__)\
+  S_DIALOGS_CPP();\
+  S_COLORFLD_CPP();\
+  S_CONFIG_CPP();\
+  S_LAYERS_CPP();\
+  S_LAYERV_CPP();\
+  S_MENUBAR_CPP();\
+  S_NAVIGATOR_CPP();\
+  S_TOOLBAR_CPP();\
+  S_TOOLS_CPP();\
+  S_TOOLVIEW_CPP();\
+  S_UNDO_CPP();
+
 bool serializeCanvas(Array<Canvas*> &canvas, bool save, String *string) {
   STARTSERIALIZATION(save);
   if (error) { return false;}
 
   String id = "WYPA IMAGE FILE"; S_STRING("id",id);
+
+  S_WORKSPACE("workspace");
+  S_POINTER_ARRAY("brushes",brushes,Brush,S_BRUSH(NULL,brushes[i]));
   S_POINTER_ARRAY("canvas",canvas,Canvas,S_CANVAS(NULL,canvas[i]));
-/*  S_ARRAY_OPEN("canvas");
-  S_ARRAY_POINTER_RESIZE(canvas,Canvas,arraySize);
-  for (int i2 = 0; i2 < canvas.size(); i2++) {
-    arrayIndex = i2;
-    S_CANVAS(NULL,canvas[i2]);
-  }
-  S_ARRAY_CLOSE();*/
 
   FINISHSERIALIZATION();
   return true;
@@ -449,10 +470,12 @@ void getFileArray(Array<unsigned char> *arr,const String &maybeExtendedFileName)
 
 void importImage(const char *shortPath, const char *longFileName) {
   addPicture(String(shortPath)+String(longFileName));
+  loadedSomething();
 }
 
 void insertImageLayers(const char *shortPath, const char *longFileName) {
   insertPicture(String(shortPath)+String(longFileName));
+  loadedSomething();
 }
 
 void exportLayers(const char *shortPath, const char *longFileName) {
@@ -465,6 +488,7 @@ void exportLayers(const char *shortPath, const char *longFileName) {
   img.height = l->height;
   img.savePNG(tempName.c_str());
   renameTempFile(shortPath, longFileName);
+  savedSomething();
   delete l;
 }
 
@@ -478,6 +502,7 @@ void exportPNG(const char *shortPath, const char *longFileName) {
   img.height = l->height;
   img.savePNG(tempName.c_str());
   renameTempFile(shortPath, longFileName);
+  savedSomething();
   delete l;
 }
 
@@ -510,6 +535,7 @@ void exportLayersRaw(const char *shortPath, const char *longFileName, bool apply
       updateStatusBar();
     }
   }
+  savedSomething();
 }
 
 void insertPSD(const char *shortPath, const char *longFileName) {
@@ -544,6 +570,7 @@ void insertPSD(const char *shortPath, const char *longFileName) {
       }
     }
   }
+  loadedSomething();
   delete img;
 }
 
@@ -600,6 +627,7 @@ void insertSVGResized(int layerWidth, int layerHeight, float scale)
   int pos = 0;
   for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
   currentCanvas->insertLayer(l,pos);
+  loadedSomething();
 }
 
 void insertSVG(const char *shortPath, const char *longFileName) {
@@ -609,6 +637,7 @@ void insertSVG(const char *shortPath, const char *longFileName) {
     return;
   }
   dialogInsertSVG(true,image->width,image->height);
+  loadedSomething();
 }
 
 Array<String> getLines(const char *string) {
@@ -629,11 +658,8 @@ Array<String> getLines(const char *string) {
   return ret;
 }
 
-void loadPalette(const char *shortPath, const char *longFileName) {
-  Array<unsigned char> arr;
-  getFileArray(&arr,String(shortPath)+String(longFileName));
-  if (arr.empty()) return;
-  const char *str = (char*)&arr[0];
+void paletteFromString(const char *str) {
+  if (str == NULL) return;
   Array<String> lines = getLines(str);
   if (lines.size()<1) return;
   int a[4];
@@ -652,13 +678,13 @@ void loadPalette(const char *shortPath, const char *longFileName) {
       palette.push_back(getImVec4Color(a[0]+(a[1]<<8)+(a[2]<<16)+(a[3]<<24)));
     }
   }
-  updatePalette();
 }
 
-void savePalette(const char *shortPath, const char *longFileName) {
-  FILE *out = createTempFile(shortPath,"w");
-
-  fprintf(out,"%d\n",paletteColorsPerRow);
+String getPaletteString(const Array<ImVec4> &palette, int paletteColorsPerRow) {
+  String ret;
+  char zwo[256];
+  sprintf(zwo,"%d\n",paletteColorsPerRow);
+  ret += String(zwo);
   for (int i = 0; i < palette.size(); i++) {
     int r = int(palette[i].x*255.f);
     int g = int(palette[i].y*255.f);
@@ -672,17 +698,33 @@ void savePalette(const char *shortPath, const char *longFileName) {
     if (g > 255) g = 255;
     if (b > 255) b = 255;
     if (a > 255) a = 255;
-    fprintf(out,"%d %d %d %d\n",r,g,b,a);
+    sprintf(zwo,"%d %d %d %d\n",r,g,b,a);
+    ret += String(zwo);
   }
-  fclose(out);
-  renameTempFile(shortPath, longFileName);
+  return ret;
 }
 
-void loadGradient(const char *shortPath, const char *longFileName) {
+
+void loadPalette(const char *shortPath, const char *longFileName) {
   Array<unsigned char> arr;
   getFileArray(&arr,String(shortPath)+String(longFileName));
   if (arr.empty()) return;
-  const char *str = (char*)&arr[0];
+  paletteFromString((const char *)&arr[0]);
+  updatePalette();
+  loadedSomething();
+}
+
+void savePalette(const char *shortPath, const char *longFileName) {
+  FILE *out = createTempFile(shortPath,"w");
+  String string = getPaletteString(palette,paletteColorsPerRow);
+  fprintf(out,"%s",string.c_str());
+  fclose(out);
+  renameTempFile(shortPath, longFileName);
+  savedSomething();
+}
+
+void gradientFromString(const char *str) {
+  if (str == NULL) return;
   Array<String> lines = getLines(str);
   if (lines.size()<1) return;
   gradient.elements.clear();
@@ -711,21 +753,41 @@ void loadGradient(const char *shortPath, const char *longFileName) {
   updateGradient();
 }
 
-void saveGradient(const char *shortPath, const char *longFileName) {
-  FILE *out = createTempFile(shortPath,"w");
-
+String getGradientString(const Gradient &gradient) {
+  String ret;
+  char zwo[256];
   for (int i = 0; i < gradient.elements.size(); i++) {
-    GradientElement *e = &gradient.elements[i];
+    const GradientElement *e = &gradient.elements[i];
     float pos = e->position;
     int r = e->color & 255;
     int g = (e->color>>8) & 255;
     int b = (e->color>>16) & 255;
     int a = (e->color>>24) & 255;
     bool step = e->isStep;
-    fprintf(out,"%f %d %d %d %d %c\n",pos,r,g,b,a,step ? 's' : 'l');
+    sprintf(zwo,"%f %d %d %d %d %c\n",pos,r,g,b,a,step ? 's' : 'l');
+    ret += String(zwo);
   }
+  return ret;
+}
+
+void loadGradient(const char *shortPath, const char *longFileName) {
+  Array<unsigned char> arr;
+  getFileArray(&arr,String(shortPath)+String(longFileName));
+  if (arr.empty()) return;
+  const char *str = (char*)&arr[0];
+  gradientFromString(str);
+  loadedSomething();
+}
+
+void saveGradient(const char *shortPath, const char *longFileName) {
+  FILE *out = createTempFile(shortPath,"w");
+  
+  String gradientString = getGradientString(gradient);
+  fprintf(out,"%s",gradientString.c_str());
+
   fclose(out);
   renameTempFile(shortPath, longFileName);
+  savedSomething();
 }
 
 class ZipDesc {
@@ -757,6 +819,7 @@ bool writeZippedFiles(const Array<ZipDesc> &desc, const char *shortPath, const c
   if (!mz_zip_writer_finalize_archive(&zip)) return false;
   if (!mz_zip_writer_end(&zip)) return false;
   renameTempFile(shortPath, longFileName);
+  savedSomething();
   return true;
 }
 
@@ -785,6 +848,7 @@ bool readZippedFile(const char *shortPath, const char *longFileName, const char 
     mz_zip_reader_end(&zip);
   }
   fclose(in);
+  loadedSomething();
   return ret;
 }
 
@@ -823,6 +887,7 @@ void loadBrush(const char *shortPath, const char *longFileName) {
       brushes[currentBrush]->update();
     }
   }
+  loadedSomething();
 }
 
 void saveBrush(const char *shortPath, const char *longFileName) {
@@ -831,6 +896,7 @@ void saveBrush(const char *shortPath, const char *longFileName) {
     brushesHere.push_back(brushes[currentBrush]);
     putBrushesArray(brushesHere, shortPath, longFileName);
   }
+  savedSomething();
 }
 
 void loadBrushes(const char *shortPath, const char *longFileName) {
@@ -861,6 +927,7 @@ void loadBrushShape(const char *shortPath, const char *longFileName) {
   brush->isDistanceField = true;
   brush->update();
   rgba.free();
+  loadedSomething();
 }
 
 mz_zip_archive globalZip;
@@ -900,6 +967,57 @@ void zipLayerData(const String &layerName, Layer *layer, bool save) {
   }
 }
 
+void zipPalette(const Array<ImVec4> &palette, int colorsPerRow, bool save) {
+  updateStatusBar();
+  mz_zip_archive &zip = globalZip;
+  String fileName = "palette.pa2";
+  if (save) {
+    dosRemoveFile(fileName.c_str());
+    updateStatusBar();
+    String pal = getPaletteString(palette,paletteColorsPerRow);
+    FILE *out = fopen(fileName.c_str(),"wb");
+    fwrite(&pal[0],1,pal.size(),out);
+    fclose(out);
+    updateStatusBar();
+    mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
+    updateStatusBar();
+    dosRemoveFile(fileName.c_str());
+    updateStatusBar();
+  } else {
+    Array<unsigned char> array;
+    if (readZippedFile(readZipShortPath, readZipLongFileName, fileName.c_str(), array)) {
+      paletteFromString((const char*)&array[0]);
+      updateStatusBar();
+    }
+  }
+}
+
+void zipGradient(const Gradient &gradient, bool save) {
+  updateStatusBar();
+  mz_zip_archive &zip = globalZip;
+  String fileName = "gradient.gr2";
+  if (save) {
+    dosRemoveFile(fileName.c_str());
+    updateStatusBar();
+    String grad = getGradientString(gradient);
+    FILE *out = fopen(fileName.c_str(),"wb");
+    fwrite(&grad[0],1,grad.size(),out);
+    fclose(out);
+    updateStatusBar();
+    mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
+    updateStatusBar();
+    dosRemoveFile(fileName.c_str());
+    updateStatusBar();
+  } else {
+    Array<unsigned char> array;
+    if (readZippedFile(readZipShortPath, readZipLongFileName, fileName.c_str(), array)) {
+      gradientFromString((const char*)&array[0]);
+      updateStatusBar();
+    }
+  }
+}
+
+
 void loadImage(const char *shortPath, const char *longFileName) {
   initStatusBar();
   bool allWentWell = true;
@@ -922,6 +1040,7 @@ void loadImage(const char *shortPath, const char *longFileName) {
   }
   for (int i = 0; i < canvasHere.size(); i++) delete canvasHere[i];
   canvasHere.clear();
+  loadedSomething();
 }
 
 void saveImage(const char *shortPath, const char *longFileName) {
@@ -967,6 +1086,7 @@ void saveImage(const char *shortPath, const char *longFileName) {
 
   // finished
   if (allWentWell) {currentCanvas->signSave(); signSaveForUndo();}
+  savedSomething();
 }
 
 Layer *loadImage(const String &filePath, const String &fileName) {
@@ -979,12 +1099,22 @@ Layer *loadImage(const String &filePath, const String &fileName) {
     }
   }
 
+  if (img.data == NULL) {
+    if (toLower(getExtension(fileName)) == ".wyp") {
+      Array<unsigned char> array;
+      if (readZippedFile(filePath.c_str(), fileName.c_str(), "image.png", array)) {
+        img = RGBAImage::fromMemory(&array[0],array.size());
+      }
+    }
+  }
+
   if (img.data != NULL) {
     ret = new Layer();
     ret->init(img.width,img.height);
     ret->pixels = img.data;
     // no free of img needed here
   }
+  loadedSomething();
   return ret;
 }
 

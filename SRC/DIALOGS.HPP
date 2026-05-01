@@ -70,8 +70,11 @@ void dialogDuplicate(bool openIt);
 void dialogMergeDown(bool openIt);
 void dialogInsertSVG(bool openIt,int width, int height);
 void dialogExportLayersRaw(bool openIt);
+void dialogPictureInfo(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);
+
+#define S_DIALOGS_CPP()
 
 #endif // __DIALOGS_HPP__

@@ -31,4 +31,6 @@ void initNavigator();
 void freeNavigator();
 void drawNavigator();
 
+#define S_NAVIGATOR_CPP()
+
 #endif //__NAVIGTOR_HPP__

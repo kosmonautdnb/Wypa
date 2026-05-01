@@ -33,6 +33,7 @@ extern ImVec4 foregroundColor;
 
 extern int paletteColorsPerRow;
 extern Array<ImVec4> palette;
+extern bool showPalette;
 
 unsigned int swapRB(unsigned int color);
 unsigned int getUIntColor(const ImVec4 &k);
@@ -49,5 +50,15 @@ ImVec4 hsl(double h,double s,double l);
 void getHsl(const ImVec4 &rgb, float *hv, float *sv, float *lv);
 
 void updatePalette();
+
+#define COLORTRACEBACKS 8
+extern unsigned int colorTraceBacks[COLORTRACEBACKS];
+
+#define S_COLORFLD_CPP()\
+  S_IMVEC4("foregroundColor", foregroundColor);\
+  S_BOOL("showPalette", showPalette);\
+  S_CARRAY("colorTraceBacks",colorTraceBacks,S_UINT(NULL,colorTraceBacks[i]),COLORTRACEBACKS);\
+  zipPalette(palette,paletteColorsPerRow,save);\
+  if (!save) shouldRecreateQuantization = true;
 
 #endif // __COLORFLD_HPP__

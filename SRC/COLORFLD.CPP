@@ -65,7 +65,6 @@ ImVec4 getImVec4Color(unsigned int v) {
   return r;
 }
 
-#define COLORTRACEBACKS 8
 unsigned int colorTraceBacks[COLORTRACEBACKS] = {0};
 
 void addUsedColor(const ImVec4 &color) {
@@ -194,9 +193,6 @@ void initColorField() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_2D,0);
   float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);
-  for (int i = 0; i < 256; i++) {
-    palette.push_back(ImVec4((rand()&255)/255.f,(rand()&255)/255.f,(rand()&255)/255.f,1));
-  }
   updatePalette();
 }
 

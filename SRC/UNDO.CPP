@@ -80,7 +80,12 @@ public:
     if (memcmp(a->pixels,b->pixels,a->width*a->height*sizeof(unsigned int))!=0) return false;
     if (memcmp(a->pixelStates,b->pixelStates,a->width*a->height*sizeof(unsigned char))!=0) return false;
     if (memcmp(&a->colorTransform,&b->colorTransform,sizeof(ColorTransform))!=0) return false; // be aware to add undoPoints "only at paint tool" use
-    if (memcmp(&a->toolInfo,&b->toolInfo,sizeof(LayerAdditionalToolInfo))!=0) return false; // be aware to add undoPoints "only at paint tool" use
+    LayerAdditionalToolInfo ta = a->toolInfo;
+    LayerAdditionalToolInfo tb = b->toolInfo;
+    ta.tilingAnimTime = 0; tb.tilingAnimTime = 0;
+    ta.tilingAnimFrame = 0; tb.tilingAnimFrame = 0;
+    if (memcmp(&ta,&tb,sizeof(LayerAdditionalToolInfo))!=0) return false; // be aware to add undoPoints "only at paint tool" use
+    if (memcmp(&a->transform,&b->transform,sizeof(TransformationState))!=0) return false; // be aware to add undoPoints "only at paint tool" use
     return true;
   }
 
@@ -134,7 +139,7 @@ public:
         } 
         pixelCount++;
       }
-      if (writePos * 4 > byteCount) {
+      if (writePos * 4 > bytes) {
         inColorData = true;
         writePos = writePosBefore;
         pixelCount = ints;
@@ -193,9 +198,6 @@ public:
     bool needsFullSourcePixels = source->undoData.updatePixelsCount != lastUndoPixels && (lastUndoPixels >= 0);
     bool needsFullSourcePixelStates = source->undoData.updatePixelStatesCount != lastUndoPixelStates && (lastUndoPixelStates >= 0);
 
-    //if (needsFullSourcePixels) {tempDebugOutput();}
-    //if (needsFullSourcePixelStates) {tempDebugOutput();}
-
     if (isForcedUndoPoint) {
       needsFullSourcePixels = true;
       needsFullSourcePixelStates = true;
@@ -203,6 +205,9 @@ public:
 
     bool emptyPixels = source->undoData.updatePixelsCount == dest->undoData.updatePixelsCount;
     bool emptyPixelStates = source->undoData.updatePixelStatesCount == dest->undoData.updatePixelStatesCount;
+
+    //if (needsFullSourcePixels) {tempDebugOutput();}
+    //if (needsFullSourcePixelStates) {tempDebugOutput();}
 
     int byteCount = 0;
     dest->undoData.freeIt();
@@ -276,6 +281,7 @@ public:
           unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_backward);
           dest->undoData.signWith(&source->undoData.undoLayer->undoData);
           dest->colorTransform = source->undoData.undoLayer->colorTransform;
+          dest->transform = source->undoData.undoLayer->transform;
         }
       } else {
         // redo
@@ -288,6 +294,7 @@ public:
         unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_forward);
         dest->undoData.signWith(&source->undoData);
         dest->colorTransform = source->colorTransform;
+        dest->transform = source->transform;
       }
     }
     shouldUpdateAll = true;

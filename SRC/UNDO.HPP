@@ -36,4 +36,6 @@ void signSaveForUndo();
 void undo();
 void redo();
 
+#define S_UNDO_CPP()
+
 #endif // __UNDO_HPP__

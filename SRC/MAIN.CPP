@@ -166,12 +166,18 @@ void splashScreen() {
       ImGui::Image((ImTextureID)glHandle,ImVec2(w,h));
       ImGui::SetWindowFontScale(1);
       ImVec2 m = ImGui::GetItemRectMax();
+      ImVec2 m2 = ImGui::GetItemRectMin();
       String text2 = String("Version ")+String::fromInt(version / 100) + String(".") + String((version%100)<10 ? "0" : "") + String::fromInt(version % 100);
       ImVec2 textSize = ImGui::CalcTextSize(text2.c_str());
       ImVec2 textPos;
-      textPos.x = m.x - textSize.x;
-      textPos.y = m.y - textSize.y;
+      textPos.x = m.x - textSize.x - 4;
+      textPos.y = m.y - textSize.y - 4;
       ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),ImGui::GetWindowFontSize(),textPos,0xff000000,text2.c_str());
+      textPos.x = m2.x+10;
+      textPos.y = m.y - textSize.y*4;
+      ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),ImGui::GetWindowFontSize(),textPos,0xff000000,"By no means a professional program.\nJust if you need to create games or images on DOS.");
+      
+
       ImGui::SetWindowFontScale(scale);
     }
 
@@ -265,17 +271,12 @@ int main(int argc, const char *argv[]) {
 
 
     if (isPaintAreaActive()) {
-      if (currentKey == '-') {
-        currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,1.0/zoomStep);
-      }
- 
-      if (currentKey == '+') {
-        currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,zoomStep);
-      }
+      if (currentKey == '-') {currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,1.0/zoomStep);}
+      if (currentKey == '+') {currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,zoomStep);}
+      if (currentKey == 'x') {lockedMouseX = !lockedMouseX; lockedMouseY = false; lockedMousePosX = mouseX; lockedMousePosY = mouseY;}
+      if (currentKey == 'y') {lockedMouseY = !lockedMouseY; lockedMouseX = false;  lockedMousePosX = mouseX; lockedMousePosY = mouseY;}
   
-      if (controlKeyId == CONTROLKEY_ALT) {
-        currentCanvas->control.moveByPixels(currentCanvas,mouseDX,mouseDY);
-      }
+      if (controlKeyId == CONTROLKEY_ALT) {currentCanvas->control.moveByPixels(currentCanvas,mouseDX,mouseDY);}
 
       bool enableScrollKeys = tool != TOOL_MOVE;      
       if (enableScrollKeys && currentKey == GL_VK_LEFT) currentCanvas->control.moveByPixels(currentCanvas,scrollKeyPixels,0);
@@ -293,6 +294,7 @@ int main(int argc, const char *argv[]) {
     if (fullScreen) glClear(GL_COLOR_BUFFER_BIT);
 
     blitCanvas();
+    toolCanvasStuff();
     
     ImGuiNewFrame();
     drawMenuBar();

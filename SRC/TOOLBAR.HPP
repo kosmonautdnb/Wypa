@@ -54,4 +54,8 @@ void initToolBar();
 void freeToolBar();
 void drawToolBar();
 
+#define S_TOOLBAR_CPP()\
+  S_INT("tool",tool);\
+  S_BOOL("fullScreen",fullScreen);
+
 #endif // __TOOLBAR_HPP__

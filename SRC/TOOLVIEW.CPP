@@ -35,11 +35,13 @@
 #include "COLORFLD.HPP"
 #include "DIALOGS.HPP"
 #include "STL/IMAGE.HPP"
+#include "UNDO.HPP"
 #include <math.h>
 
 int toolview_width = 120;
 
 bool roundButton(const char *name, bool enabled);
+bool imageButton(const char *svgName, const char *id, bool selected, bool hilighted);
 
 GLuint gradientTexture = 0;
 const int gradientTextureWidth = 100;
@@ -50,6 +52,7 @@ GLuint tilingTexture = 0;
 const int tilingTextureWidth = 100;
 const int tilingTextureHeight = 100;
 unsigned int tilingTextureContent[tilingTextureWidth*tilingTextureHeight];
+unsigned int tilingTextureContentAnim[tilingTextureWidth*tilingTextureHeight];
 
 void initToolView() {
   glGenTextures(1,&gradientTexture);
@@ -400,7 +403,7 @@ void drawToolMagicView() {
   float *v;
 
   ImGui::Text("In selection");ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWJUSTINSELECTION",&l->showColorTransformOnlyInSelection)) {t->shouldUpdate = true; shouldUpdateAll = true;}
-  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {l->bakeMagic(l->hasSelection()); l->colorTransform.useColorTransform = false; l->colorTransform.usePosterize = false; l->colorTransform.useQuantization = false; shouldUpdateAll = true;}
+  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {beforeUndoPoint();l->bakeMagic(l->hasSelection()); l->colorTransform.useColorTransform = false; l->colorTransform.usePosterize = false; l->colorTransform.useQuantization = false; afterUndoPoint(); shouldUpdateAll = true;}
   ImGui::Separator();
   if (roundButton("Reset##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGRESET",true)) {l->colorTransform.reset(); shouldUpdateAll = true;}
   if (roundButton("Copy##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGCOPY",true)) {l->copyColorTransform();}
@@ -432,6 +435,13 @@ void drawToolMagicView() {
     v = &t->lightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWLIGHTNESS",v,0,1)) {if (*v<0) *v = 0; if (*v>4) *v = 4; t->shouldUpdate = true; shouldUpdateAll = true;}
 
     ImGui::Text("Perceptional"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICPERCEPTIONAL",&t->perceptional)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+
+    ImGui::Text("p - r - y");
+    v = &t->middleRedAdjust; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWMIDDLEREDADJUST",v,-1,1)) {t->shouldUpdate = true; shouldUpdateAll = true;} if (*v<-1) *v = -1; if (*v>1) *v = 1; 
+    ImGui::Text("y - g - c");
+    v = &t->middleGreenAdjust; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWMIDDLEGREENADJUST",v,-1,1)) {t->shouldUpdate = true; shouldUpdateAll = true;} if (*v<-1) *v = -1; if (*v>1) *v = 1; 
+    ImGui::Text("c - b - p");
+    v = &t->middleBlueAdjust; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWMIDDLEBLUEADJUST",v,-1,1)) {t->shouldUpdate = true; shouldUpdateAll = true;} if (*v<-1) *v = -1; if (*v>1) *v = 1; 
 
     ImGui::Text("Scale red");
     v = &t->scaleRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWSCALERED",v,0,0,2)) {if (*v<-512) *v = -512; if (*v>512) *v = 512; t->shouldUpdate = true; shouldUpdateAll = true;}
@@ -560,6 +570,12 @@ void updateTilingGrid(Layer *l, bool visible) {
   shouldUpdateAll = true;
 }
 
+void updateTilingTexture() {
+  glBindTexture(GL_TEXTURE_2D,tilingTexture);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, tilingTextureContent);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
 void updateTilingImage(const RGBAImage &image) {
   double px = currentCanvas->control.pixelSizeX;
   double py = currentCanvas->control.pixelSizeY;
@@ -581,9 +597,78 @@ void updateTilingImage(const RGBAImage &image) {
       tilingTextureContent[x+y*tilingTextureWidth] = col;
     }
   }
+  updateTilingTexture();
+}
+
+void updateTilingImageAnim(const RGBAImage &image) {
+  double px = currentCanvas->control.pixelSizeX;
+  double py = currentCanvas->control.pixelSizeY;
+  for (int y = 0; y < tilingTextureHeight; y++) {
+    for (int x = 0; x < tilingTextureWidth; x++) {
+      unsigned int col = 0x00000000;
+      if (image.data != NULL && image.width > 0 && image.height > 0 && px > 0 && py > 0) {
+        double scaleX = (double)image.width/tilingTextureWidth*px;
+        double scaleY = (double)image.height/tilingTextureHeight*py;
+        double scale = scaleX > scaleY ? scaleX : scaleY;
+        double x2 = (double)(x - tilingTextureWidth*0.5)*scale/px;
+        double y2 = (double)(y - tilingTextureHeight*0.5)*scale/py;
+        x2 += image.width*0.5;
+        y2 += image.height*0.5;
+        int x3 = (int)floor(x2);
+        int y3 = (int)floor(y2);
+        if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
+      }
+      tilingTextureContentAnim[x+y*tilingTextureWidth] = col;
+    }
+  }
   glBindTexture(GL_TEXTURE_2D,tilingTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, tilingTextureContent);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, tilingTextureContentAnim);
   glBindTexture(GL_TEXTURE_2D,0);
+}
+
+RGBAImage getImageFromLayer(Layer *l, int sx,int sy, int width, int height);
+
+bool getTilingAnimationFrameLayerCell(Layer *l,int frame, int &cx, int &cy, int &outaX, int &outaY) {
+  if (l->toolInfo.tilingWidth <= 0) return false;
+  if (l->toolInfo.tilingHeight <= 0) return false;
+  outaX = (l->toolInfo.tilingOffsetX+l->toolInfo.tilingWidth*100000) % l->toolInfo.tilingWidth;
+  outaY = (l->toolInfo.tilingOffsetY+l->toolInfo.tilingHeight*100000) % l->toolInfo.tilingHeight;
+  int tcx = l->width/l->toolInfo.tilingWidth;
+  if (outaX != 0) tcx--;
+  if (tcx <= 0) return false;
+  cx = frame % tcx;
+  cy = frame / tcx;
+  return true;
+}
+
+void blitTilingAnimFrame(Layer *l,int frame) {
+  int cx,cy,outaX,outaY; 
+  if (!getTilingAnimationFrameLayerCell(l,frame,cx,cy,outaX,outaY)) return;
+  cx *= l->toolInfo.tilingWidth;
+  cy *= l->toolInfo.tilingHeight;
+  cx += outaX;
+  cy += outaY;
+  int tw = l->toolInfo.tilingWidth;
+  int th = l->toolInfo.tilingHeight;
+  RGBAImage tile = getImageFromLayer(l,cx,cy,tw,th);
+  updateTilingImageAnim(tile);
+  tile.free();
+}
+
+void playTilingAnimation(Layer *l) {
+  if (l == NULL) return;
+  int f0 = l->toolInfo.tilingAnimFirstFrame;
+  int fn = l->toolInfo.tilingAnimLastFrame;
+  int s = fn-f0;
+  if (s<=0||l->toolInfo.tilingAnimFPS<=0) {blitTilingAnimFrame(l,f0); return;}
+  l->toolInfo.tilingAnimTime += timeDelta * l->toolInfo.tilingAnimFPS * (l->toolInfo.tilingAnimReverse ? -1 : 1); // actually the current frame
+  if (l->toolInfo.tilingAnimTime<0) {l->toolInfo.tilingAnimTime += s * floor(-l->toolInfo.tilingAnimTime/s+1);}
+  int tilingFrame = floor(l->toolInfo.tilingAnimTime);
+  if (tilingFrame<0) {blitTilingAnimFrame(l,f0); return;}
+  tilingFrame %= s;
+  tilingFrame += l->toolInfo.tilingAnimFirstFrame;
+  l->toolInfo.tilingAnimFrame = tilingFrame;
+  blitTilingAnimFrame(l,tilingFrame);
 }
 
 void drawToolTilingView() {
@@ -593,6 +678,10 @@ void drawToolTilingView() {
     double lx = mouseX,ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
     int x = (int)floor((lx - l->toolInfo.tilingOffsetX) / (double)l->toolInfo.tilingWidth);
     int y = (int)floor((ly - l->toolInfo.tilingOffsetY) / (double)l->toolInfo.tilingHeight);
+    if (controlKeyId == CONTROLKEY_SHIFT) 
+      ImGui::Text("Select cell");
+    else
+      ImGui::Text("");
     ImGui::Text("[%d] [%d]",x,y);
     ImGui::Text("Cells");
     ImGui::Text("Offset X"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWOFSX",&l->toolInfo.tilingOffsetX,0,0)) {updateTilingGrid(l,true);}
@@ -612,6 +701,23 @@ void drawToolTilingView() {
     minB.x -= 1;
     minB.y -= 1;
     ImGui::GetWindowDrawList()->AddRect(minB,maxB,0xff000000);
+    ImGui::Separator();
+    ImGui::PushItemWidth(7*5);
+    ImGui::Text("Animation"); ImGui::SameLine(); 
+    if (imageButton(l->toolInfo.tilingAnimPlaying?"pause":"play", "##DRAWTOOLTILINGANIMATIONPLAY", false, false)) {
+      l->toolInfo.tilingAnimPlaying = !l->toolInfo.tilingAnimPlaying;
+      l->toolInfo.tilingAnimTime = 0;updateTilingTexture();   
+    }
+    if (l->toolInfo.tilingAnimPlaying) {
+      ImGui::Text("Index %d",l->toolInfo.tilingAnimFrame);
+    }
+    ImGui::Text("Show indices"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGANIMATIONSHOWINDICES",&l->toolInfo.showTilingGridIndices)) {updateTilingGrid(l,true);}
+    ImGui::Text("FPS"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLTILINGANIMATIONFPS",&l->toolInfo.tilingAnimFPS,0,0,2)) {} if (l->toolInfo.tilingAnimFPS<0) l->toolInfo.tilingAnimFPS=0;
+    ImGui::Text("Index0"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGANIMATIONFIRSTFRAME",&l->toolInfo.tilingAnimFirstFrame,0,0)) {l->toolInfo.tilingAnimPlaying=false;} if (l->toolInfo.tilingAnimFirstFrame<0) l->toolInfo.tilingAnimFirstFrame=0;
+    ImGui::Text("IndexN"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGANIMATIONLASTFRAME",&l->toolInfo.tilingAnimLastFrame,0,0)) {l->toolInfo.tilingAnimPlaying=false;} if (l->toolInfo.tilingAnimLastFrame<0) l->toolInfo.tilingAnimLastFrame=0;
+    ImGui::Text("Reverse"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLTILINGANIMATIONREVERSE",&l->toolInfo.tilingAnimReverse);
+    ImGui::PopItemWidth();
+    if (l->toolInfo.tilingAnimPlaying) playTilingAnimation(l);
   }
 }
 

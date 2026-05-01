@@ -33,6 +33,7 @@
 #include "SERIALZE.HPP"
 #include "IMAGE.HPP"
 #include "UNDO.HPP"
+#include "CHARSET.HPP"
 #include <math.h>
 
 
@@ -57,6 +58,57 @@ void freeTools() {
   brushes.clear();
   delete onePixelBrush;
   copiedTiling.free();
+}
+
+void drawText(float scale, int xp, int yp, const char *text, uint32_t color, float anchorX, float anchorY) {
+  if (text == NULL) return;
+  int width2 = 0;
+  int width = 0;
+  int height = 6;
+  const char *s2 = text;
+  while(*s2!=0) {
+    if (*s2 == '\n') {height += 6;width2=0;}
+    Letter *l = getLetter(*s2);
+    width2 += l->preAddX + l->width + l->postAddX;
+    if (width2 > width) width = width2;
+    s2++;
+    if (*s2 == 0) break;
+    width2 += 1;
+  }
+  const char *s = text;
+  int x2 = -width * anchorX;
+  int y2 = -height * anchorY;
+  int x3 = x2;
+  while(*s!=0) {
+    Letter *l = getLetter(*s);
+    if (*s == '\n') {
+      x2 = x3;
+      y2 += 6;
+      s++;
+      continue;
+    }
+    for (int y = 0; y < l->height; y++) {
+      for (int x = 0; x < l->width; x++) {
+        int x3 = x2 + x + l->preAddX;
+        int y3 = y2 + y + l->preAddY;
+        if (l->bitmap[x+y*l->width]!='0') {
+          int x0 = (int)floor(x3 * scale);
+          int y0 = (int)floor(y3 * scale);
+          int x1 = (int)floor((x3+1) * scale);
+          int y1 = (int)floor((y3+1) * scale);
+          for (int y4 = y0; y4 < y1; y4++) {
+            for (int x4 = x0; x4 < x1; x4++) {
+              int x5 = xp + x4;
+              int y5 = yp + y4;
+              if ((unsigned int)x5<glFrameBufferWidth && (unsigned int)y5<glFrameBufferHeight) glFrameBuffer[x5+y5*glFrameBufferWidth] = color;
+            }
+          }
+        }
+      }
+    }
+    x2 += l->preAddX + l->width + l->postAddX + 1;
+    s++;
+  }
 }
 
 double scrollborderSize = 10;
@@ -1019,6 +1071,11 @@ double paintingPointLastX1 = 0;
 double paintingPointLastY1 = 0;
 bool toolOutline = true;
 
+bool lockedMouseX = false;
+bool lockedMouseY = false;
+int lockedMousePosX = 0;
+int lockedMousePosY = 0;
+
 void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double angle, bool justSelection, bool paintJustIntoOutline) {
 
   double xs = (rand() & 1023)/1023.0*2.0-1.0;
@@ -1673,12 +1730,18 @@ void useToolTiling() {
   if (l == NULL) return;
   mouseClickUndo();
   double lx = mouseX, ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
-  int sx = (int)floor((lx-l->toolInfo.tilingOffsetX)/l->toolInfo.tilingWidth)*l->toolInfo.tilingWidth;
-  int sy = (int)floor((ly-l->toolInfo.tilingOffsetY)/l->toolInfo.tilingHeight)*l->toolInfo.tilingHeight;
+  int sx = 0, sy = 0;
+  if (l->toolInfo.tilingWidth>0) sx = (int)floor((lx-l->toolInfo.tilingOffsetX)/l->toolInfo.tilingWidth)*l->toolInfo.tilingWidth;
+  if (l->toolInfo.tilingHeight>0) sy = (int)floor((ly-l->toolInfo.tilingOffsetY)/l->toolInfo.tilingHeight)*l->toolInfo.tilingHeight;
   if (ImGui::IsMouseClicked(0)) {
-    copiedTiling.free();
-    copiedTiling = getImageFromLayer(l,sx,sy,l->toolInfo.tilingWidth,l->toolInfo.tilingHeight);
-    updateTilingImage(copiedTiling);
+    if (controlKeyId == CONTROLKEY_SHIFT) {
+      l->selectNone();
+      l->addSelectionRectangle(sx,sy,sx+l->toolInfo.tilingWidth,sy+l->toolInfo.tilingHeight);
+    } else {
+      copiedTiling.free();
+      copiedTiling = getImageFromLayer(l,sx,sy,l->toolInfo.tilingWidth,l->toolInfo.tilingHeight);
+      updateTilingImage(copiedTiling);
+    }
   }
   if (ImGui::IsMouseDown(1)) {
     putImageToLayer(l,copiedTiling,sx,sy);
@@ -1686,7 +1749,104 @@ void useToolTiling() {
   }
 }
 
+void drawMouseArrow2(int mouseX, int mouseY) {
+  const int width = 8; const int height = 8; const char *bitmap =
+  "60000000"
+  "98900000"
+  "98889000"
+  "09888990"
+  "09888889"
+  "00989999"
+  "00989000"
+  "00099000";
+  bool first = true; for (int y = 0; y < height; y++) { for (int x = 0; x < width; x++) {
+      char c = bitmap[x+y*width];
+      if (c != '0') {unsigned int color = 0xffffffff;
+         if (c == '9') color = 0xff000000;
+         if (c == '6') color = 0xffffffff;
+        int dx = x+mouseX;
+        int dy = y+mouseY;
+        if ((unsigned int)dx < glFrameBufferWidth && (unsigned int)dy < glFrameBufferHeight) glFrameBuffer[dx+dy*glFrameBufferWidth]=color;
+        first = false;
+      }
+    }
+  }
+}
+
+void toolCanvasStuff() {
+  switch(tool) {
+  case TOOL_TILING: {
+      Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) break;
+      if (l->toolInfo.tilingWidth <= 0) break;
+      if (l->toolInfo.tilingHeight <= 0) break;
+      double lx = mouseX, ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
+      int outaX = (l->toolInfo.tilingOffsetX+l->toolInfo.tilingWidth*100000) % l->toolInfo.tilingWidth;
+      int outaY = (l->toolInfo.tilingOffsetY+l->toolInfo.tilingHeight*100000) % l->toolInfo.tilingHeight;
+      int cx = (int)floor((double)(lx-outaX)/l->toolInfo.tilingWidth);
+      int cy =  (int)floor((double)(ly-outaY)/l->toolInfo.tilingHeight);
+      int tcx = l->width/l->toolInfo.tilingWidth;
+      int tcy = l->height/l->toolInfo.tilingHeight;
+      if (outaX != 0) tcx--;
+      if (outaY != 0) tcy--;
+      int index = cx+cy*tcx;
+      lx = cx * l->toolInfo.tilingWidth + outaX;
+      ly = cy * l->toolInfo.tilingHeight + outaY;
+      lx += l->toolInfo.tilingWidth*0.5;
+      ly += l->toolInfo.tilingHeight*0.5;
+      currentCanvas->getScreenPos(l,lx,ly,lx,ly);
+      float scale = currentCanvas->control.zoom/100.f;
+      if (scale < 1) scale = 1;
+      if (scale > 4) scale = 4;
+      if (l->toolInfo.showTilingGridIndices) {
+        if (cx >= 0 && cy >= 0 && cx < tcx && cy < tcy) {
+          drawText(scale, lx+1, ly+1, String::fromInt(index).c_str(), 0xff000000, 0.5, 0.5);
+          drawText(scale, lx, ly, String::fromInt(index).c_str(), 0xffffffff, 0.5, 0.5);
+        }
+      }
+      if (l->toolInfo.tilingAnimPlaying) {
+        int cx,cy;
+        index = l->toolInfo.tilingAnimFrame;
+        if (getTilingAnimationFrameLayerCell(l,index,cx,cy,outaX,outaY)) {
+          lx = cx * l->toolInfo.tilingWidth + outaX;
+          ly = cy * l->toolInfo.tilingHeight + outaY;
+          lx += l->toolInfo.tilingWidth*0.5;
+          ly += l->toolInfo.tilingHeight*0.5;
+          currentCanvas->getScreenPos(l,lx,ly,lx,ly);
+          float scale = currentCanvas->control.zoom/100.f;
+          if (scale < 1) scale = 1;
+          if (scale > 4) scale = 4;
+          drawText(scale, lx+1, ly+1, String::fromInt(index).c_str(), 0xff0000ff, 0.5, 0.5);
+          drawText(scale, lx, ly, String::fromInt(index).c_str(), 0xff000000, 0.5, 0.5);
+        }
+
+      }
+
+    } break;
+  }
+
+  if (lockedMouseX) {
+    int x = lockedMousePosX;
+    if (x >= 0 && x < glFrameBufferWidth) {
+      for (int y = 0; y < glFrameBufferHeight; y++)
+        glFrameBuffer[x+y*glFrameBufferWidth]=0xff0000ff;
+    }
+    drawMouseArrow2(x,mouseY);
+  }
+  if (lockedMouseY) {
+    int y = lockedMousePosY;
+    if (y >= 0 && y < glFrameBufferHeight) {
+      for (int x = 0; x < glFrameBufferWidth; x++)
+        glFrameBuffer[x+y*glFrameBufferWidth]=0xff0000ff;
+    }
+    drawMouseArrow2(mouseX,y);
+  }
+}
+
 void useTool() {
+  double mouseXBefore = mouseX;
+  double mouseYBefore = mouseY;
+  if (lockedMouseX) mouseX = lockedMousePosX;
+  if (lockedMouseY) mouseY = lockedMousePosY;
   switch(tool) {
   case TOOL_WAND: {
     useToolWand();
@@ -1725,4 +1885,6 @@ void useTool() {
     useToolTiling();
     } break;
   }
+  mouseX = mouseXBefore;
+  mouseY = mouseYBefore;
 }

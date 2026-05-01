@@ -31,6 +31,7 @@
 #include "STL/DOS.HPP"
 #include "DIALOGS.HPP"
 #include "UNDO.HPP"
+#include "TOOLS.HPP"
 #include <math.h>
 
 int menuBar_height = 17;
@@ -94,6 +95,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Save image")) {dialogLoadSave(true,DIALOG_SAVEIMAGE);}
       ImGui::Separator();
       if (ImGui::MenuItem("Import image")) {dialogLoadSave(true,DIALOG_IMPORTIMAGE);}
+      ImGui::Separator();
       if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
       if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
       if (ImGui::MenuItem("Insert svg layer (experimental)")) {dialogLoadSave(true,DIALOG_INSERTSVG);}
@@ -160,7 +162,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Insert merge of layer(s)",NULL,false,count > 0)) {currentCanvas->insertMergeOfLayers();}
       if (ImGui::MenuItem("Insert alpha mask above layer(s)",NULL,false,count > 0)) {currentCanvas->insertAlphaMasks();}
       if (ImGui::MenuItem("Apply alpha mask to below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}
-      if (ImGui::MenuItem("Quantize layer(s) to palette",NULL,false,one)) {currentCanvas->quantizeLayers();}
+      if (ImGui::MenuItem("Quantize layer(s) to palette",NULL,false,one)) {beforeUndoPoint();currentCanvas->quantizeLayers();afterUndoPoint();}
       ImGui::Separator();
       if (ImGui::MenuItem("Mirror horizontally",NULL,false,one)) {currentCanvas->mirrorHorizontallyLayers();}
       if (ImGui::MenuItem("Mirror vertically",NULL,false,one)) {currentCanvas->mirrorVerticallyLayers();}
@@ -197,6 +199,8 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
       if (ImGui::MenuItem("Center")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Clear mouse lock",NULL,false,lockedMouseX||lockedMouseY)) {lockedMouseX = false; lockedMouseY = false;}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Filter")) {
@@ -220,6 +224,7 @@ void drawMenuBar() {
       }
       ImGui::Separator();
       if (ImGui::MenuItem("Delete picture")) {dialogDeletePicture(true);}
+      if (ImGui::MenuItem("Picture info")) {dialogPictureInfo(true);}
       if (ImGui::MenuItem("Insert layers from other picture")) {dialogGetLayersFromPicture(true);}
       ImGui::EndMenu();
     }

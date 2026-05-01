@@ -29,4 +29,6 @@ void freeLayerView();
 
 void drawLayerView();
 
+#define S_LAYERV_CPP()
+
 #endif //__LAYERV_HPP__
