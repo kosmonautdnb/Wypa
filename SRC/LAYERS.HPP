@@ -442,12 +442,12 @@ public:
 
 #define S_LAYER(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
-  S_INT("mode",(__o__)->mode);\
   S_INT("width",(__o__)->width);\
   S_INT("height",(__o__)->height);\
   S_NAME("name",(__o__)->name,LAYERNAMEMAX);\
   if (!save) (__o__)->init(1,1);\
   S_ZIPLAYERDATA(i,__o__);\
+  S_INT("mode",(__o__)->mode);\
   S_UINT("id",(__o__)->id);\
   S_LAYERSTATE("state",&(__o__)->state);\
   S_TRANSFORMATIONSTATE("transform",&(__o__)->transform);\

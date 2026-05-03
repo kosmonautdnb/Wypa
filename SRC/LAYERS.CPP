@@ -1190,7 +1190,9 @@ void Layer::bakeLayer(int interpolation) {
 
 Layer *Layer::clone() {
   Layer *ret = new Layer();
+  unsigned int id = ret->id;
   *ret = *this;
+  ret->id = id;
   ret->pixels = NULL;
   ret->pixelStates = NULL;
   ret->init(width,height);

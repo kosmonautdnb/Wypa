@@ -322,7 +322,7 @@ void jsonSerialize(void *json, void **jsonPos, int type, const char *name, void 
       case JSONTYPE_BASE64: {if(!has)break; decodeBase64(String((const char *)json_value_get_string(val)),data); } break;
       case JSONTYPE_VECTOR: {if(!has)break;Vector *v = (Vector*)data; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%lf,%lf,%lf,%lf", &v->x, &v->y, &v->z, &v->w);} break;
       case JSONTYPE_MATRIX: {if(!has)break;double *v = ((Matrix*)data)->m; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7], &v[8], &v[9], &v[10], &v[11], &v[12], &v[13], &v[14], &v[15]);} break;
-      case JSONTYPE_IMVEC4: {if(!has)break;ImVec4 *v = (ImVec4*)data; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%lf,%lf,%lf,%lf", &v->x, &v->y, &v->z, &v->w);} break;
+      case JSONTYPE_IMVEC4: {if(!has)break;ImVec4 *v = (ImVec4*)data; String t = (const char *)json_value_get_string(val); sscanf(t.c_str(),"%f,%f,%f,%f", &v->x, &v->y, &v->z, &v->w);} break;
     }
   }
 }
