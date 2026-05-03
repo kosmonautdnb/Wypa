@@ -7,7 +7,7 @@ _build\text.exe
 @echo off
 @echo Starting.. (needs RamDisk at R:)
 
-rem pmodew has currently a problem with the exe size or the raw program size but with hdpmi32i of SBEMU it runs also well with DOS4GW
+rem pmodew has currently a problem with the exe size or the raw program size (only WatcomC++11) but with hdpmi32i of SBEMU it runs also well with DOS4GW
 
 if %PMODEWCOMPILE%==1 goto label2
   @echo system dos4g > R:\LINK.LNK

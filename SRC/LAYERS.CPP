@@ -607,7 +607,7 @@ void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
   updatedPixels(this);
 }
 
-void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int or) {
+void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or) {
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -621,7 +621,7 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int or) {
     int x = px;
     int y = py;
     if ((unsigned int)x<width&&(unsigned int)y<height) {
-      pixels[x+y*width] |= or;
+      pixels[x+y*width] |= _or;
     }
     px += xa;
     py += ya;
@@ -629,7 +629,7 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int or) {
   updatedPixels(this);
 }
 
-void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
+void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor) {
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -643,7 +643,7 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
     int x = px;
     int y = py;
     if ((unsigned int)x<width&&(unsigned int)y<height) {
-      pixels[x+y*width] ^= eor;
+      pixels[x+y*width] ^= _eor;
     }
     px += xa;
     py += ya;
@@ -651,7 +651,7 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
   updatedPixels(this);
 }
 
-void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
+void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor) {
   if (y1 == y0) return;
   if (y1 < y0) {
     int t;
@@ -665,7 +665,7 @@ void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int eor) {
     int x = px;
     int y = py;
     if ((unsigned int)x<width&&(unsigned int)y<height) {
-      pixels[x+y*width] ^= eor;
+      pixels[x+y*width] ^= _eor;
     }
     px += xa;
     py ++;
@@ -720,10 +720,10 @@ void Layer::clear() {
   updatedPixelStates(this);
 }
 
-void Layer::updatePixelStates(unsigned char and, unsigned char or, unsigned char eor) {
-  unsigned int and2 = and|(and<<8)|(and<<16)|(and<<24);
-  unsigned int or2 = or|(or<<8)|(or<<16)|(or<<24);
-  unsigned int eor2 = eor|(eor<<8)|(eor<<16)|(eor<<24);
+void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor) {
+  unsigned int and2 = _and|(_and<<8)|(_and<<16)|(_and<<24);
+  unsigned int or2 = _or|(_or<<8)|(_or<<16)|(_or<<24);
+  unsigned int eor2 = _eor|(_eor<<8)|(_eor<<16)|(_eor<<24);
   unsigned int *pixelStates2 = (unsigned int*)pixelStates;
   for (int i = 0; i < width*height/4; i++) {
     unsigned int a = pixelStates2[i];
@@ -1600,10 +1600,10 @@ void Canvas::clearUpdateFlag() {
   for (int i = 0; i < width * height/4; i++) pixelStates2[i] &= f2;
 }
 
-void Canvas::updatePixelStates(unsigned char and, unsigned char or, unsigned char eor) {
-  unsigned int and2 = and|(and<<8)|(and<<16)|(and<<24);
-  unsigned int or2 = or|(or<<8)|(or<<16)|(or<<24);
-  unsigned int eor2 = eor|(eor<<8)|(eor<<16)|(eor<<24);
+void Canvas::updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor) {
+  unsigned int and2 = _and|(_and<<8)|(_and<<16)|(_and<<24);
+  unsigned int or2 = _or|(_or<<8)|(_or<<16)|(_or<<24);
+  unsigned int eor2 = _eor|(_eor<<8)|(_eor<<16)|(_eor<<24);
   unsigned int *pixelStates2 = (unsigned int*)pixelStates;
   for (int i = 0; i < width*height/4; i++) {
     unsigned int a = pixelStates2[i];

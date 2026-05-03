@@ -379,14 +379,14 @@ public:
   unsigned int getPixel(int x, int y);
   void setPixel(int x, int y, unsigned int rgba);
   void pixelLine(int x0, int y0, int x1, int y1, unsigned int color);
-  void pixelLineOr(int x0, int y0, int x1, int y1, unsigned int or);
-  void pixelLineEor(int x0, int y0, int x1, int y1, unsigned int eor);
-  void pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int eor);
+  void pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or);
+  void pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor);
+  void pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor);
 
   void init(int width, int height);
   void invalidateContent();
   void clear();
-  void updatePixelStates(unsigned char and, unsigned char or, unsigned char eor);
+  void updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor);
 
   void mirrorHorizontally();
   void mirrorVertically();
@@ -561,7 +561,7 @@ public:
 
   void init(int width, int height);
   void clearUpdateFlag();
-  void updatePixelStates(unsigned char and, unsigned char or, unsigned char eor);
+  void updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor);
 
   void getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY);
   void getLayerPosFromCanvasPos(Layer *layer, double canvasX, double canvasY, double &layerX, double &layerY);
