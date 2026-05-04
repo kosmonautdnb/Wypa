@@ -99,7 +99,7 @@ Matrix inverse2(const Matrix &a) {
   return inverse(a); // maybe this inverse is too simple
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Normal","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear"};
 void LayerState::clear() {
   active = false;
@@ -496,6 +496,12 @@ void ColorTransform::reset() {
   posterizeGreen = 0;
   posterizeBlue = 0;
   posterizeAlpha = 0;
+  thresholdRed = 0.333;
+  thresholdGreen = 0.333;
+  thresholdBlue = 0.333;
+  thresholdAlpha = 0;
+  thresholdLuma = 128;
+  thresholdInvert = false;
   ditherStrength = 0;
   middleRedAdjust = 0;
   middleGreenAdjust = 0;
@@ -541,6 +547,24 @@ unsigned int ColorTransform::applyPosterize(unsigned int pixel) {
   if (posterizeBlue>0) b = (int)(b / posterizeBlue)*posterizeBlue;
   if (posterizeAlpha>0) a = (int)(a / posterizeAlpha)*posterizeAlpha;
   return r|(g<<8)|(b<<16)|(a<<24);
+}
+
+unsigned int ColorTransform::applyThreshold(unsigned int pixel) {
+  int r = pixel & 255;
+  int g = (pixel>>8) & 255;
+  int b = (pixel>>16) & 255;
+  int a = (pixel>>24) & 255;
+  int thresholdRed = (int)floor(thresholdRed*256);
+  int thresholdGreen = (int)floor(thresholdGreen*256);
+  int thresholdBlue = (int)floor(thresholdBlue*256);
+  int thresholdAlpha = (int)floor(thresholdAlpha*256);
+  int grey = (r*thresholdRed + g*thresholdGreen + b*thresholdBlue + a*thresholdAlpha)>>8;
+  unsigned int rgb1 = 0x00000000;
+  if (grey >= thresholdLuma) {
+    rgb1 = 0xffffffff;
+  }
+  if (thresholdInvert) rgb1 ^= 0xffffffff;
+  return rgb1;
 }
 
 int ColorTransform::byteCount() {
@@ -607,7 +631,7 @@ void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
   updatedPixels(this);
 }
 
-void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or) {
+void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool clampOnLayer) {
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -620,6 +644,7 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or) {
   for (int i = 0; i < delta+1; i++) {
     int x = px;
     int y = py;
+    if (clampOnLayer) {if (x < 0) x = 0; if (y < 0) y = 0; if (x >= width) x = width-1; if (y >= height) y = height-1;}
     if ((unsigned int)x<width&&(unsigned int)y<height) {
       pixels[x+y*width] |= _or;
     }
@@ -629,7 +654,7 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or) {
   updatedPixels(this);
 }
 
-void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor) {
+void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer) {
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -642,6 +667,7 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor) {
   for (int i = 0; i < delta+1; i++) {
     int x = px;
     int y = py;
+    if (clampOnLayer) {if (x < 0) x = 0; if (y < 0) y = 0; if (x >= width) x = width-1; if (y >= height) y = height-1;}
     if ((unsigned int)x<width&&(unsigned int)y<height) {
       pixels[x+y*width] ^= _eor;
     }
@@ -651,7 +677,7 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor) {
   updatedPixels(this);
 }
 
-void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor) {
+void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer) {
   if (y1 == y0) return;
   if (y1 < y0) {
     int t;
@@ -664,6 +690,7 @@ void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor) {
   for (int i = 0; i < y1-y0; i++) {
     int x = px;
     int y = py;
+    if (clampOnLayer) {if (x < 0) x = 0; if (y < 0) y = 0; if (x >= width) x = width-1; if (y >= height) y = height-1;}
     if ((unsigned int)x<width&&(unsigned int)y<height) {
       pixels[x+y*width] ^= _eor;
     }
@@ -679,7 +706,7 @@ void Layer::init(int width, int height) {
   toolInfo = LayerAdditionalToolInfo();
   transform.clear();
   state.clear();
-  mode = LAYERMODE_NORMAL;
+  mode = LAYERMODE_DEFAULT;
   if (pixels != NULL) {delete[] pixels; pixels = NULL;}
   if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;}
   pixels = new unsigned int[width*height];
@@ -1379,6 +1406,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
     unsigned int col = pixels[i];
     if (colorTransform.useColorTransform) col = colorTransform.applyColorTransform(col);
     if (colorTransform.usePosterize) col = colorTransform.applyPosterize(col);
+    if (colorTransform.useThreshold) col = colorTransform.applyThreshold(col);
     int rs = col & 255;
     int gs = (col>>8) & 255;
     int bs = (col>>16) & 255;
@@ -1405,22 +1433,6 @@ void Layer::quantize(const Array<unsigned int> &colors) {
   colorTransform.usePosterize = false;
   colorTransform.useQuantization = false;
   shouldUpdateAll = true;
-}
-
-void Layer::updateTilingGrid(bool visible) {
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      int i = x + y * width;
-      pixelStates[i] &= ~PIXELSTATE_GRID;
-      if (toolInfo.showTilingGrid && visible) {
-        int gridX = x-toolInfo.tilingOffsetX + toolInfo.tilingWidth * 100000;
-        int gridY = y-toolInfo.tilingOffsetY + toolInfo.tilingHeight * 100000;
-        if (toolInfo.tilingWidth > 0) gridX %= toolInfo.tilingWidth;
-        if (toolInfo.tilingHeight > 0) gridY %= toolInfo.tilingHeight;
-        if ((gridX == 0) || (gridY == 0)) pixelStates[i] |= PIXELSTATE_GRID;
-      }
-    }
-  }
 }
 
 ColorTransform copiedColorTransform;
@@ -1498,6 +1510,7 @@ void Layer::bakeMagic(bool onlyInSelection) {
     unsigned int col = pixels[i];
     if (colorTransform.useColorTransform) col = colorTransform.applyColorTransform(col);
     if (colorTransform.usePosterize) col = colorTransform.applyPosterize(col);
+    if (colorTransform.useThreshold) col = colorTransform.applyThreshold(col);
     if (quantize) col = quantizeColorFast(col, colorTransform.ditherStrength, i % width, i / width);
     pixels[i] = col;
   }
@@ -1690,6 +1703,7 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColor
         if (useColorTransform) {
           if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
           if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
+          if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
           if (l->colorTransform.useQuantization) col = quantizeColorFast(col, l->colorTransform.ditherStrength,x,y);
         }
         return col;
@@ -1773,6 +1787,11 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   bool useQuantization = (!dontUsePostProcessing) && (layer->colorTransform.useQuantization && (quantization.size() == 64*64*64));
   bool useColorTransform = (!dontUsePostProcessing) && layer->colorTransform.useColorTransform;
   bool usePosterize = (!dontUsePostProcessing) && layer->colorTransform.usePosterize;
+  bool useThreshold =  (!dontUsePostProcessing) && layer->colorTransform.useThreshold;
+  int thresholdRed = (int)floor(layer->colorTransform.thresholdRed*256);
+  int thresholdGreen = (int)floor(layer->colorTransform.thresholdGreen*256);
+  int thresholdBlue = (int)floor(layer->colorTransform.thresholdBlue*256);
+  int thresholdAlpha = (int)floor(layer->colorTransform.thresholdAlpha*256);
 
   for (int y = y0; y < y1; y++) {
     for (int x = x0; x < x1; x++) {
@@ -1830,6 +1849,21 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
         }
       }
 
+      if (useThreshold) {
+        if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
+          int r = rgb1 & 255;
+          int g = (rgb1>>8) & 255;
+          int b = (rgb1>>16) & 255;
+          int a = (rgb1>>24) & 255;
+          int grey = (r*thresholdRed + g*thresholdGreen + b*thresholdBlue + a*thresholdAlpha)>>8;
+          rgb1 = 0x00000000;
+          if (grey >= layer->colorTransform.thresholdLuma) {
+            rgb1 = 0xffffffff;
+          }
+          if (layer->colorTransform.thresholdInvert) rgb1 ^= 0xffffffff;
+        }
+      }
+
       if (useQuantization) {
         if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
           int r = rgb1 & 255;
@@ -1870,8 +1904,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       }
 
       switch(layer->mode) {
-      case LAYERMODE_NORMAL: {
+      case LAYERMODE_ALPHA: {
           int a = (rgb1 >> 24)*alpha;
+          if (a == 0) {col = rgb0; break;}
           int r = ((int)(rgb1 & 255)-(int)(rgb0 & 255))*a/255+(int)(rgb0 & 255);
           int g = ((int)((rgb1>>8) & 255)-(int)((rgb0>>8) & 255))*a/255+(int)((rgb0>>8) & 255);
           int b = ((int)((rgb1>>16) & 255)-(int)((rgb0>>16) & 255))*a/255+(int)((rgb0>>16) & 255);
@@ -1879,7 +1914,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_ADD: {
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
+          int a = alpha * (int)(rgb1>>24); 
+          if (a == 0) {col = rgb0; break;}
+          float alpha2 = a/255.f;
           int r = (int)(rgb0 & 255)+(int)(rgb1 & 255)*alpha2;
           int g = (int)((rgb0>>8) & 255)+(int)((rgb1>>8) & 255)*alpha2;
           int b = (int)((rgb0>>16) & 255)+(int)((rgb1>>16) & 255)*alpha2;
@@ -1890,7 +1927,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_SUB: {
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
+          int a = alpha * (int)(rgb1>>24); 
+          if (a == 0) {col = rgb0; break;}
+          float alpha2 = a/255.f;
           int r = (int)(rgb0 & 255)-(int)(rgb1 & 255)*alpha2;
           int g = (int)((rgb0>>8) & 255)-(int)((rgb1>>8) & 255)*alpha2;
           int b = (int)((rgb0>>16) & 255)-(int)((rgb1>>16) & 255)*alpha2;
@@ -1969,10 +2008,12 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_SCREEN: {
+          int a = alpha * (int)(rgb1>>24);
+          if (a == 0) {col = rgb0; break;}
+           float alpha2 = a/255.f;
           int r = 255-(255-(int)(rgb0 & 255))*(255-(int)(rgb1 & 255))/255;
           int g = 255-(255-(int)((rgb0>>8) & 255))*(255-(int)((rgb1>>8) & 255))/255;
           int b = 255-(255-(int)((rgb0>>16) & 255))*(255-(int)((rgb1>>16) & 255))/255;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
           r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
           g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
           b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
@@ -2535,12 +2576,13 @@ void Canvas::selectAll() {
 }
 
 void Canvas::selectNone(bool all) {
-  bool one = false; 
-  bool two = false; 
-  for (int i = 0; i < layers.size(); i++) {Layer *l = layers[i]; if (l->state.selected) one = true; if (l->state.active) two = true;}
+  //bool one = false; 
+  //bool two = false; 
+  //for (int i = 0; i < layers.size(); i++) {Layer *l = layers[i]; if (l->state.selected) one = true; if (l->state.active) two = true;}
   for (int i2 = 0; i2 < layers.size(); i2++) {
     Layer *l = layers[i2];
-    if ((one && l->state.selected) || ((!one)&&l->state.active) || ((!one)&&(!two)) || (all)) l->selectNone();
+    //if ((one && l->state.selected) || ((!one)&&l->state.active) || ((!one)&&(!two)) || (all)) l->selectNone();
+    l->selectNone();
   }
 }
 

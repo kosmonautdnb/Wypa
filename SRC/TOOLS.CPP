@@ -535,8 +535,11 @@ bool isWandAccepted(unsigned int destColor, unsigned int checkColor) {
 void useToolWand() {
   if (!isPaintAreaActive()) return;
   if (!ImGui::IsMouseClicked(0)) return;
-  beforeUndoPoint();
+
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+
+  beforeUndoPoint();
+
   int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
   if ((unsigned int)lx>=l->width||(unsigned int)ly>=l->height) return;
   int colorHere = l->pixels[lx+ly*l->width];
@@ -563,18 +566,32 @@ void useToolWand() {
       }
       counter++; if ((counter % 100)==0) updateStatusBar();
     }
-    for (int i = 0; i < l->width*l->height; i++) if (l->pixelStates[i] & PIXELSTATE_TEMP) {
-      if (!ctrl) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+    for (int i = 0; i < l->width*l->height; i++) {
+      if (controlKeyId == CONTROLKEY_NONE) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      if (l->pixelStates[i] & PIXELSTATE_TEMP) {
+        if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) l->pixelStates[i] |= PIXELSTATE_SELECTED;
+        if (controlKeyId == CONTROLKEY_CTRL) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      }
+      if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {
+        if ((l->pixelStates[i] & PIXELSTATE_TEMP)&&(l->pixelStates[i] & PIXELSTATE_SELECTED)) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      }
     }
   } else {
     for (int i = 0; i < l->width*l->height; i++) if (isWandAccepted(l->pixels[i],colorHere)) {
-      if (!ctrl) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      if (controlKeyId == CONTROLKEY_NONE) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      if (l->pixelStates[i] & PIXELSTATE_TEMP) {
+        if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) l->pixelStates[i] |= PIXELSTATE_SELECTED;
+        if (controlKeyId == CONTROLKEY_CTRL) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      }
+      if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {
+        if ((l->pixelStates[i] & PIXELSTATE_TEMP)&&(l->pixelStates[i] & PIXELSTATE_SELECTED)) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      }
     }
   }
 
   repaintLayer(l,true);
-  afterUndoPoint();
   updatedPixelStates(l);
+  afterUndoPoint();
 }
 
 void placeCorner(double mouseX, double mouseY) {
@@ -728,7 +745,10 @@ void useToolPipette() {
 
 double fillColorDistance = 1;
 
-bool isFillAccepted(unsigned int destColor, unsigned int checkColor) {
+bool fillAcceptedHasSelection = false;
+
+bool isFillAccepted(unsigned int destColor, unsigned int checkColor, unsigned char destPixelState) {
+  if (fillAcceptedHasSelection && (!(destPixelState & PIXELSTATE_SELECTED))) return false;
   int dr = destColor & 255;
   int dg = (destColor>>8) & 255;
   int db = (destColor>>16) & 255;
@@ -755,6 +775,8 @@ void useToolFill() {
   int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
   if ((unsigned int)lx>=l->width||(unsigned int)ly>=l->height) return;
   int colorHere = l->pixels[lx+ly*l->width];
+  
+  fillAcceptedHasSelection = l->hasSelection();
 
   initStatusBar();
   for (int i2 = 0; i2 < l->width*l->height; i2++) l->pixelStates[i2] &= ~PIXELSTATE_TEMP;
@@ -766,10 +788,10 @@ void useToolFill() {
     for (int y = 0; y < l->height; y++) {
       for (int x = 0; x < l->width; x++) {
         if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
-          if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(l->pixels[x-1+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
-          if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(l->pixels[x+1+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
-          if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(l->pixels[x+(y-1)*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
-          if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(l->pixels[x+(y+1)*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
+          if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(l->pixels[x-1+y*l->width],colorHere,l->pixelStates[x-1+y*l->width])) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
+          if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(l->pixels[x+1+y*l->width],colorHere,l->pixelStates[x+1+y*l->width])) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
+          if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(l->pixels[x+(y-1)*l->width],colorHere,l->pixelStates[x+(y-1)*l->width])) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
+          if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(l->pixels[x+(y+1)*l->width],colorHere,l->pixelStates[x+(y+1)*l->width])) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
         }
       }
     }
@@ -778,6 +800,8 @@ void useToolFill() {
   for (int i = 0; i < l->width*l->height; i++) if (l->pixelStates[i] & PIXELSTATE_TEMP) {
     l->pixels[i] = getUIntColor(foregroundColor);
   }
+  addUsedColor(foregroundColor);
+
   repaintLayer(l,true);
   updatedPixels(l);
 }
@@ -818,9 +842,13 @@ void useToolSelection() {
           case SELECTIONTOOL_ELLIPSE:
           case SELECTIONTOOL_RECTANGLE: {
             for (int i = 0; i < activeLayer->width*activeLayer->height; i++) {
-              if ((!shift) && (!ctrl)) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+              if (controlKeyId == CONTROLKEY_NONE) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
               if (selectionPlane->pixels[i]!=0) {
-                if (!ctrl) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+                if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED;
+                if (controlKeyId == CONTROLKEY_CTRL) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+              }
+              if (controlKeyId == (CONTROLKEY_CTRL|CONTROLKEY_SHIFT)) {
+                if (selectionPlane->pixels[i]!=0&&(activeLayer->pixelStates[i] & PIXELSTATE_SELECTED)) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
               }
             }
             updatedPixelStates(activeLayer);
@@ -831,7 +859,7 @@ void useToolSelection() {
             double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX0,selectionY0,lx0,ly0);
             double lx1,ly1; 
             currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
-            if (selectionTool == SELECTIONTOOL_LASSO) selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1);
+            if (selectionTool == SELECTIONTOOL_LASSO) selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true);
             for (int y = 0; y < selectionPlane->height; y++) {
               bool isInSelection = false;
               for (int x = 0; x < selectionPlane->width; x++) {
@@ -843,9 +871,13 @@ void useToolSelection() {
             }
 
             for (int i = 0; i < activeLayer->width*activeLayer->height; i++) {
-              if ((!shift) && (!ctrl)) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+              if (controlKeyId == CONTROLKEY_NONE) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
               if (selectionPlane->pixels[i]!=0) {
-                if (!ctrl) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+                if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED;
+                if (controlKeyId == CONTROLKEY_CTRL) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+              }
+              if (controlKeyId == (CONTROLKEY_CTRL|CONTROLKEY_SHIFT)) {
+                if (selectionPlane->pixels[i]!=0&&(activeLayer->pixelStates[i] & PIXELSTATE_SELECTED)) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
               }
             }
             updatedPixelStates(activeLayer);
@@ -919,8 +951,8 @@ void useToolSelection() {
       case SELECTIONTOOL_LASSO: {
         double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionX1,lastSelectionY1,lx0,ly0);
         double lx1,ly1; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
-        selectionPlane->pixelLineOr(lx0,ly0,lx1,ly1,2);
-        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1);
+        selectionPlane->pixelLineOr(lx0,ly0,lx1,ly1,2,true);
+        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true);
       } break;
       case SELECTIONTOOL_POLYGON: {
         double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionPolygonX1,lastSelectionPolygonY1,lx0,ly0);
@@ -928,21 +960,20 @@ void useToolSelection() {
         double lx2,ly2; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionX1,lastSelectionY1,lx2,ly2);
         double lx3,ly3; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX0,selectionY0,lx3,ly3);
         if (ImGui::IsMouseDown(1)) {
-          if (pointCount == 0) {selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1); selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,2);}
+          if (pointCount == 0) {selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,1,true); selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,2,true);}
           lastSelectionPolygonX1 = lx;
           lastSelectionPolygonY1 = ly;
           pointCount++;
-        } else {
-          selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,1); // delete
-          selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1); // paint
-          selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,2);
-          selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,2);
-          if (pointCount > 0) {
-            selectionPlane->pixelXLineEor(lx3,ly3,lx2,ly2,1); // delete
-            selectionPlane->pixelXLineEor(lx3,ly3,lx1,ly1,1); // paint
-            selectionPlane->pixelLineEor(lx3,ly3,lx2,ly2,2);
-            selectionPlane->pixelLineEor(lx3,ly3,lx1,ly1,2);
-          }
+        } 
+        selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,1,true); // delete
+        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true); // paint
+        selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,2,true);
+        selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,2,true);
+        if (pointCount > 0) {
+          selectionPlane->pixelXLineEor(lx3,ly3,lx2,ly2,1,true); // delete
+          selectionPlane->pixelXLineEor(lx3,ly3,lx1,ly1,1,true); // paint
+          selectionPlane->pixelLineEor(lx3,ly3,lx2,ly2,2,true);
+          selectionPlane->pixelLineEor(lx3,ly3,lx1,ly1,2,true);
         }
       } break;
     }
@@ -1054,8 +1085,8 @@ void useToolGradient() {
     double lx1,ly1; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
     double lx2,ly2; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionX1,lastSelectionY1,lx2,ly2);
     double lx3,ly3; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX0,selectionY0,lx3,ly3);
-    selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,1);
-    selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,1);
+    selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,1,true);
+    selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,1,true);
   }
 }
 
@@ -1147,10 +1178,11 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
           float value = paintValues[p];
           value = 1-(1-here)*(1-value);
           if (!justSelection || (layer->pixelStates[p] & PIXELSTATE_SELECTED)) {
-            if (paintJustIntoOutline)
+            if (paintJustIntoOutline) {
               layer->pixelStates[p] |= PIXELSTATE_OUTLINE;
-            else
+            } else {
               paintValues[p] = value;
+            }
           }
         }
       }
@@ -1245,65 +1277,65 @@ void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, d
 }
 
 void updateUpdateFlagByBrushLine(Layer *l,double cx0,double cy0, double cx1, double cy1, double toolWidth, double toolHeight) {
-    double paintingPointX0 = cx0;
-    double paintingPointY0 = cy0;
-    double paintingPointX1 = cx1;
-    double paintingPointY1 = cy1;
-    int layerUpdateX0 = 0;
-    int layerUpdateY0 = 0;
-    int layerUpdateX1 = l->width;
-    int layerUpdateY1 = l->height;
-    Vector layerBoundings;
-    bool first = true;
-    for (int i = 0; i < 8; i++) {
-      Vector k;
-      if (i < 4) 
-        k = Vector(i & 1 ? paintingPointX0-toolWidth : paintingPointX0+toolWidth,i & 2 ? paintingPointY0-toolHeight : paintingPointY0+toolHeight,0);
-      else 
-        k = Vector(i & 1 ? paintingPointX1-toolWidth : paintingPointX1+toolWidth,i & 2 ? paintingPointY1-toolHeight : paintingPointY1+toolHeight,0);
-      double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(l,k.x,k.y,lx0,ly0);
-      if (first || lx0 < layerBoundings.x) layerBoundings.x = lx0;
-      if (first || ly0 < layerBoundings.y) layerBoundings.y = ly0;
-      if (first || lx0 > layerBoundings.z) layerBoundings.z = lx0;
-      if (first || ly0 > layerBoundings.w) layerBoundings.w = ly0;
-      first = false;
-    }
-    layerBoundings.z += 1;
-    layerBoundings.w += 1;
-    if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-    if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-    if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-    if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  double paintingPointX0 = cx0;
+  double paintingPointY0 = cy0;
+  double paintingPointX1 = cx1;
+  double paintingPointY1 = cy1;
+  int layerUpdateX0 = 0;
+  int layerUpdateY0 = 0;
+  int layerUpdateX1 = l->width;
+  int layerUpdateY1 = l->height;
+  Vector layerBoundings;
+  bool first = true;
+  for (int i = 0; i < 8; i++) {
+    Vector k;
+    if (i < 4) 
+      k = Vector(i & 1 ? paintingPointX0-toolWidth : paintingPointX0+toolWidth,i & 2 ? paintingPointY0-toolHeight : paintingPointY0+toolHeight,0);
+    else 
+      k = Vector(i & 1 ? paintingPointX1-toolWidth : paintingPointX1+toolWidth,i & 2 ? paintingPointY1-toolHeight : paintingPointY1+toolHeight,0);
+    double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(l,k.x,k.y,lx0,ly0);
+    if (first || lx0 < layerBoundings.x) layerBoundings.x = lx0;
+    if (first || ly0 < layerBoundings.y) layerBoundings.y = ly0;
+    if (first || lx0 > layerBoundings.z) layerBoundings.z = lx0;
+    if (first || ly0 > layerBoundings.w) layerBoundings.w = ly0;
+    first = false;
+  }
+  layerBoundings.z += 1;
+  layerBoundings.w += 1;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
 
-    first = true;
-    for (int i2 = 0; i2 < 4; i2++) {
-      Vector k(i2 & 1 ? layerUpdateX1 : layerUpdateX0,i2 & 2 ? layerUpdateY1 : layerUpdateY0,0);
-      double lx0,ly0; currentCanvas->getScreenPos(l,k.x,k.y,lx0,ly0);
-      lx0 -= currentCanvas->screenPosX;
-      ly0 -= currentCanvas->screenPosY;
-      if (first || lx0 < layerBoundings.x) layerBoundings.x = lx0;
-      if (first || ly0 < layerBoundings.y) layerBoundings.y = ly0;
-      if (first || lx0 > layerBoundings.z) layerBoundings.z = lx0;
-      if (first || ly0 > layerBoundings.w) layerBoundings.w = ly0;
-      first = false;
-    }
-    layerBoundings.z += 1;
-    layerBoundings.w += 1;
-    layerUpdateX0 = 0;
-    layerUpdateY0 = 0;
-    layerUpdateX1 = currentCanvas->width;
-    layerUpdateY1 = currentCanvas->height;
-    if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-    if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-    if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-    if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  first = true;
+  for (int i2 = 0; i2 < 4; i2++) {
+    Vector k(i2 & 1 ? layerUpdateX1 : layerUpdateX0,i2 & 2 ? layerUpdateY1 : layerUpdateY0,0);
+    double lx0,ly0; currentCanvas->getScreenPos(l,k.x,k.y,lx0,ly0);
+    lx0 -= currentCanvas->screenPosX;
+    ly0 -= currentCanvas->screenPosY;
+    if (first || lx0 < layerBoundings.x) layerBoundings.x = lx0;
+    if (first || ly0 < layerBoundings.y) layerBoundings.y = ly0;
+    if (first || lx0 > layerBoundings.z) layerBoundings.z = lx0;
+    if (first || ly0 > layerBoundings.w) layerBoundings.w = ly0;
+    first = false;
+  }
+  layerBoundings.z += 1;
+  layerBoundings.w += 1;
+  layerUpdateX0 = 0;
+  layerUpdateY0 = 0;
+  layerUpdateX1 = currentCanvas->width;
+  layerUpdateY1 = currentCanvas->height;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
 
-    static int someTimer = 0; someTimer++; if ((someTimer & 15)==0) currentCanvas->clearUpdateFlag();
-    for (int y2 = layerUpdateY0; y2 < layerUpdateY1; y2++) {
-      for (int x2 = layerUpdateX0; x2 < layerUpdateX1; x2++) {
-        currentCanvas->pixelStates[x2+y2*currentCanvas->width] |= PIXELSTATE_UPDATED;
-      }
+  static int someTimer = 0; someTimer++; if ((someTimer & 3)==0) currentCanvas->clearUpdateFlag();
+  for (int y2 = layerUpdateY0; y2 < layerUpdateY1; y2++) {
+    for (int x2 = layerUpdateX0; x2 < layerUpdateX1; x2++) {
+      currentCanvas->pixelStates[x2+y2*currentCanvas->width] |= PIXELSTATE_UPDATED;
     }
+  }
 }
 
 void useToolPainting() {
@@ -1312,7 +1344,7 @@ void useToolPainting() {
 
   mouseClickUndo();
 
-  if (!paintingOn && ImGui::IsMouseClicked(1)) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+  if (!paintingOn && ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
   bool useTempBrush = tool == TOOL_LINE;
   if ((unsigned int)currentBrush >= brushes.size() && (!useTempBrush)) return;
   Brush *brush = useTempBrush ? onePixelBrush : brushes[currentBrush];
@@ -1842,6 +1874,162 @@ void toolCanvasStuff() {
   }
 }
 
+int blurCircleSize = 64;
+
+void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection, bool paintJustIntoOutline) {
+
+  double toolWidth = blurCircleSize*0.5*toolAspectX;
+  double toolHeight = blurCircleSize*0.5*toolAspectY;
+  Vector layerBoundings;
+  bool first = true;
+  int layerUpdateX0 = 0;
+  int layerUpdateY0 = 0;
+  int layerUpdateX1 = layer->width;
+  int layerUpdateY1 = layer->height;
+  for (int i = 0; i < 4; i++) {
+    Vector k(i & 1 ? canvasX-toolWidth : canvasX+toolWidth,i & 2 ? canvasY-toolHeight : canvasY+toolHeight,0);
+    double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(layer,k.x,k.y,lx0,ly0);
+    if (first || lx0 < layerBoundings.x) layerBoundings.x = lx0;
+    if (first || ly0 < layerBoundings.y) layerBoundings.y = ly0;
+    if (first || lx0 > layerBoundings.z) layerBoundings.z = lx0;
+    if (first || ly0 > layerBoundings.w) layerBoundings.w = ly0;
+    first = false;
+  }
+  layerBoundings.z += 1;
+  layerBoundings.w += 1;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  double tpx = canvasX-toolWidth, tpy = canvasY-toolHeight;
+  Matrix t; t.translate(Vector(tpx,tpy,0));
+  Matrix m = inverse2(t)*inverse2(layer->transform.transformation);
+  Matrix s; s.scale3(Vector(toolAspectX,toolAspectY,1));
+  m = inverse2(s) * m;
+
+  if (!paintJustIntoOutline) {
+    paintBackground.resize(blurCircleSize * blurCircleSize);
+    paintValues.resize(blurCircleSize * blurCircleSize);
+    for (int i = 0; i < blurCircleSize * blurCircleSize; i++) paintValues[i] = 0;
+    for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
+      for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
+        double px = x*m.m[4*0+0]+y*m.m[4*1+0]+m.m[4*3+0];
+        double py = x*m.m[4*0+1]+y*m.m[4*1+1]+m.m[4*3+1];
+        int bx = (int)px;
+        int by = (int)py;
+        if (bx == 0) bx = (int)floor(px);
+        if (by == 0) by = (int)floor(py);
+        if ((unsigned int)bx < blurCircleSize && (unsigned int)by < blurCircleSize) {
+          paintBackground[bx+by*blurCircleSize] = layer->pixels[x+y*layer->width];
+          paintValues[bx+by*blurCircleSize] = 1;
+        }
+      }
+    }
+  }
+
+  for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
+    for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
+      double px = x*m.m[4*0+0]+y*m.m[4*1+0]+m.m[4*3+0];
+      double py = x*m.m[4*0+1]+y*m.m[4*1+1]+m.m[4*3+1];
+      int bx = (int)px;
+      int by = (int)py;
+      if (bx == 0) bx = (int)floor(px);
+      if (by == 0) by = (int)floor(py);
+      if ((unsigned int)bx < blurCircleSize && (unsigned int)by < blurCircleSize) {
+        int p = x + y * layer->width;
+        float dx = (bx+0.5f)/blurCircleSize*2.f-1.f;
+        float dy = (by+0.5f)/blurCircleSize*2.f-1.f;
+        float d = dx*dx+dy*dy;
+        if (d <= 1 && d >= 0) {
+          if (!justSelection || (layer->pixelStates[p] & PIXELSTATE_SELECTED)) {
+            if (paintJustIntoOutline) {
+              layer->pixelStates[p] |= PIXELSTATE_OUTLINE;
+            } else {
+              int r = 0;
+              int g = 0;
+              int b = 0;
+              int a = 0;
+              float w = 0;
+              for (int ky = -1; ky <= 1; ky++) {
+                int y2 = by+ky;
+                for (int kx = -1; kx <= 1; kx++) {
+                  int x2 = bx+kx;
+                  if ((unsigned int)x2<blurCircleSize && (unsigned int)y2<blurCircleSize) {
+                    if (paintValues[x2+y2*blurCircleSize] != 0) {
+                      float where = 1000.0;
+                      if (where > 0) {
+                        unsigned int col = paintBackground[x2+y2*blurCircleSize];
+                        r += ((col & 255)+0.5f)*where;
+                        g += (((col>>8) & 255)+0.5f)*where;
+                        b += (((col>>16) & 255)+0.5f)*where;
+                        a += (((col>>24) & 255)+0.5f)*where;
+                        w += where;
+                      }
+                    }
+                  }
+                }
+              }
+              if (w != 0) {
+                r /= w;
+                g /= w;
+                b /= w;
+                a /= w;
+              }
+              unsigned int col = layer->pixels[p];
+              int r2 = col & 255;
+              int g2 = (col>>8) & 255;
+              int b2 = (col>>16) & 255;
+              int a2 = (col>>24) & 255;
+              float f = 1-d;
+              if (f > 0) {
+                f = f*timeDelta*2;
+                if (f > 1) f = 1;
+                r = (r - r2)*f+r2;
+                g = (g - g2)*f+g2;
+                b = (b - b2)*f+b2;
+                a = (a - a2)*f+a2;
+                layer->pixels[p] = r|(g<<8)|(b<<16)|(a<<24);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void useToolBlur() {
+  toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
+  toolAspectY = currentCanvas->control.pixelSizeY != 0 ? 1.0 / currentCanvas->control.pixelSizeY : 1;
+
+  mouseClickUndo();
+
+  Layer *activeLayer = currentCanvas->getActiveLayer();
+  static Layer *blurToolLayer = activeLayer;
+  bool layerSwitched = blurToolLayer != activeLayer;
+  blurToolLayer = activeLayer;
+  if (blurToolLayer != NULL && blurToolLayer->width * blurToolLayer->height == 0) return;
+
+  if ((!layerSwitched) && blurToolLayer != NULL && isPaintAreaActive() && (!ImGui::IsMouseDown(0))) {
+    double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
+    blurToolLayer->updatePixelStates(~PIXELSTATE_OUTLINE,0,0); reverseLastUpdatedPixelStates(blurToolLayer);
+    drawCircle(blurToolLayer,cx,cy,false,true);
+    double toolWidth =  blurCircleSize * toolAspectX;
+    double toolHeight =  blurCircleSize * toolAspectY;
+    updateUpdateFlagByBrushLine(blurToolLayer,cx,cy,cx,cy,toolWidth,toolHeight);
+    repaintLayer(blurToolLayer,false);
+    blurToolLayer->hasOutline = true;
+    clearOutlineAfterNextPaint = true;
+  }
+
+  if ((!layerSwitched) && blurToolLayer != NULL && isPaintAreaActive() && ImGui::IsMouseDown(0)) {
+    double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
+    drawCircle(blurToolLayer,cx,cy,blurToolLayer->hasSelection(),false);
+    repaintLayer(blurToolLayer,false);
+    updatedPixels(blurToolLayer);
+  }
+}
+
 void useTool() {
   double mouseXBefore = mouseX;
   double mouseYBefore = mouseY;
@@ -1883,6 +2071,9 @@ void useTool() {
     } break;
   case TOOL_TILING: {
     useToolTiling();
+    } break;
+  case TOOL_BLUR: {
+    useToolBlur();
     } break;
   }
   mouseX = mouseXBefore;

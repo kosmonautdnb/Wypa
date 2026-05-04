@@ -109,7 +109,6 @@ void dialogAbout(bool openIt) {
   DIALOGSTART("About")
   ImGui::Text(
     "WYPA - A SIMPLE PAINT PAINT PROGRAM FOR DOS\n"
-    "dedicated to pixelling for games.\n"
     "------------------------------------\n"
     "Coded in early 2026 by\n"
     "Stefan Mader of Puls4r\n"
@@ -121,7 +120,7 @@ void dialogAbout(bool openIt) {
     "Build time: " __TIME__ "\n"
     "Version: %d.%02d\n"
     "------------------------------------\n"
-    "Wypa is not coded very \"good\"\n"
+    "Wypa is not coded very \"good\".\n"
     "It's just a proof of concept, since\n"
     "there where almost no other options\n"
     "to paint in high resolutions with true color.\n"

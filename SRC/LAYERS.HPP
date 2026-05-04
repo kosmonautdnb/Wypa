@@ -43,7 +43,7 @@ void freeLayers();
 
 enum LAYERMODES {
   LAYERMODE_UNDEFINED = 0,
-  LAYERMODE_NORMAL = 1,
+  LAYERMODE_ALPHA = 1,
   LAYERMODE_PREMULTIPLIEDALPHA = 2,
   LAYERMODE_SCREEN = 3,
   LAYERMODE_ADD = 4,
@@ -59,6 +59,7 @@ enum LAYERMODES {
   LAYERMODE_LINEARLIGHT = 14,
   LAYERMODE_PINLIGHT = 15,
   LAYERMODE_DIFFERENCE = 16,
+  LAYERMODE_DEFAULT = LAYERMODE_PREMULTIPLIEDALPHA,
   LAYERMODE_COUNT = 17
 };
 
@@ -151,6 +152,7 @@ public:
     useColorTransform = false;
     useQuantization = false;
     usePosterize = false;
+    useThreshold = false;
     reset();
   }
   float hue;
@@ -178,6 +180,12 @@ public:
   float posterizeGreen;
   float posterizeBlue;
   float posterizeAlpha;
+  float thresholdRed;
+  float thresholdGreen;
+  float thresholdBlue;
+  float thresholdAlpha;
+  float thresholdLuma;
+  bool thresholdInvert;
   float ditherStrength;
   float middleRedAdjust;
   float middleGreenAdjust;
@@ -186,6 +194,7 @@ public:
   bool useColorTransform;
   bool useQuantization;
   bool usePosterize;
+  bool useThreshold;
   float *processingGet();
   void fromProcessing(float *processing);
   unsigned int r[256];
@@ -197,6 +206,7 @@ public:
   void update();
   unsigned int applyColorTransform(unsigned int pixel);
   unsigned int applyPosterize(unsigned int pixel);
+  unsigned int applyThreshold(unsigned int pixel);
   int byteCount();
 };
 #define S_COLORTRANSFORM(__name__,__o__)\
@@ -226,6 +236,12 @@ public:
   S_FLOAT("posterizeGreen",(__o__)->posterizeGreen);\
   S_FLOAT("posterizeBlue",(__o__)->posterizeBlue);\
   S_FLOAT("posterizeAlpha",(__o__)->posterizeAlpha);\
+  S_FLOAT("thresholdRed",(__o__)->thresholdRed);\
+  S_FLOAT("thresholdGreen",(__o__)->thresholdGreen);\
+  S_FLOAT("thresholdBlue",(__o__)->thresholdBlue);\
+  S_FLOAT("thresholdAlpha",(__o__)->thresholdAlpha);\
+  S_BOOL("thresholdInvert",(__o__)->thresholdInvert);\
+  S_FLOAT("thresholdLuma",(__o__)->thresholdLuma);\
   S_FLOAT("ditherStrength",(__o__)->ditherStrength);\
   S_FLOAT("middleRedAdjust",(__o__)->middleRedAdjust);\
   S_FLOAT("middleGreenAdjust",(__o__)->middleGreenAdjust);\
@@ -233,6 +249,7 @@ public:
   S_BOOL("perceptional",(__o__)->perceptional);\
   S_BOOL("useColorTransform",(__o__)->useColorTransform);\
   S_BOOL("usePosterize",(__o__)->usePosterize);\
+  S_BOOL("useThreshold",(__o__)->useThreshold);\
   if (!save) (__o__)->shouldUpdate = true;\
   S_OBJECT_CLOSE();
 
@@ -291,6 +308,7 @@ public:
     tilingOffsetY = 0;
     tilingWidth = 8;
     tilingHeight = 8;
+    tilingMinColorCount = 0;
 
     tilingAnimFPS = 30;
     tilingAnimFirstFrame = 0;
@@ -307,6 +325,7 @@ public:
   int tilingOffsetY;
   int tilingWidth;
   int tilingHeight;
+  int tilingMinColorCount;
 
   float tilingAnimFPS;
   int tilingAnimFirstFrame;
@@ -325,6 +344,7 @@ public:
   S_INT("tilingOffsetY",(__o__)->tilingOffsetY);\
   S_INT("tilingWidth",(__o__)->tilingWidth);\
   S_INT("tilingHeight",(__o__)->tilingHeight);\
+  S_INT("tilingMinColorCount",(__o__)->tilingMinColorCount);\
   S_FLOAT("tilingAnimFPS",(__o__)->tilingAnimFPS);\
   S_INT("tilingAnimFirstFrame",(__o__)->tilingAnimFirstFrame);\
   S_INT("tilingAnimLastFrame",(__o__)->tilingAnimLastFrame);\
@@ -356,7 +376,7 @@ public:
   bool showColorTransformOnlyInSelection;
 
   Layer() {
-    mode = LAYERMODE_NORMAL;
+    mode = LAYERMODE_DEFAULT;
     width = 0;
     height = 0;
     pixels = NULL;
@@ -379,9 +399,9 @@ public:
   unsigned int getPixel(int x, int y);
   void setPixel(int x, int y, unsigned int rgba);
   void pixelLine(int x0, int y0, int x1, int y1, unsigned int color);
-  void pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or);
-  void pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor);
-  void pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor);
+  void pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool clampOnLayer);
+  void pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer);
+  void pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer);
 
   void init(int width, int height);
   void invalidateContent();
@@ -428,7 +448,6 @@ public:
   void colorFromAlpha();
   void applyAlphaMask(Layer *source);
   void quantize(const Array<unsigned int> &colors);
-  void updateTilingGrid(bool visible);
 
   void copyColorTransform();
   void pasteColorTransform();

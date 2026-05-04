@@ -37,7 +37,7 @@ int tool = TOOL_NONE;
 int lastTool = TOOL_NONE;
 bool fullScreen = false;
 
-const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tiling"};
+const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tiling","Blur"};
 
 void initToolBar() {
 }
@@ -94,6 +94,7 @@ void drawToolBar() {
     toolBarButton("gradientTool",TOOL_GRADIENT);
     toolBarButton("textTool",TOOL_TEXT);
     toolBarButton("magicTool",TOOL_MAGIC);
+    toolBarButton("blurTool",TOOL_BLUR);
     toolBarButton("measureTool",TOOL_MEASURE);
     toolBarButton("tilingTool",TOOL_TILING);
     ImGui::End();

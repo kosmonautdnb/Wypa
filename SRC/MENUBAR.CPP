@@ -91,8 +91,8 @@ void drawMenuBar() {
       on = true;
       if (ImGui::MenuItem("New image")) {dialogNewImage(true);}
       ImGui::Separator();
-      if (ImGui::MenuItem("Load image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
-      if (ImGui::MenuItem("Save image")) {dialogLoadSave(true,DIALOG_SAVEIMAGE);}
+      if (ImGui::MenuItem("Load wyp image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
+      if (ImGui::MenuItem("Save wyp image")) {dialogLoadSave(true,DIALOG_SAVEIMAGE);}
       ImGui::Separator();
       if (ImGui::MenuItem("Import image")) {dialogLoadSave(true,DIALOG_IMPORTIMAGE);}
       ImGui::Separator();
@@ -198,7 +198,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
       ImGui::Separator();
       if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
-      if (ImGui::MenuItem("Center")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
+      if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
       ImGui::Separator();
       if (ImGui::MenuItem("Clear mouse lock",NULL,false,lockedMouseX||lockedMouseY)) {lockedMouseX = false; lockedMouseY = false;}
       ImGui::EndMenu();

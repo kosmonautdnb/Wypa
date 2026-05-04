@@ -71,7 +71,7 @@ void perFrame() {
   mouseB |= mouseButtons & GL_MOUSE_BUTTON_RIGHT ? 2 : 0;
   GLboolean shift2,ctrl2,alt2; glSpecialKeys(&shift2,&ctrl2,&alt2); shift = shift2 ? true : false;  ctrl = ctrl2 ? true : false; alt = alt2 ? true : false;
   if (currentKey != 0 || shift || ctrl || alt || mouseDX != 0 || mouseDY != 0 || mouseB != 0) screenSaverStartTime = glSeconds();
-  controlKeyId = (shift ? CONTROLKEY_SHIFT : 0)+(ctrl ? CONTROLKEY_CTRL : 0)+(alt ? CONTROLKEY_ALT : 0);
+  controlKeyId = (shift ? CONTROLKEY_SHIFT : 0)|(ctrl ? CONTROLKEY_CTRL : 0)|(alt ? CONTROLKEY_ALT : 0);
 }
 
 void select(Layer *l) {
@@ -242,6 +242,21 @@ int main(int argc, const char *argv[]) {
   glFastTexturing = true;
   screenSaverStartTime = glSeconds();
 
+  if (argc == 2) {
+    loadImage("",argv[1]);
+    if (canvas.empty()) {
+      addTempPicture();
+      Layer *l = loadImage(String(""),String(argv[1]));
+      if (l != NULL) {
+        currentCanvas->addLayer(l);
+      }
+    }
+    if (refreshMasked) glRefreshMasked(); else glRefresh();
+  }
+
+  if (canvas.empty())
+    addTempPicture();
+
   ImGui::GetStyle().Colors[ImGuiCol_WindowBg] = ImVec4(1,1,1,1);
   ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1);
   ImGui::GetStyle().Colors[ImGuiCol_Button] = ImVec4(0.75,0.75,0.75,1);
@@ -256,13 +271,11 @@ int main(int argc, const char *argv[]) {
   screenSaverStartTime = glSeconds();
   lastTime = glSeconds();
 
-  addTempPicture();
   currentCanvas->control.setCanvasTransform(currentCanvas);
   shouldUpdateAll = true;
   SETUPENTITIES(init);
 
   beforeUndoPoint();
-  afterUndoPoint();
 
   while(!quit) {
 

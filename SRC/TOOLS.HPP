@@ -221,6 +221,8 @@ extern double measureCY1;
 extern double measureLX1;
 extern double measureLY1;
 
+extern int blurCircleSize;
+
 extern Array<unsigned short> quantization;
 void reCreateQuantization();
 
@@ -237,6 +239,7 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
 #define S_TOOLS_CPP()\
   S_INT("currentBrush",currentBrush);\
   zipGradient(gradient,save);\
+  S_INT("blurCircleSize",blurCircleSize);\
   S_DOUBLE("wandAlphaDistance",wandAlphaDistance);\
   S_DOUBLE("wandColorDistance",wandColorDistance);\
   S_BOOL("wandByNeighbors",wandByNeighbors);\

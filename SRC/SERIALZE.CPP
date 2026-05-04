@@ -520,6 +520,7 @@ void exportLayersRaw(const char *shortPath, const char *longFileName, bool apply
         for (int j = 0; j < l->width*l->height; j++) {
           if (l->colorTransform.useColorTransform) img.data[j] = l->colorTransform.applyColorTransform(img.data[j]);
           if (l->colorTransform.usePosterize) img.data[j] = l->colorTransform.applyPosterize(img.data[j]);
+          if (l->colorTransform.useThreshold) img.data[j] = l->colorTransform.applyThreshold(img.data[j]);
           if (l->colorTransform.useQuantization) img.data[j] = quantizeFast(img.data[j], l->colorTransform.ditherStrength, j % l->width, j / l->width);
         }
       }
@@ -1033,7 +1034,7 @@ void loadImage(const char *shortPath, const char *longFileName) {
 
   // finished
   if (allWentWell) {
-    if (canvasHere.size()>0) {
+    if (!canvasHere.empty()) {
       addCanvas(canvasHere[0]);
       canvasHere.erase(0,1);
     }

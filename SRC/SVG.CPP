@@ -34,6 +34,7 @@ HashMap<String, SVG> svgs;
 #include "CONFIG.HPP"
 #include "TOOLBAR.HPP"
 #include "SERIALZE.HPP"
+#include "STL\DOS.HPP"
 
 #define APPICONSCALE (25.0/17.0)
 #define ADDAPPICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,17*APPICONSCALE,17*APPICONSCALE,1*APPICONSCALE,aspectRatio)
@@ -75,9 +76,10 @@ SVG *SVG::set(const char *fileName, unsigned int *rgba, int w, int h) {
 void addSVG(const char *id, const char *fileName, int width, int height,double scale, double aspect) {
   NSVGimage* image;
   NSVGrasterizer* rast = nsvgCreateRasterizer();
-  image = nsvgParseFromFile(fromLocalFileName(fileName).c_str(), "px", 96);
+  String fileName2 = dosFileName(fromLocalFileName(fileName));
+  image = nsvgParseFromFile(fileName2.c_str(), "px", 96);
   if (image == NULL) {
-    printf("some problem with loading the svg\n");
+    printf("some problem with loading the svg <%s>\n", fileName2.c_str());
     exit(0);
   }
   int w = width;
@@ -116,11 +118,12 @@ void loadBaseSVGs() {
   ADDTOOLBARICON("wandTool","WAND.SVG");
   ADDTOOLBARICON("gradientTool","GRADIENT.SVG");
   ADDTOOLBARICON("pipetteTool","PIPETTE.SVG");
-  ADDTOOLBARICON("magicTool","BLUR.SVG");
+  ADDTOOLBARICON("magicTool","POSTPROC.SVG");
   ADDTOOLBARICON("fillTool","FILL.SVG");
   ADDTOOLBARICON("lineTool","LINE.SVG");
   ADDTOOLBARICON("textTool","TEXT.SVG");
   ADDTOOLBARICONFROMSWIFE("measureTool","MEASURE.SVG");
   ADDTOOLBARICONFROMSWIFE("tilingTool","TILES.SVG");
+  ADDTOOLBARICONFROMSWIFE("blurTool","BLUR.SVG");
   ADDICON2("visible","VISIBLE.SVG");
 }

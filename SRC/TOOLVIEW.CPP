@@ -100,12 +100,14 @@ void repaintGradientTexture(Gradient *gradient) {
 }
 
 void drawToolWandView() {
-  float k;
-    if (shift) {ImGui::Text("Add selection");} 
+  if (controlKeyId == CONTROLKEY_SHIFT) {ImGui::Text("Add selection");} 
   else
-    if (ctrl) {ImGui::Text("Remove selection");} 
+    if (controlKeyId == CONTROLKEY_CTRL) {ImGui::Text("Remove selection");} 
+  else
+    if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {ImGui::Text("Mul selection");} 
   else
     ImGui::Text("");
+  float k;
   k = wandColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWCOLORDISTANCE",&k,0,256)) {wandColorDistance = k;}
   k = wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;}
   ImGui::Text("Surrounding"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors);
@@ -117,9 +119,11 @@ void drawToolFillView() {
 }
 
 void drawToolSelectionView() {
-    if (shift) {ImGui::Text("Add selection");} 
+  if (controlKeyId == CONTROLKEY_SHIFT) {ImGui::Text("Add selection");} 
   else
-    if (ctrl) {ImGui::Text("Remove selection");} 
+    if (controlKeyId == CONTROLKEY_CTRL) {ImGui::Text("Remove selection");} 
+  else
+    if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {ImGui::Text("Mul selection");} 
   else
     ImGui::Text("");
   ImGui::RadioButton("Rectangle##DRAWTOOLSELECTIONVIEWRECT",&selectionTool,SELECTIONTOOL_RECTANGLE);
@@ -418,6 +422,8 @@ void drawToolMagicView() {
   }
   if (l->colorTransform.useColorTransform) {
 
+    ImGui::BeginChild("DRAWTOOLMAGICCHILDCOLORTRANSFORM",ImVec2(0,200));
+
     ImGui::Text("Picture Gamma");
     v = &t->pictureGamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPICTUREGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAPICTUREGAMMAINVERT",&t->pictureGammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
@@ -470,6 +476,8 @@ void drawToolMagicView() {
     ImGui::Text("Monitor gamma");
     v = &t->gamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAMMAINVERT",&t->gammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+      
+    ImGui::EndChild();
     ImGui::Separator();
   }
 
@@ -477,6 +485,7 @@ void drawToolMagicView() {
     shouldUpdateAll = true;
   }
   if (l->colorTransform.usePosterize) {
+    ImGui::BeginChild("DRAWTOOLMAGICCHILDPOSTERIZE",ImVec2(0,50));
     ImGui::Text("Posterize R");
     v = &t->posterizeRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZERED",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Posterize G");
@@ -485,20 +494,40 @@ void drawToolMagicView() {
     v = &t->posterizeBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEBLUE",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Posterize A");
     v = &t->posterizeAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::EndChild();
     ImGui::Separator();
   }
 
-  if (palette.size()>=0 && palette.size()<=256) {
-    ImGui::Text("Fast quant"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEQUANTIZATION",&l->colorTransform.useQuantization)) {
-      shouldUpdateAll = true;
-    }
-    if (l->colorTransform.useQuantization) {
+  ImGui::Text("Threshold"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSETHRESHOLD",&l->colorTransform.useThreshold)) {
+    shouldUpdateAll = true;
+  }
+  if (l->colorTransform.useThreshold) {
+    ImGui::BeginChild("DRAWTOOLMAGICCHILDTHRESHOLD",ImVec2(0,50));
+    ImGui::Text("Threshold RGBA");
+    v = &t->thresholdLuma; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDLUMA",v,0,255)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Invert"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERT",&t->thresholdInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Scale red");
+    v = &t->thresholdRed; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDRED",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Scale green");
+    v = &t->thresholdGreen; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDGREEN",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Scale blue");
+    v = &t->thresholdBlue; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDBLUE",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Scale alpha");
+    v = &t->thresholdAlpha; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDALPHA",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::EndChild();
+    ImGui::Separator();
+  }
+
+  ImGui::Text("Fast quant"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEQUANTIZATION",&l->colorTransform.useQuantization)) {
+    shouldUpdateAll = true;
+  }
+  if (l->colorTransform.useQuantization) {
+    if (palette.size()>=0 && palette.size()<=256) {
       ImGui::Text("Dithering");
       v = &t->ditherStrength; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWDITHERSTRENGTH",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
+    } else {
+      if (palette.size()>256) ImGui::Text("Quantization\nonly with\npalettes\n<=256 colors");
     }
-    ImGui::Separator();
-  } else {
-    if (palette.size()>256) ImGui::Text("Quantization\nonly with\npalettes\n<=256 colors");
     ImGui::Separator();
   }
 
@@ -566,7 +595,66 @@ void drawToolMeasureView() {
 
 void updateTilingGrid(Layer *l, bool visible) {
   if (l == NULL) return;
-  l->updateTilingGrid(visible);
+  l->updatePixelStates(~(PIXELSTATE_GRID|PIXELSTATE_TEMP),0,0);
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      int i = x + y * l->width;
+      if (l->toolInfo.showTilingGrid && visible) {
+        int gridX = x-l->toolInfo.tilingOffsetX + l->toolInfo.tilingWidth * 100000;
+        int gridY = y-l->toolInfo.tilingOffsetY + l->toolInfo.tilingHeight * 100000;
+        if (l->toolInfo.tilingWidth > 0) gridX %= l->toolInfo.tilingWidth;
+        if (l->toolInfo.tilingHeight > 0) gridY %= l->toolInfo.tilingHeight;
+        if ((gridX == 0)&&(gridY==0)) {
+          int tw = l->toolInfo.tilingWidth;  if (tw > l->width) tw = l->width;
+          int th = l->toolInfo.tilingHeight;  if (th > l->height) th = l->height;
+
+          int colorCount = 0;
+          if (l->toolInfo.tilingMinColorCount > 0) {
+            for (int y3 = 0; y3 < th; y3++) {
+              for (int x3 = 0; x3 < tw; x3++) {
+                int xp = x + x3;
+                int yp = y + y3;
+                if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) {
+                  if (l->pixelStates[xp+yp*l->width] & PIXELSTATE_TEMP) continue;
+                  unsigned int col = l->pixels[xp+yp*l->width];
+                  for (int y4 = 0; y4 < th; y4++) {
+                    for (int x4 = 0; x4 < tw; x4++) {
+                      int xp = x + x4;
+                      int yp = y + y4;
+                      if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) {
+                        unsigned int col2 = l->pixels[xp+yp*l->width];
+                        if (col2 == col) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_TEMP;
+                      }
+                    }
+                  }
+                  colorCount++;
+                }
+              }
+            }
+          }
+
+          if (colorCount >= l->toolInfo.tilingMinColorCount) {
+            for (int x2 = 0; x2 < tw; x2++) {
+              int xp = x + x2;
+              int yp = y;
+              if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
+              xp = x + x2;
+              yp = y + th;
+              if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
+            }
+            for (int y2 = 0; y2 < th; y2++) {
+              int xp = x;
+              int yp = y + y2;
+              if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
+              xp = x + tw;
+              yp = y + y2;
+              if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
+            }
+          }
+        }
+      }
+    }
+  }
   shouldUpdateAll = true;
 }
 
@@ -689,6 +777,11 @@ void drawToolTilingView() {
     ImGui::Text("Width"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWGRIDWIDTH",&l->toolInfo.tilingWidth,0,0)) {updateTilingGrid(l,true);}
     ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWGRIDHEIGHT",&l->toolInfo.tilingHeight,0,0)) {updateTilingGrid(l,true);}
     ImGui::Text("Show grid"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGVIEWSHOWGRID",&l->toolInfo.showTilingGrid)) {updateTilingGrid(l,true);}
+    if (l->toolInfo.showTilingGrid) {
+      ImGui::Separator();
+      ImGui::Text("Tile colors");
+      ImGui::Text("count >=");ImGui::SameLine();if (ImGui::InputInt("##DRAWTOOLTILINGVIEWCOLORCOUNT",&l->toolInfo.tilingMinColorCount,0,0)) {updateTilingGrid(l,true);}
+    }
     if (l->toolInfo.tilingWidth < 1) l->toolInfo.tilingWidth = 1;
     if (l->toolInfo.tilingHeight < 1) l->toolInfo.tilingHeight = 1;
     if (l->toolInfo.tilingWidth > 1024) l->toolInfo.tilingWidth = 1024;
@@ -718,6 +811,14 @@ void drawToolTilingView() {
     ImGui::Text("Reverse"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLTILINGANIMATIONREVERSE",&l->toolInfo.tilingAnimReverse);
     ImGui::PopItemWidth();
     if (l->toolInfo.tilingAnimPlaying) playTilingAnimation(l);
+  }
+}
+
+void drawToolBlurView() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l != NULL) {
+    ImGui::Text("Size");
+    float k = blurCircleSize; ImGui::SameLine();if (ImGui::SliderFloat("##DRAWTOOLBLURSIZE",&k,1,128)) {if (k<1) k = 1; if (k>128) k = 128; blurCircleSize = k;}
   }
 }
 
@@ -766,6 +867,9 @@ void drawToolView() {
     } break;
   case TOOL_TILING: {
       drawToolTilingView();
+    } break;
+  case TOOL_BLUR: {
+      drawToolBlurView();
     } break;
   }
   ImGui::End();

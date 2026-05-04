@@ -78,6 +78,47 @@ void addUsedColor(const ImVec4 &color) {
 
 ImVec4 foregroundColor(0,1,1,1);
 
+GLuint colorSliderTexture = 0;
+const unsigned int colorSliderTextureWidth = 256;
+const unsigned int colorSliderTextureHeight = 6;
+unsigned int colorSliderTextureContent[colorSliderTextureWidth*colorSliderTextureHeight];
+
+void updateColorSlidersTexture() {
+  ImVec4 _hsl; getHsl(foregroundColor,&_hsl.x,&_hsl.y,&_hsl.z);
+  for (int y = 0; y < 6; y++) {
+    for (int x = 0; x < colorSliderTextureWidth; x++) {
+      float fx = (float)x /colorSliderTextureWidth;
+      float h,s,l;
+      ImVec4 rgb;
+      switch(y) {
+      case 0: {rgb.x=fx;rgb.y=foregroundColor.y;rgb.z=foregroundColor.z;} break;
+      case 1: {rgb.x=foregroundColor.x;rgb.y=fx;rgb.z=foregroundColor.z;} break;
+      case 2: {rgb.x=foregroundColor.x;rgb.y=foregroundColor.y;rgb.z=fx;} break;
+      case 3: {h = fx; s = 1; l = 0.5; rgb = hsl(h,s,l);} break;
+      case 4: {h = _hsl.x; s = fx; l = _hsl.z; rgb = hsl(h,s,l);} break;
+      case 5: {h = _hsl.x; s = _hsl.y; l = fx; rgb = hsl(h,s,l);} break;
+      }
+      int ri = (int)floor(rgb.x*255.0);
+      int gi = (int)floor(rgb.y*255.0);
+      int bi = (int)floor(rgb.z*255.0);
+      if (ri < 0) ri = 0;
+      if (gi < 0) gi = 0;
+      if (bi < 0) bi = 0;
+      if (ri > 255) ri = 255;
+      if (gi > 255) gi = 255;
+      if (bi > 255) bi = 255;
+      colorSliderTextureContent[x+y*colorSliderTextureWidth] = ri|(gi<<8)|(bi<<16)|0xff000000;
+    }
+  }
+  glBindTexture(GL_TEXTURE_2D,colorSliderTexture);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, colorSliderTextureWidth, colorSliderTextureHeight, 0, GL_RGBA, GL_BYTE, colorSliderTextureContent);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
 unsigned int colorWheelX = 160;
 double colorWheelAspectRatio = aspectRatio;
 unsigned int colorWheelY = -1;
@@ -128,6 +169,7 @@ void getHsl(const ImVec4 &rgb, float *hv, float *sv, float *lv) {
   }
   double d = m - n;
   s = l > 0.5 ? d / (2-m-n) : d / (m+n);
+  if (s < 0) s = 0;
   if (m == r) h = (g-b)/d+(g<b?6:0);
   if (m == g) h = (b-r)/d+2;
   if (m == b) h = (r-g)/d+4;
@@ -194,10 +236,16 @@ void initColorField() {
   glBindTexture(GL_TEXTURE_2D,0);
   float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);
   updatePalette();
+
+  if (colorSliderTexture == 0) {
+    glGenTextures(1,&colorSliderTexture);
+  }
+  updateColorSlidersTexture();
 }
 
 void freeColorField() {
-  glDeleteTextures(1,&colorWheelTexture);
+  glDeleteTextures(1,&colorWheelTexture); colorWheelTexture = 0;
+  glDeleteTextures(1,&colorSliderTexture); colorSliderTexture = 0;
 }
 
 unsigned int swapRB(unsigned int color) {
@@ -232,18 +280,43 @@ bool colorItem(const String &name, const String &id, ImVec4 *color) {
   return ret;
 }
 
+void colorBorder() {
+  ImVec2 c = ImGui::GetItemRectMax();
+  c.x -= 1;
+  c.y -= 1;
+  ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(),c,0xff000000);
+}
+
+void blitColorSliderBackground(const ImVec2 &before, int slider, int sliderWidth) {
+  ImVec2 a = ImGui::GetCursorScreenPos();
+  ImVec2 b = before;
+  b.x += 2;
+  b.y += 2;
+  ImGui::SetCursorScreenPos(b);
+  float ty = slider / 6.0;
+  ImGui::Image((ImTextureID)colorSliderTexture,ImVec2(sliderWidth,13),ImVec2(0,ty),ImVec2(1,ty));
+  colorBorder();
+  ImGui::SetCursorScreenPos(a);
+}
+
 void colorDisplay(ImVec4 *c) {
   static unsigned int krgb;
   float k;
+  ImVec2 before;
+  int sw = sidebar_width - 60;
+  ImGui::PushItemWidth(sw);
   k = c->w * 255.0; if (ImGui::SliderFloat("Alpha##DIALOGCOLORCOLORALPHA",&k,0,255)) {c->w = k/255.0;}
-  k = c->x * 255.0; if (ImGui::SliderFloat("Red##DIALOGCOLORCOLORRED",&k,0,255)) {c->x = k/255.0;}
-  k = c->y * 255.0; if (ImGui::SliderFloat("Green##DIALOGCOLORCOLORGREEN",&k,0,255)) {c->y = k/255.0;}
-  k = c->z * 255.0; if (ImGui::SliderFloat("Blue##DIALOGCOLORCOLORBLUE",&k,0,255)) {c->z = k/255.0;}
+  ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0,0,0,0));
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,0,sw); k = c->x * 255.0; if (ImGui::SliderFloat("Red##DIALOGCOLORCOLORRED",&k,0,255)) {c->x = k/255.0;updateColorSlidersTexture();}
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,1,sw); k = c->y * 255.0; if (ImGui::SliderFloat("Green##DIALOGCOLORCOLORGREEN",&k,0,255)) {c->y = k/255.0;updateColorSlidersTexture();}
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,2,sw); k = c->z * 255.0; if (ImGui::SliderFloat("Blue##DIALOGCOLORCOLORBLUE",&k,0,255)) {c->z = k/255.0;updateColorSlidersTexture();}
   float h,s,l; 
   getHsl(*c,&h,&s,&l);
-  k = h*360.0;  if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {double w = c->w; h = k/360.0; updateColorWheel(h,0,0,&h,&s,&l); *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);}
-  k = s;  if (ImGui::SliderFloat("Sat.##DIALOGCOLORCOLORSAT",&k,0,1)) {double w = c->w; s = k; *c = hsl(h,s,l); c->w = w;}
-  k = l;  if (ImGui::SliderFloat("Light.##DIALOGCOLORCOLORLIT",&k,0,1)) {double w = c->w; l = k; *c = hsl(h,s,l); c->w = w;}
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,3,sw); k = h*360.0;  if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {double w = c->w; h = k/360.0; updateColorWheel(h,0,0,&h,&s,&l); *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);updateColorSlidersTexture();}
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,4,sw); k = s;  if (ImGui::SliderFloat("Sat.##DIALOGCOLORCOLORSAT",&k,0,1)) {double w = c->w; s = k; *c = hsl(h,s,l); c->w = w;updateColorSlidersTexture();}
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,5,sw); k = l;  if (ImGui::SliderFloat("Light.##DIALOGCOLORCOLORLIT",&k,0,1)) {double w = c->w; l = k; *c = hsl(h,s,l); c->w = w;updateColorSlidersTexture();}
+  ImGui::PopStyleColor();
+  ImGui::PopItemWidth();
   ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0,0,0,0));
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered,ImVec4(0,0,0,0));
   ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImVec4(0,0,0,0));
@@ -252,7 +325,7 @@ void colorDisplay(ImVec4 *c) {
     int mx = ImGui::GetMousePos().x-cursorHere.x;
     int my = ImGui::GetMousePos().y-cursorHere.y;
     bool update = updateColorWheel(h,mx,my,&h,&s,&l);
-    if (update) {double w = c->w; *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL); }
+    if (update) {double w = c->w; *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL); updateColorSlidersTexture();}
   }
   ImGui::PopStyleColor();
   ImGui::PopStyleColor();
