@@ -340,7 +340,7 @@ void colorDisplay(ImVec4 *c) {
     ImGui::PushID((String("##COLORDISPLAYTRACEBACK")+String::fromInt(i)).c_str());
     if (ImGui::ImageButton((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), 0, c3, c3)) {
       *c = ImVec4(c3.x,c3.y,c3.z,c3.w);
-      getHsl(*c,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);
+      getHsl(*c,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);updateColorSlidersTexture();
     }
     ImGui::PopID();
   }

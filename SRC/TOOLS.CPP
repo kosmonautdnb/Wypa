@@ -159,8 +159,8 @@ void BrushInstance::resize(Brush *base, double newPixelWidth, double newPixelHei
   double pressure = powd(base->pressure,3)+0.0001;
   for (int y = 0; y < pixelHeight; y++) {
     for (int x = 0; x < pixelWidth; x++) {
-      double dx = (double)(x-ax) / newPixelWidth * 2.0 - 1.0;
-      double dy = (double)(y-ay) / newPixelHeight * 2.0 - 1.0;
+      double dx = (double)(x-ax+0.5) / newPixelWidth * 2.0 - 1.0;
+      double dy = (double)(y-ay+0.5) / newPixelHeight * 2.0 - 1.0;
       double dx2 = cos(r)*dx - sin(r)*dy;
       dy = sin(r)*dx + cos(r)*dy;
       dx = dx2;
@@ -1362,6 +1362,8 @@ void useToolPainting() {
 
   if (paintToolLayer != NULL && (!paintingOn) && toolOutline && isPaintAreaActive()) {
     double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
+    cx = floor(cx);
+    cy = floor(cy);
     paintToolLayer->updatePixelStates(~PIXELSTATE_OUTLINE,0,0); reverseLastUpdatedPixelStates(paintToolLayer);
     drawTool(paintToolLayer,brush,cx,cy,0,false,true);
 
