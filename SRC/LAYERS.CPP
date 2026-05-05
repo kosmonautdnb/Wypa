@@ -1222,7 +1222,9 @@ Layer *Layer::clone() {
   ret->id = id;
   ret->pixels = NULL;
   ret->pixelStates = NULL;
+  unsigned int mode = ret->mode;
   ret->init(width,height);
+  ret->mode = mode;
   memcpy(ret->pixels,pixels,ret->width*ret->height*sizeof(unsigned int));
   ret->colorTransform = colorTransform;
   ret->toolInfo = toolInfo;
