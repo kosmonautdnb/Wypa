@@ -71,6 +71,8 @@ void dialogMergeDown(bool openIt);
 void dialogInsertSVG(bool openIt,int width, int height);
 void dialogExportLayersRaw(bool openIt);
 void dialogPictureInfo(bool openIt);
+void dialogGradiationCurves(bool openIt);
+void dialogColorBalance(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

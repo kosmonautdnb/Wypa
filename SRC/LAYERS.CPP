@@ -605,15 +605,18 @@ int LayerUndoData::byteCount() {
 }
 
 unsigned int Layer::getPixel(int x, int y) {
+  if (state.locked) return 0x00000000;
   if ((unsigned int)x<width&&(unsigned int)y<height) return pixels[x+y*width];
   return 0x00000000;
 }
 
 void Layer::setPixel(int x, int y, unsigned int rgba) {
+  if (state.locked) return;
   if ((unsigned int)x<width&&(unsigned int)y<height) pixels[x+y*width] = rgba;
 }
 
 void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
+  if (state.locked) return;
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -632,6 +635,7 @@ void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
 }
 
 void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool clampOnLayer) {
+  if (state.locked) return;
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -655,6 +659,7 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool c
 }
 
 void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer) {
+  if (state.locked) return;
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -678,6 +683,7 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool
 }
 
 void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer) {
+  if (state.locked) return;
   if (y1 == y0) return;
   if (y1 < y0) {
     int t;
@@ -748,6 +754,7 @@ void Layer::clear() {
 }
 
 void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor) {
+  if (state.locked) return;
   unsigned int and2 = _and|(_and<<8)|(_and<<16)|(_and<<24);
   unsigned int or2 = _or|(_or<<8)|(_or<<16)|(_or<<24);
   unsigned int eor2 = _eor|(_eor<<8)|(_eor<<16)|(_eor<<24);
@@ -765,7 +772,7 @@ void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned ch
 void Layer::mirrorHorizontally() {
   Matrix center; center.translate(Vector((double)width/2,0,0));
   Matrix modify; modify.scale3(Vector(-1,1,1));
-  transform.transformation = transform.transformation * center * modify * inverse2(center);
+  transform.transformation = center * modify * inverse2(center) * transform.transformation;
   transform.update();
   shouldUpdateAll = true;
 }
@@ -773,7 +780,7 @@ void Layer::mirrorHorizontally() {
 void Layer::mirrorVertically() {
   Matrix center; center.translate(Vector(0,(double)height/2,0));
   Matrix modify; modify.scale3(Vector(1,-1,1));
-  transform.transformation = transform.transformation * center * modify * inverse2(center);
+  transform.transformation = center * modify * inverse2(center) * transform.transformation;
   transform.update();
   shouldUpdateAll = true;
 }
@@ -823,12 +830,14 @@ void Layer::rotateByDegrees(double degrees) {
 }
 
 void Layer::selectAll() {
+  if (state.locked) return;
   for (int i = 0; i < width * height; i++) pixelStates[i] |= PIXELSTATE_SELECTED;
   shouldUpdateAll = true;
   updatedPixelStates(this);
 }
 
 void Layer::selectNone() {
+  if (state.locked) return;
   unsigned char f = ~PIXELSTATE_SELECTED; unsigned int f2 = (f)|(f<<8)|(f<<16)|(f<<24);
   unsigned int *pixelStates2 = (unsigned int*)pixelStates;
   for (int i = 0; i < width * height/4; i++) pixelStates2[i] &= f2;
@@ -837,12 +846,14 @@ void Layer::selectNone() {
 }
 
 void Layer::invertSelection() {
+  if (state.locked) return;
   for (int i = 0; i < width * height; i++) pixelStates[i] ^= PIXELSTATE_SELECTED;
   shouldUpdateAll = true;
   updatedPixelStates(this);
 }
 
 void Layer::fillSelectionWithColor(unsigned int color) {
+  if (state.locked) return;
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = color;
   shouldUpdateAll = true;
   updatedPixels(this);
@@ -850,6 +861,7 @@ void Layer::fillSelectionWithColor(unsigned int color) {
 }
 
 void Layer::fillSelectionWithAlpha(unsigned char alpha) {
+  if (state.locked) return;
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) {
       pixels[i] = (pixels[i] & 0x00ffffff) | (alpha << 24);
   }
@@ -870,18 +882,21 @@ unsigned int invertAlpha(unsigned int col) {
 }
 
 void Layer::invertSelectionColor() {
+  if (state.locked) return;
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = invertColor(pixels[i]);
   updatedPixels(this);
   shouldUpdateAll = true;
 }
 
 void Layer::invertSelectionAlpha() {
+  if (state.locked) return;
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = invertAlpha(pixels[i]);
   updatedPixels(this);
   shouldUpdateAll = true;
 }
 
 void Layer::expandSelection(int pixels) {
+  if (state.locked) return;
   if (pixels == 0) return;
   unsigned char *before = new unsigned char[width*height];
   bool forward = pixels > 0;
@@ -916,6 +931,7 @@ void Layer::expandSelection(int pixels) {
 }
 
 void Layer::selectByAlpha(int alphaThreshold) {
+  if (state.locked) return;
   for (int i = 0; i < width * height; i++) {
     pixelStates[i] = pixelStates[i] & (~PIXELSTATE_SELECTED);
     if ((pixels[i]>>24) >= alphaThreshold) pixelStates[i] |= PIXELSTATE_SELECTED;
@@ -925,6 +941,7 @@ void Layer::selectByAlpha(int alphaThreshold) {
 }
 
 void Layer::selectionAsOutline() {
+  if (state.locked) return;
   int addX[4] = {-1,1,0,0};
   int addY[4] = {0,0,-1,1};
   for (int y = 0; y < height; y++) {
@@ -951,6 +968,7 @@ void Layer::selectionAsOutline() {
 }
 
 void Layer::addSelectionRectangle(int lx0, int ly0, int lx1, int ly1) {
+  if (state.locked) return;
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if (x >= lx0 && x < lx1 && y >= ly0 && y < ly1) {
@@ -1041,6 +1059,7 @@ void Layer::quantizeBoundingBox() {
 }
 
 void layerNewContent(Layer *l, int w, int h) {
+  if (l->state.locked) return;
   if (w < 1) return;
   if (h < 1) return;
   if (l->pixels != NULL) {delete[] l->pixels; l->pixels = NULL;}
@@ -1056,6 +1075,7 @@ void layerNewContent(Layer *l, int w, int h) {
 }
 
 void layerGetContent(Layer *to, Layer *from) {
+  if (to->state.locked) return;
   int w = from->width;
   int h = from->height;
   layerNewContent(to,w,h);
@@ -1064,6 +1084,7 @@ void layerGetContent(Layer *to, Layer *from) {
 }
 
 void Layer::resizeLayerContent(int interpolation, int newWidth, int newHeight) {
+  if (state.locked) return;
   if (newWidth <= 0) return;
   if (newHeight <= 0) return;
   TransformationState before = transform;
@@ -1074,6 +1095,7 @@ void Layer::resizeLayerContent(int interpolation, int newWidth, int newHeight) {
 }
 
 void Layer::bakeLayer(int interpolation) {
+  if (state.locked) return;
 
   Vector b = boundingBox();
   int x0 = (int)floor(b.x);
@@ -1307,6 +1329,8 @@ void Layer::snapToGrid(class Canvas *canvas) {
 }
 
 void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
+  if (state.locked) return;
+
   int newWidth = width + left + right;
   int newHeight = height + top + bottom;
   if (newWidth < 1 || newHeight < 1) return;
@@ -1343,6 +1367,7 @@ void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
 }
 
 void Layer::cropByAlpha(double alphaThreshold) {
+  if (state.locked) return;
   bool first = true;
   int minX = 0, minY = 0, maxX = 0, maxY = 0;
   for (int y = 0; y < height; y++) {
@@ -1364,10 +1389,12 @@ void Layer::cropByAlpha(double alphaThreshold) {
 }
 
 void Layer::antialiasSelected() {
+  if (state.locked) return;
   doFXAA(pixels,width,height,pixelStates,PIXELSTATE_SELECTED);
 }
 
 void Layer::colorFromAlpha() {
+  if (state.locked) return;
   for (int i = 0; i < width*height; i++) {
     unsigned int col = pixels[i];
     int a = col>>24;
@@ -1378,6 +1405,7 @@ void Layer::colorFromAlpha() {
 }
 
 void Layer::applyAlphaMask(Layer *source) {
+  if (state.locked) return;
   Matrix m = source->transform.transformation * inverse2(transform.transformation);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
@@ -1402,6 +1430,7 @@ void Layer::applyAlphaMask(Layer *source) {
 }
 
 void Layer::quantize(const Array<unsigned int> &colors) {
+  if (state.locked) return;
   if (colors.empty()) return;
   initStatusBar();
   for (int i = 0; i < width * height; i++) {
@@ -1506,6 +1535,7 @@ unsigned int quantizeFast(unsigned int col, float ditherStrength, int x, int y) 
 }
 
 void Layer::bakeMagic(bool onlyInSelection) {
+  if (state.locked) return;
   bool quantize = colorTransform.useQuantization && (quantization.size() == 64*64*64);
   for (int i = 0; i < width*height; i++) {
     if (onlyInSelection && (!(pixelStates[i] & PIXELSTATE_SELECTED))) continue;
@@ -1522,6 +1552,7 @@ void Layer::bakeMagic(bool onlyInSelection) {
 
 
 void Layer::addSelectionFromLayer(Layer *source) {
+  if (state.locked) return;
   if (source == NULL || (!source->hasSelection())) return;
   Layer *s = source;
   Layer *d = this;
@@ -1550,6 +1581,7 @@ unsigned int Layer::byteCount() {
 }
 
 bool Layer::hasUpdates() {
+  if (state.locked) return false;
   return undoData.updatePixelsCount != undoData.updatePixelsCountOfLastSave;
 }
 
@@ -2608,6 +2640,7 @@ void Canvas::copyActiveSelectionToLayer(int layerIndexSource,int layerIndexDest)
   if ((unsigned int)layerIndexDest>=layers.size()) return;
   Layer *s = layers[layerIndexSource];
   Layer *d = layers[layerIndexDest];
+  if (d->state.locked) return;
   Matrix m = s->transform.transformation * inverse2(d->transform.transformation);
   for (int y = 0; y < d->height; y++) {
     for (int x = 0; x < d->width; x++) {
@@ -3065,10 +3098,29 @@ void Canvas::snapToGrid() {
 }
 
 void Canvas::centerCanvas() {
+  double lx = 0, ly = 0; getScreenPos(lx,ly,lx,ly);
   double lx0 = canvasX0, ly0 = canvasY0; getScreenPos(lx0,ly0,lx0,ly0);
   double lx1 = canvasX1, ly1 = canvasY1; getScreenPos(lx1,ly1,lx1,ly1);
-  control.scrollX = (lx1-lx0)*0.5-width/2;
-  control.scrollY = (ly1-ly0)*0.5-height/2;
+  control.scrollX = (lx1-lx0)*0.5+(lx0-lx)-width/2;
+  control.scrollY = (ly1-ly0)*0.5+(ly0-ly)-height/2;
+  control.setCanvasTransform(this);
+}
+
+void Canvas::fitCanvas() {
+  double lx = 0, ly = 0; getScreenPos(lx,ly,lx,ly);
+  double lx0 = canvasX0, ly0 = canvasY0; getScreenPos(lx0,ly0,lx0,ly0);
+  double lx1 = canvasX1, ly1 = canvasY1; getScreenPos(lx1,ly1,lx1,ly1);
+  control.scrollX = (lx1-lx0)*0.5+(lx0-lx)-width/2;
+  control.scrollY = (ly1-ly0)*0.5+(ly0-ly)-height/2;
+  control.setCanvasTransform(this);
+  lx0 = canvasX0;
+  ly0 = canvasY0;
+  lx1 = canvasX1;
+  ly1 = canvasY1;
+  double scaleX = (lx1-lx0)!=0?width/(lx1-lx0)*aspectRatio*main_window_yres/main_window_xres:1;
+  double scaleY = (ly1-ly0)!=0?height/(ly1-ly0):1;
+  double scale = scaleX<scaleY?scaleX:scaleY;
+  control.zoomTo(this,screenPosX+width*0.5,screenPosY+height*0.5,scale*100.f);
 }
 
 bool Canvas::isOnlyActiveLayerActive() {
@@ -3112,6 +3164,14 @@ bool Canvas::hasUpdates() {
 void Canvas::signSave() {
   for (int i = 0; i < layers.size(); i++) {
     ::signSave(layers[i]);
+  }
+}
+
+void Canvas::lockLayers(bool lockOrUnlock) {
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected||layers[i]->state.active) {
+      layers[i]->state.locked = lockOrUnlock;
+    }
   }
 }
 
@@ -3367,7 +3427,7 @@ void newPicture(int w, int h,const String &pictureName) {
   l->selectAll();
   l->fillSelectionWithColor(0xff000000);
   l->selectNone();
-  sprintf(l->name,"unnamed");
+  sprintf(l->name,"layer");
   currentCanvas->addLayer(l);
   currentCanvas->fitCanvasToLayers();
   currentCanvas->setActiveLayer(0);

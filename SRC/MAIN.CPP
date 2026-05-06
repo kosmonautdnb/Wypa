@@ -267,6 +267,8 @@ int main(int argc, const char *argv[]) {
   ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImVec4(0.2,0.2,0.2,1.f);
   ImGui::GetStyle().Colors[ImGuiCol_SliderGrab] = ImVec4(0.2,0.2,0.2,1.f);
   ImGui::GetStyle().Colors[ImGuiCol_TooltipBg] = ImVec4(1,1,1,0.8);
+  ImGui::GetStyle().Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0,0,0,0);
+
   loadBaseSVGs();
   screenSaverStartTime = glSeconds();
   lastTime = glSeconds();

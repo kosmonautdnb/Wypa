@@ -109,6 +109,9 @@ void drawMenuBar() {
     }
     if (ImGui::BeginMenu("Edit")) {
       on = true;
+      bool one = false;
+      int count = 0;
+      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (useUndo) {
         if (ImGui::MenuItem((String("Undo[") + String::fromInt(availableUndos) + String("]##UNDO")).c_str(),NULL,false,availableUndos>0)) {undo();}
         if (ImGui::MenuItem("Redo",NULL,false,availableRedos>0)) {redo();}
@@ -121,6 +124,9 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Fill selection with foreground alpha",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithAlpha(getUIntColor(foregroundColor)>>24);}
       if (ImGui::MenuItem("Invert selection color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->invertSelectionColor();}
       if (ImGui::MenuItem("Invert selection alpha",NULL,false,currentCanvas->hasSelection())) {currentCanvas->invertSelectionAlpha();}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Gradiation curves",NULL,false,count == 1)) {dialogGradiationCurves(true);}
+      if (ImGui::MenuItem("Color balance",NULL,false,count == 1)) {dialogColorBalance(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Undo enabled",NULL,useUndo,true)) {useUndo = !useUndo;}
       ImGui::EndMenu();
@@ -171,6 +177,9 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Update layer",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {dialogUpdateLayer(true);}
       if (ImGui::MenuItem("Crop layer(s) by alpha",NULL,false,one)) {currentCanvas->cropLayersByAlpha(1);}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Lock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(true);}
+      if (ImGui::MenuItem("Unlock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(false);}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Selection")) {
@@ -199,6 +208,7 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
       if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
+      if (ImGui::MenuItem("Fit view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
       ImGui::Separator();
       if (ImGui::MenuItem("Clear mouse lock",NULL,false,lockedMouseX||lockedMouseY)) {lockedMouseX = false; lockedMouseY = false;}
       ImGui::EndMenu();

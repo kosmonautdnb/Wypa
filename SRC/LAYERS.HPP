@@ -71,6 +71,7 @@ public:
   bool active;
   bool selected;
   bool visible;
+  bool locked;
   float alpha;
   bool imGuiActive;
 
@@ -78,6 +79,7 @@ public:
     active = false;
     selected = false;
     visible = true;
+    locked = false;
     alpha = 1;
     imGuiActive = false;
   }
@@ -89,6 +91,7 @@ public:
   S_BOOL("active",(__o__)->active);\
   S_BOOL("selected",(__o__)->selected);\
   S_BOOL("visible",(__o__)->visible);\
+  S_BOOL("locked",(__o__)->locked);\
   S_FLOAT("alpha",(__o__)->alpha);\
   S_OBJECT_CLOSE();
 
@@ -660,6 +663,7 @@ public:
   void setBoundingAngleDegrees(double degrees);
   void snapToGrid();
   void centerCanvas();
+  void fitCanvas();
 
   void cropLayersByAlpha(double alpha);
   bool isOnlyActiveLayerActive();
@@ -668,6 +672,8 @@ public:
 
   bool hasUpdates();
   void signSave();
+
+  void lockLayers(bool lockOrUnlock);
 };
 #define S_CANVAS(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\

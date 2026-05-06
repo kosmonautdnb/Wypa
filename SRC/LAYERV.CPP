@@ -116,6 +116,9 @@ void drawLayerView() {
     if (l->state.selected) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x200000ff);
     }
+    if (l->state.locked) {
+      ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x80000000);
+    }
     if (ImGui::IsItemHovered() && controlKeyId == CONTROLKEY_CTRL) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ffff00);
     }

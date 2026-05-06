@@ -32,11 +32,15 @@
 #include "UNDO.HPP"
 #include <math.h>
 
-#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize)) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableRenderMouseClicks();
+bool dialogNoMove = false;
+
+#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize|(dialogNoMove?ImGuiWindowFlags_NoMove:0))) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableRenderMouseClicks();
 #define DIALOGEND() ImGui::PopStyleColor(); ImGui::EndPopup();} ImGui::PopStyleColor();
 #define DIALOGKEYSHERE() {if (keyboardFocusNew>0) {keyboardFocusNew--;ImGui::SetKeyboardFocusHere();}}
 
 void disableRenderMouseClicks();
+
+bool roundButton(const char *name, bool enabled);
 
 unsigned int previewTexture = 0;
 const unsigned int previewWidth = 64;
@@ -103,6 +107,8 @@ void drawDialogs() {
   dialogInsertSVG(false,0,0);
   dialogExportLayersRaw(false);
   dialogPictureInfo(false);
+  dialogGradiationCurves(false);
+  dialogColorBalance(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -500,6 +506,541 @@ void dialogPictureInfo(bool openIt) {
   }
   DIALOGEND()
 }
+
+int gradiationTextureWidth = 256;
+int gradiationTextureHeight = 256;
+void updateGradiationTexture(GLuint gradiationTexture, Layer *l, int type) {
+  Array<unsigned int> gradiationTextureContent;
+  gradiationTextureContent.resize(gradiationTextureWidth*gradiationTextureHeight);
+  for (int i = 0; i < gradiationTextureContent.size(); i++) gradiationTextureContent[i] = 0xff000000;
+  Array<int> counts; counts.resize(256);
+  for (int i5 = 0; i5 < 256; i5++) counts[i5] = 0;
+  for (int i2 = 0; i2 < l->width*l->height; i2++) {
+    unsigned int col = l->pixels[i2];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int a = (col>>24) & 255;
+    int grey = (r+g+b)/3;
+    int count = 0;
+    switch(type) {
+    case 0: {count = grey;} break;
+    case 1: {count = r;} break;
+    case 2: {count = g;} break;
+    case 3: {count = b;} break;
+    case 4: {count = a;} break;
+    }
+    counts[count]++;
+  }
+  int max = 0;
+  for (int i3 = 0; i3 < 256; i3++) {
+    if (counts[i3]>max) max = counts[i3];
+  }
+  if (max > 0) {
+    for (int i4 = 0; i4 < 256; i4++) {
+      counts[i4] = counts[i4]*255/max;
+    }
+  }
+  for (int y = 0; y < gradiationTextureHeight; y++) {
+    for (int x = 0; x < gradiationTextureWidth; x++) {
+      int heightHere = 255-y*256/gradiationTextureHeight;
+      int xk = x * 256 / gradiationTextureWidth;
+      unsigned int col = 0xff000000;
+      if (heightHere < counts[xk]) col = 0xff0000ff;
+      gradiationTextureContent[x+y*gradiationTextureWidth] = col;
+    }
+  }
+  glBindTexture(GL_TEXTURE_2D,gradiationTexture);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradiationTextureWidth, gradiationTextureHeight, 0, GL_RGBA, GL_BYTE, &gradiationTextureContent[0]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D,0);
+}
+
+#define BEZIER_WIDTH 256
+bool showCurveCVs = false;
+
+class CurvePoint {
+public:
+  int x,y;
+  float dx[2],dy[2];
+  CurvePoint() {x=y=0; dx[0]=dy[0]=dx[1]=dy[1]=0;}
+  CurvePoint(int x, int y) {this->x=x; this->y=y; dx[0]=dy[0]=dx[1]=dy[1]=0;}
+};
+
+double bezier(double t, double p0, double p1, double p2, double p3) {
+  return (1-t)*(1-t)*(1-t)*p0 + 3*(1-t)*(1-t)*t*p1 + 3*(1-t)*t*t*p2 + t*t*t*p3;
+}
+
+class Curve {
+public:
+  Curve() {
+    selectedPoint = -1;
+    selectedCV = -1;
+    dragPoint = -1;
+  }
+  int bezierY[256];
+  Array<CurvePoint> points;
+  void clear() {points.clear(); selectedPoint = -1; dragPoint = -1; selectedCV = -1;}
+  int selectedPoint;
+  int selectedCV;
+  int dragPoint;
+
+  int getInterpolation(int x) {
+    int found = -1;
+    for (int i = 0; i < points.size()-1; i++) {
+      if (x >= points[i].x && x <= points[i+1].x) {
+        found = i;
+        break;
+      }
+    }
+    if (found < 0) return 0;
+    float deltaX = x - points[found].x;
+    float deltaXF = points[found+1].x - points[found].x;
+    if (deltaXF == 0) return points[found].x;
+    if (points[found].dx[1]==0&&points[found].dy[1]==0&&points[found+1].dx[0]==0&&points[found+1].dy[0]==0)
+      return (points[found+1].y - points[found].y)*deltaX/deltaXF + points[found].y;
+    return bezierY[x];
+  } 
+
+  void insertPoint(int x) {
+    int found = -1;
+    for (int i = 0; i < points.size()-1; i++) {
+      if (x > points[i].x && x <= points[i+1].x) {
+        found = i;
+        break;
+      }
+    }
+    if (found < 0) return;
+    int y = getInterpolation(x);
+    points.insert(CurvePoint(x,y),found+1);
+    selectedPoint = found + 1;
+    dragPoint = -1;
+  }
+
+  void erasePoint(int x) {
+    if (x < 1) return;
+    if (x >= points.size()-1) return;
+    points.erase(x,1);
+    selectedPoint = x-1;
+    dragPoint = -1;
+  }
+
+  void generateBezier() {
+#define BEZIER_TESSEL 256
+    int lxi = points[0].x;
+    int lyi = points[0].y;
+    for (int i = 0; i < points.size()-1; i++) {
+      for (int j = 0; j < BEZIER_TESSEL; j++) {
+        double bx = bezier((double)j/BEZIER_TESSEL,points[i].x,points[i].x+points[i].dx[1],points[i+1].x+points[i+1].dx[0],points[i+1].x);
+        double by = bezier((double)j/BEZIER_TESSEL,points[i].y,points[i].y+points[i].dy[1],points[i+1].y+points[i+1].dy[0],points[i+1].y);
+        int bxi = (int)floor(bx);
+        int byi = (int)floor(by);
+        int dx = bxi-lxi;
+        int dy = byi-lyi;
+        int d = abs(dx);
+        float xp = lxi;
+        float yp = lyi;
+        float xa = 1;
+        float ya = d>0?dy/d:0;
+        for (int k = 0; k < d+1; k++) {
+          int xpi = (int)floor(xp);
+          int ypi = (int)floor(yp);
+          if (xpi>=points[i].x&&xpi<=points[i+1].x&&xpi<256) {
+            bezierY[xpi] = ypi;
+          }
+          xp += xa;
+          yp += ya;
+        }
+        lxi = bxi;
+        lyi = byi;
+      }
+    }
+  }
+};
+
+Curve curves[5];
+
+void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
+  static bool lastMouseLeft = ImGui::IsMouseDown(0);
+  bool mouseLeft = ImGui::IsMouseDown(0);
+  for (int i = 0; i < c.points.size()-1; i++) {
+    ImVec2 p0 = ImVec2(c.points[i].x,255-c.points[i].y);
+    ImVec2 p1 = ImVec2(c.points[i+1].x,255-c.points[i+1].y);
+    p0.x += minB.x;
+    p0.y += minB.y;
+    p1.x += minB.x;
+    p1.y += minB.y;
+    if (c.points[i].dx[1]==0&&c.points[i].dy[1]==0&&c.points[i+1].dx[0]==0&&c.points[i+1].dy[0]==0) {
+      ImGui::GetWindowDrawList()->AddLine(p0,p1,0xffffffff);
+    } else {
+      ImVec2 last = p0;
+      for (int x = c.points[i].x; x < c.points[i+1].x; x++) {
+        ImVec2 p = ImVec2(x,255-c.bezierY[x]);
+        p.x += minB.x;
+        p.y += minB.y;
+        ImGui::GetWindowDrawList()->AddLine(last,p,0xffffffff);
+        last = p;
+      }
+      ImGui::GetWindowDrawList()->AddLine(last,p1,0xffffffff);
+    }
+  }
+  float circleRadius = 8;
+  if (!mouseLeft) {
+    c.dragPoint = -1;
+  }
+  for (int i2 = 0; i2 < c.points.size(); i2++) {
+    ImVec2 p0 = ImVec2(c.points[i2].x,255-c.points[i2].y);
+    p0.x += minB.x;
+    p0.y += minB.y;
+    double dx = mouseX - p0.x;
+    double dy = mouseY - p0.y;
+    double d = sqrt(dx*dx+dy*dy);
+    if (!showCurveCVs) {
+      unsigned int col = 0xff00ffff;
+      if (d < circleRadius) {
+        col = 0xff008080;
+        if (mouseLeft) {
+          if (!lastMouseLeft) {
+            c.selectedPoint = i2;
+            c.selectedCV = -1;
+            c.dragPoint = i2;
+          }
+        }
+      }
+      if (c.selectedPoint == i2) col = 0xffffff00;
+      if (c.dragPoint == i2) col = 0xffffff80;
+      ImGui::GetWindowDrawList()->AddCircle(p0,circleRadius,col);
+    }
+    if (showCurveCVs) {
+      unsigned int col;
+      ImVec2 dp;
+      col = 0xff00ffff;
+      dp.x = p0.x + c.points[i2].dx[0];
+      dp.y = p0.y - c.points[i2].dy[0];
+      dx = mouseX - dp.x; dy = mouseY - dp.y; d = sqrt(dx*dx+dy*dy);
+      if (d < circleRadius) {
+        col = 0xff008080;
+        if (mouseLeft) {
+          if (!lastMouseLeft) {
+            c.selectedPoint = i2;
+            c.dragPoint = i2;
+            c.selectedCV = 0;
+          }
+        }
+      }
+      if (c.selectedPoint == i2 && c.selectedCV == 0) col = 0xffffff00;
+      ImGui::GetWindowDrawList()->AddLine(p0,dp,0xff004040);
+      ImGui::GetWindowDrawList()->AddCircle(dp,4,col);
+      col = 0xff00ffff;
+      dp.x = p0.x + c.points[i2].dx[1];
+      dp.y = p0.y - c.points[i2].dy[1];
+      dx = mouseX - dp.x; dy = mouseY - dp.y; d = sqrt(dx*dx+dy*dy);
+      if (d < circleRadius) {
+        col = 0xff008080;
+        if (mouseLeft) {
+          if (!lastMouseLeft) {
+            c.selectedPoint = i2;
+            c.dragPoint = i2;
+            c.selectedCV = 1;
+          }
+        }
+      }
+      if (c.selectedPoint == i2 && c.selectedCV == 1) col = 0xffffff00;
+      ImGui::GetWindowDrawList()->AddLine(p0,dp,0xff004040);
+      ImGui::GetWindowDrawList()->AddCircle(dp,4,col);
+    }
+  }
+  lastMouseLeft = mouseLeft;
+}
+
+void applyColorGradingCurves(Layer *dest, Layer *source) {
+  if (dest->state.locked) return;
+  if (dest->width != source->width || dest->height != source->height) return;
+  Array<int> vals;
+  vals.resize(5*256);
+  for (int j = 0; j < 5; j++) {
+    for (int x = 0; x < 256; x++) vals[j*256+x] = curves[j].getInterpolation(x);
+  }
+  bool hasSelection = dest->hasSelection();
+  for (int i = 0; i < dest->width*dest->height; i++) {
+    if ((!hasSelection)||(dest->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int colS = source->pixels[i];
+      int r = colS & 255;
+      int g = (colS>>8) & 255;
+      int b = (colS>>16) & 255;
+      int a = (colS>>24) & 255;
+      int grey = (r+g+b)/3;
+      int gr = vals[0*256+grey];
+      if (gr == 255) gr = 512; // sorry
+      if (gr == 0) gr = -512; // sorry
+      grey = gr - grey;
+      r = vals[1*256+r];
+      g = vals[2*256+g];
+      b = vals[3*256+b];
+      a = vals[4*256+a];
+      r += grey;
+      g += grey;
+      b += grey;
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (a < 0) a = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a > 255) a = 255;
+      dest->pixels[i] = r | (g<<8) | (b<<16) | (a<<24);
+    }
+  }
+}
+
+void dialogGradiationCurves(bool openIt) {
+  static GLuint gradiationTexture = 0;
+  static int gradiationChannel = 0;
+  static bool updateGradientCurvesPreview = false;
+  static const char *channelNames[5] = {"grey","red","green","blue","alpha"};
+  static Layer *clone = NULL;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  if (openIt) {
+    beforeUndoPoint();
+    gradiationChannel = 0;
+    if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
+    glGenTextures(1,&gradiationTexture);
+    updateGradiationTexture(gradiationTexture,l,gradiationChannel);
+    for (int i = 0; i < 5; i++) {
+      curves[i].clear();
+      curves[i].points.push_back(CurvePoint(0,0));
+      curves[i].points.push_back(CurvePoint(255,255));
+    }
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    updateGradientCurvesPreview = true;
+  }
+  DIALOGSTART("Gradiation curves");
+  if (roundButton("Reset##DIALOGGRADIATIONRESET",true)) {
+    for (int i = 0; i < 5; i++) {
+      curves[i].clear();
+      curves[i].points.push_back(CurvePoint(0,0));
+      curves[i].points.push_back(CurvePoint(255,255));
+    }
+    updateGradientCurvesPreview = true;
+  }
+  ImGui::BeginChild("DIALOGGRADIENTCURVESCHILD",ImVec2(gradiationTextureWidth,gradiationTextureHeight));
+  ImGui::Image((ImTextureID)gradiationTexture,ImVec2(gradiationTextureWidth,gradiationTextureHeight));
+  ImVec2 minB = ImGui::GetItemRectMin();
+  ImVec2 maxB = ImGui::GetItemRectMax();
+  drawCurve(minB,maxB,curves[gradiationChannel]);
+  ImGui::EndChild();
+  ImVec2 minB2 = minB;
+  minB2.x -= 1;
+  minB2.y -= 1;
+  ImGui::GetWindowDrawList()->AddRect(minB2,maxB,0xff808080);
+  ImGui::PushItemWidth(64+16*2);
+  int colorIndex = (mouseX - minB.x)*256/(maxB.x-minB.x);
+  int colorValue = 255-(mouseY - minB.y)*256/(maxB.y-minB.y);
+  if (colorIndex < 0) colorIndex = 0;
+  if (colorValue < 0) colorValue = 0;
+  if (colorIndex > 255) colorIndex = 255;
+  if (colorValue > 255) colorValue = 255;
+  int colorIndex2 = colorIndex;
+  int colorValue2 = colorValue;
+  Curve &c = curves[gradiationChannel];
+  if ((unsigned int)c.selectedPoint < c.points.size()) {
+    CurvePoint &p = c.points[c.selectedPoint];
+    colorIndex2 = p.x;
+    colorValue2 = p.y;
+  }
+  bool pointUpdated = false;
+  ImGui::Text("Index"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGGRADIATIONINDEX",&colorIndex2,1,1)) {colorIndex = colorIndex2; colorValue = colorValue2; pointUpdated = true;}
+  ImGui::SameLine(); ImGui::Text("Value"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGGRADIATIONVALUE",&colorValue2,1,1)) {colorIndex = colorIndex2; colorValue = colorValue2; pointUpdated = true;}
+  if (colorIndex < 0) colorIndex = 0;
+  if (colorValue < 0) colorValue = 0;
+  if (colorIndex > 255) colorIndex = 255;
+  if (colorValue > 255) colorValue = 255;
+  if (pointUpdated) {
+    updateGradientCurvesPreview = true;
+    CurvePoint &p = c.points[c.selectedPoint];
+    if (c.selectedPoint == 0 || c.selectedPoint == c.points.size()-1) {
+      p.y = colorValue;
+    } else {
+      CurvePoint &pm = c.points[c.selectedPoint-1];
+      CurvePoint &pp = c.points[c.selectedPoint+1];
+      if (colorIndex >= pp.x) colorIndex = pp.x-1;
+      if (colorIndex <= pm.x) colorIndex = pm.x+1;
+      p.x = colorIndex;
+      p.y = colorValue;
+    }
+  }
+
+  if ((unsigned int)c.dragPoint < c.points.size()) {
+    CurvePoint &p = c.points[c.dragPoint];
+    updateGradientCurvesPreview = true;
+    if (c.selectedCV < 0) {
+      if (c.dragPoint == 0 || c.dragPoint == c.points.size()-1) {
+        p.y = colorValue;
+      } else {
+        CurvePoint &pm = c.points[c.dragPoint-1];
+        CurvePoint &pp = c.points[c.dragPoint+1];
+        if (colorIndex >= pp.x) colorIndex = pp.x-1;
+        if (colorIndex <= pm.x) colorIndex = pm.x+1;
+        p.x = colorIndex;
+        p.y = colorValue;
+      }
+    } else {
+      p.dx[c.selectedCV] = colorIndex - p.x;
+      p.dy[c.selectedCV] = colorValue - p.y;
+    }
+  }
+
+  if (ImGui::IsMouseClicked(1)) {
+    if (c.dragPoint<0&&(!showCurveCVs))
+      c.insertPoint(mouseX-minB.x);
+  }
+
+  dialogNoMove = false;
+  for (int i = 0; i < 5; i++) if (curves[i].dragPoint>=0) dialogNoMove = true;
+  ImGui::Text("CVs"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGGRADIATIONCVS",&showCurveCVs);
+  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel);}
+  ImGui::PopItemWidth();
+  ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;}
+
+  if (updateGradientCurvesPreview) {
+    for (int i = 0; i < 5; i++) curves[i].generateBezier();
+    updateGradientCurvesPreview = false;
+    applyColorGradingCurves(l,clone);
+    repaintLayer(l,true);
+  }
+
+  if (ImGui::Button("Apply##DIALOGGRADIATIONCURVEAPPLY")) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    dialogNoMove = false;
+    if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGGRADIATIONCURVESCLOSE")) {
+    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    dialogNoMove = false;
+    if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+  }
+  DIALOGEND()
+}
+
+void dialogColorBalance(bool openIt) {
+  static Layer *clone = NULL;
+  static int channel = 0;
+  static float colorBalanceR[3];
+  static float colorBalanceG[3];
+  static float colorBalanceB[3];
+  static bool keepLuminance = true;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  if (openIt) {
+    beforeUndoPoint();
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    channel = 1;
+    for (int i = 0; i < 3; i++) {
+      colorBalanceR[i] = 0;
+      colorBalanceG[i] = 0;
+      colorBalanceB[i] = 0;
+    }
+    keepLuminance = true;
+  }
+  DIALOGSTART("Color balance");
+
+  bool updateImage = false;
+  float *k;
+  ImGui::PushItemWidth(200);
+  k = &colorBalanceR[channel]; ImGui::Text("purple - red - yellow"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCEPRY",k,-1,1)) {updateImage = true;} if (*k<-1) *k = -1; if (*k>1) *k = 1;
+  k = &colorBalanceG[channel]; ImGui::Text("yellow - green - cyan"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCEGYC",k,-1,1)) {updateImage = true;} if (*k<-1) *k = -1; if (*k>1) *k = 1;
+  k = &colorBalanceB[channel]; ImGui::Text("cyan - blue - purple"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCECBP",k,-1,1)) {updateImage = true;} if (*k<-1) *k = -1; if (*k>1) *k = 1;
+  ImGui::Text("");   
+  ImGui::Text("Shadows"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL0", &channel, 0);
+  ImGui::SameLine();ImGui::Text("Mids"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL1", &channel, 1);
+  ImGui::SameLine();ImGui::Text("Lights"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL2", &channel, 2);
+  ImGui::Text("Keep luminance"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCOLORBALANCEKEEPLUMINANCE", &keepLuminance)) {updateImage = true;}
+  ImGui::PopItemWidth();
+
+  if (updateImage) {
+    if ((!l->state.locked) && l->height == clone->height && l->width == clone->width) {
+      bool hasSelection = l->hasSelection();
+      for (int i = 0; i < l->width * l->height; i++) {
+        if ((!hasSelection) || (l->pixelStates[i] & PIXELSTATE_SELECTED)) {
+          unsigned int col = clone->pixels[i];
+          float r = col & 255;
+          float g = (col>>8) & 255;
+          float b = (col>>16) & 255;
+          float lumaStart = (r+g+b)/3.0;
+          float rd = 0;
+          float gd = 0;
+          float bd = 0;
+          float s;
+          for (int j = 0; j < 3; j++) {
+            float ra = 0, ga = 0, ba = 0;
+            s = colorBalanceR[j]; ra += r; if (s>0) {ga += r * s;} else {ba += r * -s;}
+            s = colorBalanceG[j]; ga += g; if (s>0) {ba += g * s;} else {ra += g * -s;}
+            s = colorBalanceB[j]; ba += b; if (s>0) {ra += b * s;} else {ga += b * -s;}
+            float f = lumaStart/255.f;
+            switch(j) {
+            case 0: {f = 1-f*2;} break;
+            case 1: {f = 1-fabs(f-0.5)*2;} break;
+            case 2: {f = 1-(1-f)*2;} break;
+            }
+            if (f < 0) f = 0;
+            if (f > 1) f = 1;
+            rd += ra * f;
+            gd += ga * f;
+            bd += ba * f;
+          }
+          r = rd;
+          g = gd;
+          b = bd;
+          float lumaEnd =  (r+g+b)/3.0;
+          if (keepLuminance && lumaEnd != 0) {
+            r *= lumaStart/lumaEnd;
+            g *= lumaStart/lumaEnd;
+            b *= lumaStart/lumaEnd;
+          }
+          int a = (col >> 24) & 255;
+          int ri = (int)r;
+          int gi = (int)g;
+          int bi = (int)b;
+          if (ri < 0) ri = 0; if (ri > 255) ri = 255;
+          if (gi < 0) gi = 0; if (gi > 255) gi = 255;
+          if (bi < 0) bi = 0; if (bi > 255) bi = 255;
+          l->pixels[i] = ri|(gi<<8)|(bi<<16)|(a<<24);        
+        }
+      }
+      repaintLayer(l,true);
+    }
+  }
+
+  if (ImGui::Button("Apply##DIALOGCOLORBALANCEAPPLY")) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGCOLORBALANCECLOSE")) {
+    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+  }
+  DIALOGEND()
+}
+
 
 void dialogDuplicate(bool openIt) {
   DIALOGSTART("Duplicate layers");

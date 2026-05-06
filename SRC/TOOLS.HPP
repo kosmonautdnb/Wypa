@@ -189,6 +189,7 @@ extern bool pipetteFromLayer;
 extern bool pipetteWithColorTransform;
 
 extern double fillColorDistance;
+extern bool fillUseValleys;
 
 enum SELECTIONTOOL {
   SELECTIONTOOL_RECTANGLE,
@@ -246,6 +247,7 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
   S_BOOL("pipetteFromLayer",pipetteFromLayer);\
   S_BOOL("pipetteWithColorTransform",pipetteWithColorTransform);\
   S_DOUBLE("fillColorDistance",fillColorDistance);\
+  S_BOOL("fillUseValleys",fillUseValleys);\
   S_INT("selectionTool",selectionTool);\
   S_BOOL("selectionProportional",selectionProportional);\
   S_FLOAT("lineWidth",lineWidth);\

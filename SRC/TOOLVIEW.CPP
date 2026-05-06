@@ -116,6 +116,7 @@ void drawToolWandView() {
 void drawToolFillView() {
   float k;
   k = fillColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLFILLCOLORDISTANCE",&k,0,256)) {fillColorDistance = k;}
+  ImGui::Text("Use valleys"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLFILLVALLEYS",&fillUseValleys);
 }
 
 void drawToolSelectionView() {
@@ -591,10 +592,18 @@ void drawToolMeasureView() {
     //lx = measureCX1; ly = measureCY1; currentCanvas->getScreenPos(lx,ly,lx,ly); ImVec2 l1(lx,ly);
     //ImGui::GetWindowDrawList()->AddLine(l0,l1,0xff0000ff,4);
   }
+
+  ImGui::Text("");
+  ImVec4 chere; 
+  ImGui::Text("Color canvas");
+  chere = getImVec4Color(currentCanvas->getCanvasColor(mouseX,mouseY)); colorItem("", "##DRAWTOOLMEASUREVIEWCOLORCANVAS", &chere);
+  ImGui::Text("Color layer");
+  chere = getImVec4Color(currentCanvas->getLayerColor(mouseX,mouseY,false)); colorItem("", "##DRAWTOOLMEASUREVIEWCOLORLAYER", &chere);
 }
 
 void updateTilingGrid(Layer *l, bool visible) {
   if (l == NULL) return;
+  if (l->state.locked) return;
   l->updatePixelStates(~(PIXELSTATE_GRID|PIXELSTATE_TEMP),0,0);
   for (int y = 0; y < l->height; y++) {
     for (int x = 0; x < l->width; x++) {
