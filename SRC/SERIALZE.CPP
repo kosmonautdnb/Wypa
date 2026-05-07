@@ -47,6 +47,8 @@
 #include "UNDO.HPP"
 #include "STL/HASHMAP.HPP"
 #include "TEXT.HPP"
+#include "HOTKEYS.HPP"
+#include "FILTER.HPP"
 #include <math.h>
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
@@ -57,7 +59,7 @@ bool longFileNames = false;
 char longFileNameBuffer[MAX_LFN_PATH];
 
 void loadedSomething() {
-  if (tool == TOOL_TILING) {lastTool = -1;}
+  if (tool == TOOL_TILING) {lastTool = TOOL_NONE;}
 }
 
 void savedSomething() {
@@ -173,8 +175,8 @@ void zipPalette(const Array<ImVec4> &palette, int colorsPerRow, bool save);
 void zipGradient(const Gradient &gradient, bool save);
 void zipData(bool save,const String &fileName, void *data, unsigned int byteCount);
 
-//char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+//const char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 Array<unsigned char> invBase64;
 
 String encodeBase64(void *data, unsigned int len) {
@@ -185,10 +187,10 @@ String encodeBase64(void *data, unsigned int len) {
     unsigned char a0 = src[i*3+0];
     unsigned char a1 = src[i*3+1];
     unsigned char a2 = src[i*3+2];
-    unsigned char d0 = (a0>>2);
-    unsigned char d1 = ((a0&3)<<4)|(a1>>4);
-    unsigned char d2 = ((a1&15)<<2)|(a2>>6);
-    unsigned char d3 = a2&63;
+    unsigned char d0 = (unsigned char)(a0>>2);
+    unsigned char d1 = (unsigned char)(((a0&3)<<4)|(a1>>4));
+    unsigned char d2 = (unsigned char)(((a1&15)<<2)|(a2>>6));
+    unsigned char d3 = (unsigned char)(a2&63);
     ret[i*4+0] = base64[d0];
     ret[i*4+1] = base64[d1];
     ret[i*4+2] = base64[d2];
@@ -203,7 +205,7 @@ void decodeBase64(const String &base64String, void *dest) {
     invBase64.resize(256);
     for (int i = 0; i < 256; i++) invBase64[i] = 0;
     if (strlen(base64) != 64) {glDone(); printf("base64 seems corrupt\n"); exit(0);}
-    for (int j = 0; j < 64; j++) invBase64[((unsigned char)base64[j]) & 255] = j;
+    for (int j = 0; j < 64; j++) invBase64[((unsigned char)base64[j]) & 255] = (unsigned char)j;
   }
   int outputSize = base64String.length()*3/4;
   if (base64String.length()>=1) if (base64String[base64String.length()-1] == '=') outputSize--;
@@ -213,9 +215,9 @@ void decodeBase64(const String &base64String, void *dest) {
   for (int i = 0; i < outputSize; i++) {
     unsigned char a,b,val;
     switch(i % 3) {
-    case 0: {a = invBase64[base64String[k]]; b = invBase64[base64String[k+1]]; val = (a<<2)+((b>>4)&3);} break;
-    case 1: {a = invBase64[base64String[k+1]]; b = invBase64[base64String[k+2]]; val = (a<<4)+((b>>2)&15);} break;
-    case 2: {a = invBase64[base64String[k+2]]; b = invBase64[base64String[k+3]]; val = ((a&3)<<6)+(b & 63); k+=4;} break;
+    case 0: {a = invBase64[base64String[k]]; b = invBase64[base64String[k+1]]; val = (unsigned char)((a<<2)+((b>>4)&3));} break;
+    case 1: {a = invBase64[base64String[k+1]]; b = invBase64[base64String[k+2]]; val = (unsigned char)((a<<4)+((b>>2)&15));} break;
+    case 2: {a = invBase64[base64String[k+2]]; b = invBase64[base64String[k+3]]; val = (unsigned char)(((a&3)<<6)+(b & 63)); k+=4;} break;
     }
     dest2[i] = val;
   }
@@ -424,7 +426,9 @@ Matrix inverse2(const Matrix &a);
   S_TOOLS_CPP();\
   S_TOOLVIEW_CPP();\
   S_UNDO_CPP();\
-  S_TEXT_CPP();
+  S_TEXT_CPP();\
+  S_HOTKEYS_CPP();\
+  S_FILTER_CPP();
 
 bool serializeCanvas(Array<Canvas*> &canvas, bool save, String *string) {
   STARTSERIALIZATION(save);
@@ -1027,7 +1031,7 @@ void zipPalette(const Array<ImVec4> &palette, int colorsPerRow, bool save) {
   if (save) {
     dosRemoveFile(fileName.c_str());
     updateStatusBar();
-    String pal = getPaletteString(palette,paletteColorsPerRow);
+    String pal = getPaletteString(palette,colorsPerRow);
     FILE *out = fopen(fileName.c_str(),"wb");
     fwrite(&pal[0],1,pal.size(),out);
     fclose(out);
@@ -1162,7 +1166,7 @@ void saveFont(const char *shortPath, const char *longFileName) {
   }
   if (font == NULL) return;
   if (font->data == NULL) return;
-  if (font->data->size() == NULL) return;
+  if (font->data->size() == 0) return;
   FILE *out = createTempFile(shortPath,"wb");
   fwrite(&((*(font->data))[0]),1,font->data->size(),out);
   fclose(out);

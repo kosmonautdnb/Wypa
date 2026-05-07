@@ -94,15 +94,15 @@ void drawLayerView() {
 
 
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
-    if (ImGui::InvisibleButton((String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),ImVec2(svg->w,svg->h))) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}
+    if (ImGui::InvisibleButton(combined(String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),ImVec2(svg->w,svg->h))) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}
 
     ImGui::SameLine();
-    ImGui::Checkbox((String("##LAYERVIEWCHILDSELECTED")+String::fromInt(i)).c_str(),&l->state.selected);
+    ImGui::Checkbox(combined(String("##LAYERVIEWCHILDSELECTED")+String::fromInt(i)).c_str(),&l->state.selected);
     ImGui::SameLine();
-    int a = ImGui::GetIO().MouseClicked[0];
+    bool a = ImGui::GetIO().MouseClicked[0];
     ImGui::GetIO().MouseClicked[0] = (ImGui::GetIO().MouseClicked[0] && (l->state.imGuiActive))||(ImGui::GetIO().MouseDoubleClicked[0] && (!l->state.imGuiActive));
     if (l->state.permanentlyLocked) {ImGui::Text(">"); ImGui::SameLine();}
-    ImGui::InputText((String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX);
+    ImGui::InputText(combined(String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX);
     l->state.imGuiActive = ImGui::IsItemActive();
     ImGui::GetIO().MouseClicked[0] = a;
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y));

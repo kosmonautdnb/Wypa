@@ -37,12 +37,16 @@ int tool = TOOL_NONE;
 int lastTool = TOOL_NONE;
 bool fullScreen = false;
 
-const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tiling","Blur"};
+const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tiling","Blur","Overlays"};
 
 void initToolBar() {
 }
 
 void freeToolBar() {
+}
+
+void switchTool(int newTool) {
+  lastTool = tool; tool = newTool;
 }
 
 bool imageButton(const char *svgName, const char *id, bool selected, bool hilighted, bool disabled) {
@@ -80,10 +84,10 @@ bool toolBarButton(const char *svgName, int toolIndex) {
     if (l != NULL) {
       disabled = l->type != LAYERTYPE_TEXT;
     }
-    if (selected && disabled) {lastTool = tool; tool = TOOL_NONE;}
+    if (selected && disabled) {switchTool(TOOL_NONE);}
   }
-  bool ret = imageButton(svgName, (String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), selected, highlighted, disabled);
-  if (ret && !disabled) {lastTool = tool; tool = toolIndex;}
+  bool ret = imageButton(svgName, combined(String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), selected, highlighted, disabled);
+  if (ret && !disabled) {switchTool(toolIndex);}
   return ret;
 }
 
@@ -107,6 +111,7 @@ void drawToolBar() {
     toolBarButton("blurTool",TOOL_BLUR);
     toolBarButton("measureTool",TOOL_MEASURE);
     toolBarButton("tilingTool",TOOL_TILING);
+    toolBarButton("overlaysTool",TOOL_OVERLAYS);
     ImGui::End();
   }
   if (lastTool != tool) {toolChangeMessage(lastTool,tool); lastTool = tool;}

@@ -21,45 +21,19 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
-#ifndef __TOOLBAR_HPP__
-#define __TOOLBAR_HPP__
+#ifndef __FILTER_HPP__
+#define __FILTER_HPP__
 
-extern int toolbar_width;
+void initFilter();
+void freeFilter();
 
-enum TOOL {
-  TOOL_NONE = 0,
-  TOOL_SELECTION = 1,
-  TOOL_PENCIL = 2,
-  TOOL_PAINTBRUSH = 3,
-  TOOL_ERASER = 4,
-  TOOL_WAND = 5,
-  TOOL_MOVE = 6,
-  TOOL_GRADIENT = 7,
-  TOOL_PIPETTE = 8,
-  TOOL_MAGIC = 9,
-  TOOL_FILL = 10,
-  TOOL_LINE = 11,
-  TOOL_TEXT = 12,
-  TOOL_MEASURE = 13,
-  TOOL_TILING = 14,
-  TOOL_BLUR = 15,
-  TOOL_OVERLAYS = 16,
-  TOOL_COUNT = 17
-};
-extern const char *toolNames[TOOL_COUNT];
+void filterDifferenceClouds();
+void filterEdgeDetect();
+void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int boxW, int boxH, unsigned char *pixelStates, bool usePixelStates);
+void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radialAngle, float radialSize, unsigned char *pixelStates, bool usePixelStates);
+void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float passesX, float passesY, unsigned char *pixelStates, bool usePixelStates);
+void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates);
 
-void switchTool(int newTool);
+#define S_FILTER_CPP()
 
-extern int tool;
-extern int lastTool;
-extern bool fullScreen;
-
-void initToolBar();
-void freeToolBar();
-void drawToolBar();
-
-#define S_TOOLBAR_CPP()\
-  S_INT("tool",tool);\
-  S_BOOL("fullScreen",fullScreen);
-
-#endif // __TOOLBAR_HPP__
+#endif // __FILTER_HPP__

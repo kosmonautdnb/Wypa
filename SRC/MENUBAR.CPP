@@ -23,8 +23,8 @@
 */
 #include "MENUBAR.HPP"
 #include "CONFIG.HPP"
-#include "GL.H"
-#include "IMGUIGL.HPP"
+#include "STL/GL.H"
+#include "IMGUI/IMGUIGL.HPP"
 #include "SVG.HPP"
 #include "LAYERS.HPP"
 #include "COLORFLD.HPP"
@@ -34,12 +34,13 @@
 #include "TOOLS.HPP"
 #include "TEXT.HPP"
 #include "TOOLBAR.HPP"
+#include "FILTER.HPP"
+#include "HOTKEYS.HPP"
 #include <math.h>
 
 int menuBar_height = 17;
 
 float mouseSensitivity = 3;
-void disableRenderMouseClicks();
 
 String hex2_(int v) {
   const char *h="0123456789ABCDEF";
@@ -115,20 +116,21 @@ void drawMenuBar() {
       int count = 0;
       for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (useUndo) {
-        if (ImGui::MenuItem((String("Undo[") + String::fromInt(availableUndos) + String("]##UNDO")).c_str(),NULL,false,availableUndos>0)) {undo();}
+        if (ImGui::MenuItem(combined(String("Undo[") + String::fromInt(availableUndos) + String("]##UNDO")).c_str(),NULL,false,availableUndos>0)) {undo();}
         if (ImGui::MenuItem("Redo",NULL,false,availableRedos>0)) {redo();}
         ImGui::Separator();
       }
-      if (ImGui::MenuItem("Fill with foreground color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));}
+      if (ImGui::MenuItem("Fill selection with color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));}
+      if (ImGui::MenuItem("Fill selection with alpha",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->fillSelectionWithAlpha((unsigned char)(getUIntColor(foregroundColor)>>24));beforeUndoPoint();}
       if (ImGui::MenuItem("Erase selection",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(0x00000000);}
       ImGui::Separator();
-      if (ImGui::MenuItem("Antialias selected",NULL,false,currentCanvas->hasSelection())) {currentCanvas->antialiasSelected();}
-      if (ImGui::MenuItem("Fill selection with foreground alpha",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithAlpha(getUIntColor(foregroundColor)>>24);}
-      if (ImGui::MenuItem("Invert selection color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->invertSelectionColor();}
-      if (ImGui::MenuItem("Invert selection alpha",NULL,false,currentCanvas->hasSelection())) {currentCanvas->invertSelectionAlpha();}
+      if (ImGui::MenuItem("Antialias selected",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->antialiasSelected();afterUndoPoint();}
       ImGui::Separator();
+      if (ImGui::MenuItem("Greyscale",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->greyScale();afterUndoPoint();}
       if (ImGui::MenuItem("Gradiation curves",NULL,false,count == 1)) {dialogGradiationCurves(true);}
       if (ImGui::MenuItem("Color balance",NULL,false,count == 1)) {dialogColorBalance(true);}
+      if (ImGui::MenuItem("Invert color",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertColor();afterUndoPoint();}
+      if (ImGui::MenuItem("Invert alpha",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertAlpha();afterUndoPoint();}
       ImGui::Separator();
       if (ImGui::MenuItem("Undo enabled",NULL,useUndo,true)) {useUndo = !useUndo;}
       ImGui::EndMenu();
@@ -157,7 +159,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Insert layer like this layer",NULL,false,count == 1)) {currentCanvas->insertLayerLikeThisLayer();}
       if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
       ImGui::Separator();
-      if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); lastTool = tool; tool = TOOL_TEXT;}
+      if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); switchTool(TOOL_TEXT);}
       ImGui::Separator();
       if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
       if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
@@ -220,6 +222,14 @@ void drawMenuBar() {
     }
     if (ImGui::BeginMenu("Filter")) {
       on = true;
+      on = true;
+      bool one = false;
+      int count = 0;
+      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
+      if (ImGui::MenuItem("Difference clouds",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterDifferenceClouds();}
+      if (ImGui::MenuItem("Edge detect",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterEdgeDetect();}
+      if (ImGui::MenuItem("Blur",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogBlur(true);}
+      if (ImGui::MenuItem("Emboss",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogEmboss(true);}
       ImGui::EndMenu();
     }
 
@@ -228,11 +238,11 @@ void drawMenuBar() {
       if (canvas[i]->hasUpdates()) {hasUpdates = true; break;}
     }
 
-    if (ImGui::BeginMenu((String(hasUpdates?".":"")+String("Pictures[")+String::fromInt(canvas.size()) + "]##MENUBARPICTURES").c_str())) {
+    if (ImGui::BeginMenu(combined(String(hasUpdates?".":"")+String("Pictures[")+String::fromInt(canvas.size()) + "]##MENUBARPICTURES").c_str())) {
       on = true;
       for (int i = 0; i < canvas.size(); i++) {
         bool isIt = canvas[i] == currentCanvas;
-        if (ImGui::MenuItem((String(canvas[i]->hasUpdates()?".":" ")+String(canvas[i]->pictureName)+String("##MENUBARPICTURES")+String::fromInt(i)).c_str(),NULL,isIt)) {
+        if (ImGui::MenuItem(combined(String(canvas[i]->hasUpdates()?".":" ")+String(canvas[i]->pictureName)+String("##MENUBARPICTURES")+String::fromInt(i)).c_str(),NULL,isIt)) {
           currentCanvas = canvas[i];
           shouldUpdateAll = true;
         }
@@ -246,6 +256,7 @@ void drawMenuBar() {
 
     if (ImGui::BeginMenu("Help")) {
       if (ImGui::MenuItem("About")) {dialogAbout(true);}
+      if (ImGui::MenuItem("Hotkeys")) {dialogHotkeys(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Show debug window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
       on = true;
@@ -299,6 +310,6 @@ void drawMenuBar() {
   ImGui::PopStyleColor();
   ImGui::PopStyleVar();
   if (on) {
-    disableRenderMouseClicks();
+    disableNativeInput();
   }
 }

@@ -69,4 +69,6 @@ void showDebugWindow();
 #define S_CONFIG_CPP()\
   S_DOUBLE("aspectRatio",aspectRatio);
 
+String combined(const String &c);
+
 #endif //__CONFIG_H__

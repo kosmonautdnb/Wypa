@@ -145,7 +145,8 @@ enum PIXELSTATES {
   PIXELSTATE_OUTLINE = 8,
   PIXELSTATE_GRID = 16,
   PIXELSTATE_CANVAS_UPDATED = 32,
-  PIXELSTATE_CANVAS_GRID = 64
+  PIXELSTATE_CANVAS_GRID = 64,
+  PIXELSTATE_CANVAS_OVERLAY = 128
 };
 
 enum REPAINTSTATES {
@@ -337,7 +338,7 @@ public:
     showTilingGrid = true;
     showTilingGridIndices = true;
 
-    sprintf(textEditText,"Some text.");
+    sprintf(textEditText,"Some text");
     fontSize = 50;
     fontScaleX = 1;
     fontScaleY = 1;
@@ -471,8 +472,9 @@ public:
   void invertSelection();
   void fillSelectionWithColor(unsigned int color);
   void fillSelectionWithAlpha(unsigned char alpha);
-  void invertSelectionColor();
-  void invertSelectionAlpha();
+  void greyScale();
+  void invertColor();
+  void invertAlpha();
   void expandSelection(int pixels);
   void selectByAlpha(int alphaThreshold);
   void selectionAsOutline();
@@ -528,6 +530,34 @@ public:
   S_LAYERADDITIONALTOOLINFO("toolInfo",&(__o__)->toolInfo);\
   S_BOOL("showColorTransformOnlyInSelection",(__o__)->showColorTransformOnlyInSelection);\
   S_OBJECT_CLOSE();
+
+class Overlay {
+public:
+  Overlay() {
+    layerId = 0;
+    lx0 = ly0 = lx1 = ly1 = 0;
+    cx0 = cy0 = cx1 = cy1 = 0;
+    visible = true;
+  }
+  bool visible;
+  unsigned int layerId;
+  int lx0,ly0,lx1,ly1;
+  int cx0,cy0,cx1,cy1;
+};
+#define S_OVERLAY(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_IDREFERENCE("layerId",(__o__)->layerId);\
+  S_BOOL("visible",(__o__)->visible);\
+  S_INT("lx0",(__o__)->lx0);\
+  S_INT("ly0",(__o__)->ly0);\
+  S_INT("lx1",(__o__)->lx1);\
+  S_INT("ly1",(__o__)->ly1);\
+  S_INT("cx0",(__o__)->cx0);\
+  S_INT("cy0",(__o__)->cy0);\
+  S_INT("cx1",(__o__)->cx1);\
+  S_INT("cy1",(__o__)->cy1);\
+  S_OBJECT_CLOSE();
+
 
 class CanvasControl {
 public:
@@ -596,6 +626,7 @@ public:
   CanvasControl control;
   TransformationState transform;
   Array<Layer*> layers;
+  Array<Overlay*> overlays;
 
   bool hilightSelection;
   bool justSingle;
@@ -633,6 +664,10 @@ public:
       if (layers[i] != NULL) {delete layers[i]; layers[i] = NULL;}
     }
     layers.clear();
+    for (int i2 = 0; i2 < overlays.size(); i2++) {
+      if (overlays[i2] != NULL) {delete overlays[i2]; overlays[i2] = NULL;}
+    }
+    overlays.clear();
   }
 
   void init(int width, int height);
@@ -694,10 +729,11 @@ public:
 
   void fillSelectionWithColor(unsigned int color);
   void fillSelectionWithAlpha(unsigned char alpha);
-  void invertSelectionColor();
-  void invertSelectionAlpha();
+  void invertColor();
+  void invertAlpha();
   void expandSelection(int pixels);
   void antialiasSelected();
+  void greyScale();
   
   Layer *getSelectionAsLayer(bool pixelSelection, bool selectAllLayers, bool keepCanvasSize);
   void duplicateLayers();
@@ -754,6 +790,7 @@ public:
   S_CANVASCONTROL("control",&(__o__)->control);\
   (__o__)->control.setCanvasTransform(__o__);\
   Canvas *helperCanvas = __o__; S_POINTER_ARRAY("layers",helperCanvas->layers,Layer,S_LAYER(NULL,helperCanvas->layers[i]));\
+  S_POINTER_ARRAY("overlays",helperCanvas->overlays,Overlay,S_OVERLAY(NULL,helperCanvas->overlays[i]));\
   S_RESOLVEIDS();\
   S_OBJECT_CLOSE();
 

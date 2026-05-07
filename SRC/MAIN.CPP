@@ -40,6 +40,8 @@
 #include "TOOLS.HPP"
 #include "UNDO.HPP"
 #include "TEXT.HPP"
+#include "HOTKEYS.HPP"
+#include "FILTER.HPP"
 #include <math.h>
 
 bool roundButton(const char *name, bool enabled) {
@@ -84,9 +86,6 @@ void select(Layer *l) {
     int k = (r+g+b)/3;
     if (k<128) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
   }
-}
-
-void disableRenderMouseClicks() {
 }
 
 ImVec2 normalize(const ImVec2 &v) {
@@ -182,7 +181,7 @@ void splashScreen() {
       ImGui::SetWindowFontScale(scale);
     }
 
-    char *descLine = "Wypa";
+    const char *descLine = "Wypa";
     ImVec2 textSize = ImGui::CalcTextSize(descLine);
     ImGui::SetCursorScreenPos(ImVec2(main_window_xres/2-textSize.x/2+scale,main_window_yres/2-textSize.y/2+scale));
     ImGui::TextColored(ImVec4(0,0,0,0.125),"%s",descLine);
@@ -210,8 +209,9 @@ extern Array<Canvas *> canvas;
   __prefix__##Layers();\
   __prefix__##Tools();\
   __prefix__##Undo();\
-  __prefix__##Text();
-
+  __prefix__##Text();\
+  __prefix__##Hotkeys();\
+  __prefix__##Filter();
 
 void deleteAll() {
   SETUPENTITIES(free);
@@ -303,6 +303,7 @@ int main(int argc, const char *argv[]) {
       if (enableScrollKeys && currentKey == GL_VK_DOWN) currentCanvas->control.moveByPixels(currentCanvas,0,-scrollKeyPixels);
     }
 
+    applyHotKeys();
     useTool();
 
     if (shouldUpdateAll) {

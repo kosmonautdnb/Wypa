@@ -21,24 +21,24 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
-#include "GL.H"
-#include "IMGUIGL.HPP"
+#include "STL/GL.H"
+#include "IMGUI/IMGUIGL.HPP"
 #include "CONFIG.HPP"
 #include "DIALOGS.HPP"
 #include "LAYERS.HPP"
 #include "STL/DOS.HPP"
 #include "SVG.HPP"
 #include "SERIALZE.HPP"
+#include "HOTKEYS.HPP"
 #include "UNDO.HPP"
+#include "FILTER.HPP"
 #include <math.h>
 
 bool dialogNoMove = false;
 
-#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize|(dialogNoMove?ImGuiWindowFlags_NoMove:0))) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableRenderMouseClicks();
+#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize|(dialogNoMove?ImGuiWindowFlags_NoMove:0))) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableNativeInput();
 #define DIALOGEND() ImGui::PopStyleColor(); ImGui::EndPopup();} ImGui::PopStyleColor();
 #define DIALOGKEYSHERE() {if (keyboardFocusNew>0) {keyboardFocusNew--;ImGui::SetKeyboardFocusHere();}}
-
-void disableRenderMouseClicks();
 
 bool roundButton(const char *name, bool enabled);
 
@@ -109,6 +109,9 @@ void drawDialogs() {
   dialogPictureInfo(false);
   dialogGradiationCurves(false);
   dialogColorBalance(false);
+  dialogBlur(false);
+  dialogEmboss(false);
+  dialogHotkeys(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -134,6 +137,43 @@ void dialogAbout(bool openIt) {
     "This program is freeware.\n"
   ,version / 100, version % 100
   );
+  ImGui::Separator();
+  if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+#define HOTKEY(__char__,__ctrl__,__alt__,__text__) ImGui::Text("%s",__text__);
+
+void dialogHotkeys(bool openIt) {
+  DIALOGSTART("Hotkeys")
+  HOTKEY_ZOOMIN
+  HOTKEY_ZOOMOUT
+  HOTKEY_ZOOMPAN
+  HOTKEY_TOOL_SELECTION
+  HOTKEY_TOOL_MOVE
+  HOTKEY_TOOL_WAND
+  HOTKEY_TOOL_PIPETTE
+  HOTKEY_TOOL_PENCIL
+  HOTKEY_TOOL_PAINTBRUSH
+  HOTKEY_TOOL_ERASER
+  HOTKEY_TOOL_FILL
+  HOTKEY_TOOL_LINE
+  HOTKEY_TOOL_GRADIENT
+  HOTKEY_TOOL_TEXT
+  HOTKEY_TOOL_MAGIC
+  HOTKEY_TOOL_BLUR
+  HOTKEY_TOOL_MEASURE
+  HOTKEY_TOOL_TILING
+  HOTKEY_TOOL_OVERLAYS
+  HOTKEY_TOGGLE_PALETTE
+  HOTKEY_SELECTNONE
+  HOTKEY_SELECTALL
+  HOTKEY_INVERTSELECTION
+  HOTKEY_COPY
+  HOTKEY_PASTE
+  HOTKEY_FITCANVAS
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
     ImGui::CloseCurrentPopup();
@@ -676,6 +716,7 @@ public:
 Curve curves[5];
 
 void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
+  UNUSED(maxB);
   static bool lastMouseLeft = ImGui::IsMouseDown(0);
   bool mouseLeft = ImGui::IsMouseDown(0);
   for (int i = 0; i < c.points.size()-1; i++) {
@@ -1053,6 +1094,149 @@ void dialogColorBalance(bool openIt) {
   DIALOGEND()
 }
 
+enum BLURTYPES {
+  BLURTYPE_GAUSS = 0,
+  BLURTYPE_BOX = 1,
+  BLURTYPE_RADIAL = 2,
+  BLURTYPE_COUNT = 3
+};
+
+void dialogBlur(bool openIt) {
+  static Layer *clone = NULL;
+  static int boxWidth = 0;
+  static int boxHeight = 0;
+  static int gaussX = 0;
+  static int gaussY = 0;
+  static float radialAngle = 0;
+  static float radialSize = 0;
+  static int blurType = 0;
+  static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur"};
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static unsigned int maxBlurPixels = 100;
+
+  static bool updateBlur = false;
+
+  if (openIt) {
+    beforeUndoPoint();
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    boxWidth = 4;
+    boxHeight = 4;
+    radialAngle = 0;
+    radialSize = 4;
+    gaussX = 2;
+    gaussY = 2;
+    blurType = 0;
+    updateBlur = true;
+  }
+  DIALOGSTART("Blur");
+
+  ImGui::PushItemWidth(7*15);
+  ImGui::Text("Type");ImGui::SameLine(); if (ImGui::Combo("##DIALOGBLURTYPE",&blurType, blurTypes, BLURTYPE_COUNT)) updateBlur = true;
+  ImGui::PopItemWidth();
+
+  ImGui::PushItemWidth(64);
+
+  switch(blurType) {
+    case BLURTYPE_BOX: {
+      ImGui::Text("Box blur settings");
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXWIDTH",&boxWidth,0,0)) {updateBlur = true;} if (boxWidth<0) boxWidth = 0; if (boxWidth>maxBlurPixels) boxWidth = maxBlurPixels;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXHEIGHT",&boxHeight,0,0)) {updateBlur = true;} if (boxHeight<0) boxHeight = 0; if (boxHeight>maxBlurPixels) boxHeight = maxBlurPixels;
+    } break;
+    case BLURTYPE_RADIAL: {
+      ImGui::Text("Radial blur settings");
+      ImGui::PushItemWidth(360);
+      ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGBLURRADIALANGLE",&radialAngle,0,360)) {updateBlur = true;} if (radialAngle<0) radialAngle = 0; if (radialAngle>360) radialAngle = 360;
+      ImGui::PopItemWidth();
+      ImGui::Text("Radius"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURRADIALRADIUS",&radialSize,0,0,0)) {updateBlur = true;} if (radialSize<0) radialSize = 0; if (radialSize>maxBlurPixels) radialSize = maxBlurPixels;
+    } break;
+    case BLURTYPE_GAUSS: {
+      ImGui::Text("Gauss blur settings");
+      ImGui::Text("Kernel passes X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURGAUSSX",&gaussX,0,0)) {updateBlur = true;} if (gaussX<0) gaussX = 0; if (gaussX>14) gaussX = 14;
+      ImGui::Text("Kernel passes Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURGAUSSY",&gaussY,0,0)) {updateBlur = true;} if (gaussY<0) gaussY = 0; if (gaussY>14) gaussY = 14;
+    } break;
+  }
+  
+  ImGui::PopItemWidth();
+
+  if (updateBlur) {
+    if (!ImGui::IsAnyItemActive()) {
+      updateBlur = false;
+      if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
+        switch(blurType) {
+          case BLURTYPE_BOX: {filterBoxBlur(l->pixels,clone->pixels, l->width, l->height, boxWidth, boxHeight,l->pixelStates,l->hasSelection());} break;
+          case BLURTYPE_RADIAL: {filterRadialBlur(l->pixels,clone->pixels, l->width, l->height, radialAngle, radialSize,l->pixelStates,l->hasSelection());} break;
+          case BLURTYPE_GAUSS: {filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());} break;
+        }
+        repaintLayer(l,true);
+      }
+    }
+  }
+
+  if (ImGui::Button("Apply##DIALOGBLURAPPLY")) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGBLURCLOSE")) {
+    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+  }
+  DIALOGEND()
+}
+
+void dialogEmboss(bool openIt) {
+  static Layer *clone = NULL;
+  static float angle = 0;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+
+  static bool updateEmboss = false;
+
+  if (openIt) {
+    beforeUndoPoint();
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    angle = 0;
+    updateEmboss = true;
+  }
+  DIALOGSTART("Emboss");
+
+  ImGui::PushItemWidth(360);
+  ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGEMBOSSANGLE",&angle,0,360)) {updateEmboss = true;} if (angle<0) angle = 0; if (angle>360) angle = 360;
+  ImGui::PopItemWidth();
+  
+  if (updateEmboss) {
+    if (!ImGui::IsAnyItemActive()) {
+      updateEmboss = false;
+      if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
+        filterEmboss(l->pixels,clone->pixels, l->width, l->height, angle, l->pixelStates,l->hasSelection());
+        repaintLayer(l,true);
+      }
+    }
+  }
+
+  if (ImGui::Button("Apply##DIALOGEMBOSSAPPLY")) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGEMBOSSCLOSE")) {
+    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+  }
+  DIALOGEND()
+}
+
 
 void dialogDuplicate(bool openIt) {
   DIALOGSTART("Duplicate layers");
@@ -1192,7 +1376,7 @@ void dialogGetLayersFromPicture(bool openIt) {
       }
     }
 
-    if (ImGui::Button((String(selected == i ? ">" : " ")+String("\"")+String(canvas[i]->pictureName) + String("\"  selected layers:") + String::fromInt(count) + String("##DIALOGGETLAYERSFROMPICTURELINE")).c_str())) {
+    if (ImGui::Button(combined(String(selected == i ? ">" : " ")+String("\"")+String(canvas[i]->pictureName) + String("\"  selected layers:") + String::fromInt(count) + String("##DIALOGGETLAYERSFROMPICTURELINE")).c_str())) {
       selected = i;
     }
   }
@@ -1267,7 +1451,7 @@ void exportLayersRawDialogOpen(const char *shortPath, const char *longFileName) 
 }
 
 typedef void (*LOADSAVEFUNC)(const char *shortPath, const char *longFileName);
-const char *images = ".png,.jpg,.tga,.bmp,.psd,.gif,.pic,.pnm,.hdr,.svg";
+const char *imgs = ".png,.jpg,.tga,.bmp,.psd,.gif,.pic,.pnm,.hdr,.svg";
 const char *png = ".png";
 const char *psd = ".psd";
 const char *all = "*.*";
@@ -1275,11 +1459,11 @@ const char *pal = "*.pa2";
 const char *grad = "*.gr2";
 const char *brush = "*.br2";
 const char *svg = "*.svg";
-const char *image = "*.wyp";
+const char *img = "*.wyp";
 const char *fnt = "*.ttf";
 const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font"};
 const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,image,image,fnt,fnt};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt};
 const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf"};
 LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont};
 
@@ -1593,7 +1777,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::InputText("##DIALOGLOADSAVEFILENAME",&fileNames[mode][0],NAMEMAXHERE);
   ImGui::PopItemWidth();
   ImGui::Separator();
-  if (ImGui::Button((String(proceedButton[mode])+String("##DIALOGLOADSAVEPROCEED")).c_str())) {
+  if (ImGui::Button(combined(String(proceedButton[mode])+String("##DIALOGLOADSAVEPROCEED")).c_str())) {
     result = true;
     ImGui::CloseCurrentPopup();
   }

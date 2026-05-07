@@ -33,6 +33,8 @@
 void initText();
 void freeText();
 
+extern unsigned int fontIdCounter;
+
 class FontSource {
 public:
   FontSource() {
@@ -45,7 +47,7 @@ public:
     prepareFont();
   }
   void newOne() {
-    static unsigned int idCounter = 0; idCounter++; id = idCounter;
+    fontIdCounter++; id = fontIdCounter;
     data = NULL;
     fileName = "";
     glHandle = 0;
@@ -57,7 +59,7 @@ public:
   }
   ~FontSource() {
     if (data != NULL) {delete data; data = NULL;}
-    if (glHandle != NULL) {glDeleteTextures(1,&glHandle); glHandle = 0;}
+    if (glHandle != 0) {glDeleteTextures(1,&glHandle); glHandle = 0;}
   }
 
   unsigned int id;
@@ -79,8 +81,9 @@ public:
 #define S_FONT(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
   S_UINT("id",(__o__)->id);\
+  if ((__o__)->id>maxFontId) maxFontId = (__o__)->id;\
   S_STRING("fileName",(__o__)->fileName);\
-  {if (!save) {if ((__o__)->data != NULL) {delete (__o__)->data; (__o__)->data = NULL;} (__o__)->data = new Array<unsigned char>();} Array<unsigned char> *helper = (__o__)->data; S_ZIPARRAY((String("font")+String::fromInt(i)+".ttf"),(*helper),sizeof(unsigned char));}\
+  {if (!save) {if ((__o__)->data != NULL) {delete (__o__)->data; (__o__)->data = NULL;} (__o__)->data = new Array<unsigned char>();} Array<unsigned char> *helper = (__o__)->data; S_ZIPARRAY(combined(String("font")+String::fromInt(i)+".ttf"),(*helper),sizeof(unsigned char));}\
   if (!save) {(__o__)->glHandle = 0; (__o__)->prepareFont();}\
   S_OBJECT_CLOSE();
 
@@ -93,7 +96,9 @@ void reScaleTexts();
 void paintTextIntoLayer(class Layer *l);
 
 #define S_TEXT_CPP()\
-  S_POINTER_ARRAY("fonts",fonts,FontSource,S_FONT(NULL,fonts[i]));
+  unsigned int maxFontId = 0;\
+  S_POINTER_ARRAY("fonts",fonts,FontSource,S_FONT(NULL,fonts[i]));\
+  if (!save) fontIdCounter = maxFontId+1;
 
 
 #endif //__TEXT_HPP__

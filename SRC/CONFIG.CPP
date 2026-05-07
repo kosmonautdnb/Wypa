@@ -139,3 +139,7 @@ void showDebugWindow() {
   ImGui::PopStyleColor();
   ImGui::PopStyleColor();
 }
+
+String combined(const String &c) {
+  return c;
+}

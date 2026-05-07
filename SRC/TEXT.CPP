@@ -26,6 +26,8 @@
 #include "STL/STBTTF.HPP"
 #include "LAYERS.HPP"
 
+unsigned int fontIdCounter = 0;
+
 void initText() {
 }
 
@@ -162,8 +164,8 @@ void reScaleTexts() {
   }
 }
 
-void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, bool andDraw) {
-  x0 = y0 = x1 = y1 = 0;
+void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, bool andDraw, Array<float> &lineWidths) {
+  if (!andDraw) {x0 = y0 = x1 = y1 = 0;}
   if (f->data == NULL) return;
   float xpos = 0;  
   float ypos = 0;  
@@ -181,43 +183,60 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
   int baseLine = (int)(ascent*scaleY);
 
   int ch = 0;
+  int lw = 0;
+  float lastLineWidth = 0;
   while (l->toolInfo.textEditText[ch]) {
     int advance,lsb,cx0=0,cy0=0,cx1=0,cy1=0; float shiftX = xpos - (float)floor(xpos);
     if (l->toolInfo.textEditText[ch] == '\n') {
+      if (!andDraw) {lineWidths.push_back(lastLineWidth);} else {lw++;}
       stbtt_GetCodepointHMetrics(&f->font, ' ', &advance, &lsb); f->getBoundsForChar(' ',scaleX,scaleY,shiftX,cx0,cy0,cx1,cy1);
       xpos = xposStart;
-      ypos += baseLine + l->toolInfo.fontSpaceY*scaleY;
+      ypos += baseLine + l->toolInfo.fontSpaceY*l->toolInfo.fontScaleY;
       cx0 += xpos;
       cy0 += ypos+baseLine;
       cx1 += xpos;
       cy1 += ypos+baseLine;
-      if (cx0 < x0) x0 = cx0;
-      if (cy0 < y0) y0 = cy0;
-      if (cx1 > x1) x1 = cx1;
-      if (cy1 > y1) y1 = cy1;
+      if (!andDraw) {
+        if (cx0 < x0) x0 = cx0;
+        if (cy0 < y0) y0 = cy0;
+        if (cx1 > x1) x1 = cx1;
+        if (cy1 > y1) y1 = cy1;
+      }
+      lastLineWidth = 0;
     } else {
       stbtt_GetCodepointHMetrics(&f->font, l->toolInfo.textEditText[ch], &advance, &lsb); f->getBoundsForChar(l->toolInfo.textEditText[ch],scaleX,scaleY,shiftX,cx0,cy0,cx1,cy1);
       cx0 += xpos;
       cy0 += ypos+baseLine;
       cx1 += xpos;
       cy1 += ypos+baseLine;
-      if (cx0 < x0) x0 = cx0;
-      if (cy0 < y0) y0 = cy0;
-      if (cx1 > x1) x1 = cx1;
-      if (cy1 > y1) y1 = cy1;
+      if (!andDraw) {
+        if (cx0 < x0) x0 = cx0;
+        if (cy0 < y0) y0 = cy0;
+        if (cx1 > x1) x1 = cx1;
+        if (cy1 > y1) y1 = cy1;
+      }
+      lastLineWidth = cx1 - xposStart;
 
       if (andDraw) {
+        float lineWidth = lw<lineWidths.size() ? lineWidths[lw] : 100;
         static Array<unsigned char> buffer;
         int w = cx1-cx0;
         int h = cy1-cy0;
+        int px = cx0;
+        int py = cy0;
+        switch (l->toolInfo.fontAlignment) {
+        case ALIGN_LEFT: {} break;
+        case ALIGN_RIGHT: {px = x1-lineWidth+(px-xposStart);} break;
+        case ALIGN_CENTER: {px = px + ((x1-x0)-lineWidth)*0.5;} break;
+        }
         int pitch = w;
         if (buffer.size()<w*h) buffer.resize(w*h);
         stbtt_MakeCodepointBitmapSubpixel(&f->font,&buffer[0],w,h,pitch,scaleX,scaleY,shiftX,0,l->toolInfo.textEditText[ch]);
         for (int y = 0; y < h; y++) {
           for (int x = 0; x < w; x++) {
             unsigned char val = buffer[x+y*pitch];
-            int xd = x + cx0;
-            int yd = y + cy0;
+            int xd = x + px;
+            int yd = y + py;
             if ((unsigned int)xd < l->width && (unsigned int)yd < l->height) {
               unsigned int col = l->pixels[xd+yd*l->width];
               unsigned int a = (col >> 24) & 255;
@@ -229,11 +248,14 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
         }
       }
       xpos += advance * scaleX;
-      if (l->toolInfo.textEditText[ch+1] != '\n') xpos += l->toolInfo.fontSpaceX*scaleX;
-      if (l->toolInfo.textEditText[ch+1]) xpos += scaleX*stbtt_GetCodepointKernAdvance(&f->font, l->toolInfo.textEditText[ch],l->toolInfo.textEditText[ch+1]);
+      if (l->toolInfo.textEditText[ch+1]) {
+        if (l->toolInfo.textEditText[ch+1] != '\n') {xpos += l->toolInfo.fontSpaceX*l->toolInfo.fontScaleX;}
+        xpos += scaleX*stbtt_GetCodepointKernAdvance(&f->font, l->toolInfo.textEditText[ch],l->toolInfo.textEditText[ch+1]);
+      }
     }
     ++ch;
   }
+  if (!andDraw) lineWidths.push_back(lastLineWidth);
 }
 
 void paintTextIntoLayer(class Layer *l) {
@@ -247,12 +269,13 @@ void paintTextIntoLayer(class Layer *l) {
   if (f == NULL) return;
   shouldUpdateAll = true;
   int x0=0,y0=0,x1=0,y1=0;
-  getTextBounds(f, l, x0, y0, x1, y1, false);
+  Array<float> lineWidths;
+  getTextBounds(f, l, x0, y0, x1, y1, false, lineWidths);
   int width = x1 - x0;
   int height = y1 - y0;
   if (width*height==0) return;
   l->setContentSize(width,height);
   unsigned int col = l->toolInfo.fontColor;
   for (int i2 = 0; i2 < width*height; i2++) l->pixels[i2] = col & 0x00ffffff;
-  getTextBounds(f, l, x0, y0, x1, y1, true);
+  getTextBounds(f, l, x0, y0, x1, y1, true, lineWidths);
 }

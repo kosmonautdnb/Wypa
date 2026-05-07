@@ -37,7 +37,7 @@
 #include "STL/IMAGE.HPP"
 #include "UNDO.HPP"
 #include "TEXT.HPP"
-#include "DOS.HPP"
+#include "STL/DOS.HPP"
 #include "SERIALZE.HPP"
 #include <math.h>
 
@@ -220,7 +220,7 @@ bool drawBrushWindow(const char *id, int instanceId, Brush *brush, int w, int h,
   h = h * aspectRatio * main_window_yres / main_window_xres;
   BrushInstance *v = brush->getCreateInstance(instanceId,w,h,pencil);
   ImVec2 cursor = ImGui::GetCursorScreenPos();
-  ImGui::PushID((String(id)+"_").c_str());
+  ImGui::PushID(combined(String(id)+"_").c_str());
   ImGui::Image((ImTextureID)v->glHandle,ImVec2(w,h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,1));
   if (selected) ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(cursor.x,cursor.y),ImVec2(cursor.x+w,cursor.y+h),0x400000ff);
   ImGui::PopID();
@@ -254,7 +254,7 @@ void drawBrushSelect(bool pencil) {
   for (int i = 0; i < brushes.size(); i++) {
     if ((i % toolButtonXCount) != 0) ImGui::SameLine();
     Brush *brush = brushes[i];
-    if (drawBrushWindow((String("##DRAWBRUSHSELECT")+String::fromInt(i)).c_str(),BRUSHINSTANCE_SELECT,brush,toolButtonWidth,toolButtonHeight, pencil, i == currentBrush)) {
+    if (drawBrushWindow(combined(String("##DRAWBRUSHSELECT")+String::fromInt(i)).c_str(),BRUSHINSTANCE_SELECT,brush,toolButtonWidth,toolButtonHeight, pencil, i == currentBrush)) {
       brushes[currentBrush]->freeInstance(BRUSHINSTANCE_PAINT);
       brushes[currentBrush]->freeInstance(BRUSHINSTANCE_EDIT);
       currentBrush = i;
@@ -526,7 +526,7 @@ void drawToolMagicView() {
     shouldUpdateAll = true;
   }
   if (l->colorTransform.useQuantization) {
-    if (palette.size()>=0 && palette.size()<=256) {
+    if (palette.size()<=256) {
       ImGui::Text("Dithering");
       v = &t->ditherStrength; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWDITHERSTRENGTH",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
     } else {
@@ -851,7 +851,7 @@ void drawToolTextView() {
     ImVec2 maxB = ImGui::GetItemRectMax();
     ImGui::SetCursorScreenPos(minB);
     maxB.x = minB.x + toolview_width;
-    if (ImGui::InvisibleButton((String("##DRAWTOOLTEXTUREVIEWLINE")+String::fromInt(i)).c_str(),ImVec2(maxB.x-minB.x,maxB.y-minB.y))) {l->toolInfo.fontId = f->id;}
+    if (ImGui::InvisibleButton(combined(String("##DRAWTOOLTEXTUREVIEWLINE")+String::fromInt(i)).c_str(),ImVec2(maxB.x-minB.x,maxB.y-minB.y))) {l->toolInfo.fontId = f->id;}
     if (f->id == l->toolInfo.fontId) {fileName = f->fileName; ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x40ffff00);}
   }
   ImGui::EndChild();
@@ -881,6 +881,77 @@ void drawToolTextView() {
   ImGui::InputTextMultiline("##DRAWTOOLTEXTUREVIEWALIGNTEXT", ati->textEditText, MAXTEXTEDITTEXT);
   ImGui::PopItemWidth();
   if (roundButton("Bake into layer##DRAWTOOLTEXTUREVIEWBAKE",ati->fontId != 0)) {paintTextIntoLayer(l);}
+}
+
+void drawToolOverlaysView() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (roundButton("Add overlay##DRAWTOOLOVERLAYSVIEWADDOVERLAY",l->hasSelection())) {
+    int lx0=0,ly0=0,lx1=0,ly1=0;
+    bool first = true;
+    for (int y = 0; y < l->height; y++) {
+      for (int x = 0; x < l->width; x++) {
+        if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {
+          if (first || x < lx0) lx0 = x;
+          if (first || y < ly0) ly0 = y;
+          if (first || x > lx1) lx1 = x;
+          if (first || y > ly1) ly1 = y;
+          first = false;
+        }
+      }
+    }
+    lx1++;
+    ly1++;
+    Overlay *o = new Overlay();
+    o->layerId = l->id;
+    o->lx0 = lx0;
+    o->ly0 = ly0;
+    o->lx1 = lx1;
+    o->ly1 = ly1;
+    o->cx0 = 0;
+    o->cy0 = 0;
+    o->cx1 = lx1-lx0;
+    o->cy1 = ly1-ly0;
+    currentCanvas->overlays.insert(o,0);
+    shouldUpdateAll = true;
+  }
+  ImGui::BeginChild("DRAWTOOLOVERLAYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
+  for (int i = 0; i < currentCanvas->overlays.size(); i++) {
+    Overlay *o = currentCanvas->overlays[i];
+    Layer *l = NULL;
+    for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) {
+      if (currentCanvas->layers[i2]->id == o->layerId) {
+        l = currentCanvas->layers[i2];
+        break;
+      }
+    }
+    if (l != NULL) {
+      ImGui::Text("%s",l->name);
+      ImGui::Text("W %d H %d",o->lx1-o->lx0,o->ly1-o->ly0);
+      ImGui::Text("Visible"); ImGui::SameLine(); if (ImGui::Checkbox(combined(String("##DRAWTOOLOVERLAYSVIEWVISIBLE")+String::fromInt(i)).c_str(),&o->visible)) {shouldUpdateAll = true;}
+      int x = o->cx0;
+      int y = o->cy0;
+      int w = o->cx1 - o->cx0;
+      int h = o->cy1 - o->cy0;
+      ImGui::PushItemWidth(7*5);
+      ImGui::Text("Pos X"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX0")+String::fromInt(i)).c_str(),&x,0,0)) {shouldUpdateAll = true;}
+      ImGui::Text("Pos Y"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY0")+String::fromInt(i)).c_str(),&y,0,0)) {shouldUpdateAll = true;}
+      ImGui::Text("Width"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX1")+String::fromInt(i)).c_str(),&w,0,0)) {shouldUpdateAll = true;}
+      ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY1")+String::fromInt(i)).c_str(),&h,0,0)) {shouldUpdateAll = true;}
+      ImGui::PopItemWidth();
+      o->cx0 = x;
+      o->cy0 = y;
+      o->cx1 = x+w;
+      o->cy1 = y+h;
+    }
+    if (roundButton(combined(String("Remove##DRAWTOOLOVERLAYSVIEWREMOVEOVERLAY")+String::fromInt(i)).c_str(),true)) {
+      shouldUpdateAll = true;
+      delete o; currentCanvas->overlays.erase(i,1);
+      i--;
+    }
+    ImGui::Separator();
+  }
+  ImGui::EndChild();
 }
 
 void drawToolView() {
@@ -934,6 +1005,9 @@ void drawToolView() {
     } break;
   case TOOL_TEXT: {
       drawToolTextView();
+    } break;
+  case TOOL_OVERLAYS: {
+      drawToolOverlaysView();
     } break;
   }
   ImGui::End();

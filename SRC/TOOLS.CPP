@@ -31,9 +31,9 @@
 #include "TOOLBAR.HPP"
 #include "TOOLVIEW.HPP"
 #include "SERIALZE.HPP"
-#include "IMAGE.HPP"
+#include "STL/IMAGE.HPP"
 #include "UNDO.HPP"
-#include "CHARSET.HPP"
+#include "STL/CHARSET.HPP"
 #include <math.h>
 
 
@@ -287,8 +287,8 @@ void scanSampleDistanceField(Brush *brush, const RGBAImage &image) {
     brush->distanceField = NULL;
   }
   brush->distanceField = new float[BRUSHDISTANCEFIELDSIZE*BRUSHDISTANCEFIELDSIZE];
-  int maxRad = image.width;
-  if (image.height > maxRad) maxRad = image.height;
+  int maxRad = (int)image.width;
+  if (image.height > maxRad) maxRad = (int)image.height;
   float scale = (float)image.width / BRUSHDISTANCEFIELDSIZE;
   initStatusBar();
   for (int y = 0; y < BRUSHDISTANCEFIELDSIZE; y++) {
@@ -468,7 +468,7 @@ void reCreateQuantization() {
             found = i;
           }
         }
-        quantization[r+g*64+b*64*64] = found;
+        quantization[r+g*64+b*64*64] = (unsigned short)found;
       }
     }
   }
@@ -835,11 +835,13 @@ void useToolSelection() {
 
   mouseClickUndo();
 
-  if (selectionToolLayer == NULL ||  (!ImGui::IsMouseDown(0)) || (ImGui::IsMouseDown(1) && selectionTool != SELECTIONTOOL_POLYGON)) {
+  int selectionTool2 = tool == TOOL_OVERLAYS ? SELECTIONTOOL_RECTANGLE : selectionTool;
+
+  if (selectionToolLayer == NULL ||  (!ImGui::IsMouseDown(0)) || (ImGui::IsMouseDown(1) && selectionTool2 != SELECTIONTOOL_POLYGON)) {
     if (selectionToolActive) {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
       if (!ImGui::IsMouseDown(1)) {
-        switch(selectionTool) {
+        switch(selectionTool2) {
           case SELECTIONTOOL_ELLIPSE:
           case SELECTIONTOOL_RECTANGLE: {
             for (int i = 0; i < activeLayer->width*activeLayer->height; i++) {
@@ -860,7 +862,7 @@ void useToolSelection() {
             double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX0,selectionY0,lx0,ly0);
             double lx1,ly1; 
             currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
-            if (selectionTool == SELECTIONTOOL_LASSO) selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true);
+            if (selectionTool2 == SELECTIONTOOL_LASSO) selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true);
             for (int y = 0; y < selectionPlane->height; y++) {
               bool isInSelection = false;
               for (int x = 0; x < selectionPlane->width; x++) {
@@ -919,8 +921,8 @@ void useToolSelection() {
     y1 = floor(y1);
     selectionToolActive = true;
     showSelectionPlane = true;
-    showSelectionPlaneBounding = selectionTool == SELECTIONTOOL_ELLIPSE;
-    switch(selectionTool) {
+    showSelectionPlaneBounding = selectionTool2 == SELECTIONTOOL_ELLIPSE;
+    switch(selectionTool2) {
       case SELECTIONTOOL_ELLIPSE:
       case SELECTIONTOOL_RECTANGLE: {
         toolW = x1 - x0;
@@ -937,7 +939,7 @@ void useToolSelection() {
             if (x == 0) x = (int)floor(x2);
             if (y == 0) y = (int)floor(y2);
             if (x >= x0 && x < x1 && y >= y0 && y < y1) {
-              if (selectionTool == SELECTIONTOOL_ELLIPSE) {
+              if (selectionTool2 == SELECTIONTOOL_ELLIPSE) {
                 double dx = (double)(x-x0+0.5)/(x1-x0)*2.0-1.0;
                 double dy = (double)(y-y0+0.5)/(y1-y0)*2.0-1.0;
                 double d = sqrt(dx*dx+dy*dy);
@@ -2087,6 +2089,9 @@ void useTool() {
     } break;
   case TOOL_BLUR: {
     useToolBlur();
+    } break;
+  case TOOL_OVERLAYS: {
+    useToolSelection();
     } break;
   }
   mouseX = mouseXBefore;
