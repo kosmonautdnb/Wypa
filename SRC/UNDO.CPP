@@ -29,6 +29,11 @@
 #include "CONFIG.HPP"
 #include "SERIALZE.HPP"
 
+void initUndo() {
+}
+
+void freeUndo() {
+}
 
 bool isForcedUndoPoint = false;
 
@@ -53,7 +58,9 @@ public:
     undoCanvas = currentCanvas;
     for (int i = 0; i < undoCanvas->layers.size(); i++) {
       if (undoCanvas->layers[i]->state.active || undoCanvas->layers[i]->state.selected) {
-        if (!undoCanvas->layers[i]->state.locked) {
+        bool useThis = !undoCanvas->layers[i]->state.permanentlyLocked;
+        if (undoCanvas->layers[i]->type == LAYERTYPE_TEXT) useThis = true;
+        if (useThis) {
           Layer *l2 = undoCanvas->layers[i]; int id = l2->id; 
           Layer *l = l2->clone(); l->id = id; 
           memcpy(l->pixelStates,l2->pixelStates,l->width*l->height*sizeof(unsigned char)); // sorry (not cloned before)
@@ -79,6 +86,8 @@ public:
   bool isLayerSame(Layer *a, Layer *b) {
     if (a->width != b->width) return false;
     if (a->height != b->height) return false;
+    if (a->type != b->type) return false;
+    if (a->mode != b->mode) return false;
     if (memcmp(a->pixels,b->pixels,a->width*a->height*sizeof(unsigned int))!=0) return false;
     if (memcmp(a->pixelStates,b->pixelStates,a->width*a->height*sizeof(unsigned char))!=0) return false;
     if (memcmp(&a->colorTransform,&b->colorTransform,sizeof(ColorTransform))!=0) return false; // be aware to add undoPoints "only at paint tool" use
@@ -107,6 +116,10 @@ public:
     return true;
   }
 
+  void tempDebugOutput() {
+    initStatusBar();
+    for (int i = 0; i < 100; i++) updateStatusBar();
+  }
 
   unsigned char *getNoRle(int &byteCount) {
 #define WRITEDWORDHERE(__a__) {dest[writePos] = (__a__); writePos++;}
@@ -177,11 +190,6 @@ public:
       }
       inColorData = !inColorData;
     }
-  }
-
-  void tempDebugOutput() {
-    initStatusBar();
-    for (int i = 0; i < 100; i++) updateStatusBar();
   }
 
   void generateDeltas(Layer *dest, Layer *source) {
@@ -284,6 +292,10 @@ public:
           dest->undoData.signWith(&source->undoData.undoLayer->undoData);
           dest->colorTransform = source->undoData.undoLayer->colorTransform;
           dest->transform = source->undoData.undoLayer->transform;
+          dest->toolInfo = source->undoData.undoLayer->toolInfo;
+          dest->state = source->undoData.undoLayer->state;
+          dest->type = source->undoData.undoLayer->type;
+          dest->mode = source->undoData.undoLayer->mode;
         }
       } else {
         // redo
@@ -297,6 +309,10 @@ public:
         dest->undoData.signWith(&source->undoData);
         dest->colorTransform = source->colorTransform;
         dest->transform = source->transform;
+        dest->toolInfo = source->toolInfo;
+        dest->state = source->state;
+        dest->type = source->type;
+        dest->mode = source->mode;
       }
     }
     shouldUpdateAll = true;

@@ -375,6 +375,18 @@ void dialogDeleteLayers(bool openIt) {
   bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
   if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
 
+  int l = layers.size();
+  for (int i3 = 0; i3 < l; i3++) {
+    if (layers[i3]->sourceLayerId == 0) {
+      for (int i4 = 0; i4 < currentCanvas->layers.size(); i4++) {
+        Layer *z = currentCanvas->layers[i4];
+        if (z->sourceLayerId != 0 && z->sourceLayerId == layers[i3]->id) {
+          layers.push_back(z);
+        }
+      }
+    }
+  }
+
   if (layers.empty()) {
     ImGui::Text("No layers selected or active");
   } else {
@@ -382,7 +394,7 @@ void dialogDeleteLayers(bool openIt) {
     ImGui::Text("Layers to delete");
     ImGui::BeginChild("DELETELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
     for (int i = 0; i < layers.size(); i++) {
-      ImGui::Text("\"%s\"",layers[i]->name);
+      ImGui::Text("\"%s\" %s",layers[i]->name,layers[i]->sourceLayerId != 0 ? "it's a REFERENCE":"");
     }
     ImGui::EndChild();
   }
@@ -1119,7 +1131,13 @@ void dialogBakeLayers(bool openIt) {
     if (ImGui::Button("Bake these layers##DIALOGBAKELAYERSAPPLY")) {
       beforeUndoPoint();
       for (int i = 0; i < layers.size(); i++) {
-        layers[i]->bakeLayer(interpolation);
+        Layer *l = layers[i];
+        if (l->type == LAYERTYPE_TEXT) {
+          l->type = LAYERTYPE_BASIC;
+          l->state.locked = false;
+          l->state.permanentlyLocked = false;
+        }
+        l->bakeLayer(interpolation);
       }
       afterUndoPoint();
       shouldUpdateAll = true;
@@ -1258,11 +1276,12 @@ const char *grad = "*.gr2";
 const char *brush = "*.br2";
 const char *svg = "*.svg";
 const char *image = "*.wyp";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,image,image};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage};
+const char *fnt = "*.ttf";
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",images,images,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,image,image,fnt,fnt};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {

@@ -62,8 +62,18 @@ enum LAYERMODES {
   LAYERMODE_DEFAULT = LAYERMODE_PREMULTIPLIEDALPHA,
   LAYERMODE_COUNT = 17
 };
-
 extern const char *layerModeNames[LAYERMODE_COUNT];
+
+enum LAYERTYPES {
+  LAYERTYPE_BASIC = 0,
+  LAYERTYPE_TEXT = 1
+};
+
+enum ALIGNMENTS {
+  ALIGN_LEFT = 0,
+  ALIGN_RIGHT = 1,
+  ALIGN_CENTER = 2,
+};
 
 class LayerState {
 public:
@@ -72,6 +82,7 @@ public:
   bool selected;
   bool visible;
   bool locked;
+  bool permanentlyLocked;
   float alpha;
   bool imGuiActive;
 
@@ -80,6 +91,7 @@ public:
     selected = false;
     visible = true;
     locked = false;
+    permanentlyLocked = false;
     alpha = 1;
     imGuiActive = false;
   }
@@ -92,6 +104,7 @@ public:
   S_BOOL("selected",(__o__)->selected);\
   S_BOOL("visible",(__o__)->visible);\
   S_BOOL("locked",(__o__)->locked);\
+  S_BOOL("permanentlyLocked",(__o__)->permanentlyLocked);\
   S_FLOAT("alpha",(__o__)->alpha);\
   S_OBJECT_CLOSE();
 
@@ -323,6 +336,16 @@ public:
 
     showTilingGrid = true;
     showTilingGridIndices = true;
+
+    sprintf(textEditText,"Some text.");
+    fontSize = 50;
+    fontScaleX = 1;
+    fontScaleY = 1;
+    fontSpaceX = 0;
+    fontSpaceY = 0;
+    fontAlignment = ALIGN_LEFT;
+    fontColor = 0xff202020;
+    fontId = 0;
   }
   int tilingOffsetX;
   int tilingOffsetY;
@@ -340,6 +363,16 @@ public:
 
   bool showTilingGrid;
   bool showTilingGridIndices;
+
+  char textEditText[MAXTEXTEDITTEXT];
+  float fontSize;
+  float fontScaleX;
+  float fontScaleY;
+  float fontSpaceX;
+  float fontSpaceY;
+  int fontAlignment;
+  unsigned int fontColor;
+  unsigned int fontId;
 };
 #define S_LAYERADDITIONALTOOLINFO(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
@@ -355,11 +388,22 @@ public:
   S_BOOL("tilingAnimReverse",(__o__)->tilingAnimReverse);\
   S_BOOL("showTilingGrid",(__o__)->showTilingGrid);\
   S_BOOL("showTilingGridIndices",(__o__)->showTilingGridIndices);\
+  S_BASE64("textEditText",(__o__)->textEditText,MAXTEXTEDITTEXT);\
+  S_FLOAT("fontSize",(__o__)->fontSize);\
+  S_FLOAT("fontScaleX",(__o__)->fontScaleX);\
+  S_FLOAT("fontScaleY",(__o__)->fontScaleY);\
+  S_FLOAT("fontSpaceX",(__o__)->fontSpaceX);\
+  S_FLOAT("fontSpaceY",(__o__)->fontSpaceY);\
+  S_INT("fontAlignment",(__o__)->fontAlignment);\
+  S_UINT("fontId",(__o__)->fontId);\
+  S_UINT("fontColor",(__o__)->fontColor);\
   S_OBJECT_CLOSE();
+
 
 class Layer {
 public:
 
+  int type;
   int mode;
   int width;
   int height;
@@ -378,20 +422,24 @@ public:
   bool hasOutline;
   bool showColorTransformOnlyInSelection;
 
+  unsigned int sourceLayerId;
+
   Layer() {
     mode = LAYERMODE_DEFAULT;
+    type = LAYERTYPE_BASIC;
     width = 0;
     height = 0;
     pixels = NULL;
     pixelStates = NULL;
+    sourceLayerId = 0;
     repaintState = REPAINTSTATE_NONE;
     justSelection = false;
     hasOutline = false;
     showColorTransformOnlyInSelection = false;
     static int layerCounter = 0; layerCounter++;
     sprintf(name,"Layer %d", layerCounter);
-    static unsigned int idCounter = 0; idCounter++;
-    id = idCounter;
+    static unsigned int layerIdCounter = 0; layerIdCounter++;
+    id = layerIdCounter;
   }
 
   ~Layer() {
@@ -407,6 +455,7 @@ public:
   void pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer);
 
   void init(int width, int height);
+  void setContentSize(int width, int height);
   void invalidateContent();
   void clear();
   void updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor);
@@ -470,7 +519,9 @@ public:
   if (!save) (__o__)->init(1,1);\
   S_ZIPLAYERDATA(i,__o__);\
   S_INT("mode",(__o__)->mode);\
-  S_UINT("id",(__o__)->id);\
+  S_INT("type",(__o__)->type);\
+  S_ID("id",(__o__)->id);\
+  S_IDREFERENCE("sourceLayerId",(__o__)->sourceLayerId);\
   S_LAYERSTATE("state",&(__o__)->state);\
   S_TRANSFORMATIONSTATE("transform",&(__o__)->transform);\
   S_COLORTRANSFORM("colorTransform",&(__o__)->colorTransform);\
@@ -514,6 +565,9 @@ public:
 
 extern Layer *copyLayer;
 String timeDescString();
+extern unsigned int activeLayerSwitchIndex;
+extern unsigned int lastActiveLayerSwitchIndex;
+bool wasActiveLayerSwitched();
 
 class Canvas {
 public:
@@ -602,6 +656,7 @@ public:
   void addLayer(Layer *layer);
   void insertLayer(Layer *layer, int position);
   void eraseLayer(Layer *layer);
+  void insertTextLayer();
 
   void mirrorHorizontally();
   void mirrorVertically();
@@ -646,6 +701,7 @@ public:
   
   Layer *getSelectionAsLayer(bool pixelSelection, bool selectAllLayers, bool keepCanvasSize);
   void duplicateLayers();
+  void duplicateLayerAsReference(Layer *l);
   void insertLayerLikeThisLayer();
   void copy();
   void paste();
@@ -674,7 +730,9 @@ public:
   void signSave();
 
   void lockLayers(bool lockOrUnlock);
+  void getContentFromOtherLayer(Layer *dest, unsigned int sourceId);
 };
+
 #define S_CANVAS(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
   if (!save) canvasDefault(__o__);\
@@ -694,10 +752,10 @@ public:
   S_INT("canvasX1",(__o__)->canvasX1);\
   S_INT("canvasY1",(__o__)->canvasY1);\
   S_CANVASCONTROL("control",&(__o__)->control);\
+  (__o__)->control.setCanvasTransform(__o__);\
   Canvas *helperCanvas = __o__; S_POINTER_ARRAY("layers",helperCanvas->layers,Layer,S_LAYER(NULL,helperCanvas->layers[i]));\
+  S_RESOLVEIDS();\
   S_OBJECT_CLOSE();
-
-
 
 extern Canvas *currentCanvas;
 extern Array<Canvas*> canvas;

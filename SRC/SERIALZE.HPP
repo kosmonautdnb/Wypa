@@ -62,6 +62,9 @@ void loadBrushShape(const char *shortPath, const char *longFileName);
 void loadImage(const char *shortPath, const char *longFileName);
 void saveImage(const char *shortPath, const char *longFileName);
 
+void loadFont(const char *shortPath, const char *longFileName);
+extern unsigned int saveFontId;
+void saveFont(const char *shortPath, const char *longFileName);
 
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);

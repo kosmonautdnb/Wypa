@@ -36,12 +36,15 @@
 #include "DIALOGS.HPP"
 #include "STL/IMAGE.HPP"
 #include "UNDO.HPP"
+#include "TEXT.HPP"
+#include "DOS.HPP"
+#include "SERIALZE.HPP"
 #include <math.h>
 
 int toolview_width = 120;
 
 bool roundButton(const char *name, bool enabled);
-bool imageButton(const char *svgName, const char *id, bool selected, bool hilighted);
+bool imageButton(const char *svgName, const char *id, bool selected, bool hilighted, bool disabled);
 
 GLuint gradientTexture = 0;
 const int gradientTextureWidth = 100;
@@ -806,7 +809,7 @@ void drawToolTilingView() {
     ImGui::Separator();
     ImGui::PushItemWidth(7*5);
     ImGui::Text("Animation"); ImGui::SameLine(); 
-    if (imageButton(l->toolInfo.tilingAnimPlaying?"pause":"play", "##DRAWTOOLTILINGANIMATIONPLAY", false, false)) {
+    if (imageButton(l->toolInfo.tilingAnimPlaying?"pause":"play", "##DRAWTOOLTILINGANIMATIONPLAY", false, false,false)) {
       l->toolInfo.tilingAnimPlaying = !l->toolInfo.tilingAnimPlaying;
       l->toolInfo.tilingAnimTime = 0;updateTilingTexture();   
     }
@@ -829,6 +832,55 @@ void drawToolBlurView() {
     ImGui::Text("Size");
     float k = blurCircleSize; ImGui::SameLine();if (ImGui::SliderFloat("##DRAWTOOLBLURSIZE",&k,1,128)) {if (k<1) k = 1; if (k>128) k = 128; blurCircleSize = k;}
   }
+}
+
+void drawToolTextView() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->type != LAYERTYPE_TEXT) return;
+  if (roundButton("Add font",true)) {dialogLoadSave(true,DIALOG_ADDFONT);}
+  if (roundButton("Save font",l->toolInfo.fontId != 0)) {saveFontId = l->toolInfo.fontId; dialogLoadSave(true,DIALOG_SAVEFONT);}
+  ImGui::Text("Fonts [%d]",fonts.size());
+  ImGui::BeginChild("DRAWTOOLTEXTVIEWFONTS",ImVec2(toolview_width,200));
+  String fileName = "";
+  for (int i = 0; i < fonts.size(); i++) {
+    FontSource *f = fonts[i];
+    if (f->glHandle == 0) f->glHandle = f->createTexture(getName(f->fileName),20,aspectRatio*main_window_yres/main_window_xres,f->glWidth,f->glHeight,0x00000000);
+    ImVec2 minB = ImGui::GetCursorScreenPos();
+    ImGui::Image((ImTextureID)f->glHandle,ImVec2(f->glWidth,f->glHeight));
+    ImVec2 maxB = ImGui::GetItemRectMax();
+    ImGui::SetCursorScreenPos(minB);
+    maxB.x = minB.x + toolview_width;
+    if (ImGui::InvisibleButton((String("##DRAWTOOLTEXTUREVIEWLINE")+String::fromInt(i)).c_str(),ImVec2(maxB.x-minB.x,maxB.y-minB.y))) {l->toolInfo.fontId = f->id;}
+    if (f->id == l->toolInfo.fontId) {fileName = f->fileName; ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x40ffff00);}
+  }
+  ImGui::EndChild();
+  if (!fileName.empty()) ImGui::Text("%s",(fileName.last(16)).c_str());
+  if (roundButton("Remove font",l->toolInfo.fontId != 0)) {removeFont(l->toolInfo.fontId);l->toolInfo.fontId = 0;}
+  ImGui::PushItemWidth(7*5);
+  ImGui::Text("Font"); 
+  LayerAdditionalToolInfo *ati = &l->toolInfo;
+  ImGui::Text("Height"); ImGui::SameLine(); ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSIZE",&ati->fontSize,0,0,2); if (ati->fontSize < 1) ati->fontSize = 1;
+  ImVec2 cursor = ImGui::GetCursorScreenPos();
+  ImVec4 chere = getImVec4Color(ati->fontColor); colorItem("", "##DRAWTOOLTEXTUREVIEWFONTCOLOR", &chere);
+  ImGui::SetCursorScreenPos(cursor);
+  if (ImGui::InvisibleButton("##DRAWTOOLTEXTUREVIEWFONTCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+    ati->fontColor = getUIntColor(foregroundColor);
+  }
+  ImGui::Text("Scale x"); ImGui::SameLine(); ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSCALEX",&ati->fontScaleX,0,0,2); if (ati->fontScaleX < 0) ati->fontScaleX = 0;
+  ImGui::Text("Scale y"); ImGui::SameLine(); ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSCALEY",&ati->fontScaleY,0,0,2); if (ati->fontScaleY < 0) ati->fontScaleY = 0;
+  ImGui::Text("Space x"); ImGui::SameLine(); ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSPACEX",&ati->fontSpaceX,0,0,2);
+  ImGui::Text("Space y"); ImGui::SameLine(); ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSPACEY",&ati->fontSpaceY,0,0,2);
+  ImGui::Text("");
+  ImGui::RadioButton("Align left##DRAWTOOLTEXTUREVIEWALIGNLEFT",&ati->fontAlignment,ALIGN_LEFT);
+  ImGui::RadioButton("Align right##DRAWTOOLTEXTUREVIEWALIGNRIGHT",&ati->fontAlignment,ALIGN_RIGHT);
+  ImGui::RadioButton("Align center##DRAWTOOLTEXTUREVIEWALIGNCENTER",&ati->fontAlignment,ALIGN_CENTER);
+  ImGui::PopItemWidth();
+  ImGui::Text("Text");
+  ImGui::PushItemWidth(toolview_width-10);
+  ImGui::InputTextMultiline("##DRAWTOOLTEXTUREVIEWALIGNTEXT", ati->textEditText, MAXTEXTEDITTEXT);
+  ImGui::PopItemWidth();
+  if (roundButton("Bake into layer##DRAWTOOLTEXTUREVIEWBAKE",ati->fontId != 0)) {paintTextIntoLayer(l);}
 }
 
 void drawToolView() {
@@ -879,6 +931,9 @@ void drawToolView() {
     } break;
   case TOOL_BLUR: {
       drawToolBlurView();
+    } break;
+  case TOOL_TEXT: {
+      drawToolTextView();
     } break;
   }
   ImGui::End();

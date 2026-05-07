@@ -45,6 +45,8 @@
 #include "TOOLBAR.HPP"
 #include "TOOLVIEW.HPP"
 #include "UNDO.HPP"
+#include "STL/HASHMAP.HPP"
+#include "TEXT.HPP"
 #include <math.h>
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
@@ -144,9 +146,32 @@ void writeJson(Array<char> *arr, String *string) {
 #define S_ZIPLAYERDATA(__index__,__layer__) zipLayerData(String("layer")+String::fromInt(__index__),__layer__,jsonIsSaving)
 #define S_IMVEC4(__name__, __v__) {ImVec4 *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_IMVEC4, __name__, &(__v__), jsonIsSaving,arrayIndex);}
 
+#define S_ZIPARRAY(__fileName__,__v__,__es__) {\
+  int a = __v__.size(); S_INT(((__fileName__)+"_ARRAYSIZE").c_str(),a);\
+  int b = __es__; S_INT(((__fileName__)+"_ELEMENTSIZE").c_str(),b);\
+  if (!save) __v__.resize(a);\
+  zipData(save,__fileName__,&(__v__[0]),a*b);\
+}
+
+
+HashMap<unsigned int,unsigned int> idRemap;
+Array<unsigned int*> idsToResolve;
+#define S_ID(__name__,__id__) {unsigned int before = (__id__); S_UINT(__name__,__id__); unsigned int after = (__id__); idRemap[after] = before; (__id__) = before;} // before is an upcounting value already
+#define S_IDREFERENCE(__name__,__id__) {S_UINT(__name__,__id__); idsToResolve.push_back(&(__id__));}
+#define S_RESOLVEIDS() {\
+  if (!save) {\
+    for (int i = 0; i < idsToResolve.size(); i++) {\
+      unsigned int *dest = idsToResolve[i];\
+      if (idRemap.has(*dest)) *dest = idRemap[*dest]; else *dest = 0;\
+    }\
+  }\
+  idRemap.clear(); idsToResolve.clear();\
+}
+
 void zipLayerData(const String &layerName, Layer *layer, bool save);
 void zipPalette(const Array<ImVec4> &palette, int colorsPerRow, bool save);
 void zipGradient(const Gradient &gradient, bool save);
+void zipData(bool save,const String &fileName, void *data, unsigned int byteCount);
 
 //char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 char *base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -398,7 +423,8 @@ Matrix inverse2(const Matrix &a);
   S_TOOLBAR_CPP();\
   S_TOOLS_CPP();\
   S_TOOLVIEW_CPP();\
-  S_UNDO_CPP();
+  S_UNDO_CPP();\
+  S_TEXT_CPP();
 
 bool serializeCanvas(Array<Canvas*> &canvas, bool save, String *string) {
   STARTSERIALIZATION(save);
@@ -968,6 +994,32 @@ void zipLayerData(const String &layerName, Layer *layer, bool save) {
   }
 }
 
+void zipData(bool save,const String &fileName, void *data, unsigned int byteCount) {
+  updateStatusBar();
+  mz_zip_archive &zip = globalZip;
+  if (save) {
+    dosRemoveFile(fileName.c_str());
+    updateStatusBar();
+    String pal = getPaletteString(palette,paletteColorsPerRow);
+    FILE *out = fopen(fileName.c_str(),"wb");
+    fwrite(data,1,byteCount,out);
+    fclose(out);
+    updateStatusBar();
+    mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
+    updateStatusBar();
+    dosRemoveFile(fileName.c_str());
+    updateStatusBar();
+  } else {
+    Array<unsigned char> array;
+    if (readZippedFile(readZipShortPath, readZipLongFileName, fileName.c_str(), array)) {
+      if (array.size() == byteCount) {
+        memcpy(data,&array[0],byteCount);
+        updateStatusBar();
+      }
+    }
+  }
+}
+
 void zipPalette(const Array<ImVec4> &palette, int colorsPerRow, bool save) {
   updateStatusBar();
   mz_zip_archive &zip = globalZip;
@@ -1090,6 +1142,33 @@ void saveImage(const char *shortPath, const char *longFileName) {
   savedSomething();
 }
 
+void loadFont(const char *shortPath, const char *longFileName) {
+  String fullFileName = String(shortPath)+String(longFileName);
+  Array<unsigned char> *arr = new Array<unsigned char>();
+  getFileArray(arr, fullFileName);
+  if (!arr->empty()) {
+    addFontSource(arr, fullFileName);
+  } else {
+    delete arr;
+  }
+}
+
+unsigned int saveFontId = 0;
+void saveFont(const char *shortPath, const char *longFileName) {
+  if (saveFontId == 0) return;
+  FontSource *font = NULL;
+  for (int i = 0; i < fonts.size(); i++) {
+    if (fonts[i]->id == saveFontId) {font = fonts[i]; break;}
+  }
+  if (font == NULL) return;
+  if (font->data == NULL) return;
+  if (font->data->size() == NULL) return;
+  FILE *out = createTempFile(shortPath,"wb");
+  fwrite(&((*(font->data))[0]),1,font->data->size(),out);
+  fclose(out);
+  renameTempFile(shortPath, longFileName);
+}
+
 Layer *loadImage(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAIMAGEFROMFILE(img,filePath,fileName);
@@ -1112,6 +1191,7 @@ Layer *loadImage(const String &filePath, const String &fileName) {
   if (img.data != NULL) {
     ret = new Layer();
     ret->init(img.width,img.height);
+    delete[] ret->pixels;
     ret->pixels = img.data;
     // no free of img needed here
   }

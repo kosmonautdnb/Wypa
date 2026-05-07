@@ -45,7 +45,7 @@ void initToolBar() {
 void freeToolBar() {
 }
 
-bool imageButton(const char *svgName, const char *id, bool selected, bool hilighted) {
+bool imageButton(const char *svgName, const char *id, bool selected, bool hilighted, bool disabled) {
   SVG *svg = &svgs[svgName];
   ImGui::PushID(id);
   ImVec4 col = selected ? ImVec4(0.5,0.5,0.5,1) : ImVec4(1,1,1,1);
@@ -54,6 +54,7 @@ bool imageButton(const char *svgName, const char *id, bool selected, bool hiligh
     ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);
   }
   if (selected) ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0xc0ffffff);
+  if (disabled) ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x40000000);
   if (ImGui::IsItemHovered()) {
     ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x20000000);
   }
@@ -64,6 +65,8 @@ bool imageButton(const char *svgName, const char *id, bool selected, bool hiligh
 
 bool toolBarButton(const char *svgName, int toolIndex) {
   bool highlighted = false;
+  bool disabled = false;
+  bool selected = toolIndex == tool;
   if (toolIndex == TOOL_MAGIC) {
     Layer *l = currentCanvas->getActiveLayer();
     if (l != NULL) {
@@ -72,8 +75,15 @@ bool toolBarButton(const char *svgName, int toolIndex) {
       if (l->colorTransform.useQuantization) highlighted = true;
     }
   }
-  bool ret = imageButton(svgName, (String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), toolIndex == tool, highlighted);
-  if (ret) {lastTool = tool; tool = toolIndex;}
+  if (toolIndex == TOOL_TEXT) {
+    Layer *l = currentCanvas->getActiveLayer();
+    if (l != NULL) {
+      disabled = l->type != LAYERTYPE_TEXT;
+    }
+    if (selected && disabled) {lastTool = tool; tool = TOOL_NONE;}
+  }
+  bool ret = imageButton(svgName, (String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), selected, highlighted, disabled);
+  if (ret && !disabled) {lastTool = tool; tool = toolIndex;}
   return ret;
 }
 

@@ -34,6 +34,8 @@
 #define FROZENWINDOW (ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoCollapse)
 #define UNUSED(__p__) (void)(__p__)
 #define SCREENSAVERTIMEINSECONDS (60*5)
+#define MAXTEXTEDITTEXT (1024)
+#define MAXGLYPHSIZE (4096)
 
 #define CONTROLKEY_NONE 0
 #define CONTROLKEY_SHIFT 1

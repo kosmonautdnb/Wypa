@@ -32,6 +32,8 @@
 #include "DIALOGS.HPP"
 #include "UNDO.HPP"
 #include "TOOLS.HPP"
+#include "TEXT.HPP"
+#include "TOOLBAR.HPP"
 #include <math.h>
 
 int menuBar_height = 17;
@@ -155,6 +157,8 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Insert layer like this layer",NULL,false,count == 1)) {currentCanvas->insertLayerLikeThisLayer();}
       if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
       ImGui::Separator();
+      if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); lastTool = tool; tool = TOOL_TEXT;}
+      ImGui::Separator();
       if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
       if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
       if (ImGui::MenuItem("Select all layers")) {currentCanvas->selectAllLayers();}
@@ -180,6 +184,7 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Lock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(true);}
       if (ImGui::MenuItem("Unlock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(false);}
+      if (ImGui::MenuItem("Duplicate layer as reference",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->duplicateLayerAsReference(currentCanvas->getActiveLayer());}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Selection")) {
@@ -202,13 +207,13 @@ void drawMenuBar() {
     if (ImGui::BeginMenu("View")) {
       on = true;
       bool selected;
-      selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9","",&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); shouldUpdateAll = true;}
+      selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9","",&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
       if (ImGui::MenuItem("Zoom in (+)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,zoomStep);}
       if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
       ImGui::Separator();
       if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
       if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
-      if (ImGui::MenuItem("Fit view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
+      if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
       ImGui::Separator();
       if (ImGui::MenuItem("Clear mouse lock",NULL,false,lockedMouseX||lockedMouseY)) {lockedMouseX = false; lockedMouseY = false;}
       ImGui::EndMenu();

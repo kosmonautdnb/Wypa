@@ -27,6 +27,9 @@
 extern int availableUndos;
 extern int availableRedos;
 
+void initUndo();
+void freeUndo();
+
 void beforeUndoPoint();
 void afterUndoPoint();
 void forceUndoPoint();

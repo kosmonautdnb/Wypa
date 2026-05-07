@@ -826,19 +826,18 @@ double toolAspectX = 1;
 double toolAspectY = 1;
 
 void useToolSelection() {
+  if (wasActiveLayerSwitched()) {selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
 
   Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
   static Layer *selectionToolLayer = activeLayer;
-  bool layerSwitched = selectionToolLayer != activeLayer;
   selectionToolLayer = activeLayer;
   if (selectionToolLayer != NULL && selectionToolLayer->width * selectionToolLayer->height==0) return;
 
   mouseClickUndo();
 
-  if (selectionToolLayer == NULL ||  (!ImGui::IsMouseDown(0)) || layerSwitched || (ImGui::IsMouseDown(1) && selectionTool != SELECTIONTOOL_POLYGON)) {
+  if (selectionToolLayer == NULL ||  (!ImGui::IsMouseDown(0)) || (ImGui::IsMouseDown(1) && selectionTool != SELECTIONTOOL_POLYGON)) {
     if (selectionToolActive) {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
-      if (layerSwitched) return;
       if (!ImGui::IsMouseDown(1)) {
         switch(selectionTool) {
           case SELECTIONTOOL_ELLIPSE:
@@ -1022,19 +1021,19 @@ void applyGradient(Layer *layer, Gradient *gradient, double cx0, double cy0, dou
 
 void useToolGradient() {
 
+  if (wasActiveLayerSwitched()) {selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
+
   mouseClickUndo();
 
   toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
   toolAspectY = currentCanvas->control.pixelSizeY != 0 ? 1.0 / currentCanvas->control.pixelSizeY : 1;
   Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
   static Layer *selectionToolLayer = activeLayer;
-  bool layerSwitched = selectionToolLayer != activeLayer;
   selectionToolLayer = activeLayer;
   if (selectionToolLayer != NULL && selectionToolLayer->width * selectionToolLayer->height==0) return;
-  if (selectionToolLayer == NULL || (!ImGui::IsMouseDown(0)) || (layerSwitched) || ImGui::IsMouseDown(1)) {
+  if (selectionToolLayer == NULL || (!ImGui::IsMouseDown(0)) || ImGui::IsMouseDown(1)) {
     if (selectionToolActive) {
       selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1;
-      if (layerSwitched) return;
       if (!ImGui::IsMouseDown(1)) {
         if (tool == TOOL_GRADIENT) {applyGradient(activeLayer,&gradient,selectionX0,selectionY0,selectionX1,selectionY1); updatedPixels(activeLayer);}
       }
@@ -1344,6 +1343,9 @@ void updateUpdateFlagByBrushLine(Layer *l,double cx0,double cy0, double cx1, dou
 }
 
 void useToolPainting() {
+
+  if (wasActiveLayerSwitched()) {paintingOn = false; return;}
+
   toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
   toolAspectY = currentCanvas->control.pixelSizeY != 0 ? 1.0 / currentCanvas->control.pixelSizeY : 1;
 
@@ -1381,10 +1383,9 @@ void useToolPainting() {
     clearOutlineAfterNextPaint = true;
   }
 
-  if ( paintToolLayer == NULL || (!ImGui::IsMouseDown(0)) || layerSwitched || ImGui::IsMouseDown(1)) {
+  if ( paintToolLayer == NULL || (!ImGui::IsMouseDown(0)) || ImGui::IsMouseDown(1)) {
     if (paintingOn) {
       paintingOn = false;
-      if (layerSwitched) return;
       if (ImGui::IsMouseDown(1)) {
         memcpy(paintToolLayer->pixels,&paintBackground[0],paintToolLayer->width * paintToolLayer->height * sizeof(unsigned int));
         waitForMouse0 = true;
@@ -2011,6 +2012,7 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
 }
 
 void useToolBlur() {
+
   toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
   toolAspectY = currentCanvas->control.pixelSizeY != 0 ? 1.0 / currentCanvas->control.pixelSizeY : 1;
 
@@ -2018,11 +2020,10 @@ void useToolBlur() {
 
   Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
   static Layer *blurToolLayer = activeLayer;
-  bool layerSwitched = blurToolLayer != activeLayer;
   blurToolLayer = activeLayer;
   if (blurToolLayer != NULL && blurToolLayer->width * blurToolLayer->height == 0) return;
 
-  if ((!layerSwitched) && blurToolLayer != NULL && isPaintAreaActive() && (!ImGui::IsMouseDown(0))) {
+  if (blurToolLayer != NULL && isPaintAreaActive() && (!ImGui::IsMouseDown(0))) {
     double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
     blurToolLayer->updatePixelStates(~PIXELSTATE_OUTLINE,0,0); reverseLastUpdatedPixelStates(blurToolLayer);
     drawCircle(blurToolLayer,cx,cy,false,true);
@@ -2034,7 +2035,7 @@ void useToolBlur() {
     clearOutlineAfterNextPaint = true;
   }
 
-  if ((!layerSwitched) && blurToolLayer != NULL && isPaintAreaActive() && ImGui::IsMouseDown(0)) {
+  if (blurToolLayer != NULL && isPaintAreaActive() && ImGui::IsMouseDown(0)) {
     double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
     drawCircle(blurToolLayer,cx,cy,blurToolLayer->hasSelection(),false);
     repaintLayer(blurToolLayer,false);

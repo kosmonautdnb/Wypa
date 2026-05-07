@@ -713,6 +713,16 @@ void Layer::init(int width, int height) {
   transform.clear();
   state.clear();
   mode = LAYERMODE_DEFAULT;
+  sourceLayerId = 0;
+  setContentSize(width, height);
+}
+
+void Layer::setContentSize(int width, int height) {
+  if (this->width == width && this->height == height) {
+    memset(pixels,0,width*height*sizeof(unsigned int));
+    memset(pixelStates,0,width*height*sizeof(unsigned char));
+    return;
+  }
   if (pixels != NULL) {delete[] pixels; pixels = NULL;}
   if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;}
   pixels = new unsigned int[width*height];
@@ -1244,12 +1254,10 @@ Layer *Layer::clone() {
   ret->id = id;
   ret->pixels = NULL;
   ret->pixelStates = NULL;
-  unsigned int mode = ret->mode;
-  ret->init(width,height);
-  ret->mode = mode;
+  ret->width = 0;
+  ret->height = 0;
+  ret->setContentSize(width,height);
   memcpy(ret->pixels,pixels,ret->width*ret->height*sizeof(unsigned int));
-  ret->colorTransform = colorTransform;
-  ret->toolInfo = toolInfo;
   return ret;
 }
 
@@ -1577,7 +1585,7 @@ void Layer::addSelectionFromLayer(Layer *source) {
 }
 
 unsigned int Layer::byteCount() {
-  return undoData.byteCount() + width*height*sizeof(unsigned int) + width*height*sizeof(unsigned char) + colorTransform.byteCount();
+  return undoData.byteCount() + width*height*sizeof(unsigned int) + width*height*sizeof(unsigned char) + colorTransform.byteCount() + sizeof(LayerAdditionalToolInfo);
 }
 
 bool Layer::hasUpdates() {
@@ -1774,6 +1782,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
 
   bool darken = !(layer->state.selected || layer->state.active);
   if (!canvas->hilightSelection) darken = false;
+
+  if (layer->sourceLayerId != 0) {
+    canvas->getContentFromOtherLayer(layer,layer->sourceLayerId);
+  }
 
   Vector b = layer->boundingBox();
   Vector b1 = b.xy();
@@ -2286,6 +2298,26 @@ void Canvas::eraseLayer(Layer *layer) {
       shouldUpdateAll = true;
     }
   }
+}
+
+void Canvas::insertTextLayer() {
+  int pos = 0;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      pos = i;
+      break;
+    }
+  }
+
+  Layer *l = new Layer();
+  l->invalidateContent();
+  l->mode = LAYERMODE_ALPHA;
+  l->type = LAYERTYPE_TEXT;
+  l->state.locked = true;
+  l->state.permanentlyLocked = true;
+  sprintf(l->name,"text");
+  insertLayer(l,pos);
+  setActiveLayer(pos);
 }
 
 extern double canvasScrollX;
@@ -2879,6 +2911,23 @@ void Canvas::duplicateLayers() {
   shouldUpdateAll = true;
 }
 
+void Canvas::duplicateLayerAsReference(Layer *l) {
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->id == l->id) {
+      layers[i]->state.selected = false;
+      Layer *l = layers[i]->clone();
+      l->sourceLayerId = layers[i]->id;
+      l->state.locked = true;
+      l->state.permanentlyLocked = true;
+      sprintf(l->name,"reference");
+      insertLayer(l,i);
+      i++;
+      break;
+    }
+  }
+  shouldUpdateAll = true;
+}
+
 void Canvas::insertLayerLikeThisLayer() {
   bool first = true;
   for (int i = 0; i < layers.size(); i++) {
@@ -2938,11 +2987,19 @@ Layer *Canvas::getActiveLayer() {
   return ret;
 }
 
+unsigned int activeLayerSwitchIndex = 0;
+unsigned int lastActiveLayerSwitchIndex = 0;
+bool wasActiveLayerSwitched() {
+  return activeLayerSwitchIndex != lastActiveLayerSwitchIndex;
+}
+
 void Canvas::setActiveLayer(int layer) {
+  Layer *before = getActiveLayer();
   for (int i = 0; i < currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
     l->state.active = i == layer ? true : false;
   }
+  if (before != getActiveLayer()) activeLayerSwitchIndex++;
 }
 
 void Canvas::noSelectedLayers() {
@@ -3170,7 +3227,34 @@ void Canvas::signSave() {
 void Canvas::lockLayers(bool lockOrUnlock) {
   for (int i = 0; i < layers.size(); i++) {
     if (layers[i]->state.selected||layers[i]->state.active) {
-      layers[i]->state.locked = lockOrUnlock;
+      if (!layers[i]->state.permanentlyLocked) {
+        layers[i]->state.locked = lockOrUnlock;
+      }
+    }
+  }
+}
+
+void Canvas::getContentFromOtherLayer(Layer *dest, unsigned int sourceId) {
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->id == sourceId) {
+      Layer *l = layers[i];
+      if (dest->undoData.updatePixelsCount != l->undoData.updatePixelsCount) {
+        l->undoData.updatePixelsCount = dest->undoData.updatePixelsCount; // attention here may interfer with undo if some implementations change
+        if (dest->pixels == NULL || l->width != dest->width || l->height != dest->height) {
+          if (dest->pixels != NULL) {delete[] dest->pixels; dest->pixels = NULL;}
+          if (dest->pixelStates != NULL) {delete[] dest->pixelStates; dest->pixelStates = NULL;}
+          dest->width = l->width;
+          dest->height = l->height;
+          dest->pixels = new unsigned int[dest->width*dest->height];
+          dest->pixelStates = new unsigned char[dest->width*dest->height];
+           shouldUpdateAll = true;
+        }
+        if (memcmp(dest->pixels,l->pixels,dest->width*dest->height*sizeof(unsigned int)) != 0) shouldUpdateAll = true;
+        memcpy(dest->pixels,l->pixels,dest->width*dest->height*sizeof(unsigned int));
+        //memcpy(dest->pixelStates,l->pixelStates,dest->width*dest->height*sizeof(unsigned char));
+        memset(dest->pixelStates,0,dest->width*dest->height*sizeof(unsigned char));
+      }
+      break;
     }
   }
 }
@@ -3214,12 +3298,15 @@ void blitCanvas() {
   if (shouldUpdateAll||shouldUpdate) {
     if (shouldUpdateAll) repaintLayer = NULL;
     if (repaintLayer != NULL) {
+      shouldUpdateAll = false;
+      shouldUpdate = false;
       currentCanvas->updateLayer(repaintLayer,repaintLayerRepaintState == REPAINTSTATE_FULLUPDATE);
     } else {
-      currentCanvas->update(shouldUpdateAll);
+      bool all = shouldUpdateAll;
+      shouldUpdateAll = false;
+      shouldUpdate = false;
+      currentCanvas->update(all);
     }
-    shouldUpdateAll = false;
-    shouldUpdate = false;
   }
 
   Matrix sp = selectionPlane->transform.transformation;

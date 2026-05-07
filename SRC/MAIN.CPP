@@ -39,6 +39,7 @@
 #include "TOOLVIEW.HPP"
 #include "TOOLS.HPP"
 #include "UNDO.HPP"
+#include "TEXT.HPP"
 #include <math.h>
 
 bool roundButton(const char *name, bool enabled) {
@@ -207,7 +208,9 @@ extern Array<Canvas *> canvas;
   __prefix__##ToolView();\
   __prefix__##LayerView();\
   __prefix__##Layers();\
-  __prefix__##Tools();
+  __prefix__##Tools();\
+  __prefix__##Undo();\
+  __prefix__##Text();
 
 
 void deleteAll() {
@@ -322,6 +325,8 @@ int main(int argc, const char *argv[]) {
     screenSaver();
     splashScreen();
     ImGui::Render();
+    
+    lastActiveLayerSwitchIndex = activeLayerSwitchIndex;
       
     if (refreshMasked) glRefreshMasked(); else glRefresh();
   }
