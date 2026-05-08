@@ -31,6 +31,8 @@
 #include "IMGUI/IMGUIGL.HPP"
 #include "DIALOGS.HPP"
 #include "TOOLBAR.HPP"
+#include "SERIALZE.HPP"
+#include "TOOLS.HPP"
 #include <math.h>
 
 unsigned int colorField_height = 380;
@@ -38,6 +40,25 @@ unsigned int colorField_height = 380;
 void updatePalette() {
   shouldRecreateQuantization = true;
   shouldUpdateAll = true;
+}
+
+int paletteSort(const void *p, const void *q)
+{
+  const ImVec4* a = (const ImVec4*)p;
+  const ImVec4* b = (const ImVec4*)q;
+
+  double la = a->x+a->y+a->z;
+  double lb = b->x+b->y+b->z;
+
+  if (la > lb) return 1;
+  if (la < lb) return -1;
+  if (a->w > b->w) return 1;
+  if (a->w < b->w) return -1;
+  return 0;
+}
+
+void sortPalette(Array<ImVec4> &pal) {
+  qsort(&pal[0], pal.size(), sizeof(ImVec4), paletteSort);
 }
 
 unsigned int getUIntColor(const ImVec4 &k) {
@@ -129,6 +150,7 @@ bool roundButton(const char *name, bool enabled);
 bool showPalette = false;
 int paletteColorsPerRow = 16;
 Array<ImVec4> palette;
+Array<ImVec4> *paletteToSave;
 
 float hueToRgb(float p, float q, float t) {
   if (t < 0) t += 1;
@@ -404,7 +426,7 @@ void drawColorField() {
     }
     ImGui::SameLine();
     if (roundButton("Save palette##DRAWCOLORFIELDPALETTESAVE",!palette.empty())) {
-      dialogLoadSave(true,DIALOG_SAVEPALETTE);
+      paletteToSave = &palette; dialogLoadSave(true,DIALOG_SAVEPALETTE);
     }
     ImGui::Text("Palette colors"); int cols = palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; if (cols < 0) cols = 0; palette.resize(cols); updatePalette();}
     ImGui::Text("Colors per row"); ImGui::SameLine(); ImGui::InputInt("##DRAWPALETTECOLORFIELDROWCOLS",&paletteColorsPerRow, 1, 1);
@@ -470,6 +492,22 @@ void drawColorField() {
     if (roundButton("Palette##DRAWCOLORFIELDPALETTE",true)) {
       showPalette = true;
     }
+
+    Layer *l = currentCanvas->getActiveLayer();
+    if (l != NULL && l->colorTransform.useColorTransform) {//||l->colorTransform.useQuantization||l->colorTransform.usePosterize||l->colorTransform.useThreshold)) {
+      ImGui::SameLine();
+      ImGui::PushID("##DRAWCOLORITEMPOSTPROCESSCOLOR");
+      bool quantize = l->colorTransform.useQuantization && (quantization.size() == 64*64*64);
+      unsigned int col = getUIntColor(foregroundColor);
+      if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
+      //if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
+      //if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
+      //if (quantize) col = quantizeFast(col, l->colorTransform.ditherStrength, 0, 0);
+      ImVec4 c2 = getImVec4Color(col);
+      ImGui::Image((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), c2);
+      ImGui::PopID();
+    }
+
     ImGui::SameLine();
     ImVec4 *c = &foregroundColor;
     if (colorItem("","##DIALOGCOLORCOLORHEX",c)) {

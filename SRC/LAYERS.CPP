@@ -35,6 +35,7 @@
 #include "TOOLS.HPP"
 #include "COLORFLD.HPP"
 #include "UNDO.HPP"
+#include "STL/CHARSET.HPP"
 #include <math.h>
 
 unsigned int pixelsUpdateCounter = 0;
@@ -216,6 +217,12 @@ float *ColorTransform::processingGet() {
       gf = col.y*255;
       bf = col.z*255;
 
+      float rf2 = rf * colorMatrix[0*4+0] + gf * colorMatrix[1*4+0] + bf * colorMatrix[2*4+0] + colorMatrix[4*4+0];
+      float gf2 = rf * colorMatrix[0*4+1] + gf * colorMatrix[1*4+1] + bf * colorMatrix[2*4+1] + colorMatrix[4*4+1];
+      float bf2 = rf * colorMatrix[0*4+2] + gf * colorMatrix[1*4+2] + bf * colorMatrix[2*4+2] + colorMatrix[4*4+2];
+      rf = rf2;
+      gf = gf2;
+      bf = bf2;
       float outputR = 0;
       float outputG = 0;
       float outputB = 0;
@@ -259,14 +266,17 @@ float *ColorTransform::processingGet() {
       rf *= sr;
       gf *= sg;
       bf *= sb;
+
       rf += ar;
       gf += ag;
       bf += ab;
+
       if (perceptional) {
         rf /= a.x;
         gf /= a.y;
         bf /= a.z;
       }
+
       if (rf < 0) rf = 0;
       if (gf < 0) gf = 0;
       if (bf < 0) bf = 0;
@@ -279,8 +289,12 @@ float *ColorTransform::processingGet() {
     }
     if (component == 3) {
       af = value;
+      float af2 = af * colorMatrix[3*4+3] + colorMatrix[4*4+3];
+      af = af2;
       af *= sa;
       af += aa;
+      if (af < 0) af = 0;
+      if (af > 255) af = 255;
       if (invertA) af = 255-af;
     }
     float f = rf;
@@ -471,6 +485,11 @@ void ColorTransform::fromProcessing(float *processing) {
 }
 
 void ColorTransform::reset() {
+  memset(&colorMatrix,0,sizeof(colorMatrix));
+  colorMatrix[0*4+0] = 1;
+  colorMatrix[1*4+1] = 1;
+  colorMatrix[2*4+2] = 1;
+  colorMatrix[3*4+3] = 1;
   hue = 0;
   saturation = 1;
   lightness = 0.5;
@@ -602,6 +621,11 @@ int LayerUndoData::byteCount() {
   ret += completeByteCount;
   if (undoLayer != NULL) ret += undoLayer->byteCount();
   return ret;
+}
+
+unsigned int layerIdCounter = 0;
+void reverseLastLayerIdCountUp() {
+  layerIdCounter--;
 }
 
 unsigned int Layer::getPixel(int x, int y) {
@@ -2242,36 +2266,85 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   }
 }
 
-void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, int lx0, int ly0, int lx1, int ly1, int cx0, int cy0, int cx1, int cy1) {
-  if (source == NULL) return;
-  int w = lx1-lx0;
-  int h = ly1-ly0;
-  if (w < 1) return;
-  if (h < 1) return;
-  double lx = canvas->screenPosX, ly = canvas->screenPosY; canvas->getCanvasPos(lx,ly,lx,ly);
-  Layer *l = new Layer();
-  l->init(w,h);
+void drawTextIntoLayer(Layer *layer, int xa, int ya, const char *text, uint32_t color, bool newContentSize) {
+  if (text == NULL) return;
+  int width = 0; int height = 6; const char *s2 = text;
+  while(*s2!=0) {
+    Letter *l = getLetter(*s2);
+    width += l->preAddX + l->width + l->postAddX;
+    s2++; if (*s2 == 0) break; width += 1;
+  }
+  width += xa;
+  height += ya;
+  if (newContentSize) layer->setContentSize(width,height);
+  const char *s = text;
+  int x2 = xa;
+  while(*s!=0) {
+    Letter *l = getLetter(*s);
+    for (int y = 0; y < l->height; y++) {
+      for (int x = 0; x < l->width; x++) {
+        int x3 = x2 + x + l->preAddX;
+        int y3 = ya + y + l->preAddY;
+        if (l->bitmap[x+y*l->width]!='0') {
+          if ((unsigned int)x3<layer->width && (unsigned int)y3<layer->height) {layer->pixels[x3+y3*layer->width] = color;}
+        }
+      }
+    }
+    x2 += l->preAddX + l->width + l->postAddX + 1;
+    s++;
+  }
+}
+
+void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, Overlay *overlay) {
+  if (overlay->isAnnotation && (!canvas->showAnnotations)) return;
+  if ((!overlay->isAnnotation) && (!canvas->showOverlays)) return;
+
+  int w = overlay->lx1-overlay->lx0;
+  int h = overlay->ly1-overlay->ly0;
+  if ((!overlay->isAnnotation) && source == NULL) return;
+  if ((!overlay->isAnnotation) && w < 1) return;
+  if ((!overlay->isAnnotation) && h < 1) return;
+
   double s = canvas->control.zoom/100.0;
   if (s != 0) s = 1.0 / s;
   double sx = s;
   double sy = s;
-  l->setLayerPos(lx+cx0*sx,ly+cy0*sy);
-  l->setLayerSize((cx1-cx0)*sx,(cy1-cy0)*sy);
-  l->updatePixelStates(0xff,PIXELSTATE_CANVAS_OVERLAY,0);
-  for (int x = 0; x < w; x++) {
-    for (int y = 0; y < h; y++) {
-      int sx = x + lx0;
-      int sy = y + ly0;
-      unsigned int col = 0x00000000;
-      if ((unsigned int)sx < source->width && (unsigned int)sy < source->height) {
-        col = source->pixels[sx+sy*source->width];
+
+  Layer *l = new Layer(); reverseLastLayerIdCountUp();
+  if (overlay->isAnnotation) {
+    l->init(1,1);
+    drawTextIntoLayer(l,1,1,overlay->annotationText,0xff000000,true);
+    drawTextIntoLayer(l,0,0,overlay->annotationText,overlay->annotationColor,false);
+    l->setLayerPos(overlay->cx0,overlay->cy0);
+    double px = canvas->control.pixelSizeX;
+    double py = canvas->control.pixelSizeY;
+    if (px != 0) px = 1.0/px;
+    if (py != 0) py = 1.0/py;
+    l->setLayerSize(l->width*sx*overlay->annotationFontSize*px,l->height*sy*overlay->annotationFontSize*py);
+    l->updatePixelStates(0xff,PIXELSTATE_CANVAS_OVERLAY,0);
+  } else {
+    double lx = canvas->screenPosX, ly = canvas->screenPosY; canvas->getCanvasPos(lx,ly,lx,ly);
+    l->init(w,h);
+    l->setLayerPos(lx+overlay->cx0*sx,ly+overlay->cy0*sy);
+    l->setLayerSize((overlay->cx1-overlay->cx0)*sx,(overlay->cy1-overlay->cy0)*sy);
+    l->updatePixelStates(0xff,PIXELSTATE_CANVAS_OVERLAY,0);
+    for (int x = 0; x < w; x++) {
+      for (int y = 0; y < h; y++) {
+        int sx = x + overlay->lx0;
+        int sy = y + overlay->ly0;
+        unsigned int col = 0x00000000;
+        if ((unsigned int)sx < source->width && (unsigned int)sy < source->height) {
+          col = source->pixels[sx+sy*source->width];
+        }
+        l->pixels[x+y*w] = col;
       }
-      l->pixels[x+y*w] = col;
     }
   }
   updateCanvas(canvas, x0, y0, x1, y1, l);
   delete l;
 }
+
+bool overlaysOn = true;
 
 void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1) {
   int x0 = screenX0 - screenPosX;
@@ -2282,21 +2355,23 @@ void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1
   for (int i = layers.size()-1; i >= 0; i--) {
     updateCanvas(this,x0,y0,x1,y1,layers[i]);
   }
-  for (int i2 = overlays.size()-1; i2 >= 0; i2--) {
-    Overlay *o = overlays[i2];
-    if (o->visible) {
-      Layer *l = NULL;
-      for (int i3 = 0; i3 < layers.size(); i3++) {
-        if (layers[i3]->id == o->layerId) {
-          l = layers[i3];
-          break;
+  if (overlaysOn) {
+    for (int i2 = overlays.size()-1; i2 >= 0; i2--) {
+      Overlay *o = overlays[i2];
+      if (o->visible) {
+        Layer *l = NULL;
+        for (int i3 = 0; i3 < layers.size(); i3++) {
+          if (layers[i3]->id == o->layerId) {
+            l = layers[i3];
+            break;
+          }
+        }
+        if (l != NULL) {
+          drawOverlay(x0,y0,x1,y1,this,l,o);
         }
       }
-      if (l != NULL) {
-        drawOverlay(x0,y0,x1,y1,this,l,o->lx0,o->ly0,o->lx1,o->ly1,o->cx0,o->cy0,o->cx1,o->cy1);
-      }
-    }
-  } 
+    } 
+  }
 }
 
 void Canvas::update(bool forceUpdate) {
@@ -2907,7 +2982,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   Layer *ret = NULL;
   Vector boundingBox;
   for (int i3 = 0; i3 < layers.size(); i3++) {
-    layers[i3]->justSelection = layers[i3]->hasSelection();
+    layers[i3]->justSelection = pixelSelection && layers[i3]->hasSelection();
     Vector here = pixelSelection ? layers[i3]->selectionBounding() : layers[i3]->boundingBox();
     if (i3 == 0 || here.x < boundingBox.x) boundingBox.x = here.x;
     if (i3 == 0 || here.y < boundingBox.y) boundingBox.y = here.y;
@@ -2946,7 +3021,9 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   copyCanvas->transform.update();
   copyCanvas->layers = layers;
   hilightSelection = false;
+  overlaysOn = false;
   copyCanvas->update(true);
+  overlaysOn = true;
   copyCanvas->layers.clear();
   ret = layerFromCanvas(copyCanvas);
   if (dontUsePostProcessing) {
@@ -3084,6 +3161,25 @@ void Canvas::noSelectedLayers() {
   for (int i = 0; i < currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
     l->state.selected = false;
+  }
+}
+
+void Canvas::setActiveLayerByScreenPos(double screenX, double screenY) {
+  for (int i = 0; i < layers.size(); i++) {
+    Layer *l = layers[i];
+    if (l->state.visible) {
+      double lx = screenX, ly = screenY; getLayerPos(l, lx, ly, lx, ly);
+      int lxi = (int)floor(lx);
+      int lyi = (int)floor(ly);
+      if ((unsigned int)lxi < l->width && (unsigned int)lyi < l->height) {
+        unsigned int col = l->pixels[lxi+lyi*l->width];
+        int a = (col >> 24) & 255;
+        if (a != 0) {
+          setActiveLayer(i);
+          break;
+        }
+      }
+    }
   }
 }
 

@@ -78,6 +78,8 @@ void dialogColorBalance(bool openIt);
 void dialogBlur(bool openIt);
 void dialogEmboss(bool openIt);
 void dialogHotkeys(bool openIt);
+void dialogColorMatrix(bool openIt);
+void dialogQuantizePalette(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

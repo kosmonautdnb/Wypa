@@ -29,6 +29,8 @@ void freeLayerView();
 
 void drawLayerView();
 
+extern int scrollToLayerId;
+
 #define S_LAYERV_CPP()
 
 #endif //__LAYERV_HPP__

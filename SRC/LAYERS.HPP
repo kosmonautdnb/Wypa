@@ -172,6 +172,7 @@ public:
     useThreshold = false;
     reset();
   }
+  float colorMatrix[4*5];
   float hue;
   float saturation;
   float lightness;
@@ -228,6 +229,7 @@ public:
 };
 #define S_COLORTRANSFORM(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
+  ColorTransform *ctr = (__o__); S_CARRAY("colorMatrix",ctr->colorMatrix,S_FLOAT(NULL,ctr->colorMatrix[i]),4*5);\
   S_FLOAT("hue",(__o__)->hue);\
   S_FLOAT("saturation",(__o__)->saturation);\
   S_FLOAT("lightness",(__o__)->lightness);\
@@ -400,6 +402,8 @@ public:
   S_UINT("fontColor",(__o__)->fontColor);\
   S_OBJECT_CLOSE();
 
+extern unsigned int layerIdCounter;
+void reverseLastLayerIdCountUp();
 
 class Layer {
 public:
@@ -439,8 +443,7 @@ public:
     showColorTransformOnlyInSelection = false;
     static int layerCounter = 0; layerCounter++;
     sprintf(name,"Layer %d", layerCounter);
-    static unsigned int layerIdCounter = 0; layerIdCounter++;
-    id = layerIdCounter;
+    layerIdCounter++; id = layerIdCounter;
   }
 
   ~Layer() {
@@ -531,6 +534,8 @@ public:
   S_BOOL("showColorTransformOnlyInSelection",(__o__)->showColorTransformOnlyInSelection);\
   S_OBJECT_CLOSE();
 
+#define ANNOTATIONTEXTMAX 16
+
 class Overlay {
 public:
   Overlay() {
@@ -538,15 +543,24 @@ public:
     lx0 = ly0 = lx1 = ly1 = 0;
     cx0 = cy0 = cx1 = cy1 = 0;
     visible = true;
+    isAnnotation = false;
+    annotationColor = 0xffffffff;
+    annotationFontSize = 3.f;
+    sprintf(annotationText,"annotation");
   }
+  bool isAnnotation;
   bool visible;
   unsigned int layerId;
   int lx0,ly0,lx1,ly1;
   int cx0,cy0,cx1,cy1;
+  unsigned int annotationColor;
+  float annotationFontSize;
+  char annotationText[ANNOTATIONTEXTMAX];
 };
 #define S_OVERLAY(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
   S_IDREFERENCE("layerId",(__o__)->layerId);\
+  S_BOOL("isAnnotation",(__o__)->isAnnotation);\
   S_BOOL("visible",(__o__)->visible);\
   S_INT("lx0",(__o__)->lx0);\
   S_INT("ly0",(__o__)->ly0);\
@@ -556,6 +570,9 @@ public:
   S_INT("cy0",(__o__)->cy0);\
   S_INT("cx1",(__o__)->cx1);\
   S_INT("cy1",(__o__)->cy1);\
+  S_UINT("annotationColor",(__o__)->annotationColor);\
+  S_NAME("annotationText",(__o__)->annotationText,ANNOTATIONTEXTMAX);\
+  S_FLOAT("annotationFontSize",(__o__)->annotationFontSize);\
   S_OBJECT_CLOSE();
 
 
@@ -631,6 +648,9 @@ public:
   bool hilightSelection;
   bool justSingle;
 
+  bool showOverlays;
+  bool showAnnotations;
+
   Canvas() {
     width = 0;
     height = 0;
@@ -655,6 +675,8 @@ public:
     gridOffsetY = 0;
     hilightSelection = false;
     justSingle = false;
+    showOverlays = true;
+    showAnnotations = true;
   }
 
   ~Canvas() {
@@ -746,6 +768,7 @@ public:
   Layer *getActiveLayer();
   void setActiveLayer(int layer);
   void noSelectedLayers();
+  void setActiveLayerByScreenPos(double screenX, double screenY);
 
   Vector boundingBox();
   Vector getLayerPixelBounding(Layer *l, double canvasX0, double canvasY0, double canvasX1, double canvasY1);
@@ -787,6 +810,8 @@ public:
   S_INT("canvasY0",(__o__)->canvasY0);\
   S_INT("canvasX1",(__o__)->canvasX1);\
   S_INT("canvasY1",(__o__)->canvasY1);\
+  S_BOOL("showAnnotations",(__o__)->showAnnotations);\
+  S_BOOL("showOverlays",(__o__)->showOverlays);\
   S_CANVASCONTROL("control",&(__o__)->control);\
   (__o__)->control.setCanvasTransform(__o__);\
   Canvas *helperCanvas = __o__; S_POINTER_ARRAY("layers",helperCanvas->layers,Layer,S_LAYER(NULL,helperCanvas->layers[i]));\

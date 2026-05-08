@@ -155,6 +155,22 @@ void removeFont(unsigned int fontId) {
   }
 }
 
+Layer *getFontLayer(const char *text, float pixelHeight, Array<unsigned char> *fontData) {
+  Layer *ret = NULL;
+  FontSource *f = new FontSource(fontData,"");
+  ret = new Layer(); // idCountup is reversed outside
+  sprintf(ret->toolInfo.textEditText,"%s",text);
+  ret->toolInfo.fontSize = pixelHeight;
+  ret->toolInfo.fontColor = 0xff000000;
+  ret->toolInfo.fontId = f->id;
+  fonts.push_back(f);
+  paintTextIntoLayer(ret);
+  fonts.resize(fonts.size()-1);
+  delete f;
+  return ret;
+}
+
+
 Array<FontSource *> fonts;
 
 void reScaleTexts() {

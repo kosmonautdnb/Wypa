@@ -89,6 +89,7 @@ public:
 
 void addFontSource(Array<unsigned char> *data, const String &fileName);
 void removeFont(unsigned int id);
+class Layer *getFontLayer(const char *text, float pixelHeight, Array<unsigned char> *fontData);
 
 extern Array<FontSource*> fonts;
 

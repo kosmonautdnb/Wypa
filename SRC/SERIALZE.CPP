@@ -747,7 +747,7 @@ void loadPalette(const char *shortPath, const char *longFileName) {
 
 void savePalette(const char *shortPath, const char *longFileName) {
   FILE *out = createTempFile(shortPath,"w");
-  String string = getPaletteString(palette,paletteColorsPerRow);
+  String string = getPaletteString(*paletteToSave,paletteColorsPerRow);
   fprintf(out,"%s",string.c_str());
   fclose(out);
   renameTempFile(shortPath, longFileName);
@@ -1205,7 +1205,20 @@ Layer *loadImage(const String &filePath, const String &fileName) {
 
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName) {
   Layer *l = loadImage(String(path), String(fileName));
+  if (l == NULL) {
+    if (getExtension(toLower(fileName)) == ".ttf") {
+      String fullFileName = shortFileName(dosFileName(String(path)+String(fileName)));
+      Array<unsigned char> *arr = new Array<unsigned char>();
+      getFileArray(arr, fullFileName);
+      if (!arr->empty()) {
+        l = getFontLayer("AB", height/2, arr); // this implicitely deletes arr
+      } else {
+        delete arr;
+      }
+    }
+  }
   if (l != NULL && l->width > 0 && l->height > 0) {
+    reverseLastLayerIdCountUp(); // needed here
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         rgba[x+y*width] = l->pixels[x*l->width/width + y*l->height/height * l->width];

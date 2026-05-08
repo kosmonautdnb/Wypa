@@ -33,6 +33,8 @@
 
 bool roundButton(const char *name, bool enabled);
 
+int scrollToLayerId = 0;
+
 void initLayerView() {
 }
 
@@ -87,6 +89,9 @@ void drawLayerView() {
     Layer *l = currentCanvas->layers[i];
     ImVec2 cursor = ImGui::GetCursorScreenPos();
 
+    if (scrollToLayerId != 0) {
+      if (l->id == scrollToLayerId) ImGui::SetScrollPosHere();
+    }
 
     SVG *svg = &svgs["visible"];
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
@@ -127,6 +132,7 @@ void drawLayerView() {
     ImGui::Separator();
   }
   ImGui::EndChild();
+  scrollToLayerId = 0;
 
   int count = 0; bool one = false; for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.selected || currentCanvas->layers[i2]->state.active) {one = true; count++;}
 

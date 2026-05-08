@@ -32,6 +32,7 @@
 #include "HOTKEYS.HPP"
 #include "UNDO.HPP"
 #include "FILTER.HPP"
+#include "COLORFLD.HPP"
 #include <math.h>
 
 bool dialogNoMove = false;
@@ -112,6 +113,8 @@ void drawDialogs() {
   dialogBlur(false);
   dialogEmboss(false);
   dialogHotkeys(false);
+  dialogColorMatrix(false);
+  dialogQuantizePalette(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -168,12 +171,16 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_TOOL_TILING
   HOTKEY_TOOL_OVERLAYS
   HOTKEY_TOGGLE_PALETTE
+  HOTKEY_LAYERUNDERMOUSE
   HOTKEY_SELECTNONE
   HOTKEY_SELECTALL
   HOTKEY_INVERTSELECTION
   HOTKEY_COPY
   HOTKEY_PASTE
   HOTKEY_FITCANVAS
+  HOTKEY_MOUSELOCKX
+  HOTKEY_MOUSELOCKY
+  HOTKEY_FULLSCREEN
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
     ImGui::CloseCurrentPopup();
@@ -825,18 +832,16 @@ void applyColorGradingCurves(Layer *dest, Layer *source) {
       int g = (colS>>8) & 255;
       int b = (colS>>16) & 255;
       int a = (colS>>24) & 255;
-      int grey = (r+g+b)/3;
-      int gr = vals[0*256+grey];
-      if (gr == 255) gr = 512; // sorry
-      if (gr == 0) gr = -512; // sorry
-      grey = gr - grey;
-      r = vals[1*256+r];
-      g = vals[2*256+g];
-      b = vals[3*256+b];
+      int rs = r;
+      int gs = g;
+      int bs = b;
+      r = vals[1*256+rs];
+      g = vals[2*256+gs];
+      b = vals[3*256+bs];
       a = vals[4*256+a];
-      r += grey;
-      g += grey;
-      b += grey;
+      r += vals[0*256+rs]-rs;
+      g += vals[0*256+gs]-gs;
+      b += vals[0*256+bs]-bs;
       if (r < 0) r = 0;
       if (g < 0) g = 0;
       if (b < 0) b = 0;
@@ -1237,6 +1242,262 @@ void dialogEmboss(bool openIt) {
   DIALOGEND()
 }
 
+void dialogColorMatrix(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+
+  DIALOGSTART("Color matrix");
+
+  ImGui::PushItemWidth(7*7);
+
+  float *v; bool update = false;
+  ImGui::Text("Channel red"); 
+  ImGui::SameLine(); ImGui::Text(""); ImGui::SameLine(); if (roundButton("Normalize####DIALOGCOLORMATRIXNORMALIZER",true)) {
+    update = true;
+    Vector k(l->colorTransform.colorMatrix[0*4+0],l->colorTransform.colorMatrix[0*4+1],l->colorTransform.colorMatrix[0*4+2]);
+    k = normalize(k);
+    l->colorTransform.colorMatrix[0*4+0] = k.x;
+    l->colorTransform.colorMatrix[0*4+1] = k.y;
+    l->colorTransform.colorMatrix[0*4+2] = k.z;
+  }
+  v = &l->colorTransform.colorMatrix[0*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRR",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[0*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRG",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[0*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRB",v,0,0,2)) {update = true;}
+
+  ImGui::Text("");
+  ImGui::Text("Channel green");
+  ImGui::SameLine(); ImGui::Text(""); ImGui::SameLine(); if (roundButton("Normalize####DIALOGCOLORMATRIXNORMALIZEG",true)) {
+    update = true;
+    update = true;
+    Vector k(l->colorTransform.colorMatrix[1*4+0],l->colorTransform.colorMatrix[1*4+1],l->colorTransform.colorMatrix[1*4+2]);
+    k = normalize(k);
+    l->colorTransform.colorMatrix[1*4+0] = k.x;
+    l->colorTransform.colorMatrix[1*4+1] = k.y;
+    l->colorTransform.colorMatrix[1*4+2] = k.z;
+  }
+  v = &l->colorTransform.colorMatrix[1*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGR",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[1*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGG",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[1*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGB",v,0,0,2)) {update = true;}
+
+  ImGui::Text("");
+  ImGui::Text("Channel blue");
+  ImGui::SameLine(); ImGui::Text(""); ImGui::SameLine(); if (roundButton("Normalize####DIALOGCOLORMATRIXNORMALIZEB",true)) {
+    update = true;
+    update = true;
+    Vector k(l->colorTransform.colorMatrix[2*4+0],l->colorTransform.colorMatrix[2*4+1],l->colorTransform.colorMatrix[2*4+2]);
+    k = normalize(k);
+    l->colorTransform.colorMatrix[2*4+0] = k.x;
+    l->colorTransform.colorMatrix[2*4+1] = k.y;
+    l->colorTransform.colorMatrix[2*4+2] = k.z;
+  }
+  v = &l->colorTransform.colorMatrix[2*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBR",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[2*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBG",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[2*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBB",v,0,0,2)) {update = true;}
+
+  ImGui::Text("");
+  ImGui::Text("Channel alpha");
+  v = &l->colorTransform.colorMatrix[3*4+3]; ImGui::Text("Scale alpha"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXA",v,0,0,2)) {update = true;}
+
+  ImGui::Text("");
+  v = &l->colorTransform.colorMatrix[4*4+0]; ImGui::Text("Add to red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDR",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[4*4+1]; ImGui::Text("Add to green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDG",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[4*4+2]; ImGui::Text("Add to blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDB",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[4*4+3]; ImGui::Text("Add to alpha"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDA",v,0,0,2)) {update = true;}
+
+  ImGui::PopItemWidth();
+
+  if (update) {
+    l->colorTransform.shouldUpdate = true;
+    repaintLayer(l,true);
+  }
+  
+  if (ImGui::Button("Close##DIALOGCOLORMATRIXCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Layer *l, bool luminance, int steps) {
+  Layer *cloned = l->clone();
+  Array<unsigned int> colorsWithClusterId;
+  int sizeIncrease = 1024*2;
+  int currentIndex = 0;
+  int currentSize = 0;
+  Array<unsigned char> alreadyFound;
+  alreadyFound.resize(0x1000000/8); // 256*256*256/8 = 64kb*32 = 2mb
+  memset(&alreadyFound[0],0,alreadyFound.size()*sizeof(unsigned char));
+  for (int i = 0; i < cloned->width*cloned->height; i++) {
+    unsigned int c = cloned->pixels[i];
+    int k = c & 0xffffff;
+    int pos8 = k / 8;
+    int pos7 = k & 7;
+    unsigned char b = alreadyFound[pos8] & (1<<pos7);
+    if (!b) {   
+      alreadyFound[pos8] |= (1<<pos7);
+      if (currentIndex+2 >= currentSize) {
+        colorsWithClusterId.resize(colorsWithClusterId.size()+sizeIncrease);
+      }
+      colorsWithClusterId[currentIndex+0] = c;
+      colorsWithClusterId[currentIndex+1] = 0;
+      currentIndex += 2;
+    }
+  }
+  colorsWithClusterId.resize(currentIndex);
+  if (colorsWithClusterId.size()/2<colorCount) colorCount = colorsWithClusterId.size()/2;
+  if (colorCount == 0) return;
+
+#define KMEANSCHANNELS 4
+  Array<unsigned int> clusterColorsRGBAW; clusterColorsRGBAW.resize(colorCount*KMEANSCHANNELS);
+  srand(0); for (int i2 = 0; i2 < clusterColorsRGBAW.size(); i2++) clusterColorsRGBAW[i2] = (i2/KMEANSCHANNELS)*255/colorCount;
+
+  float sr = luminance ? 0.25 : 1;
+  float sg = luminance ? 0.6 : 1;
+  float sb = luminance ? 0.15 : 1;
+
+  initStatusBar();
+  for (int step = 0; step < steps; step++) {
+
+    for (int i3 = 0; i3 < colorsWithClusterId.size()/2; i3++) {
+      unsigned int col = colorsWithClusterId[i3*2+0];
+      float r = col & 255;
+      float g = (col>>8) & 255;
+      float b = (col>>16) & 255;
+      r /= sr;
+      g /= sg;
+      b /= sb;
+      float ld = 256*256*256;
+      int cluster = 0;
+      for (int i4 = 0; i4 < clusterColorsRGBAW.size()/KMEANSCHANNELS; i4++) {
+        float r2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+0];
+        float g2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+1];
+        float b2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+2];
+        r2 /= sr;
+        g2 /= sg;
+        b2 /= sb;
+        float dr = r2 - r;
+        float dg = g2 - g;
+        float db = b2 - b;
+        float d = dr * dr + dg * dg + db * db;
+        if (d < ld) {
+          ld = d;
+          cluster = i4;
+        }
+      }
+      colorsWithClusterId[i3*2+1] = cluster;
+    }
+  
+    for (int i5 = 0; i5 < clusterColorsRGBAW.size(); i5++) clusterColorsRGBAW[i5] = 0;
+  
+    for (int i6 = 0; i6 < colorsWithClusterId.size()/2; i6++) {
+      unsigned int col = colorsWithClusterId[i6*2+0];
+      unsigned int c = colorsWithClusterId[i6*2+1];
+      int r = col & 255;
+      int g = (col>>8) & 255;
+      int b = (col>>16) & 255;
+      int a = (col>>24) & 255;
+      clusterColorsRGBAW[c*KMEANSCHANNELS+0] += r;
+      clusterColorsRGBAW[c*KMEANSCHANNELS+1] += g;
+      clusterColorsRGBAW[c*KMEANSCHANNELS+2] += b;
+      clusterColorsRGBAW[c*KMEANSCHANNELS+3] += 1;
+    }
+  
+    for (int i7 = 0; i7 < clusterColorsRGBAW.size()/KMEANSCHANNELS; i7++) {
+      int w = clusterColorsRGBAW[i7*KMEANSCHANNELS+3];
+      if (w != 0) {
+        clusterColorsRGBAW[i7*KMEANSCHANNELS+0] /= w;
+        clusterColorsRGBAW[i7*KMEANSCHANNELS+1] /= w;
+        clusterColorsRGBAW[i7*KMEANSCHANNELS+2] /= w;
+      }
+    }
+
+    for (int i9 = 0; i9 < clusterColorsRGBAW.size()/KMEANSCHANNELS; i9++) {
+      int r0 = clusterColorsRGBAW[i9*KMEANSCHANNELS+0];
+      int g0 = clusterColorsRGBAW[i9*KMEANSCHANNELS+1];
+      int b0 = clusterColorsRGBAW[i9*KMEANSCHANNELS+2];
+      for (int i10 = i9+1; i10 < clusterColorsRGBAW.size()/KMEANSCHANNELS; i10++) {
+        int r1 = clusterColorsRGBAW[i10*KMEANSCHANNELS+0];
+        int g1 = clusterColorsRGBAW[i10*KMEANSCHANNELS+1];
+        int b1 = clusterColorsRGBAW[i10*KMEANSCHANNELS+2];
+        if (r1 != r0) continue;
+        if (g1 != g0) continue;
+        if (b1 != b0) continue;
+        clusterColorsRGBAW[i10*KMEANSCHANNELS+0] = rand() & 255;
+        clusterColorsRGBAW[i10*KMEANSCHANNELS+1] = rand() & 255;
+        clusterColorsRGBAW[i10*KMEANSCHANNELS+2] = rand() & 255;
+      }
+    }
+    updateStatusBar();
+  }
+
+  palette.resize(clusterColorsRGBAW.size()/KMEANSCHANNELS);
+  for (int i8 = 0; i8 < palette.size(); i8++) {
+    int r = clusterColorsRGBAW[i8*KMEANSCHANNELS+0];
+    int g = clusterColorsRGBAW[i8*KMEANSCHANNELS+1];
+    int b = clusterColorsRGBAW[i8*KMEANSCHANNELS+2];
+    if (r < 0) r = 0;
+    if (g < 0) g = 0;
+    if (b < 0) b = 0;
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+    palette[i8] = r|(g<<8)|(b<<16)|0xff000000;
+  }
+
+  delete cloned;
+}
+
+Array<ImVec4> lastQuantizedPalette;
+
+void dialogQuantizePalette(bool openIt) {
+  static Layer *clone = NULL;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static int colorCount = 0;
+  static bool useLuminance = false;
+  if (openIt) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    colorCount = 256;
+    useLuminance = false;
+  }
+  DIALOGSTART("Quantized palette");
+
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Quantization using KMeans (not precise)");
+  ImGui::Text("Number of colors"); ImGui::SameLine(); ImGui::InputInt("##DIALOGQUANTIZEPALETTECOLORCOUNT",&colorCount,0,0); if (colorCount < 1) colorCount = 1; if (colorCount > 256) colorCount = 256;
+  ImGui::Text("Use luminance"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGQUANTIZEPALETTELUMINANCE",&useLuminance);
+  ImGui::PopItemWidth();
+
+  if (roundButton("Preview",true)) {
+    Array<unsigned int> palette;
+    getQuantizedPaletteKMeans(palette, colorCount, clone, useLuminance,32);
+    if (l->width == clone->width && l->height == clone->height) {
+      memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+      l->quantize(palette);
+      repaintLayer(l,true);
+    }
+  }
+
+  if (ImGui::Button("Save palette##DIALOGQUANTIZEPALETTESAVE")) {
+    Array<unsigned int> palette;
+    getQuantizedPaletteKMeans(palette, colorCount, clone, useLuminance,32);
+    static Array<ImVec4> quantizedPalette;
+    quantizedPalette.resize(palette.size());
+    for (int i = 0; i < quantizedPalette.size(); i++) {
+      quantizedPalette[i] = getImVec4Color(palette[i]);
+    }
+    memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    sortPalette(quantizedPalette);
+    paletteToSave = &quantizedPalette; dialogLoadSave(true,DIALOG_SAVEPALETTE);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGQUANTIZEPALETTECLOSE")) {
+    memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
 
 void dialogDuplicate(bool openIt) {
   DIALOGSTART("Duplicate layers");
@@ -1461,7 +1722,7 @@ const char *brush = "*.br2";
 const char *svg = "*.svg";
 const char *img = "*.wyp";
 const char *fnt = "*.ttf";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Load a image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font"};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font"};
 const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save"};
 const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt};
 const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf"};

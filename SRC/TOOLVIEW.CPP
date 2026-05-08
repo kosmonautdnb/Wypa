@@ -446,6 +446,8 @@ void drawToolMagicView() {
 
     ImGui::Text("Perceptional"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICPERCEPTIONAL",&t->perceptional)) {t->shouldUpdate = true; shouldUpdateAll = true;}
 
+    if (roundButton("Color matrix##DRAWTOOLMAGICCOLORMATRIX",true)) {dialogColorMatrix(true);}
+
     ImGui::Text("p - r - y");
     v = &t->middleRedAdjust; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWMIDDLEREDADJUST",v,-1,1)) {t->shouldUpdate = true; shouldUpdateAll = true;} if (*v<-1) *v = -1; if (*v>1) *v = 1; 
     ImGui::Text("y - g - c");
@@ -886,7 +888,8 @@ void drawToolTextView() {
 void drawToolOverlaysView() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
-  if (roundButton("Add overlay##DRAWTOOLOVERLAYSVIEWADDOVERLAY",l->hasSelection())) {
+  bool hasSel = l->hasSelection();
+  if (roundButton("Add overlay##DRAWTOOLOVERLAYSVIEWADDOVERLAY",hasSel)) {
     int lx0=0,ly0=0,lx1=0,ly1=0;
     bool first = true;
     for (int y = 0; y < l->height; y++) {
@@ -915,6 +918,33 @@ void drawToolOverlaysView() {
     currentCanvas->overlays.insert(o,0);
     shouldUpdateAll = true;
   }
+  if (roundButton("Add annotation##DRAWTOOLOVERLAYSVIEWADDANNOTATION",hasSel)) {
+    int lx0=0,ly0=0,lx1=0,ly1=0;
+    bool first = true;
+    for (int y = 0; y < l->height; y++) {
+      for (int x = 0; x < l->width; x++) {
+        if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {
+          if (first || x < lx0) lx0 = x;
+          if (first || y < ly0) ly0 = y;
+          if (first || x > lx1) lx1 = x;
+          if (first || y > ly1) ly1 = y;
+          first = false;
+        }
+      }
+    }
+    lx1++;
+    ly1++;
+    Overlay *o = new Overlay();
+    o->layerId = l->id;
+    o->isAnnotation = true;
+    double cx = lx0, cy = ly0; currentCanvas->getCanvasPosFromLayerPos(l,cx,cy,cx,cy);
+    o->cx0 = cx;
+    o->cy0 = cy;
+    currentCanvas->overlays.insert(o,0);
+    shouldUpdateAll = true;
+  }
+  ImGui::Text("Overlays"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWOVERLAYS",&currentCanvas->showOverlays)) {shouldUpdateAll = true;}
+  ImGui::Text("Annotations"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWANNOTATIONS",&currentCanvas->showAnnotations)) {shouldUpdateAll = true;}
   ImGui::BeginChild("DRAWTOOLOVERLAYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
   for (int i = 0; i < currentCanvas->overlays.size(); i++) {
     Overlay *o = currentCanvas->overlays[i];
@@ -927,22 +957,34 @@ void drawToolOverlaysView() {
     }
     if (l != NULL) {
       ImGui::Text("%s",l->name);
-      ImGui::Text("W %d H %d",o->lx1-o->lx0,o->ly1-o->ly0);
       ImGui::Text("Visible"); ImGui::SameLine(); if (ImGui::Checkbox(combined(String("##DRAWTOOLOVERLAYSVIEWVISIBLE")+String::fromInt(i)).c_str(),&o->visible)) {shouldUpdateAll = true;}
-      int x = o->cx0;
-      int y = o->cy0;
-      int w = o->cx1 - o->cx0;
-      int h = o->cy1 - o->cy0;
-      ImGui::PushItemWidth(7*5);
-      ImGui::Text("Pos X"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX0")+String::fromInt(i)).c_str(),&x,0,0)) {shouldUpdateAll = true;}
-      ImGui::Text("Pos Y"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY0")+String::fromInt(i)).c_str(),&y,0,0)) {shouldUpdateAll = true;}
-      ImGui::Text("Width"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX1")+String::fromInt(i)).c_str(),&w,0,0)) {shouldUpdateAll = true;}
-      ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY1")+String::fromInt(i)).c_str(),&h,0,0)) {shouldUpdateAll = true;}
-      ImGui::PopItemWidth();
-      o->cx0 = x;
-      o->cy0 = y;
-      o->cx1 = x+w;
-      o->cy1 = y+h;
+      if (!o->isAnnotation) {
+        ImGui::Text("W %d H %d",o->lx1-o->lx0,o->ly1-o->ly0);
+        int x = o->cx0;
+        int y = o->cy0;
+        int w = o->cx1 - o->cx0;
+        int h = o->cy1 - o->cy0;
+        ImGui::PushItemWidth(7*5);
+        ImGui::Text("Pos X"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX0")+String::fromInt(i)).c_str(),&x,0,0)) {shouldUpdateAll = true;}
+        ImGui::Text("Pos Y"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY0")+String::fromInt(i)).c_str(),&y,0,0)) {shouldUpdateAll = true;}
+        ImGui::Text("Width"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX1")+String::fromInt(i)).c_str(),&w,0,0)) {shouldUpdateAll = true;}
+        ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY1")+String::fromInt(i)).c_str(),&h,0,0)) {shouldUpdateAll = true;}
+        ImGui::PopItemWidth();
+        o->cx0 = x;
+        o->cy0 = y;
+        o->cx1 = x+w;
+        o->cy1 = y+h;
+      } else {
+        if (ImGui::InputText(combined(String("##DRAWTOOLOVERLAYSVIEWNAMETEXT")+String::fromInt(i)).c_str(),o->annotationText,ANNOTATIONTEXTMAX)) {shouldUpdateAll = true;}
+        ImVec2 cursor = ImGui::GetCursorScreenPos();
+        ImVec4 chere = getImVec4Color(o->annotationColor); if (colorItem("", "##DRAWTOOLOVERLAYANNOTATIONCOLOR", &chere)) {o->annotationColor = getUIntColor(chere);shouldUpdateAll = true;}
+        ImGui::SetCursorScreenPos(cursor);
+        if (ImGui::InvisibleButton("##DRAWTOOLOVERLAYVIEWANNOTATIONCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+          o->annotationColor = getUIntColor(foregroundColor);
+          shouldUpdateAll = true;
+        }
+        ImGui::Text("Font size"); ImGui::SameLine(); if (ImGui::InputFloat(combined(String("##DRAWTOOLOVERLAYSVIEWANNOTATIONFONTSIZE")+String::fromInt(i)).c_str(),&o->annotationFontSize,0,0,2)) {shouldUpdateAll = true;} if (o->annotationFontSize < 1) o->annotationFontSize = 1;
+      }
     }
     if (roundButton(combined(String("Remove##DRAWTOOLOVERLAYSVIEWREMOVEOVERLAY")+String::fromInt(i)).c_str(),true)) {
       shouldUpdateAll = true;

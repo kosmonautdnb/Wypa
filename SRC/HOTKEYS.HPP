@@ -41,6 +41,7 @@
 #define HOTKEY_TOOL_TILING HOTKEY('i',false,false,"<i> Tiling tool")
 #define HOTKEY_TOOL_OVERLAYS HOTKEY('d',false,false,"<d> Overlay tool")
 #define HOTKEY_TOGGLE_PALETTE HOTKEY('q',false,false,"<q> Palette/colorwheel")
+#define HOTKEY_LAYERUNDERMOUSE HOTKEY('a',false,false,"<a> Select layer under mouse")
 #define HOTKEY_SELECTNONE HOTKEY('N',false,false,"SHIFT<N> Select none")
 #define HOTKEY_SELECTALL HOTKEY('A',false,false,"SHIFT<A> Select all")
 #define HOTKEY_INVERTSELECTION HOTKEY('I',false,false,"SHIFT<I> Invert selection")
@@ -50,6 +51,9 @@
 #define HOTKEY_ZOOMIN HOTKEY('+',false,false,"<+> Zoom in")
 #define HOTKEY_ZOOMOUT HOTKEY('-',false,false,"<-> Zoom out")
 #define HOTKEY_ZOOMPAN HOTKEY(' ',false,false,"ALT pan picture")
+#define HOTKEY_MOUSELOCKX HOTKEY('x',false,false,"<x> Lock mouse on x axis")
+#define HOTKEY_MOUSELOCKY HOTKEY('y',false,false,"<y> Lock mouse on y axis")
+#define HOTKEY_FULLSCREEN HOTKEY('u',false,false,"<u> Raw view without panels")
 
 void initHotkeys();
 void freeHotkeys();

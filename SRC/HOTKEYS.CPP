@@ -29,6 +29,7 @@
 #include "TOOLBAR.HPP"
 #include "COLORFLD.HPP"
 #include "LAYERS.HPP"
+#include "LAYERV.HPP"
 
 #define HOTKEY(__char__,__ctrl__,__alt__,__text__) ((__char__) | (((__ctrl__?CONTROLKEY_CTRL:0)|(__alt__?CONTROLKEY_ALT:0))<<16))
 
@@ -72,11 +73,13 @@ void applyHotKeys() {
     case HOTKEY_TOOL_TILING: {switchTool(TOOL_TILING);} break;
     case HOTKEY_TOOL_OVERLAYS: {switchTool(TOOL_OVERLAYS);} break;
     case HOTKEY_TOGGLE_PALETTE: {showPalette = !showPalette;} break;
+    case HOTKEY_LAYERUNDERMOUSE: {currentCanvas->setActiveLayerByScreenPos(mouseX, mouseY); Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) scrollToLayerId = l->id;} break;
     case HOTKEY_SELECTNONE: {currentCanvas->selectNone(true);} break;
     case HOTKEY_SELECTALL: {currentCanvas->selectAll();} break;
     case HOTKEY_INVERTSELECTION: {currentCanvas->invertSelection();} break;
     case HOTKEY_COPY: {currentCanvas->copy();} break;
     case HOTKEY_PASTE: {currentCanvas->paste();} break;
     case HOTKEY_FITCANVAS: {currentCanvas->fitCanvas();} break;
+    case HOTKEY_FULLSCREEN: {fullScreen = !fullScreen;} break;
   }
 }

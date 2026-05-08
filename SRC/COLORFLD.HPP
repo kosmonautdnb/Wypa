@@ -33,6 +33,7 @@ extern ImVec4 foregroundColor;
 
 extern int paletteColorsPerRow;
 extern Array<ImVec4> palette;
+extern Array<ImVec4> *paletteToSave;
 extern bool showPalette;
 
 unsigned int swapRB(unsigned int color);
@@ -50,6 +51,8 @@ ImVec4 hsl(double h,double s,double l);
 void getHsl(const ImVec4 &rgb, float *hv, float *sv, float *lv);
 
 void updatePalette();
+
+void sortPalette(Array<ImVec4> &pal);
 
 #define COLORTRACEBACKS 8
 extern unsigned int colorTraceBacks[COLORTRACEBACKS];

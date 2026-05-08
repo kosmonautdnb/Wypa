@@ -1584,6 +1584,21 @@ void useToolPainting() {
             int ad = (col>>24) & 255;
             ad *= 1-value;
             if (ad < 0) ad = 0;
+            switch(paintToolLayer->mode) {
+              case LAYERMODE_PREMULTIPLIEDALPHA: {
+                  int r = col & 255;
+                  int g = (col>>8) & 255;
+                  int b = (col>>16) & 255;
+                  int a = (col>>24) & 255;
+                  r *= 1-value;
+                  g *= 1-value;
+                  b *= 1-value;
+                  if (r < 0) r = 0;
+                  if (g < 0) g = 0;
+                  if (b < 0) b = 0;
+                  col = r|(g<<8)|(b<<16)|(a<<24);
+                } break;
+            }
             paintToolLayer->pixels[p] = (col & 0x00ffffff)|(ad<<24);
           } break;
         }
