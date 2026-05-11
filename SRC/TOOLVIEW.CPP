@@ -411,7 +411,7 @@ void drawToolMagicView() {
   float *v;
 
   ImGui::Text("In selection");ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWJUSTINSELECTION",&l->showColorTransformOnlyInSelection)) {t->shouldUpdate = true; shouldUpdateAll = true;}
-  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {beforeUndoPoint();l->bakeMagic(l->hasSelection()); l->colorTransform.useColorTransform = false; l->colorTransform.usePosterize = false; l->colorTransform.useQuantization = false; afterUndoPoint(); shouldUpdateAll = true;}
+  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {beforeUndoPoint();l->bakeMagic(l->hasSelection()); l->colorTransform.useColorTransform = false; l->colorTransform.usePosterize = false; l->colorTransform.useThreshold = false; l->colorTransform.useQuantization = false; afterUndoPoint(); shouldUpdateAll = true;}
   ImGui::Separator();
   if (roundButton("Reset##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGRESET",true)) {l->colorTransform.reset(); shouldUpdateAll = true;}
   if (roundButton("Copy##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGCOPY",true)) {l->copyColorTransform();}
@@ -479,6 +479,8 @@ void drawToolMagicView() {
     ImGui::Text("Invert B"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERTB",&t->invertB)) {t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Invert A"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERTA",&t->invertA)) {t->shouldUpdate = true; shouldUpdateAll = true;}
 
+    if (roundButton("Gradiation##DRAWTOOLMAGICGRADIENTCURVES",true)) {gradientCurvesToColorTransform = t; dialogGradiationCurves(true);}
+   
     ImGui::Text("Monitor gamma");
     v = &t->gamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAMMAINVERT",&t->gammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
@@ -500,6 +502,14 @@ void drawToolMagicView() {
     v = &t->posterizeBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEBLUE",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Posterize A");
     v = &t->posterizeAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Base R");
+    v = &t->posterizeRedBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEREDBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Base G");
+    v = &t->posterizeGreenBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREENBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Base B");
+    v = &t->posterizeBlueBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEBLUEBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::Text("Base A");
+    v = &t->posterizeAlphaBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHABASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::EndChild();
     ImGui::Separator();
   }
@@ -785,12 +795,12 @@ void drawToolTilingView() {
     else
       ImGui::Text("");
     ImGui::Text("[%d] [%d]",x,y);
+    ImGui::Text("Show grid"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGVIEWSHOWGRID",&l->toolInfo.showTilingGrid)) {updateTilingGrid(l,true);}
     ImGui::Text("Cells");
     ImGui::Text("Offset X"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWOFSX",&l->toolInfo.tilingOffsetX,0,0)) {updateTilingGrid(l,true);}
     ImGui::Text("Offset Y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWOFSY",&l->toolInfo.tilingOffsetY,0,0)) {updateTilingGrid(l,true);}
     ImGui::Text("Width"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWGRIDWIDTH",&l->toolInfo.tilingWidth,0,0)) {updateTilingGrid(l,true);}
     ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWGRIDHEIGHT",&l->toolInfo.tilingHeight,0,0)) {updateTilingGrid(l,true);}
-    ImGui::Text("Show grid"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGVIEWSHOWGRID",&l->toolInfo.showTilingGrid)) {updateTilingGrid(l,true);}
     if (l->toolInfo.showTilingGrid) {
       ImGui::Separator();
       ImGui::Text("Tile colors");
@@ -937,9 +947,8 @@ void drawToolOverlaysView() {
     Overlay *o = new Overlay();
     o->layerId = l->id;
     o->isAnnotation = true;
-    double cx = lx0, cy = ly0; currentCanvas->getCanvasPosFromLayerPos(l,cx,cy,cx,cy);
-    o->cx0 = cx;
-    o->cy0 = cy;
+    o->lx0 = lx0;
+    o->ly0 = ly0;
     currentCanvas->overlays.insert(o,0);
     shouldUpdateAll = true;
   }

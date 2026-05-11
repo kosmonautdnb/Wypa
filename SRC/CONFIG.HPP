@@ -67,8 +67,10 @@ extern bool debugWindowOn;
 void showDebugWindow();
 
 #define S_CONFIG_CPP()\
-  S_DOUBLE("aspectRatio",aspectRatio);
+  S_DOUBLE("aspectRatio",aspectRatio);\
+  S_BOOL("useUndo",useUndo);
 
 String combined(const String &c);
+extern char tempBuffer[256];
 
 #endif //__CONFIG_H__

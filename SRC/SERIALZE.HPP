@@ -25,6 +25,7 @@
 #define __SERIALZE_HPP__
 
 #include "STL/STRING.HPP"
+#include "STL/ARRAY.HPP"
 
 #define LONGFILENAME(__str__) (longFileNames ? longFileName(__str__) : unixFileName(__str__))
 #define SHORTFILENAME(__str__) (longFileNames ? shortFileName(__str__) : unixFileName(__str__))
@@ -66,9 +67,13 @@ void loadFont(const char *shortPath, const char *longFileName);
 extern unsigned int saveFontId;
 void saveFont(const char *shortPath, const char *longFileName);
 
+void loadGradientCurve(const char *shortPath, const char *longFileName);
+void saveGradientCurve(const char *shortPath, const char *longFileName);
+
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);
 
 void insertSVGResized(int layerWidth, int layerHeight, float scale);
+Array<String> getLines(const char *string);
 
 #endif //__SERIALZE_HPP__

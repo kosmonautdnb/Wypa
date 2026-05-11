@@ -271,8 +271,6 @@ int arraySize = 0;
   arrayIndex = k;\
 }
 
-char tempBuffer[256];
-
 #define _D(__double__) doubleToString(__double__).c_str()
 #define _F(__float__) floatToString(__float__).c_str()
 String doubleToString(double v) {
@@ -587,9 +585,11 @@ void insertPSD(const char *shortPath, const char *longFileName) {
         if (height == 0) continue;
         Layer *l = new Layer();
         l->init(width,height);
+        l->mode = LAYERMODE_ALPHA;
         for (int j = 0; j < width * height; j++) {
           l->pixels[j] = swapRB(imageData[j]);
         }
+        l->convertToPremul();
         l->transform.translate(-offset_x,-offset_y);
         const PSDImage::psd_layer *k = img->GetLayer(i);
         memcpy(l->name,k->name,LAYERNAMEMAX);
@@ -1171,6 +1171,20 @@ void saveFont(const char *shortPath, const char *longFileName) {
   fwrite(&((*(font->data))[0]),1,font->data->size(),out);
   fclose(out);
   renameTempFile(shortPath, longFileName);
+}
+
+void loadGradientCurve(const char *shortPath, const char *longFileName) {
+  String curves = getStringFromFile(shortPath, longFileName);
+  stringToCurves(curves);
+  reOpen = true;
+  dialogGradiationCurves(true);
+}
+
+void saveGradientCurve(const char *shortPath, const char *longFileName) {
+  String curves = stringFromCurves();
+  putStringToFile(curves, shortPath, longFileName);
+  reOpen = true;
+  dialogGradiationCurves(true);
 }
 
 Layer *loadImage(const String &filePath, const String &fileName) {

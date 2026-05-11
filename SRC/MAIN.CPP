@@ -245,6 +245,47 @@ int main(int argc, const char *argv[]) {
   glFastTexturing = true;
   screenSaverStartTime = glSeconds();
 
+  palette.push_back(getImVec4Color(0xff000000));
+  palette.push_back(getImVec4Color(0xffaa0000));
+  palette.push_back(getImVec4Color(0xff00aa00));
+  palette.push_back(getImVec4Color(0xffaaaa00));
+  palette.push_back(getImVec4Color(0xff0000aa));
+  palette.push_back(getImVec4Color(0xffaa00aa));
+  palette.push_back(getImVec4Color(0xff0055aa));
+  palette.push_back(getImVec4Color(0xffaaaaaa));
+  palette.push_back(getImVec4Color(0xff555555));
+  palette.push_back(getImVec4Color(0xffff5555));
+  palette.push_back(getImVec4Color( 0xff55ff55));
+  palette.push_back(getImVec4Color(0xffffff55));
+  palette.push_back(getImVec4Color(0xff5555ff));
+  palette.push_back(getImVec4Color(0xffff55ff));
+  palette.push_back(getImVec4Color(0xff55ffff));
+  palette.push_back(getImVec4Color(0xffffffff));
+
+  Brush *b;
+  b = new Brush(); b->size = 1; brushes.push_back(b);
+  b = new Brush(); b->size = 4; brushes.push_back(b);
+  b = new Brush(); b->size = 8; brushes.push_back(b);
+  b = new Brush(); b->size = 8; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 16; brushes.push_back(b);
+  b = new Brush(); b->size = 16; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 32; brushes.push_back(b);
+  b = new Brush(); b->size = 32; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 64; brushes.push_back(b);
+  b = new Brush(); b->size = 64; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 128; brushes.push_back(b);
+  b = new Brush(); b->size = 128; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 8; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 16; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 32; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 64; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 128; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 8; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
+  b = new Brush(); b->size = 16; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
+  b = new Brush(); b->size = 32; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
+  b = new Brush(); b->size = 64; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
+  b = new Brush(); b->size = 128; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
+
   if (argc == 2) {
     loadImage("",argv[1]);
     if (canvas.empty()) {

@@ -35,6 +35,7 @@
 #include "COLORFLD.HPP"
 #include <math.h>
 
+bool reOpen = false;
 bool dialogNoMove = false;
 
 #define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize|(dialogNoMove?ImGuiWindowFlags_NoMove:0))) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableNativeInput();
@@ -181,6 +182,8 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_MOUSELOCKX
   HOTKEY_MOUSELOCKY
   HOTKEY_FULLSCREEN
+  HOTKEY_ERASE
+  HOTKEY_FILLCOLOR
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
     ImGui::CloseCurrentPopup();
@@ -296,6 +299,7 @@ void dialogImageResize(bool openIt) {
     if (oh != 0) aspect = ow/oh;
   }
   DIALOGSTART("Resize image")
+  noUndoMessage();
   int k;
   ImGui::Text("You may lose pixel information through resizing");
   ImGui::Text("and the layers may be rotated/resized when saving the layers!");
@@ -308,7 +312,9 @@ void dialogImageResize(bool openIt) {
   ImGui::PopItemWidth();
   ImGui::Text("Preserve proportions");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEKEEPASPECT",&keepAspect);
   ImGui::Text("Quantize/bake all");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEQUANTIZE",&quantize);
+  ImGui::PushItemWidth(7*12);
   ImGui::Text("Interpolation");ImGui::SameLine();ImGui::Combo("##DIALOGIMAGERESIZEINTERPOLATION",&interpolation, interpolationNames, INTERPOLATION_COUNT);
+  ImGui::PopItemWidth();
 
   if (ImGui::Button("Resize##DIALOGIMAGERESIZEESIZE")) {
     currentCanvas->resizeCanvas(w,h,quantize,interpolation);
@@ -338,7 +344,9 @@ void dialogExpandShrinkSelection(bool openIt) {
   if (value < -100) value = -100;
 
   if (ImGui::Button("Apply##DIALOGCANVASAPPLY")) {
+    beforeUndoPoint();
     currentCanvas->expandSelection(value * (shrink ? -1 : 1));
+    afterUndoPoint();
     ImGui::CloseCurrentPopup();
   }
   ImGui::SameLine();
@@ -402,6 +410,7 @@ void dialogAddLayer(bool openIt) {
     }
     Layer *l = new Layer();
     l->init(w,h);
+    l->setLayerPos(currentCanvas->canvasX0,currentCanvas->canvasY0);
     sprintf(l->name,layerName);
     currentCanvas->insertLayer(l,pos);
     currentCanvas->setActiveLayer(pos);
@@ -618,7 +627,6 @@ void updateGradiationTexture(GLuint gradiationTexture, Layer *l, int type) {
   glBindTexture(GL_TEXTURE_2D,0);
 }
 
-#define BEZIER_WIDTH 256
 bool showCurveCVs = false;
 
 class CurvePoint {
@@ -781,7 +789,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
       dp.x = p0.x + c.points[i2].dx[0];
       dp.y = p0.y - c.points[i2].dy[0];
       dx = mouseX - dp.x; dy = mouseY - dp.y; d = sqrt(dx*dx+dy*dy);
-      if (d < circleRadius) {
+      if (d < circleRadius && i2 > 0) {
         col = 0xff008080;
         if (mouseLeft) {
           if (!lastMouseLeft) {
@@ -798,7 +806,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
       dp.x = p0.x + c.points[i2].dx[1];
       dp.y = p0.y - c.points[i2].dy[1];
       dx = mouseX - dp.x; dy = mouseY - dp.y; d = sqrt(dx*dx+dy*dy);
-      if (d < circleRadius) {
+      if (d < circleRadius && i2 < c.points.size() - 1 ) {
         col = 0xff008080;
         if (mouseLeft) {
           if (!lastMouseLeft) {
@@ -816,14 +824,53 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
   lastMouseLeft = mouseLeft;
 }
 
+void getGradingArrayFromCurves(unsigned char *dest) {
+  for (int j = 0; j < 5; j++) {
+    for (int x = 0; x < 256; x++) {
+      int v = curves[j].getInterpolation(x);
+      if (v < 0) v = 0;
+      if (v > 255) v = 255;
+      dest[j*256+x] = (unsigned char)v;
+    }
+  }
+}
+
+void stringToCurves(const String &string) {
+  Array<String> l = getLines(&string[0]);
+  int currentCurve = -1;
+  for (int i = 0; i < l.size(); i++) {
+    const String &str = l[i];
+    if (str == "C") {
+      currentCurve++; 
+      if (currentCurve >= 5) break;
+      curves[currentCurve].points.clear();
+      continue;
+    }
+    CurvePoint c; CurvePoint *p = &c;
+    if (sscanf(&str[0],"P %d %d %f %f %f %f",&p->x,&p->y,&p->dx[0],&p->dy[0],&p->dx[1],&p->dy[1]) == 6) {
+      if (currentCurve >= 0) curves[currentCurve].points.push_back(c);
+    }
+  }
+}
+
+String stringFromCurves() {
+  String ret;
+  for (int i = 0; i < 5; i++) {
+    Curve *c = &curves[i];
+    ret += "C\n";
+    for (int j = 0; j < c->points.size(); j++) {
+      CurvePoint *p = &c->points[j];
+      sprintf(tempBuffer,"P %d %d %.02f %.02f %.02f %.02f\n",p->x,p->y,p->dx[0],p->dy[0],p->dx[1],p->dy[1]);
+      ret += String(tempBuffer);
+    }
+  }
+  return ret;
+}
+
 void applyColorGradingCurves(Layer *dest, Layer *source) {
   if (dest->state.locked) return;
   if (dest->width != source->width || dest->height != source->height) return;
-  Array<int> vals;
-  vals.resize(5*256);
-  for (int j = 0; j < 5; j++) {
-    for (int x = 0; x < 256; x++) vals[j*256+x] = curves[j].getInterpolation(x);
-  }
+  Array<unsigned char> vals; vals.resize(5*256); getGradingArrayFromCurves(&vals[0]);
   bool hasSelection = dest->hasSelection();
   for (int i = 0; i < dest->width*dest->height; i++) {
     if ((!hasSelection)||(dest->pixelStates[i] & PIXELSTATE_SELECTED)) {
@@ -835,13 +882,13 @@ void applyColorGradingCurves(Layer *dest, Layer *source) {
       int rs = r;
       int gs = g;
       int bs = b;
-      r = vals[1*256+rs];
-      g = vals[2*256+gs];
-      b = vals[3*256+bs];
-      a = vals[4*256+a];
-      r += vals[0*256+rs]-rs;
-      g += vals[0*256+gs]-gs;
-      b += vals[0*256+bs]-bs;
+      r = (int)vals[1*256+rs];
+      g = (int)vals[2*256+gs];
+      b = (int)vals[3*256+bs];
+      a = (int)vals[4*256+a];
+      r += (int)vals[0*256+rs]-rs;
+      g += (int)vals[0*256+gs]-gs;
+      b += (int)vals[0*256+bs]-bs;
       if (r < 0) r = 0;
       if (g < 0) g = 0;
       if (b < 0) b = 0;
@@ -855,11 +902,14 @@ void applyColorGradingCurves(Layer *dest, Layer *source) {
   }
 }
 
+ColorTransform *gradientCurvesToColorTransform = NULL;
+
 void dialogGradiationCurves(bool openIt) {
+  static String curveBefore = "";
   static GLuint gradiationTexture = 0;
   static int gradiationChannel = 0;
   static bool updateGradientCurvesPreview = false;
-  static const char *channelNames[5] = {"grey","red","green","blue","alpha"};
+  static const char *channelNames[5] = {"Grey","Red","Green","Blue","Alpha"};
   static Layer *clone = NULL;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   if (openIt) {
@@ -868,13 +918,21 @@ void dialogGradiationCurves(bool openIt) {
     if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
     glGenTextures(1,&gradiationTexture);
     updateGradiationTexture(gradiationTexture,l,gradiationChannel);
-    for (int i = 0; i < 5; i++) {
-      curves[i].clear();
-      curves[i].points.push_back(CurvePoint(0,0));
-      curves[i].points.push_back(CurvePoint(255,255));
+    if (!reOpen) {
+      for (int i = 0; i < 5; i++) {
+        curves[i].clear();
+        curves[i].points.push_back(CurvePoint(0,0));
+        curves[i].points.push_back(CurvePoint(255,255));
+      }
+      if (gradientCurvesToColorTransform == NULL) {
+        if (clone != NULL) {delete clone; clone = NULL;}
+        clone = l->clone();
+      } else {
+        curveBefore = gradientCurvesToColorTransform->gradientCurves;
+        stringToCurves(curveBefore);
+      }
     }
-    if (clone != NULL) {delete clone; clone = NULL;}
-    clone = l->clone();
+    reOpen = false;
     updateGradientCurvesPreview = true;
   }
   DIALOGSTART("Gradiation curves");
@@ -885,6 +943,14 @@ void dialogGradiationCurves(bool openIt) {
       curves[i].points.push_back(CurvePoint(255,255));
     }
     updateGradientCurvesPreview = true;
+  }
+  ImGui::SameLine(); 
+  if (roundButton("Load##DIALOGGRADIATIONLOAD",true)) {
+    dialogLoadSave(true,DIALOG_LOADGRADIENTCURVES);
+  }
+  ImGui::SameLine(); 
+  if (roundButton("Save##DIALOGGRADIATIONLOAD",true)) {
+    dialogLoadSave(true,DIALOG_SAVEGRADIENTCURVES);
   }
   ImGui::BeginChild("DIALOGGRADIENTCURVESCHILD",ImVec2(gradiationTextureWidth,gradiationTextureHeight));
   ImGui::Image((ImTextureID)gradiationTexture,ImVec2(gradiationTextureWidth,gradiationTextureHeight));
@@ -966,29 +1032,44 @@ void dialogGradiationCurves(bool openIt) {
   ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;}
 
   if (updateGradientCurvesPreview) {
-    for (int i = 0; i < 5; i++) curves[i].generateBezier();
-    updateGradientCurvesPreview = false;
-    applyColorGradingCurves(l,clone);
-    repaintLayer(l,true);
+    if (gradientCurvesToColorTransform == NULL) {
+      for (int i = 0; i < 5; i++) curves[i].generateBezier();
+      updateGradientCurvesPreview = false;
+      applyColorGradingCurves(l,clone);
+      repaintLayer(l,true);
+    } else {
+      String c = stringFromCurves();
+      gradientCurvesToColorTransform->gradientCurves = c;
+      gradientCurvesToColorTransform->shouldUpdate = true;
+      repaintLayer(l,true);
+    }
   }
 
   if (ImGui::Button("Apply##DIALOGGRADIATIONCURVEAPPLY")) {
-    if (clone != NULL) {delete clone; clone = NULL;}
+    if (gradientCurvesToColorTransform == NULL) {
+      if (clone != NULL) {delete clone; clone = NULL;}
+    }
     dialogNoMove = false;
     if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
     updatedPixels(l);
     afterUndoPoint();
+    gradientCurvesToColorTransform = NULL;
   }
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGGRADIATIONCURVESCLOSE")) {
-    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
-    if (clone != NULL) {delete clone; clone = NULL;}
+    if (gradientCurvesToColorTransform == NULL) {
+      if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+      if (clone != NULL) {delete clone; clone = NULL;}
+    } else {
+      curveBefore = gradientCurvesToColorTransform->gradientCurves;
+    }
     dialogNoMove = false;
     if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
+    gradientCurvesToColorTransform = NULL;
   }
   DIALOGEND()
 }
@@ -1110,8 +1191,8 @@ void dialogBlur(bool openIt) {
   static Layer *clone = NULL;
   static int boxWidth = 0;
   static int boxHeight = 0;
-  static int gaussX = 0;
-  static int gaussY = 0;
+  static float gaussX = 0;
+  static float  gaussY = 0;
   static float radialAngle = 0;
   static float radialSize = 0;
   static int blurType = 0;
@@ -1157,8 +1238,8 @@ void dialogBlur(bool openIt) {
     } break;
     case BLURTYPE_GAUSS: {
       ImGui::Text("Gauss blur settings");
-      ImGui::Text("Kernel passes X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURGAUSSX",&gaussX,0,0)) {updateBlur = true;} if (gaussX<0) gaussX = 0; if (gaussX>14) gaussX = 14;
-      ImGui::Text("Kernel passes Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURGAUSSY",&gaussY,0,0)) {updateBlur = true;} if (gaussY<0) gaussY = 0; if (gaussY>14) gaussY = 14;
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSX",&gaussX,0,0,2)) {updateBlur = true;} if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSY",&gaussY,0,0,2)) {updateBlur = true;} if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
     } break;
   }
   
@@ -1330,9 +1411,9 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
     int k = c & 0xffffff;
     int pos8 = k / 8;
     int pos7 = k & 7;
-    unsigned char b = alreadyFound[pos8] & (1<<pos7);
+    unsigned char b = (unsigned char)(alreadyFound[pos8] & (1<<pos7));
     if (!b) {   
-      alreadyFound[pos8] |= (1<<pos7);
+      alreadyFound[pos8] |= (unsigned char)(1<<pos7);
       if (currentIndex+2 >= currentSize) {
         colorsWithClusterId.resize(colorsWithClusterId.size()+sizeIncrease);
       }
@@ -1532,15 +1613,21 @@ void dialogDuplicate(bool openIt) {
 }
 
 void dialogSelectByAlpha(bool openIt) {
-  static int alphaThreshold = 128;
+  static int alphaThresholdMin = 0;
+  static int alphaThresholdMax = 128;
   DIALOGSTART("Select by alpha");
   ImGui::PushItemWidth(64+16*2);
-  ImGui::Text("Alpha threshold"); ImGui::SameLine(); ImGui::InputInt("##DIALOGSELECTBYALPHA",&alphaThreshold);
-  if (alphaThreshold<0) alphaThreshold = 0;
-  if (alphaThreshold>256) alphaThreshold = 256;
+  ImGui::Text("Alpha >= min"); ImGui::SameLine(); ImGui::InputInt("##DIALOGSELECTBYALPHAMIN",&alphaThresholdMin);
+  ImGui::Text("Alpha <= max"); ImGui::SameLine(); ImGui::InputInt("##DIALOGSELECTBYALPHAMAX",&alphaThresholdMax);
+  if (alphaThresholdMin<0) alphaThresholdMin = 0;
+  if (alphaThresholdMin>255) alphaThresholdMin = 255;
+  if (alphaThresholdMax<0) alphaThresholdMax = 0;
+  if (alphaThresholdMax>255) alphaThresholdMax = 255;
   ImGui::PopItemWidth();
   if (ImGui::Button("Apply##DIALOGSELECTBYALPHAAPPLY")) {
-    currentCanvas->selectByAlpha(alphaThreshold);
+    beforeUndoPoint();
+    currentCanvas->selectByAlpha(alphaThresholdMin,alphaThresholdMax);
+    afterUndoPoint();
     ImGui::CloseCurrentPopup();
   }
   ImGui::SameLine();
@@ -1569,7 +1656,9 @@ void dialogBakeLayers(bool openIt) {
       ImGui::Text("\"%s\"",layers[i]->name);
     }
     ImGui::EndChild();
+    ImGui::PushItemWidth(7*12);
     ImGui::Text("Interpolation");ImGui::SameLine();ImGui::Combo("##DIALOGBAKELAYERSINTERPOLATION",&interpolation, interpolationNames, INTERPOLATION_COUNT);
+    ImGui::PopItemWidth();
   }
 
   if (!layers.empty()) {
@@ -1722,11 +1811,12 @@ const char *brush = "*.br2";
 const char *svg = "*.svg";
 const char *img = "*.wyp";
 const char *fnt = "*.ttf";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont};
+const char *gradientCrv = "*.cr2";
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {
@@ -1925,10 +2015,12 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::SameLine();
   ImGui::Text("%s",path2.c_str()); // Text Wrapped has no window Size here
   ImGui::Separator();
+  bool setScrollY0 = false;
   if (paths[mode].length() > 3 && ImGui::Button("..##DIALOGLOADSAVEPATHBACK")) {
     int k = paths[mode].substr(0,paths[mode].length()-1).findLast("/");
     if (k>=0) paths[mode] = paths[mode].substr(0,k+1);
     needsRescanFiles = true;
+    setScrollY0 = true;
   }
   ImGui::SameLine(); ImGui::Text("Sort by:"); ImGui::SameLine();
   for (int l = 0; l < 4; l++) {
@@ -1949,6 +2041,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
     }
   } else {
     ImGui::BeginChild("DIALOGLOADSAVECHILD",ImVec2(w,h));
+    if (setScrollY0) {setScrollY0 = false; ImGui::SetScrollY(0);}
     ImGui::Columns(4);
     String filter2 = toLower(filter);  
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(1,0));  
@@ -1973,6 +2066,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
               fileNames[mode] = "";
               resize2(fileNames[mode],NAMEMAXHERE);
               needsRescanFiles = true;
+              ImGui::SetScrollY(0);
             } else {
               //if (!previewOn) drawToolTip(files[i].name.name.c_str());
             }

@@ -28,6 +28,7 @@
 #include "LAYERS.HPP"
 #include "CONFIG.HPP"
 #include "SERIALZE.HPP"
+#include "MENUBAR.HPP"
 
 void initUndo() {
 }
@@ -376,6 +377,7 @@ void afterUndoPoint() {
     if (packetAfterUndo->isSame(packetBeforeUndo) && (!isForcedUndoPoint)) {
       delete packetAfterUndo;
     } else {
+      undoBlink = true;
       for (int i2 = undoStages.size()-availableUndos-1; i2 >= 0 ; i2--) {
         if (!undoStages.empty()) {
           delete undoStages.back();

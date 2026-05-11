@@ -143,3 +143,5 @@ void showDebugWindow() {
 String combined(const String &c) {
   return c;
 }
+
+char tempBuffer[256];

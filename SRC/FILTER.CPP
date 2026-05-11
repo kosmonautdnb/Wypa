@@ -350,31 +350,72 @@ float gaussianTap5Weight2 = 0.403f;
 #define BLOOMKERNEL\
     rgb=((((rgba0&0x00ff00ff)+(rgba4&0x00ff00ff))*weight0+((rgba1&0x00ff00ff)+(rgba3&0x00ff00ff))*weight1+(rgba2&0x00ff00ff)*weight2)>>8) & 0x00ff00ff;\
     rgb|=((((((rgba0>>8)&0x00ff00ff)+((rgba4>>8)&0x00ff00ff))*weight0+(((rgba1>>8)&0x00ff00ff)+((rgba3>>8)&0x00ff00ff))*weight1+((rgba2>>8)&0x00ff00ff)*weight2)>>8)&0x00ff00ff)<<8;
+//#define __SX(__x__) s[(int)(__x__)]
+//#define __SY(__y__) s[(int)(__y__)*width]
 
-void bloomX(unsigned int *buffer, unsigned int width, unsigned int height, int tap0, int tap1) {
-  int weight0 =  gaussianTap5Weight0 * 0x100;
-  int weight1 =  gaussianTap5Weight1 * 0x100;
-  int weight2 =  gaussianTap5Weight2 * 0x100; // center
-  int weights = (weight0+weight1+weight2+weight1+weight0);
-  weight0 = weight0*256/weights;
-  weight1 = weight1*256/weights;
-  weight2 = weight2*256/weights;
+#define BLOOMKERNEL2\
+  float rf = ((rgba0 & 255) + (rgba4 & 255)) * weight0 + ((rgba1 & 255)+(rgba3 & 255)) * weight1 + (rgba2 & 255)*weight2;\
+  rgba0>>=8;rgba1>>=8;rgba2>>=8;rgba3>>=8;rgba4>>=8;\
+  float gf = ((rgba0 & 255) + (rgba4 & 255)) * weight0 + ((rgba1 & 255)+(rgba3 & 255)) * weight1 + (rgba2 & 255)*weight2;\
+  rgba0>>=8;rgba1>>=8;rgba2>>=8;rgba3>>=8;rgba4>>=8;\
+  float bf = ((rgba0 & 255) + (rgba4 & 255)) * weight0 + ((rgba1 & 255)+(rgba3 & 255)) * weight1 + (rgba2 & 255)*weight2;\
+  rgba0>>=8;rgba1>>=8;rgba2>>=8;rgba3>>=8;rgba4>>=8;\
+  float af = ((rgba0 & 255) + (rgba4 & 255)) * weight0 + ((rgba1 & 255)+(rgba3 & 255)) * weight1 + (rgba2 & 255)*weight2;\
+  int ri = (int)rf;\
+  int gi = (int)gf;\
+  int bi = (int)bf;\
+  int ai = (int)af;\
+  rgb = ri|(gi<<8)|(bi<<16)|(ai<<24);
+
+inline unsigned int bloomLookUp(float x, float y, unsigned int *s, int w, int h) {
+  int xi = (int)x;
+  int yi = (int)y;
+  int xf = (int)((x - xi)*256.0);
+  int yf = (int)((y - yi)*256.0);
+  unsigned int r00 = s[xi+yi*w];
+  unsigned int r10 = xi>=w-1?r00:s[xi+1+yi*w];
+  unsigned int r01 = yi>=h-1?r00:s[xi+(yi+1)*w];
+  unsigned int r11 = xi>=w-1||yi>=h-1?r00:s[xi+1+(yi+1)*w];
+
+  unsigned int toprb      = (((((int)(r10 & 0x00ff00ff)-(int)(r00 & 0x00ff00ff))*xf)>>8)+r00) & 0x00ff00ff;
+  unsigned int bottomrb = (((((int)(r11 & 0x00ff00ff)-(int)(r01 & 0x00ff00ff))*xf)>>8)+r01) & 0x00ff00ff;
+  r00 >>= 8; r10 >>= 8; r01 >>= 8; r11 >>= 8;
+  unsigned int topga      = (((((int)(r10 & 0x00ff00ff)-(int)(r00 & 0x00ff00ff))*xf)>>8)+r00) & 0x00ff00ff;
+  unsigned int bottomga = (((((int)(r11 & 0x00ff00ff)-(int)(r01 & 0x00ff00ff))*xf)>>8)+r01) & 0x00ff00ff;
+
+  unsigned int rb = ((((bottomrb - toprb)*yf)>>8)+toprb) & 0x00ff00ff;
+  unsigned int ga = ((((bottomga - topga)*yf)>>8)+topga) & 0x00ff00ff;
+
+  return rb | (ga<<8);
+}
+
+#define __SX(__x__) bloomLookUp(__x__,y,s,width,height)
+#define __SY(__y__) bloomLookUp(x,__y__,s,width,height)
+
+void bloomX(unsigned int *buffer, unsigned int width, unsigned int height, float tap0, float tap1) {
+  float weight0 =  gaussianTap5Weight0;
+  float weight1 =  gaussianTap5Weight1;
+  float weight2 =  gaussianTap5Weight2; // center
+  float weights = (weight0+weight1+weight2+weight1+weight0);
+  weight0 = weight0/weights;
+  weight1 = weight1/weights;
+  weight2 = weight2/weights;
   unsigned int *newBuffer = new unsigned int[width*height];
   for (int y = 0; y < height; y++) {
-    unsigned int *s = &buffer[y*width];
+    unsigned int *s = &buffer[0];
     unsigned int *d = &newBuffer[y*width];
     int rgb;
     for (int x = 0; x < width; x++) {
-      int t0x = x - tap0; if (t0x < 0) t0x = 0;
-      int t1x = x - tap1; if (t1x < 0) t1x = 0;
-      int t3x = x + tap1; if (t3x > width-1) t3x = width-1;
-      int t4x = x + tap0; if (t4x > width-1) t4x = width-1;
-      unsigned int rgba0 = s[t0x];
-      unsigned int rgba1 = s[t1x];
-      unsigned int rgba2 = s[x];
-      unsigned int rgba3 = s[t3x];
-      unsigned int rgba4 = s[t4x];
-      BLOOMKERNEL
+      float t0x = x - tap0; if (t0x < 0) t0x = 0;
+      float t1x = x - tap1; if (t1x < 0) t1x = 0;
+      float t3x = x + tap1; if (t3x > width-1) t3x = width-1;
+      float t4x = x + tap0; if (t4x > width-1) t4x = width-1;
+      unsigned int rgba0 = __SX(t0x);
+      unsigned int rgba1 = __SX(t1x);
+      unsigned int rgba2 = __SX(x);
+      unsigned int rgba3 = __SX(t3x);
+      unsigned int rgba4 = __SX(t4x);
+      BLOOMKERNEL2
       *d++=rgb;
     }
   }
@@ -382,30 +423,30 @@ void bloomX(unsigned int *buffer, unsigned int width, unsigned int height, int t
   delete[] newBuffer;
 }
 
-void bloomY(unsigned int *buffer, unsigned int width, unsigned int height, int tap0, int tap1) {
-  int weight0 =  gaussianTap5Weight0 * 0x100;
-  int weight1 =  gaussianTap5Weight1 * 0x100;
-  int weight2 =  gaussianTap5Weight2 * 0x100; // center
-  int weights = (weight0+weight1+weight2+weight1+weight0);
-  weight0 = weight0*256/weights;
-  weight1 = weight1*256/weights;
-  weight2 = weight2*256/weights;
+void bloomY(unsigned int *buffer, unsigned int width, unsigned int height, float tap0, float tap1) {
+  float weight0 =  gaussianTap5Weight0;
+  float weight1 =  gaussianTap5Weight1;
+  float weight2 =  gaussianTap5Weight2; // center
+  float weights = (weight0+weight1+weight2+weight1+weight0);
+  weight0 = weight0/weights;
+  weight1 = weight1/weights;
+  weight2 = weight2/weights;
   unsigned int *newBuffer = new unsigned int[width*height];
   for (int x = 0; x < width; x++) {
-    unsigned int *s = &buffer[x];
+    unsigned int *s = &buffer[0];
     unsigned int *d = &newBuffer[x];
     int rgb;
     for (int y = 0; y < height; y++) {
-      int t0y = y - tap0; if (t0y < 0) t0y = 0;
-      int t1y = y - tap1; if (t1y < 0) t1y = 0;
-      int t3y = y + tap1; if (t3y > height-1) t3y = height-1;
-      int t4y = y + tap0; if (t4y > height-1) t4y = height-1;
-      unsigned int rgba0 = s[t0y*width];
-      unsigned int rgba1 = s[t1y*width];
-      unsigned int rgba2 = s[y*width];
-      unsigned int rgba3 = s[t3y*width];
-      unsigned int rgba4 = s[t4y*width];
-      BLOOMKERNEL
+      float t0y = y - tap0; if (t0y < 0) t0y = 0;
+      float t1y = y - tap1; if (t1y < 0) t1y = 0;
+      float t3y = y + tap1; if (t3y > height-1) t3y = height-1;
+      float t4y = y + tap0; if (t4y > height-1) t4y = height-1;
+      unsigned int rgba0 = __SY(t0y);
+      unsigned int rgba1 = __SY(t1y);
+      unsigned int rgba2 = __SY(y);
+      unsigned int rgba3 = __SY(t3y);
+      unsigned int rgba4 = __SY(t4y);
+      BLOOMKERNEL2
       *d=rgb;
       d+=width;
     }
@@ -415,20 +456,48 @@ void bloomY(unsigned int *buffer, unsigned int width, unsigned int height, int t
 }
 
 
-void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float passesX, float passesY, unsigned char *pixelStates, bool usePixelStates) {
-  if (passesX < 1 || passesY < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radiusX, float radiusY, unsigned char *pixelStates, bool usePixelStates) {
+
+  if (radiusX < 1 || radiusY < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+
+  double passesX = log(radiusX)/log(2.0);
+  double passesY = log(radiusY)/log(2.0);
+
+  int px = (int)floor(passesX);
+  int py = (int)floor(passesY);
+
+  if (px < 1 || py < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+
+  initStatusBar();
 
   unsigned int *bloomBuffer = new unsigned int[width*height]; for (int i0 = 0; i0 < width*height; i0++) bloomBuffer[i0] = source[i0];
 
-  int px = (int)floor(passesX);
-  for (int i1 = px-1; i1 >= 0; i1--) {
-    int kernelSize = pow(2,i1);
-    bloomX(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
+  if (passesX > px) {
+    updateStatusBar();
+    float kernelSize1 = passesX;
+    float kernelSize2 = passesX*2;
+    bloomX(bloomBuffer,width,height,kernelSize2,kernelSize1);
   }
-  int py = (int)floor(passesY);
+
+  for (int i1 = px-1; i1 >= 0; i1--) {
+    updateStatusBar();
+    float kernelSize1 = pow(2,i1);
+    float kernelSize2 = pow(2,(i1+1));
+    bloomX(bloomBuffer,width,height,kernelSize2,kernelSize1);
+  }
+
+  if (passesY > py) {
+    updateStatusBar();
+    float kernelSize1 = passesY;
+    float kernelSize2 = passesY*2;
+    bloomY(bloomBuffer,width,height,kernelSize2,kernelSize1);
+  }
+
   for (int i2 = py-1; i2 >= 0; i2--) {
-    int kernelSize = pow(2,i2);
-    bloomY(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
+    updateStatusBar();
+    float kernelSize1 = pow(2,i2);
+    float kernelSize2 = pow(2,(i2+1));
+    bloomY(bloomBuffer,width,height,kernelSize2,kernelSize1);
   }
 
   for (int i3 = 0; i3 < width*height; i3++) {
@@ -443,64 +512,69 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
 void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates) {
   int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1};
   int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
+
+  Array<float> temp;
+  temp.resize(width*height*2);
+  for (int i = 0; i < width*height; i++) {
+    unsigned int col = source[i];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    temp[i] = r+g+b;
+  }
+  for (int j = 0; j < 2; j++) {
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        float val = 0;
+        float w = 0;
+        val += temp[x+y*width]; w += 1.0;
+        if (y > 0) {val += temp[x+(y-1)*width]; w += 1.0;}
+        if (y < height-1) {val += temp[x+(y+1)*width]; w += 1.0;}
+        if (x > 0) {val += temp[x-1+y*width]; w += 1.0;}
+        if (x < width-1) {val += temp[x+1+y*width]; w += 1.0;}
+        if (w != 0) val /= w;
+        temp[x+y*width+width*height] = val;
+      }
+    }
+    memcpy(&temp[0],&temp[width*height],width*height*sizeof(float));
+  }
+
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
-        float sobelXr = 0;
-        float sobelYr = 0;
-        float sobelXg = 0;
-        float sobelYg = 0;
-        float sobelXb = 0;
-        float sobelYb = 0;
-        int w = 0;
+        float sobelX = 0;
+        float sobelY = 0;
         for (int y2 = -1; y2 <= 1; y2++) {
           for (int x2 = -1; x2 <= 1; x2++) {
             int x3 = x + x2;
             int y3 = y + y2;
             if ((unsigned int)x3<width && (unsigned int)y3<height) {
-              unsigned int col = source[x3+y3*width];
-              int r = col & 255;
-              int g = (col>>8) & 255;
-              int b = (col>>16) & 255;
-              sobelXr += r*sobelXMat[(x2+1)+(y2+1)*3];
-              sobelXg += g*sobelXMat[(x2+1)+(y2+1)*3];
-              sobelXb += b*sobelXMat[(x2+1)+(y2+1)*3];
-              sobelYr += r*sobelYMat[(x2+1)+(y2+1)*3];
-              sobelYg += g*sobelYMat[(x2+1)+(y2+1)*3];
-              sobelYb += b*sobelYMat[(x2+1)+(y2+1)*3];
-              //w++;
+              sobelX += temp[x3+y3*width]*sobelXMat[(x2+1)+(y2+1)*3];
+              sobelY += temp[x3+y3*width]*sobelYMat[(x2+1)+(y2+1)*3];
             }
           }
         }
         if (y == 0 || y == height-1) {
-          sobelYr = sobelYg = sobelYb = 0;
+          sobelY = 0;
         }
         if (x == 0 || x == width-1) {
-          sobelXr = sobelXg = sobelXb = 0;
+          sobelX = 0;
         }
-        if (w != 0) {
-          sobelXr /= w;
-          sobelXg /= w;
-          sobelXb /= w;
-          sobelYr /= w;
-          sobelYg /= w;
-          sobelYb /= w;
-        }
-        float sobelX = (sobelXr + sobelXg + sobelXb) / 3.0;
-        float sobelY = (sobelYr + sobelYg + sobelYb) / 3.0;
         float val = 0;
         if (sobelX != 0 || sobelY != 0) {
           float angleHere = atan2(sobelX,sobelY);
           val = sin(angleHere+(angle-90)*PI*2/360.0);
+          int grey = val * 128 + 128;
+          if (grey < 0) grey = 0;
+          if (grey > 255) grey = 255;
+          int r = grey;
+          int g = grey;
+          int b = grey;
+          int a = 255;
+          dest[x+y*width] = r|(g<<8)|(b<<16)|(a<<24);
+        } else {
+          dest[x+y*width] = 0xff000000;
         }
-        int grey = val * 128 + 128;
-        if (grey < 0) grey = 0;
-        if (grey > 255) grey = 255;
-        int r = grey;
-        int g = grey;
-        int b = grey;
-        int a = 255;
-        dest[x+y*width] = r|(g<<8)|(b<<16)|(a<<24);
       }
     }
   }

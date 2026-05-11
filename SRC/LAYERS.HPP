@@ -66,7 +66,8 @@ extern const char *layerModeNames[LAYERMODE_COUNT];
 
 enum LAYERTYPES {
   LAYERTYPE_BASIC = 0,
-  LAYERTYPE_TEXT = 1
+  LAYERTYPE_TEXT = 1,
+  LAYERTYPE_ADJUSTMENT = 2
 };
 
 enum ALIGNMENTS {
@@ -198,6 +199,10 @@ public:
   float posterizeGreen;
   float posterizeBlue;
   float posterizeAlpha;
+  float posterizeRedBase;
+  float posterizeGreenBase;
+  float posterizeBlueBase;
+  float posterizeAlphaBase;
   float thresholdRed;
   float thresholdGreen;
   float thresholdBlue;
@@ -213,6 +218,7 @@ public:
   bool useQuantization;
   bool usePosterize;
   bool useThreshold;
+  String gradientCurves;
   float *processingGet();
   void fromProcessing(float *processing);
   unsigned int r[256];
@@ -255,6 +261,10 @@ public:
   S_FLOAT("posterizeGreen",(__o__)->posterizeGreen);\
   S_FLOAT("posterizeBlue",(__o__)->posterizeBlue);\
   S_FLOAT("posterizeAlpha",(__o__)->posterizeAlpha);\
+  S_FLOAT("posterizeRedBase",(__o__)->posterizeRedBase);\
+  S_FLOAT("posterizeGreenBase",(__o__)->posterizeGreenBase);\
+  S_FLOAT("posterizeBlueBase",(__o__)->posterizeBlueBase);\
+  S_FLOAT("posterizeAlphaBase",(__o__)->posterizeAlphaBase);\
   S_FLOAT("thresholdRed",(__o__)->thresholdRed);\
   S_FLOAT("thresholdGreen",(__o__)->thresholdGreen);\
   S_FLOAT("thresholdBlue",(__o__)->thresholdBlue);\
@@ -269,6 +279,7 @@ public:
   S_BOOL("useColorTransform",(__o__)->useColorTransform);\
   S_BOOL("usePosterize",(__o__)->usePosterize);\
   S_BOOL("useThreshold",(__o__)->useThreshold);\
+  S_STRING("gradientCurves",(__o__)->gradientCurves);\
   if (!save) (__o__)->shouldUpdate = true;\
   S_OBJECT_CLOSE();
 
@@ -479,7 +490,7 @@ public:
   void invertColor();
   void invertAlpha();
   void expandSelection(int pixels);
-  void selectByAlpha(int alphaThreshold);
+  void selectByAlpha(int alphaThresholdMin,int alphaThresholdMax);
   void selectionAsOutline();
   void addSelectionRectangle(int lx0, int ly0, int lx1, int ly1);
 
@@ -492,6 +503,7 @@ public:
   void resizeLayerContent(int interpolation, int newWidth, int newHeight);
   void bakeLayer(int interpolation);
   Layer *clone();
+  void convertToPremul();
 
   void setLayerPos(double x, double y);
   void setLayerSize(double width, double height);
@@ -714,6 +726,7 @@ public:
   void insertLayer(Layer *layer, int position);
   void eraseLayer(Layer *layer);
   void insertTextLayer();
+  void insertAdjustmentLayer();
 
   void mirrorHorizontally();
   void mirrorVertically();
@@ -740,7 +753,7 @@ public:
   void invertSelection();
   bool hasSelection();
   void copyActiveSelectionToLayer(int layerIndexSource,int layerIndexDest);
-  void selectByAlpha(int alphaThreshold);
+  void selectByAlpha(int alphaThresholdMin, int alphaThresholdMax);
   void selectionAsOutline();
   void selectAllLayers();
   void showAllLayers(bool show);

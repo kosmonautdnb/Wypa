@@ -36,6 +36,7 @@
 #include "COLORFLD.HPP"
 #include "UNDO.HPP"
 #include "STL/CHARSET.HPP"
+#include "DIALOGS.HPP" // for gradiation curves
 #include <math.h>
 
 unsigned int pixelsUpdateCounter = 0;
@@ -182,6 +183,12 @@ float *ColorTransform::processingGet() {
   float ab = addBlue/3.0;
   float aa = addAlpha;
   Vector a(0.25,0.6,0.15); a = normalize(a);
+  Array<unsigned char> gradiation;
+  if (!gradientCurves.empty()) {
+    stringToCurves(gradientCurves);
+    gradiation.resize(256*5);
+    getGradingArrayFromCurves(&gradiation[0]);
+  }
   for (int i = 0; i < 4*256*4; i++) {
     int channel = i % 4;
     int value = (i / 4) % 256;
@@ -306,6 +313,17 @@ float *ColorTransform::processingGet() {
     }    
     if (f < 0) f = 0;
     if (f > 255) f = 255;
+    if (!gradiation.empty()) {
+      int fi = (int)floor(f);
+      if (fi < 0) fi = 0;
+      if (fi > 255) fi = 255;
+      f = gradiation[fi+256*(channel+1)];
+      if (channel<3) {
+        f += gradiation[fi+256*0]-fi;
+      }
+      if (f < 0) f = 0;
+      if (f > 255) f = 255;
+    }
     f = powd(f/255.0,gam1)*255.0;
     processing[i] = f;
   }
@@ -515,6 +533,10 @@ void ColorTransform::reset() {
   posterizeGreen = 0;
   posterizeBlue = 0;
   posterizeAlpha = 0;
+  posterizeRedBase = 0;
+  posterizeGreenBase = 0;
+  posterizeBlueBase = 0;
+  posterizeAlphaBase = 0;
   thresholdRed = 0.333;
   thresholdGreen = 0.333;
   thresholdBlue = 0.333;
@@ -527,6 +549,7 @@ void ColorTransform::reset() {
   middleBlueAdjust = 0;
   perceptional = false;
   shouldUpdate = true;
+  gradientCurves = "";
 }
 
 void ColorTransform::update() {
@@ -561,10 +584,14 @@ unsigned int ColorTransform::applyPosterize(unsigned int pixel) {
   int g = (pixel>>8) & 255;
   int b = (pixel>>16) & 255;
   int a = (pixel>>24) & 255;
-  if (posterizeRed>0) r = (int)(r / posterizeRed)*posterizeRed;
-  if (posterizeGreen>0) g = (int)(g / posterizeGreen)*posterizeGreen;
-  if (posterizeBlue>0) b = (int)(b / posterizeBlue)*posterizeBlue;
-  if (posterizeAlpha>0) a = (int)(a / posterizeAlpha)*posterizeAlpha;
+  r -= posterizeRedBase; if (posterizeRed>0) r = (int)(r / posterizeRed)*posterizeRed; r += posterizeRedBase;
+  g -= posterizeGreenBase; if (posterizeGreen>0) g = (int)(g / posterizeGreen)*posterizeGreen; g += posterizeGreenBase;
+  b -= posterizeBlueBase; if (posterizeBlue>0) b = (int)(b / posterizeBlue)*posterizeBlue; b += posterizeBlueBase;
+  a -= posterizeAlphaBase; if (posterizeAlpha>0) a = (int)(a / posterizeAlpha)*posterizeAlpha; a += posterizeAlphaBase;
+  if (r < 0) r = 0; if (r > 255) r = 255;
+  if (g < 0) g = 0; if (g > 255) g = 255;
+  if (b < 0) b = 0; if (b > 255) b = 255;
+  if (a < 0) a = 0; if (a > 255) a = 255;
   return r|(g<<8)|(b<<16)|(a<<24);
 }
 
@@ -573,11 +600,11 @@ unsigned int ColorTransform::applyThreshold(unsigned int pixel) {
   int g = (pixel>>8) & 255;
   int b = (pixel>>16) & 255;
   int a = (pixel>>24) & 255;
-  int thresholdRed = (int)floor(thresholdRed*256);
-  int thresholdGreen = (int)floor(thresholdGreen*256);
-  int thresholdBlue = (int)floor(thresholdBlue*256);
-  int thresholdAlpha = (int)floor(thresholdAlpha*256);
-  int grey = (r*thresholdRed + g*thresholdGreen + b*thresholdBlue + a*thresholdAlpha)>>8;
+  int thresholdRed2 = (int)floor(thresholdRed*256);
+  int thresholdGreen2 = (int)floor(thresholdGreen*256);
+  int thresholdBlue2 = (int)floor(thresholdBlue*256);
+  int thresholdAlpha2 = (int)floor(thresholdAlpha*256);
+  int grey = (r*thresholdRed2 + g*thresholdGreen2 + b*thresholdBlue2 + a*thresholdAlpha2)>>8;
   unsigned int rgb1 = 0x00000000;
   if (grey >= thresholdLuma) {
     rgb1 = 0xffffffff;
@@ -966,11 +993,12 @@ void Layer::expandSelection(int pixels) {
   updatedPixelStates(this);
 }
 
-void Layer::selectByAlpha(int alphaThreshold) {
+void Layer::selectByAlpha(int alphaThresholdMin, int alphaThresholdMax) {
   if (state.locked) return;
   for (int i = 0; i < width * height; i++) {
     pixelStates[i] = (unsigned char)(pixelStates[i] & (~PIXELSTATE_SELECTED));
-    if ((pixels[i]>>24) >= alphaThreshold) pixelStates[i] |= PIXELSTATE_SELECTED;
+    int a = (pixels[i]>>24) & 255;
+    if (a >= alphaThresholdMin && a <= alphaThresholdMax) pixelStates[i] |= PIXELSTATE_SELECTED;
   }
   updatedPixelStates(this);
   shouldUpdateAll = true;
@@ -1285,6 +1313,22 @@ Layer *Layer::clone() {
   ret->setContentSize(width,height);
   memcpy(ret->pixels,pixels,ret->width*ret->height*sizeof(unsigned int));
   return ret;
+}
+
+void Layer::convertToPremul() {
+  if (mode != LAYERMODE_ALPHA) return;
+  for (int i = 0; i < width * height; i++) {
+    unsigned int col = pixels[i];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int a = (col>>24) & 255;
+    r = r * a / 255;
+    g = g * a / 255;
+    b = b * a / 255;
+    pixels[i] = r|(g<<8)|(b<<16)|(a<<24);
+  }
+  mode = LAYERMODE_PREMULTIPLIEDALPHA;
 }
 
 void Layer::setLayerPos(double x, double y) {
@@ -1903,6 +1947,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
       unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
 
+      if (layer->type == LAYERTYPE_ADJUSTMENT) {
+        rgb1 = rgb0;
+      }
+
       if (useColorTransform) {
         if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
           int r = rgb1 & 255;
@@ -1934,10 +1982,14 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
           int a = (rgb1>>24) & 255;
-          if (layer->colorTransform.posterizeRed>0) r = (int)(r / layer->colorTransform.posterizeRed)*layer->colorTransform.posterizeRed;
-          if (layer->colorTransform.posterizeGreen>0) g = (int)(g / layer->colorTransform.posterizeGreen)*layer->colorTransform.posterizeGreen;
-          if (layer->colorTransform.posterizeBlue>0) b = (int)(b / layer->colorTransform.posterizeBlue)*layer->colorTransform.posterizeBlue;
-          if (layer->colorTransform.posterizeAlpha>0) a = (int)(a / layer->colorTransform.posterizeAlpha)*layer->colorTransform.posterizeAlpha;
+          r -= layer->colorTransform.posterizeRedBase; if (layer->colorTransform.posterizeRed>0) r = (int)(r / layer->colorTransform.posterizeRed)*layer->colorTransform.posterizeRed; r += layer->colorTransform.posterizeRedBase;
+          g -= layer->colorTransform.posterizeGreenBase; if (layer->colorTransform.posterizeGreen>0) g = (int)(g / layer->colorTransform.posterizeGreen)*layer->colorTransform.posterizeGreen; g += layer->colorTransform.posterizeGreenBase;
+          b -= layer->colorTransform.posterizeBlueBase; if (layer->colorTransform.posterizeBlue>0) b = (int)(b / layer->colorTransform.posterizeBlue)*layer->colorTransform.posterizeBlue; b += layer->colorTransform.posterizeBlueBase;
+          a -= layer->colorTransform.posterizeAlphaBase; if (layer->colorTransform.posterizeAlpha>0) a = (int)(a / layer->colorTransform.posterizeAlpha)*layer->colorTransform.posterizeAlpha; a += layer->colorTransform.posterizeAlphaBase;
+          if (r < 0) r = 0; if (r > 255) r = 255;
+          if (g < 0) g = 0; if (g > 255) g = 255;
+          if (b < 0) b = 0; if (b > 255) b = 255;
+          if (a < 0) a = 0; if (a > 255) a = 255;
           rgb1 = r|(g<<8)|(b<<16)|(a<<24);
         }
       }
@@ -2133,7 +2185,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
           g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
           b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
-          if (a>0) a = 255; else a = (rgb0>>24);
+          a = (rgb0>>24) & 255; // don't modify alpha
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_LUMINANCE: {
@@ -2156,7 +2208,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
           g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
           b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
-          if (a>0) a = 255; else a = (rgb0>>24);
+          a = (rgb0>>24) & 255; // don't modify alpha
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_SOFTLIGHT: {
@@ -2315,7 +2367,8 @@ void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, O
     l->init(1,1);
     drawTextIntoLayer(l,1,1,overlay->annotationText,0xff000000,true);
     drawTextIntoLayer(l,0,0,overlay->annotationText,overlay->annotationColor,false);
-    l->setLayerPos(overlay->cx0,overlay->cy0);
+    double cx = overlay->lx0; double cy = overlay->ly0; canvas->getCanvasPosFromLayerPos(source,cx,cy,cx,cy);
+    l->setLayerPos(cx,cy);
     double px = canvas->control.pixelSizeX;
     double py = canvas->control.pixelSizeY;
     if (px != 0) px = 1.0/px;
@@ -2452,7 +2505,6 @@ void Canvas::insertTextLayer() {
       break;
     }
   }
-
   Layer *l = new Layer();
   l->invalidateContent();
   l->mode = LAYERMODE_ALPHA;
@@ -2462,6 +2514,27 @@ void Canvas::insertTextLayer() {
   sprintf(l->name,"text");
   insertLayer(l,pos);
   setActiveLayer(pos);
+}
+
+void Canvas::insertAdjustmentLayer() {
+  int w = canvasX1-canvasX0;
+  int h = canvasY1-canvasY0;
+  if (w > 0 && h > 0) {
+    int pos = 0;
+    for (int i = 0; i < layers.size(); i++) {
+      if (layers[i]->state.selected || layers[i]->state.active) {
+        pos = i;
+        break;
+      }
+    }
+    Layer *l = new Layer();
+    l->init(w,h);
+    l->setLayerPos(canvasX0,canvasY0);
+    l->type = LAYERTYPE_ADJUSTMENT;
+    sprintf(l->name,"adjustment");
+    insertLayer(l,pos);
+    setActiveLayer(pos);
+  }
 }
 
 extern double canvasScrollX;
@@ -2839,13 +2912,13 @@ void Canvas::copyActiveSelectionToLayer(int layerIndexSource,int layerIndexDest)
   shouldUpdateAll = true;
 }
 
-void Canvas::selectByAlpha(int alphaThreshold) {
+void Canvas::selectByAlpha(int alphaThresholdMin, int alphaThresholdMax) {
   bool one = false; 
   bool two = false; 
   for (int i = 0; i < layers.size(); i++) {Layer *l = layers[i]; if (l->state.selected) one = true; if (l->state.active) two = true;}
   for (int i2 = 0; i2 < layers.size(); i2++) {
     Layer *l = layers[i2];
-    if ((one && l->state.selected) || ((!one)&&l->state.active) || ((!one)&&(!two))) l->selectByAlpha(alphaThreshold);
+    if ((one && l->state.selected) || ((!one)&&l->state.active) || ((!one)&&(!two))) l->selectByAlpha(alphaThresholdMin, alphaThresholdMax);
   }
 }
 
@@ -2993,21 +3066,22 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   int y0 = floor(boundingBox.y);
   int x1 = floor(boundingBox.z);
   int y1 = floor(boundingBox.w);
-  int w = x1-x0;
-  int h = y1-y0;
   Canvas *copyCanvas = new Canvas();
   if (!keepCanvasSize) {
+    int w = x1-x0;
+    int h = y1-y0;
     if (w<1||h<1) return NULL;
     copyCanvas->init(w,h);
     copyCanvas->canvasX0 = 0;
     copyCanvas->canvasY0 = 0;
-    copyCanvas->canvasX1 = x1-x0;
-    copyCanvas->canvasY1 = y1-y0;
+    copyCanvas->canvasX1 = w;
+    copyCanvas->canvasY1 = h;
     copyCanvas->transform.fresh();
-    copyCanvas->transform.translate(x0,y0);
+    //copyCanvas->transform.translate(x0,y0);
+    copyCanvas->transform.translate(boundingBox.x,boundingBox.y); // so the bounding box fits directly with the layer border
   } else {
-    w = canvasX1-canvasX0;
-    h = canvasY1-canvasY0;
+    int w = canvasX1-canvasX0;
+    int h = canvasY1-canvasY0;
     if (w<1||h<1) return NULL;
     copyCanvas->init(w,h);
     copyCanvas->canvasX0 = 0;
@@ -3057,7 +3131,9 @@ void Canvas::duplicateLayers() {
   for (int i = 0; i < layers.size(); i++) {
     if (layers[i]->state.selected || layers[i]->state.active) {
       layers[i]->state.selected = false;
+      layers[i]->state.active = false;
       Layer *l = layers[i]->clone();
+      l->state.active = true;
       sprintf(l->name,"duplicate");
       insertLayer(l,i);
       i++;
@@ -3338,6 +3414,7 @@ void Canvas::centerCanvas() {
 }
 
 void Canvas::fitCanvas() {
+  control.setCanvasTransform(this);
   double lx = 0, ly = 0; getScreenPos(lx,ly,lx,ly);
   double lx0 = canvasX0, ly0 = canvasY0; getScreenPos(lx0,ly0,lx0,ly0);
   double lx1 = canvasX1, ly1 = canvasY1; getScreenPos(lx1,ly1,lx1,ly1);
@@ -3647,6 +3724,7 @@ void addPicture(String fileName) {
   shouldUpdateAll = true;
   updatedPixels(currentCanvas->getActiveLayer());
   updatedPixelStates(currentCanvas->getActiveLayer());
+  currentCanvas->fitCanvas();
   currentCanvas->signSave(); signSaveForUndo();
 }
 
@@ -3694,6 +3772,7 @@ void newPicture(int w, int h,const String &pictureName) {
   currentCanvas->addLayer(l);
   currentCanvas->fitCanvasToLayers();
   currentCanvas->setActiveLayer(0);
+  currentCanvas->fitCanvas();
   shouldUpdateAll = true;
   updatedPixels(currentCanvas->getActiveLayer());
   updatedPixelStates(currentCanvas->getActiveLayer());

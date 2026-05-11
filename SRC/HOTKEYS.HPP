@@ -54,6 +54,8 @@
 #define HOTKEY_MOUSELOCKX HOTKEY('x',false,false,"<x> Lock mouse on x axis")
 #define HOTKEY_MOUSELOCKY HOTKEY('y',false,false,"<y> Lock mouse on y axis")
 #define HOTKEY_FULLSCREEN HOTKEY('u',false,false,"<u> Raw view without panels")
+#define HOTKEY_ERASE HOTKEY(GL_VK_DELETE,false,false,"<DEL> Erase selection area")
+#define HOTKEY_FILLCOLOR HOTKEY(GL_VK_INSERT,false,false,"<INS> Fill selection area with color")
 
 void initHotkeys();
 void freeHotkeys();

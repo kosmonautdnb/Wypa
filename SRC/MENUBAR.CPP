@@ -39,6 +39,7 @@
 #include <math.h>
 
 int menuBar_height = 17;
+bool undoBlink = false;
 
 float mouseSensitivity = 3;
 
@@ -59,7 +60,7 @@ String timeDescString() {
   int rtc_day     = rtcRead(7);
   int rtc_month   = rtcRead(8);
   int rtc_year    = rtcRead(9);
-  const char *day[8] ={"Mon","Tue","Wed","Thu","Fri","Sat","Sun","Mon"};
+  const char *day[8] ={"Mon","Tue","Wed","Thu","Fri","Sat","Sun","Sun"};
   return hex2_(rtc_day)+"."+hex2_(rtc_month)+"."+hex2_(rtc_year)+" "+String(day[(rtc_weekday-2)&7])+" "+hex2_(rtc_hours)+":"+hex2_(rtc_minutes);
 }
 
@@ -120,9 +121,9 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Redo",NULL,false,availableRedos>0)) {redo();}
         ImGui::Separator();
       }
-      if (ImGui::MenuItem("Fill selection with color",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));}
+      if (ImGui::MenuItem("Fill selection with color",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));afterUndoPoint();}
       if (ImGui::MenuItem("Fill selection with alpha",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->fillSelectionWithAlpha((unsigned char)(getUIntColor(foregroundColor)>>24));beforeUndoPoint();}
-      if (ImGui::MenuItem("Erase selection",NULL,false,currentCanvas->hasSelection())) {currentCanvas->fillSelectionWithColor(0x00000000);}
+      if (ImGui::MenuItem("Erase selection",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(0x00000000);afterUndoPoint();}
       ImGui::Separator();
       if (ImGui::MenuItem("Antialias selected",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->antialiasSelected();afterUndoPoint();}
       ImGui::Separator();
@@ -134,6 +135,15 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Undo enabled",NULL,useUndo,true)) {useUndo = !useUndo;}
       ImGui::EndMenu();
+    } else {
+      ImVec2 minB = ImGui::GetItemRectMin();
+      ImVec2 maxB = ImGui::GetItemRectMax();
+      maxB.x--;
+      maxB.y--;
+      if (undoBlink) {
+        ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x08ffffff);
+      }
+      undoBlink = false;
     }
     if (ImGui::BeginMenu("Image")) {
       on = true;
@@ -160,6 +170,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); switchTool(TOOL_TEXT);}
+      if (ImGui::MenuItem("Insert adjustment layer")) {currentCanvas->insertAdjustmentLayer(); }
       ImGui::Separator();
       if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
       if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
@@ -196,13 +207,13 @@ void drawMenuBar() {
       bool one = false;
       int count = 0;
       for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
-      if (ImGui::MenuItem("Select all")) {currentCanvas->selectAll();}
-      if (ImGui::MenuItem("Select none")) {currentCanvas->selectNone(true);}
-      if (ImGui::MenuItem("Invert selection")) {currentCanvas->invertSelection();}
+      if (ImGui::MenuItem("Select all")) {beforeUndoPoint();currentCanvas->selectAll();afterUndoPoint();}
+      if (ImGui::MenuItem("Select none")) {beforeUndoPoint();currentCanvas->selectNone(true);afterUndoPoint();}
+      if (ImGui::MenuItem("Invert selection")) {beforeUndoPoint();currentCanvas->invertSelection();afterUndoPoint();}
       ImGui::Separator();
       if (ImGui::MenuItem("Expand/shrink selection")) {dialogExpandShrinkSelection(true);}
       if (ImGui::MenuItem("Select by alpha")) {dialogSelectByAlpha(true);}
-      if (ImGui::MenuItem("Selection as outline")) {currentCanvas->selectionAsOutline();}
+      if (ImGui::MenuItem("Selection as outline")) {beforeUndoPoint(); currentCanvas->selectionAsOutline(); afterUndoPoint();}
       ImGui::Separator();
       if (ImGui::MenuItem("Apply selections to layer",NULL,false,count>1&&(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->getLayerSelectionFromLayers(currentCanvas->getActiveLayer());}
       if (ImGui::MenuItem("Clear all other layer selections",NULL,false,(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->clearAllOtherLayerSelections(currentCanvas->getActiveLayer());}

@@ -30,6 +30,7 @@
 #include "COLORFLD.HPP"
 #include "LAYERS.HPP"
 #include "LAYERV.HPP"
+#include "UNDO.HPP"
 
 #define HOTKEY(__char__,__ctrl__,__alt__,__text__) ((__char__) | (((__ctrl__?CONTROLKEY_CTRL:0)|(__alt__?CONTROLKEY_ALT:0))<<16))
 
@@ -81,5 +82,7 @@ void applyHotKeys() {
     case HOTKEY_PASTE: {currentCanvas->paste();} break;
     case HOTKEY_FITCANVAS: {currentCanvas->fitCanvas();} break;
     case HOTKEY_FULLSCREEN: {fullScreen = !fullScreen;} break;
+    case HOTKEY_ERASE: {if (currentCanvas->hasSelection()) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(0x00000000);afterUndoPoint();}} break;
+    case HOTKEY_FILLCOLOR: {if (currentCanvas->hasSelection()) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));afterUndoPoint();}} break;
   }
 }

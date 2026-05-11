@@ -31,7 +31,7 @@ void filterDifferenceClouds();
 void filterEdgeDetect();
 void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int boxW, int boxH, unsigned char *pixelStates, bool usePixelStates);
 void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radialAngle, float radialSize, unsigned char *pixelStates, bool usePixelStates);
-void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float passesX, float passesY, unsigned char *pixelStates, bool usePixelStates);
+void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radiusX, float radiusY, unsigned char *pixelStates, bool usePixelStates);
 void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates);
 
 #define S_FILTER_CPP()

@@ -71,8 +71,8 @@ bool toolBarButton(const char *svgName, int toolIndex) {
   bool highlighted = false;
   bool disabled = false;
   bool selected = toolIndex == tool;
+  Layer *l = currentCanvas->getActiveLayer();
   if (toolIndex == TOOL_MAGIC) {
-    Layer *l = currentCanvas->getActiveLayer();
     if (l != NULL) {
       if (l->colorTransform.useColorTransform) highlighted = true;
       if (l->colorTransform.usePosterize) highlighted = true;
@@ -84,8 +84,14 @@ bool toolBarButton(const char *svgName, int toolIndex) {
     if (l != NULL) {
       disabled = l->type != LAYERTYPE_TEXT;
     }
-    if (selected && disabled) {switchTool(TOOL_NONE);}
   }
+  if (l != NULL && l->type == LAYERTYPE_ADJUSTMENT) {
+    if (toolIndex == TOOL_MOVE || toolIndex == TOOL_MAGIC) {
+    } else {
+      disabled = true;
+    }
+  }
+  if (selected && disabled) {switchTool(TOOL_NONE);}
   bool ret = imageButton(svgName, combined(String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), selected, highlighted, disabled);
   if (ret && !disabled) {switchTool(toolIndex);}
   return ret;

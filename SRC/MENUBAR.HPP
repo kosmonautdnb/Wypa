@@ -29,6 +29,7 @@
 extern int menuBar_height;
 extern String hex2_(int v);
 String timeDescString();
+extern bool undoBlink;
 
 void initMenuBar();
 void freeMenuBar();

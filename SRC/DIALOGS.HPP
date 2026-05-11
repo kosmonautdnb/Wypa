@@ -26,6 +26,8 @@
 
 #include "STL/STRING.HPP"
 
+extern bool reOpen;
+
 void initDialogs();
 void freeDialogs();
 void drawDialogs();
@@ -52,7 +54,9 @@ enum DIALOGMODE {
   DIALOG_SAVEIMAGE = 18,
   DIALOG_ADDFONT = 19,
   DIALOG_SAVEFONT = 20,
-  DIALOG_COUNT = 21
+  DIALOG_LOADGRADIENTCURVES = 21,
+  DIALOG_SAVEGRADIENTCURVES = 22,
+  DIALOG_COUNT = 23
 };
 
 void dialogCanvas(bool openIt);
@@ -83,6 +87,11 @@ void dialogQuantizePalette(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);
+
+extern class ColorTransform *gradientCurvesToColorTransform;
+void stringToCurves(const String &string);
+String stringFromCurves();
+void getGradingArrayFromCurves(unsigned char *dest);
 
 #define S_DIALOGS_CPP()
 

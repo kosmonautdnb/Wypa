@@ -21,6 +21,8 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#include "STL/GL.H"
+#include "IMGUI/IMGUIGL.HPP"
 #include "LAYERV.HPP"
 #include "COLORFLD.HPP"
 #include "NAVIGTOR.HPP"
@@ -91,6 +93,7 @@ void drawLayerView() {
 
     if (scrollToLayerId != 0) {
       if (l->id == scrollToLayerId) ImGui::SetScrollPosHere();
+      scrollToLayerId = 0;
     }
 
     SVG *svg = &svgs["visible"];
@@ -131,8 +134,16 @@ void drawLayerView() {
     //ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLSIZE));
     ImGui::Separator();
   }
+
+  bool enableScrollKeys = tool != TOOL_MOVE; // actually tool move should not work instead of this
+  if (enableScrollKeys && ImGui::IsMouseHoveringWindow()) {
+    int scrollY = ImGui::GetScrollY();
+    if (currentKey == GL_VK_DOWN) {scrollY += CELLSIZE;}
+    if (currentKey == GL_VK_UP) {scrollY -= CELLSIZE;}
+    if (scrollY < 0) scrollY = 0;
+    ImGui::SetScrollY(scrollY);
+  }
   ImGui::EndChild();
-  scrollToLayerId = 0;
 
   int count = 0; bool one = false; for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.selected || currentCanvas->layers[i2]->state.active) {one = true; count++;}
 
