@@ -41,7 +41,7 @@ double aspectRatio = 16.0/9.0;
 const char *logFileName = "WYPA.LOG";
 String appFolder;
 bool refreshMasked = true;
-int version = 20;
+int version = 30;
 double zoomStep = 1.25;
 double scrollKeyPixels = main_window_xres/20;
 unsigned int undoStageCount = 10;
@@ -132,7 +132,7 @@ void showDebugWindow() {
   ImGui::Text("Layers %.02fkb", getLayersByteCount()/1024.f);
   ImGui::Text("Framebuffer %.02fkb",getWatcomGLBytes()/1024.f);
   ImGui::Text("Additional memory %.02fkb",additionalSize/1024.f);
-  ImGui::Text("Free memory %.02fkb", getAdditionalMemoryFreeBytes()/1024.f);
+  ImGui::Text("Maybe free memory %.02fkb", getAdditionalMemoryFreeBytes()/1024.f);
   ImGui::Text("FPS %.02f",fps);
   ImGui::PopStyleColor();
   ImGui::End();

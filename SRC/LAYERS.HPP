@@ -178,6 +178,7 @@ public:
   float saturation;
   float lightness;
   float brightness;
+  bool removeGreen;
   float contrast;
   float gamma;
   bool gammaInvert;
@@ -195,14 +196,17 @@ public:
   bool invertG;
   bool invertB;
   bool invertA;
+  float posterizeGrey;
   float posterizeRed;
   float posterizeGreen;
   float posterizeBlue;
   float posterizeAlpha;
+  float posterizeGreyBase;
   float posterizeRedBase;
   float posterizeGreenBase;
   float posterizeBlueBase;
   float posterizeAlphaBase;
+  bool posterizeUseGrey;
   float thresholdRed;
   float thresholdGreen;
   float thresholdBlue;
@@ -241,6 +245,7 @@ public:
   S_FLOAT("lightness",(__o__)->lightness);\
   S_FLOAT("brightness",(__o__)->brightness);\
   S_FLOAT("contrast",(__o__)->contrast);\
+  S_BOOL("removeGreen",(__o__)->removeGreen);\
   S_FLOAT("gamma",(__o__)->gamma);\
   S_BOOL("gammaInvert",(__o__)->gammaInvert);\
   S_FLOAT("pictureGamma",(__o__)->pictureGamma);\
@@ -257,14 +262,17 @@ public:
   S_BOOL("invertG",(__o__)->invertG);\
   S_BOOL("invertB",(__o__)->invertB);\
   S_BOOL("invertA",(__o__)->invertA);\
+  S_FLOAT("posterizeGrey",(__o__)->posterizeGrey);\
   S_FLOAT("posterizeRed",(__o__)->posterizeRed);\
   S_FLOAT("posterizeGreen",(__o__)->posterizeGreen);\
   S_FLOAT("posterizeBlue",(__o__)->posterizeBlue);\
   S_FLOAT("posterizeAlpha",(__o__)->posterizeAlpha);\
+  S_FLOAT("posterizeGreyBase",(__o__)->posterizeGreyBase);\
   S_FLOAT("posterizeRedBase",(__o__)->posterizeRedBase);\
   S_FLOAT("posterizeGreenBase",(__o__)->posterizeGreenBase);\
   S_FLOAT("posterizeBlueBase",(__o__)->posterizeBlueBase);\
   S_FLOAT("posterizeAlphaBase",(__o__)->posterizeAlphaBase);\
+  S_BOOL("posterizeUseGrey",(__o__)->posterizeUseGrey);\
   S_FLOAT("thresholdRed",(__o__)->thresholdRed);\
   S_FLOAT("thresholdGreen",(__o__)->thresholdGreen);\
   S_FLOAT("thresholdBlue",(__o__)->thresholdBlue);\
@@ -548,6 +556,13 @@ public:
 
 #define ANNOTATIONTEXTMAX 16
 
+enum OVERLAYTYPES {
+  OVERLAYTYPE_NORMAL = 0,
+  OVERLAYTYPE_ANNOTATION = 1,
+  OVERLAYTYPE_SEPERATINGLINEX = 2,
+  OVERLAYTYPE_SEPERATINGLINEY = 3
+};
+
 class Overlay {
 public:
   Overlay() {
@@ -555,13 +570,13 @@ public:
     lx0 = ly0 = lx1 = ly1 = 0;
     cx0 = cy0 = cx1 = cy1 = 0;
     visible = true;
-    isAnnotation = false;
+    type = OVERLAYTYPE_NORMAL;
     annotationColor = 0xffffffff;
     annotationFontSize = 3.f;
     sprintf(annotationText,"annotation");
   }
-  bool isAnnotation;
   bool visible;
+  int type;
   unsigned int layerId;
   int lx0,ly0,lx1,ly1;
   int cx0,cy0,cx1,cy1;
@@ -572,7 +587,7 @@ public:
 #define S_OVERLAY(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
   S_IDREFERENCE("layerId",(__o__)->layerId);\
-  S_BOOL("isAnnotation",(__o__)->isAnnotation);\
+  S_INT("type",(__o__)->type);\
   S_BOOL("visible",(__o__)->visible);\
   S_INT("lx0",(__o__)->lx0);\
   S_INT("ly0",(__o__)->ly0);\
@@ -642,6 +657,7 @@ public:
   int gridStepY;
   int gridOffsetX;
   int gridOffsetY;
+  bool layerShapesOn;
 
   String fileName;
   String timeStamp;
@@ -662,6 +678,7 @@ public:
 
   bool showOverlays;
   bool showAnnotations;
+  bool showLines;
 
   Canvas() {
     width = 0;
@@ -685,10 +702,12 @@ public:
     gridStepY = 8;
     gridOffsetX = 0;
     gridOffsetY = 0;
+    layerShapesOn = false;
     hilightSelection = false;
     justSingle = false;
     showOverlays = true;
     showAnnotations = true;
+    showLines = true;
   }
 
   ~Canvas() {
@@ -705,6 +724,7 @@ public:
   }
 
   void init(int width, int height);
+  Canvas *clone();
   void clearUpdateFlag();
   void updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor);
 
@@ -769,6 +789,8 @@ public:
   void expandSelection(int pixels);
   void antialiasSelected();
   void greyScale();
+  void setPixel(double x, double y, unsigned int color);
+  void pixelLine(double x0,double y0,double x1,double y1,unsigned int color);
   
   Layer *getSelectionAsLayer(bool pixelSelection, bool selectAllLayers, bool keepCanvasSize);
   void duplicateLayers();
@@ -819,12 +841,14 @@ public:
   S_INT("gridStepY",(__o__)->gridStepY);\
   S_INT("gridOffsetX",(__o__)->gridOffsetX);\
   S_INT("gridOffsetY",(__o__)->gridOffsetY);\
+  S_BOOL("layerShapesOn",(__o__)->layerShapesOn);\
   S_INT("canvasX0",(__o__)->canvasX0);\
   S_INT("canvasY0",(__o__)->canvasY0);\
   S_INT("canvasX1",(__o__)->canvasX1);\
   S_INT("canvasY1",(__o__)->canvasY1);\
   S_BOOL("showAnnotations",(__o__)->showAnnotations);\
   S_BOOL("showOverlays",(__o__)->showOverlays);\
+  S_BOOL("showLines",(__o__)->showLines);\
   S_CANVASCONTROL("control",&(__o__)->control);\
   (__o__)->control.setCanvasTransform(__o__);\
   Canvas *helperCanvas = __o__; S_POINTER_ARRAY("layers",helperCanvas->layers,Layer,S_LAYER(NULL,helperCanvas->layers[i]));\
@@ -852,6 +876,7 @@ void addCanvas(Canvas *canvas);
 void insertPicture(String fileName);
 void addTempPicture();
 void newPicture(int w, int h,const String &pictureName);
+void duplicatePicture(bool mergeLayers);
 
 #define S_LAYERS_CPP()
 

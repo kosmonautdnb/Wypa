@@ -136,6 +136,7 @@ void scanSampleDistanceField(class Brush *brush, const class RGBAImage &image);
 
 extern Array<Brush *> brushes;
 extern int currentBrush;
+extern bool hardEraser;
 
 class GradientElement {
 public:
@@ -246,6 +247,7 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
   S_BOOL("wandByNeighbors",wandByNeighbors);\
   S_BOOL("pipetteFromLayer",pipetteFromLayer);\
   S_BOOL("pipetteWithColorTransform",pipetteWithColorTransform);\
+  S_BOOL("hardEraser",hardEraser);\
   S_DOUBLE("fillColorDistance",fillColorDistance);\
   S_BOOL("fillUseValleys",fillUseValleys);\
   S_INT("selectionTool",selectionTool);\

@@ -275,6 +275,9 @@ void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
   if (drawBrushWindow(id,BRUSHINSTANCE_EDIT,brush,toolview_width-10,toolview_width-10, pencil,false)) {
     dialogLoadSave(true,DIALOG_LOADBRUSHSHAPE);
   }
+  if (tool == TOOL_ERASER) {
+    ImGui::Text("Hard"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWBRUSHEDITERASERHARD",&hardEraser)) {}
+  }
   ImGui::Text("Size");
   ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITSIZE",&brush->size,1,128)) {if (brush->size<1) brush->size = 1; if (brush->size>128) brush->size = 128; brush->update();}
   if (!pencil) {
@@ -293,8 +296,8 @@ void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
   }
   ImGui::Text("Edge");
   ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITEDGINESS",&brush->edginess,0,1)) {if (brush->edginess<0) brush->edginess = 0; if (brush->edginess>1) brush->edginess = 1; brush->update();}
-  ImGui::Text("Ovality");
-  if (ImGui::SliderFloat("##DRAWBRUSHEDITOVALITY",&brush->ovality,0,1)) {if (brush->ovality<0) brush->ovality = 0; if (brush->ovality>1) brush->ovality = 1; brush->update();}
+  ImGui::Text("Oval");
+  ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITOVALITY",&brush->ovality,0,1)) {if (brush->ovality<0) brush->ovality = 0; if (brush->ovality>1) brush->ovality = 1; brush->update();}
   float k;
   ImGui::Separator();
   ImGui::PushItemWidth(7*5+16*2);
@@ -323,8 +326,8 @@ void drawToolBrushView() {
 }
 
 void drawToolEraserView() {
-  drawBrushSelect(false);
-  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLERASERVIEWEDIT",brushes[currentBrush],false);
+  drawBrushSelect(hardEraser);
+  if ((unsigned int)currentBrush<brushes.size()) drawBrushEdit("##DRAWTOOLERASERVIEWEDIT",brushes[currentBrush],hardEraser);
 }
 
 void drawToolPipetteView() {
@@ -332,11 +335,17 @@ void drawToolPipetteView() {
   if (pipetteFromLayer) {
     ImGui::Text("Postprocessing"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLPIPETTEVIEWLAYERCOLORGRADING",&pipetteWithColorTransform);
   }
+  ImGui::Text("");
+  ImVec4 chere; 
+  ImGui::Text("Color canvas");
+  chere = getImVec4Color(currentCanvas->getCanvasColor(mouseX,mouseY)); colorItem("", "##DRAWTOOLPIPETTEVIEWCOLORCANVAS", &chere);
+  ImGui::Text("Color layer");
+  chere = getImVec4Color(currentCanvas->getLayerColor(mouseX,mouseY,pipetteWithColorTransform)); colorItem("", "##DRAWTOOLPIPETTEVIEWCOLORLAYER", &chere);
 }
 
 void drawToolLineView() {
   ImGui::Text("Line width");
-  ImGui::InputFloat("##DRAWTOOLLINEVIEWLINEWIDTH",&lineWidth); if (lineWidth < 0) lineWidth = 0;
+  ImGui::InputFloat("##DRAWTOOLLINEVIEWLINEWIDTH",&lineWidth,0,0,2); if (lineWidth < 0) lineWidth = 0;
   ImGui::Text("Line cap"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLLINEVIEWLINECAP",&lineCap);
   ImGui::Text("Antialiasing"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLLINEVIEWLINEANTIALIASING",&lineAntialiasing);
 }
@@ -437,6 +446,8 @@ void drawToolMagicView() {
     ImGui::Text("Brightness");
     v = &t->brightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWBRIGHTNESS",v,-1,1)) {if (*v<-1) *v = -1; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;}
 
+    ImGui::Text("Remove green"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICREMOVEGREEN",&t->removeGreen)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+
     ImGui::Text("Hue");
     v = &t->hue; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWHUE",v,0,360)) {if (*v<0) *v = 0; if (*v>360) *v = 360; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::Text("Saturation");
@@ -493,23 +504,32 @@ void drawToolMagicView() {
     shouldUpdateAll = true;
   }
   if (l->colorTransform.usePosterize) {
-    ImGui::BeginChild("DRAWTOOLMAGICCHILDPOSTERIZE",ImVec2(0,50));
-    ImGui::Text("Posterize R");
-    v = &t->posterizeRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZERED",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
-    ImGui::Text("Posterize G");
-    v = &t->posterizeGreen; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREEN",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
-    ImGui::Text("Posterize B");
-    v = &t->posterizeBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEBLUE",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
-    ImGui::Text("Posterize A");
-    v = &t->posterizeAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
-    ImGui::Text("Base R");
-    v = &t->posterizeRedBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEREDBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
-    ImGui::Text("Base G");
-    v = &t->posterizeGreenBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREENBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
-    ImGui::Text("Base B");
-    v = &t->posterizeBlueBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEBLUEBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
-    ImGui::Text("Base A");
-    v = &t->posterizeAlphaBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHABASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    ImGui::BeginChild("DRAWTOOLMAGICCHILDPOSTERIZE",ImVec2(0,60));
+    ImGui::Text("Use grey"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWPOSTERIZEUSEGREY",&t->posterizeUseGrey)) {t->shouldUpdate = true; shouldUpdateAll = true;}
+
+    if (!t->posterizeUseGrey) {
+      ImGui::Text("Posterize R");
+      v = &t->posterizeRed; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZERED",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+      ImGui::Text("Posterize G");
+      v = &t->posterizeGreen; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREEN",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+      ImGui::Text("Posterize B");
+      v = &t->posterizeBlue; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEBLUE",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+      ImGui::Text("Posterize A");
+      v = &t->posterizeAlpha; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+      ImGui::Text("Base R");
+      v = &t->posterizeRedBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEREDBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+      ImGui::Text("Base G");
+      v = &t->posterizeGreenBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREENBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+      ImGui::Text("Base B");
+      v = &t->posterizeBlueBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEBLUEBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+      ImGui::Text("Base A");
+      v = &t->posterizeAlphaBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHABASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    } else {
+      ImGui::Text("Posterize");
+      v = &t->posterizeGrey; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREY",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+      ImGui::Text("Base");
+      v = &t->posterizeGreyBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREYBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;}
+    }
     ImGui::EndChild();
     ImGui::Separator();
   }
@@ -900,23 +920,11 @@ void drawToolOverlaysView() {
   if (l == NULL) return;
   bool hasSel = l->hasSelection();
   if (roundButton("Add overlay##DRAWTOOLOVERLAYSVIEWADDOVERLAY",hasSel)) {
-    int lx0=0,ly0=0,lx1=0,ly1=0;
-    bool first = true;
-    for (int y = 0; y < l->height; y++) {
-      for (int x = 0; x < l->width; x++) {
-        if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {
-          if (first || x < lx0) lx0 = x;
-          if (first || y < ly0) ly0 = y;
-          if (first || x > lx1) lx1 = x;
-          if (first || y > ly1) ly1 = y;
-          first = false;
-        }
-      }
-    }
+    int lx0=0,ly0=0,lx1=0,ly1=0; bool first = true; for (int y = 0; y < l->height; y++) {for (int x = 0; x < l->width; x++) {if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {if (first || x < lx0) lx0 = x; if (first || y < ly0) ly0 = y; if (first || x > lx1) lx1 = x; if (first || y > ly1) ly1 = y; first = false; } } }
     lx1++;
     ly1++;
     Overlay *o = new Overlay();
-    o->layerId = l->id;
+    o->type = OVERLAYTYPE_NORMAL; o->layerId = l->id;
     o->lx0 = lx0;
     o->ly0 = ly0;
     o->lx1 = lx1;
@@ -925,35 +933,41 @@ void drawToolOverlaysView() {
     o->cy0 = 0;
     o->cx1 = lx1-lx0;
     o->cy1 = ly1-ly0;
-    currentCanvas->overlays.insert(o,0);
-    shouldUpdateAll = true;
+    currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
   }
   if (roundButton("Add annotation##DRAWTOOLOVERLAYSVIEWADDANNOTATION",hasSel)) {
-    int lx0=0,ly0=0,lx1=0,ly1=0;
-    bool first = true;
-    for (int y = 0; y < l->height; y++) {
-      for (int x = 0; x < l->width; x++) {
-        if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {
-          if (first || x < lx0) lx0 = x;
-          if (first || y < ly0) ly0 = y;
-          if (first || x > lx1) lx1 = x;
-          if (first || y > ly1) ly1 = y;
-          first = false;
-        }
-      }
-    }
+    int lx0=0,ly0=0,lx1=0,ly1=0; bool first = true; for (int y = 0; y < l->height; y++) {for (int x = 0; x < l->width; x++) {if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {if (first || x < lx0) lx0 = x; if (first || y < ly0) ly0 = y; if (first || x > lx1) lx1 = x; if (first || y > ly1) ly1 = y; first = false; } } }
     lx1++;
     ly1++;
     Overlay *o = new Overlay();
-    o->layerId = l->id;
-    o->isAnnotation = true;
+    o->type = OVERLAYTYPE_ANNOTATION; o->layerId = l->id;
     o->lx0 = lx0;
     o->ly0 = ly0;
-    currentCanvas->overlays.insert(o,0);
-    shouldUpdateAll = true;
+    currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
+  }
+  if (roundButton("Add hor. line##DRAWTOOLOVERLAYSVIEWADDXLINE",hasSel)) {
+    int lx0=0,ly0=0,lx1=0,ly1=0; bool first = true; for (int y = 0; y < l->height; y++) {for (int x = 0; x < l->width; x++) {if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {if (first || x < lx0) lx0 = x; if (first || y < ly0) ly0 = y; if (first || x > lx1) lx1 = x; if (first || y > ly1) ly1 = y; first = false; } } }
+    lx1++;
+    ly1++;
+    Overlay *o = new Overlay();
+    o->type = OVERLAYTYPE_SEPERATINGLINEX; o->layerId = l->id;
+    o->lx0 = lx0;
+    o->ly0 = ly0;
+    currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
+  }
+  if (roundButton("Add vert. line##DRAWTOOLOVERLAYSVIEWADDYLINE",hasSel)) {
+    int lx0=0,ly0=0,lx1=0,ly1=0; bool first = true; for (int y = 0; y < l->height; y++) {for (int x = 0; x < l->width; x++) {if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {if (first || x < lx0) lx0 = x; if (first || y < ly0) ly0 = y; if (first || x > lx1) lx1 = x; if (first || y > ly1) ly1 = y; first = false; } } }
+    lx1++;
+    ly1++;
+    Overlay *o = new Overlay();
+    o->type = OVERLAYTYPE_SEPERATINGLINEY; o->layerId = l->id;
+    o->lx0 = lx0;
+    o->ly0 = ly0;
+    currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
   }
   ImGui::Text("Overlays"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWOVERLAYS",&currentCanvas->showOverlays)) {shouldUpdateAll = true;}
   ImGui::Text("Annotations"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWANNOTATIONS",&currentCanvas->showAnnotations)) {shouldUpdateAll = true;}
+  ImGui::Text("Lines"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWLINES",&currentCanvas->showLines)) {shouldUpdateAll = true;}
   ImGui::BeginChild("DRAWTOOLOVERLAYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
   for (int i = 0; i < currentCanvas->overlays.size(); i++) {
     Overlay *o = currentCanvas->overlays[i];
@@ -967,32 +981,41 @@ void drawToolOverlaysView() {
     if (l != NULL) {
       ImGui::Text("%s",l->name);
       ImGui::Text("Visible"); ImGui::SameLine(); if (ImGui::Checkbox(combined(String("##DRAWTOOLOVERLAYSVIEWVISIBLE")+String::fromInt(i)).c_str(),&o->visible)) {shouldUpdateAll = true;}
-      if (!o->isAnnotation) {
-        ImGui::Text("W %d H %d",o->lx1-o->lx0,o->ly1-o->ly0);
-        int x = o->cx0;
-        int y = o->cy0;
-        int w = o->cx1 - o->cx0;
-        int h = o->cy1 - o->cy0;
-        ImGui::PushItemWidth(7*5);
-        ImGui::Text("Pos X"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX0")+String::fromInt(i)).c_str(),&x,0,0)) {shouldUpdateAll = true;}
-        ImGui::Text("Pos Y"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY0")+String::fromInt(i)).c_str(),&y,0,0)) {shouldUpdateAll = true;}
-        ImGui::Text("Width"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX1")+String::fromInt(i)).c_str(),&w,0,0)) {shouldUpdateAll = true;}
-        ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY1")+String::fromInt(i)).c_str(),&h,0,0)) {shouldUpdateAll = true;}
-        ImGui::PopItemWidth();
-        o->cx0 = x;
-        o->cy0 = y;
-        o->cx1 = x+w;
-        o->cy1 = y+h;
-      } else {
-        if (ImGui::InputText(combined(String("##DRAWTOOLOVERLAYSVIEWNAMETEXT")+String::fromInt(i)).c_str(),o->annotationText,ANNOTATIONTEXTMAX)) {shouldUpdateAll = true;}
-        ImVec2 cursor = ImGui::GetCursorScreenPos();
-        ImVec4 chere = getImVec4Color(o->annotationColor); if (colorItem("", "##DRAWTOOLOVERLAYANNOTATIONCOLOR", &chere)) {o->annotationColor = getUIntColor(chere);shouldUpdateAll = true;}
-        ImGui::SetCursorScreenPos(cursor);
-        if (ImGui::InvisibleButton("##DRAWTOOLOVERLAYVIEWANNOTATIONCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
-          o->annotationColor = getUIntColor(foregroundColor);
-          shouldUpdateAll = true;
-        }
-        ImGui::Text("Font size"); ImGui::SameLine(); if (ImGui::InputFloat(combined(String("##DRAWTOOLOVERLAYSVIEWANNOTATIONFONTSIZE")+String::fromInt(i)).c_str(),&o->annotationFontSize,0,0,2)) {shouldUpdateAll = true;} if (o->annotationFontSize < 1) o->annotationFontSize = 1;
+      switch(o->type) {
+        case OVERLAYTYPE_NORMAL: {
+          ImGui::Text("W %d H %d",o->lx1-o->lx0,o->ly1-o->ly0);
+          int x = o->cx0;
+          int y = o->cy0;
+          int w = o->cx1 - o->cx0;
+          int h = o->cy1 - o->cy0;
+          ImGui::PushItemWidth(7*5);
+          ImGui::Text("Pos X"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX0")+String::fromInt(i)).c_str(),&x,0,0)) {shouldUpdateAll = true;}
+          ImGui::Text("Pos Y"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY0")+String::fromInt(i)).c_str(),&y,0,0)) {shouldUpdateAll = true;}
+          ImGui::Text("Width"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCX1")+String::fromInt(i)).c_str(),&w,0,0)) {shouldUpdateAll = true;}
+          ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWCY1")+String::fromInt(i)).c_str(),&h,0,0)) {shouldUpdateAll = true;}
+          ImGui::PopItemWidth();
+          o->cx0 = x;
+          o->cy0 = y;
+          o->cx1 = x+w;
+          o->cy1 = y+h;
+        } break;
+        case OVERLAYTYPE_ANNOTATION: {
+          if (ImGui::InputText(combined(String("##DRAWTOOLOVERLAYSVIEWNAMETEXT")+String::fromInt(i)).c_str(),o->annotationText,ANNOTATIONTEXTMAX)) {shouldUpdateAll = true;}
+          ImVec2 cursor = ImGui::GetCursorScreenPos();
+          ImVec4 chere = getImVec4Color(o->annotationColor); if (colorItem("", "##DRAWTOOLOVERLAYANNOTATIONCOLOR", &chere)) {o->annotationColor = getUIntColor(chere);shouldUpdateAll = true;}
+          ImGui::SetCursorScreenPos(cursor);
+          if (ImGui::InvisibleButton("##DRAWTOOLOVERLAYVIEWANNOTATIONCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+            o->annotationColor = getUIntColor(foregroundColor);
+            shouldUpdateAll = true;
+          }
+          ImGui::Text("Font size"); ImGui::SameLine(); if (ImGui::InputFloat(combined(String("##DRAWTOOLOVERLAYSVIEWANNOTATIONFONTSIZE")+String::fromInt(i)).c_str(),&o->annotationFontSize,0,0,2)) {shouldUpdateAll = true;} if (o->annotationFontSize < 1) o->annotationFontSize = 1;
+        } break;
+        case OVERLAYTYPE_SEPERATINGLINEX: {
+          ImGui::Text("Horizontal %d",o->ly0);
+        } break;
+        case OVERLAYTYPE_SEPERATINGLINEY: {
+          ImGui::Text("Vertical %d",o->lx0);
+        } break;
       }
     }
     if (roundButton(combined(String("Remove##DRAWTOOLOVERLAYSVIEWREMOVEOVERLAY")+String::fromInt(i)).c_str(),true)) {

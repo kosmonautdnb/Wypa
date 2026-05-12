@@ -215,6 +215,7 @@ float *ColorTransform::processingGet() {
       if (c2.x > 1) c2.x = 1;
       if (c2.y > 1) c2.y = 1;
       if (c2.z > 1) c2.z = 1;
+      if (removeGreen) c2.y = 0;
       float h2,s2,l2; getHsl(c2,&h2,&s2,&l2); h2 = (h2 * 360 + h)/360.0;
       if (h2 < 0) h2 = 0;
       h2 = fmod(h2,1);
@@ -513,6 +514,7 @@ void ColorTransform::reset() {
   lightness = 0.5;
   brightness = 0;
   contrast = 1;
+  removeGreen = false;
   gamma = 1;
   gammaInvert = false;
   pictureGamma = 1;
@@ -529,14 +531,17 @@ void ColorTransform::reset() {
   invertG = false;
   invertB = false;
   invertA = false;
+  posterizeGrey = 0;
   posterizeRed = 0;
   posterizeGreen = 0;
   posterizeBlue = 0;
   posterizeAlpha = 0;
+  posterizeGreyBase = 0;
   posterizeRedBase = 0;
   posterizeGreenBase = 0;
   posterizeBlueBase = 0;
   posterizeAlphaBase = 0;
+  posterizeUseGrey = true;
   thresholdRed = 0.333;
   thresholdGreen = 0.333;
   thresholdBlue = 0.333;
@@ -584,10 +589,16 @@ unsigned int ColorTransform::applyPosterize(unsigned int pixel) {
   int g = (pixel>>8) & 255;
   int b = (pixel>>16) & 255;
   int a = (pixel>>24) & 255;
-  r -= posterizeRedBase; if (posterizeRed>0) r = (int)(r / posterizeRed)*posterizeRed; r += posterizeRedBase;
-  g -= posterizeGreenBase; if (posterizeGreen>0) g = (int)(g / posterizeGreen)*posterizeGreen; g += posterizeGreenBase;
-  b -= posterizeBlueBase; if (posterizeBlue>0) b = (int)(b / posterizeBlue)*posterizeBlue; b += posterizeBlueBase;
-  a -= posterizeAlphaBase; if (posterizeAlpha>0) a = (int)(a / posterizeAlpha)*posterizeAlpha; a += posterizeAlphaBase;
+  if (posterizeUseGrey) {
+    r -= posterizeGreyBase; if (posterizeGrey>0) r = (int)(r / posterizeGrey)*posterizeGrey; r += posterizeGreyBase;
+    g -= posterizeGreyBase; if (posterizeGrey>0) g = (int)(g / posterizeGrey)*posterizeGrey; g += posterizeGreyBase;
+    b -= posterizeGreyBase; if (posterizeGrey>0) b = (int)(b / posterizeGrey)*posterizeGrey; b += posterizeGreyBase;
+  } else {
+    r -= posterizeRedBase; if (posterizeRed>0) r = (int)(r / posterizeRed)*posterizeRed; r += posterizeRedBase;
+    g -= posterizeGreenBase; if (posterizeGreen>0) g = (int)(g / posterizeGreen)*posterizeGreen; g += posterizeGreenBase;
+    b -= posterizeBlueBase; if (posterizeBlue>0) b = (int)(b / posterizeBlue)*posterizeBlue; b += posterizeBlueBase;
+    a -= posterizeAlphaBase; if (posterizeAlpha>0) a = (int)(a / posterizeAlpha)*posterizeAlpha; a += posterizeAlphaBase;
+  }
   if (r < 0) r = 0; if (r > 255) r = 255;
   if (g < 0) g = 0; if (g > 255) g = 255;
   if (b < 0) b = 0; if (b > 255) b = 255;
@@ -720,10 +731,10 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool
   double py = y0;
   double xa = (double)(x1 - x0)/delta;
   double ya = (double)(y1 - y0)/delta;
-  for (int i = 0; i < delta+1; i++) {
+  for (int i = 0; i < delta; i++) {
     int x = px;
     int y = py;
-    if (clampOnLayer) {if (x < 0) x = 0; if (y < 0) y = 0; if (x >= width) x = width-1; if (y >= height) y = height-1;}
+    //if (clampOnLayer) {if (x < 0) x = 0; if (x >= width) x = width-1;  if (y < 0) y = 0; if (y >= height) y = height-1;}
     if ((unsigned int)x<width&&(unsigned int)y<height) {
       pixels[x+y*width] ^= _eor;
     }
@@ -747,7 +758,7 @@ void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, boo
   for (int i = 0; i < y1-y0; i++) {
     int x = px;
     int y = py;
-    if (clampOnLayer) {if (x < 0) x = 0; if (y < 0) y = 0; if (x >= width) x = width-1; if (y >= height) y = height-1;}
+    if (clampOnLayer) {if (x < 0) x = 0; if (x >= width) x = width-1;} // we don't need y here (xlineeor)
     if ((unsigned int)x<width&&(unsigned int)y<height) {
       pixels[x+y*width] ^= _eor;
     }
@@ -1741,6 +1752,20 @@ void Canvas::init(int width, int height) {
   this->canvasY1 = height;
 }
 
+Canvas *Canvas::clone() {
+  Canvas *ret = new Canvas();
+  *ret = *this;
+  ret->layers.data = new Layer*[2]; ret->layers.allocatedSize = 2; ret->layers.usedSize = 0;
+  ret->overlays.data = new Overlay*[2]; ret->overlays.allocatedSize = 2; ret->overlays.usedSize = 0;
+  for (int i = 0; i < layers.size(); i++) {
+    ret->layers.push_back(layers[i]->clone());
+  }
+  for (int i2 = 0; i2 < overlays.size(); i2++) {
+    Overlay *zwo = new Overlay(); *zwo = *overlays[i2]; ret->overlays.push_back(zwo);
+  }
+  return ret;
+}
+
 void Canvas::clearUpdateFlag() {
   unsigned char f = ~(PIXELSTATE_UPDATED|PIXELSTATE_CANVAS_UPDATED);
   unsigned int f2 = (f)|(f<<8)|(f<<16)|(f<<24);
@@ -1982,10 +2007,16 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
           int a = (rgb1>>24) & 255;
-          r -= layer->colorTransform.posterizeRedBase; if (layer->colorTransform.posterizeRed>0) r = (int)(r / layer->colorTransform.posterizeRed)*layer->colorTransform.posterizeRed; r += layer->colorTransform.posterizeRedBase;
-          g -= layer->colorTransform.posterizeGreenBase; if (layer->colorTransform.posterizeGreen>0) g = (int)(g / layer->colorTransform.posterizeGreen)*layer->colorTransform.posterizeGreen; g += layer->colorTransform.posterizeGreenBase;
-          b -= layer->colorTransform.posterizeBlueBase; if (layer->colorTransform.posterizeBlue>0) b = (int)(b / layer->colorTransform.posterizeBlue)*layer->colorTransform.posterizeBlue; b += layer->colorTransform.posterizeBlueBase;
-          a -= layer->colorTransform.posterizeAlphaBase; if (layer->colorTransform.posterizeAlpha>0) a = (int)(a / layer->colorTransform.posterizeAlpha)*layer->colorTransform.posterizeAlpha; a += layer->colorTransform.posterizeAlphaBase;
+          if (layer->colorTransform.posterizeUseGrey) {
+            r -= layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) r = (int)(r / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey; r += layer->colorTransform.posterizeGreyBase;
+            g -= layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) g = (int)(g / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey; g += layer->colorTransform.posterizeGreyBase;
+            b -= layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) b = (int)(b / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey; b += layer->colorTransform.posterizeGreyBase;
+          } else {
+            r -= layer->colorTransform.posterizeRedBase; if (layer->colorTransform.posterizeRed>0) r = (int)(r / layer->colorTransform.posterizeRed)*layer->colorTransform.posterizeRed; r += layer->colorTransform.posterizeRedBase;
+            g -= layer->colorTransform.posterizeGreenBase; if (layer->colorTransform.posterizeGreen>0) g = (int)(g / layer->colorTransform.posterizeGreen)*layer->colorTransform.posterizeGreen; g += layer->colorTransform.posterizeGreenBase;
+            b -= layer->colorTransform.posterizeBlueBase; if (layer->colorTransform.posterizeBlue>0) b = (int)(b / layer->colorTransform.posterizeBlue)*layer->colorTransform.posterizeBlue; b += layer->colorTransform.posterizeBlueBase;
+            a -= layer->colorTransform.posterizeAlphaBase; if (layer->colorTransform.posterizeAlpha>0) a = (int)(a / layer->colorTransform.posterizeAlpha)*layer->colorTransform.posterizeAlpha; a += layer->colorTransform.posterizeAlphaBase;
+          }
           if (r < 0) r = 0; if (r > 255) r = 255;
           if (g < 0) g = 0; if (g > 255) g = 255;
           if (b < 0) b = 0; if (b > 255) b = 255;
@@ -2348,14 +2379,24 @@ void drawTextIntoLayer(Layer *layer, int xa, int ya, const char *text, uint32_t 
 }
 
 void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, Overlay *overlay) {
-  if (overlay->isAnnotation && (!canvas->showAnnotations)) return;
-  if ((!overlay->isAnnotation) && (!canvas->showOverlays)) return;
 
   int w = overlay->lx1-overlay->lx0;
   int h = overlay->ly1-overlay->ly0;
-  if ((!overlay->isAnnotation) && source == NULL) return;
-  if ((!overlay->isAnnotation) && w < 1) return;
-  if ((!overlay->isAnnotation) && h < 1) return;
+  switch(overlay->type) {
+    case OVERLAYTYPE_NORMAL: {
+        if (!canvas->showOverlays) return;
+        if (source == NULL) return;
+        if (w < 1) return;
+        if (h < 1) return;
+      } break;
+    case OVERLAYTYPE_ANNOTATION: {
+        if (!canvas->showAnnotations) return;
+      } break;
+    case OVERLAYTYPE_SEPERATINGLINEX:
+    case OVERLAYTYPE_SEPERATINGLINEY: {
+        if (!canvas->showLines) return;
+      } break;
+  }
 
   double s = canvas->control.zoom/100.0;
   if (s != 0) s = 1.0 / s;
@@ -2363,37 +2404,51 @@ void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, O
   double sy = s;
 
   Layer *l = new Layer(); reverseLastLayerIdCountUp();
-  if (overlay->isAnnotation) {
-    l->init(1,1);
-    drawTextIntoLayer(l,1,1,overlay->annotationText,0xff000000,true);
-    drawTextIntoLayer(l,0,0,overlay->annotationText,overlay->annotationColor,false);
-    double cx = overlay->lx0; double cy = overlay->ly0; canvas->getCanvasPosFromLayerPos(source,cx,cy,cx,cy);
-    l->setLayerPos(cx,cy);
-    double px = canvas->control.pixelSizeX;
-    double py = canvas->control.pixelSizeY;
-    if (px != 0) px = 1.0/px;
-    if (py != 0) py = 1.0/py;
-    l->setLayerSize(l->width*sx*overlay->annotationFontSize*px,l->height*sy*overlay->annotationFontSize*py);
-    l->updatePixelStates(0xff,PIXELSTATE_CANVAS_OVERLAY,0);
-  } else {
-    double lx = canvas->screenPosX, ly = canvas->screenPosY; canvas->getCanvasPos(lx,ly,lx,ly);
-    l->init(w,h);
-    l->setLayerPos(lx+overlay->cx0*sx,ly+overlay->cy0*sy);
-    l->setLayerSize((overlay->cx1-overlay->cx0)*sx,(overlay->cy1-overlay->cy0)*sy);
-    l->updatePixelStates(0xff,PIXELSTATE_CANVAS_OVERLAY,0);
-    for (int x = 0; x < w; x++) {
-      for (int y = 0; y < h; y++) {
-        int sx = x + overlay->lx0;
-        int sy = y + overlay->ly0;
-        unsigned int col = 0x00000000;
-        if ((unsigned int)sx < source->width && (unsigned int)sy < source->height) {
-          col = source->pixels[sx+sy*source->width];
+  switch(overlay->type) {
+    case OVERLAYTYPE_NORMAL: {
+      double lx = canvas->screenPosX, ly = canvas->screenPosY; canvas->getCanvasPos(lx,ly,lx,ly);
+      l->init(w,h);
+      l->setLayerPos(lx+overlay->cx0*sx,ly+overlay->cy0*sy);
+      l->setLayerSize((overlay->cx1-overlay->cx0)*sx,(overlay->cy1-overlay->cy0)*sy);
+      l->updatePixelStates(0xff,PIXELSTATE_CANVAS_OVERLAY,0);
+      for (int x = 0; x < w; x++) {
+        for (int y = 0; y < h; y++) {
+          int sx = x + overlay->lx0;
+          int sy = y + overlay->ly0;
+          unsigned int col = 0x00000000;
+          if ((unsigned int)sx < source->width && (unsigned int)sy < source->height) {
+            col = source->pixels[sx+sy*source->width];
+          }
+          l->pixels[x+y*w] = col;
         }
-        l->pixels[x+y*w] = col;
       }
-    }
+      updateCanvas(canvas, x0, y0, x1, y1, l);
+    } break;
+    case OVERLAYTYPE_ANNOTATION: {
+      l->init(1,1);
+      drawTextIntoLayer(l,1,1,overlay->annotationText,0xff000000,true);
+      drawTextIntoLayer(l,0,0,overlay->annotationText,overlay->annotationColor,false);
+      double cx = overlay->lx0; double cy = overlay->ly0; canvas->getCanvasPosFromLayerPos(source,cx,cy,cx,cy);
+      l->setLayerPos(cx,cy);
+      double px = canvas->control.pixelSizeX;
+      double py = canvas->control.pixelSizeY;
+      if (px != 0) px = 1.0/px;
+      if (py != 0) py = 1.0/py;
+      l->setLayerSize(l->width*sx*overlay->annotationFontSize*px,l->height*sy*overlay->annotationFontSize*py);
+      l->updatePixelStates(0xff,PIXELSTATE_CANVAS_OVERLAY,0);
+      updateCanvas(canvas, x0, y0, x1, y1, l);
+    } break;
+    case OVERLAYTYPE_SEPERATINGLINEX: {
+      double cx = overlay->lx0; double cy = overlay->ly0; canvas->getCanvasPosFromLayerPos(source,cx,cy,cx,cy);
+      canvas->getScreenPos(cx,cy,cx,cy); cx -= canvas->screenPosX; cy -= canvas->screenPosY;
+      canvas->pixelLine(0,cy,canvas->width,cy,0xff00ffff);
+    } break;
+    case OVERLAYTYPE_SEPERATINGLINEY: {
+      double cx = overlay->lx0; double cy = overlay->ly0; canvas->getCanvasPosFromLayerPos(source,cx,cy,cx,cy);
+      canvas->getScreenPos(cx,cy,cx,cy); cx -= canvas->screenPosX; cy -= canvas->screenPosY;
+      canvas->pixelLine(cx,0,cx,canvas->height,0xff00ffff);
+    } break;
   }
-  updateCanvas(canvas, x0, y0, x1, y1, l);
   delete l;
 }
 
@@ -2407,6 +2462,27 @@ void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1
   fillCanvas(this,x0,y0,x1,y1,0x00000000,0);
   for (int i = layers.size()-1; i >= 0; i--) {
     updateCanvas(this,x0,y0,x1,y1,layers[i]);
+  }
+  if (layerShapesOn) {
+    for (int i = layers.size()-1; i >= 0; i--) {
+      Layer *l = layers[i];
+      int k[4] = {0,1,3,2};
+      for (int j = 0; j < 4; j++) {
+        int j0 = k[j];
+        int j1 = k[(j+1)&3];
+        Vector l0((j0 & 1) ? l->width : 0, (j0 & 2) ? l->height : 0);
+        Vector l1((j1 & 1) ? l->width : 0, (j1 & 2) ? l->height : 0);
+        getCanvasPosFromLayerPos(l,l0.x,l0.y,l0.x,l0.y);
+        getCanvasPosFromLayerPos(l,l1.x,l1.y,l1.x,l1.y);
+        getScreenPos(l0.x,l0.y,l0.x,l0.y);
+        getScreenPos(l1.x,l1.y,l1.x,l1.y);
+        l0.x -= screenPosX;
+        l0.y -= screenPosY;
+        l1.x -= screenPosX;
+        l1.y -= screenPosY;
+        pixelLine(l0.x,l0.y,l1.x,l1.y,0xff00ffff);
+      }
+    }
   }
   if (overlaysOn) {
     for (int i2 = overlays.size()-1; i2 >= 0; i2--) {
@@ -3034,6 +3110,30 @@ void Canvas::greyScale() {
   }
   shouldUpdateAll = true;
 }
+   
+void Canvas::setPixel(double x, double y, unsigned int color) {
+  int xi = (int)floor(x);
+  int yi = (int)floor(y);
+  if ((unsigned int)xi>=width||(unsigned int)yi>=height) return;
+  pixels[xi+yi*width] = color;
+}
+
+void Canvas::pixelLine(double x0, double y0,double x1, double y1,unsigned int color) {
+  int deltaX = x1 - x0;
+  int deltaY = y1 - y0;
+  int delta = abs(deltaX);
+  if (abs(deltaY)>delta) delta = abs(deltaY);
+  if (delta == 0) return;
+  double px = x0;
+  double py = y0;
+  double xa = (double)(x1 - x0)/delta;
+  double ya = (double)(y1 - y0)/delta;
+  for (int i = 0; i < delta+1; i++) {
+    setPixel(px,py,color);
+    px += xa;
+    py += ya;
+  }
+}
 
 Layer *layerFromCanvas(Canvas *canvas) {
   Layer *ret = NULL;
@@ -3226,8 +3326,8 @@ bool wasActiveLayerSwitched() {
 
 void Canvas::setActiveLayer(int layer) {
   Layer *before = getActiveLayer();
-  for (int i = 0; i < currentCanvas->layers.size(); i++) {
-    Layer *l = currentCanvas->layers[i];
+  for (int i = 0; i < layers.size(); i++) {
+    Layer *l = layers[i];
     l->state.active = i == layer ? true : false;
   }
   if (before != getActiveLayer()) activeLayerSwitchIndex++;
@@ -3777,4 +3877,19 @@ void newPicture(int w, int h,const String &pictureName) {
   updatedPixels(currentCanvas->getActiveLayer());
   updatedPixelStates(currentCanvas->getActiveLayer());
   currentCanvas->signSave(); signSaveForUndo();
+}
+
+void duplicatePicture(bool mergeLayers) {
+  Canvas *zwo = currentCanvas->clone();
+  sprintf(zwo->pictureName,"duplicated");
+  if (mergeLayers) {
+    zwo->selectAllLayers();
+    zwo->mergeDownLayers();
+    if (zwo->layers.size()>0) {
+      zwo->setActiveLayer(0);
+      sprintf(zwo->getActiveLayer()->name,"merged");
+    }
+  }
+  canvas.push_back(zwo);
+  shouldUpdateAll = true;
 }

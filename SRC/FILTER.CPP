@@ -225,6 +225,54 @@ void filterEdgeDetect() {
   afterUndoPoint();
 }
 
+void filterAlphaSoften() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->state.locked) return;
+  beforeUndoPoint();
+  bool hasSelection = l->hasSelection();
+  Array<unsigned int> source;
+  source.resize(l->width*l->height);
+  memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
+  int posX[5] ={0,-1,1,0,0};
+  int posY[5] ={0,0,0,-1,1};
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
+        int a = 0;
+        int w = 0;
+        for (int j = 0; j < 5; ++j) {
+          int x3 = x + posX[j];
+          int y3 = y + posY[j];
+          if ((unsigned int)x3<l->width && (unsigned int)y3<l->height) {
+            unsigned int col = source[x3+y3*l->width];
+            a += (col>>24) & 255;
+            w++;
+          }
+        }
+        if (w != 0) {
+          a /= w;
+        }
+        unsigned int col = source[x+y*l->width];
+        int r = col & 255;
+        int g = (col>>8) & 255;
+        int b = (col>>16) & 255;
+        switch(l->mode) {
+          case LAYERMODE_PREMULTIPLIEDALPHA: {
+              r = (r * a) / 255;
+              g = (g * a) / 255;
+              b = (b * a) / 255;
+            } break;
+        }
+        l->pixels[x+y*l->width] = r|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
 void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int boxW, int boxH, unsigned char *pixelStates, bool usePixelStates) {
   if (boxW < 1 || boxH < 1 || boxW >= width*1.5 || boxH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
   initStatusBar();
@@ -350,8 +398,8 @@ float gaussianTap5Weight2 = 0.403f;
 #define BLOOMKERNEL\
     rgb=((((rgba0&0x00ff00ff)+(rgba4&0x00ff00ff))*weight0+((rgba1&0x00ff00ff)+(rgba3&0x00ff00ff))*weight1+(rgba2&0x00ff00ff)*weight2)>>8) & 0x00ff00ff;\
     rgb|=((((((rgba0>>8)&0x00ff00ff)+((rgba4>>8)&0x00ff00ff))*weight0+(((rgba1>>8)&0x00ff00ff)+((rgba3>>8)&0x00ff00ff))*weight1+((rgba2>>8)&0x00ff00ff)*weight2)>>8)&0x00ff00ff)<<8;
-//#define __SX(__x__) s[(int)(__x__)]
-//#define __SY(__y__) s[(int)(__y__)*width]
+#define __SX0(__x__) s[(int)(__x__)]
+#define __SY0(__y__) s[(int)(__y__)*width]
 
 #define BLOOMKERNEL2\
   float rf = ((rgba0 & 255) + (rgba4 & 255)) * weight0 + ((rgba1 & 255)+(rgba3 & 255)) * weight1 + (rgba2 & 255)*weight2;\
@@ -402,6 +450,37 @@ void bloomX(unsigned int *buffer, unsigned int width, unsigned int height, float
   weight2 = weight2/weights;
   unsigned int *newBuffer = new unsigned int[width*height];
   for (int y = 0; y < height; y++) {
+    unsigned int *s = &buffer[y*width];
+    unsigned int *d = &newBuffer[y*width];
+    int rgb;
+    for (int x = 0; x < width; x++) {
+      float t0x = x - tap0; if (t0x < 0) t0x = 0;
+      float t1x = x - tap1; if (t1x < 0) t1x = 0;
+      float t3x = x + tap1; if (t3x > width-1) t3x = width-1;
+      float t4x = x + tap0; if (t4x > width-1) t4x = width-1;
+      unsigned int rgba0 = __SX0(t0x);
+      unsigned int rgba1 = __SX0(t1x);
+      unsigned int rgba2 = __SX0(x);
+      unsigned int rgba3 = __SX0(t3x);
+      unsigned int rgba4 = __SX0(t4x);
+      BLOOMKERNEL2
+      *d++=rgb;
+    }
+  }
+  memcpy(buffer,newBuffer,width*height*sizeof(unsigned int));
+  delete[] newBuffer;
+}
+
+void bloomXFiltered(unsigned int *buffer, unsigned int width, unsigned int height, float tap0, float tap1) {
+  float weight0 =  gaussianTap5Weight0;
+  float weight1 =  gaussianTap5Weight1;
+  float weight2 =  gaussianTap5Weight2; // center
+  float weights = (weight0+weight1+weight2+weight1+weight0);
+  weight0 = weight0/weights;
+  weight1 = weight1/weights;
+  weight2 = weight2/weights;
+  unsigned int *newBuffer = new unsigned int[width*height];
+  for (int y = 0; y < height; y++) {
     unsigned int *s = &buffer[0];
     unsigned int *d = &newBuffer[y*width];
     int rgb;
@@ -424,6 +503,38 @@ void bloomX(unsigned int *buffer, unsigned int width, unsigned int height, float
 }
 
 void bloomY(unsigned int *buffer, unsigned int width, unsigned int height, float tap0, float tap1) {
+  float weight0 =  gaussianTap5Weight0;
+  float weight1 =  gaussianTap5Weight1;
+  float weight2 =  gaussianTap5Weight2; // center
+  float weights = (weight0+weight1+weight2+weight1+weight0);
+  weight0 = weight0/weights;
+  weight1 = weight1/weights;
+  weight2 = weight2/weights;
+  unsigned int *newBuffer = new unsigned int[width*height];
+  for (int x = 0; x < width; x++) {
+    unsigned int *s = &buffer[x];
+    unsigned int *d = &newBuffer[x];
+    int rgb;
+    for (int y = 0; y < height; y++) {
+      float t0y = y - tap0; if (t0y < 0) t0y = 0;
+      float t1y = y - tap1; if (t1y < 0) t1y = 0;
+      float t3y = y + tap1; if (t3y > height-1) t3y = height-1;
+      float t4y = y + tap0; if (t4y > height-1) t4y = height-1;
+      unsigned int rgba0 = __SY0(t0y);
+      unsigned int rgba1 = __SY0(t1y);
+      unsigned int rgba2 = __SY0(y);
+      unsigned int rgba3 = __SY0(t3y);
+      unsigned int rgba4 = __SY0(t4y);
+      BLOOMKERNEL2
+      *d=rgb;
+      d+=width;
+    }
+  }
+  memcpy(buffer,newBuffer,width*height*sizeof(unsigned int));
+  delete[] newBuffer;
+}
+
+void bloomYFiltered(unsigned int *buffer, unsigned int width, unsigned int height, float tap0, float tap1) {
   float weight0 =  gaussianTap5Weight0;
   float weight1 =  gaussianTap5Weight1;
   float weight2 =  gaussianTap5Weight2; // center
@@ -474,30 +585,26 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
 
   if (passesX > px) {
     updateStatusBar();
-    float kernelSize1 = passesX;
-    float kernelSize2 = passesX*2;
-    bloomX(bloomBuffer,width,height,kernelSize2,kernelSize1);
+    float kernelSize = passesX;
+    bloomXFiltered(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   for (int i1 = px-1; i1 >= 0; i1--) {
     updateStatusBar();
-    float kernelSize1 = pow(2,i1);
-    float kernelSize2 = pow(2,(i1+1));
-    bloomX(bloomBuffer,width,height,kernelSize2,kernelSize1);
+    float kernelSize = pow(2,i1);
+    bloomX(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   if (passesY > py) {
     updateStatusBar();
-    float kernelSize1 = passesY;
-    float kernelSize2 = passesY*2;
-    bloomY(bloomBuffer,width,height,kernelSize2,kernelSize1);
+    float kernelSize = passesY;
+    bloomYFiltered(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   for (int i2 = py-1; i2 >= 0; i2--) {
     updateStatusBar();
-    float kernelSize1 = pow(2,i2);
-    float kernelSize2 = pow(2,(i2+1));
-    bloomY(bloomBuffer,width,height,kernelSize2,kernelSize1);
+    float kernelSize = pow(2,i2);
+    bloomY(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   for (int i3 = 0; i3 < width*height; i3++) {
@@ -507,6 +614,58 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
   }
 
   delete[] bloomBuffer;
+}
+
+void filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int steps, unsigned char *pixelStates, bool usePixelStates) {
+  if (steps < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+  initStatusBar();
+  Array<unsigned int> f;
+  f.resize(width*height);
+  memcpy(&f[0],source,width*height*sizeof(unsigned int));
+  int posX[5] ={0,-1,1,0,0};
+  int posY[5] ={0,0,0,-1,1};
+  for (int i = 0; i < steps; i++) {
+    for (int y4 = 0; y4 < height; y4++) {
+      if ((y4 & 15)==0) updateStatusBar();
+      for (int x4 = 0; x4 < width; x4++) {
+        if ((!usePixelStates)||(pixelStates[x4+y4*width] & PIXELSTATE_SELECTED)) {
+          int r = 0;
+          int g = 0;
+          int b = 0;
+          int a = 0;
+          int w = 0;
+          for(int j = 0; j < 5; j++) {
+            int x3 = x4 + posX[j];
+            int y3 = y4 + posY[j];
+            if ((unsigned int)x3<width && (unsigned int)y3<height) {
+              unsigned int col = f[x3+y3*width];
+              r += col & 255;
+              g += (col>>8) & 255;
+              b += (col>>16) & 255;
+              a += (col>>24) & 255;
+              w++;
+            }
+          }
+          if (w != 0) {
+            r /= w;
+            g /= w;
+            b /= w;
+            a /= w;
+          }
+          if (r < 0) r = 0;
+          if (g < 0) g = 0;
+          if (b < 0) b = 0;
+          if (a < 0) a = 0;
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          if (a > 255) a = 255;
+          dest[x4+y4*width] = r|(g<<8)|(b<<16)|(a<<24);
+        }
+      }
+    }
+    memcpy(&f[0],dest,width*height*sizeof(unsigned int));
+  }
 }
 
 void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates) {
@@ -575,6 +734,39 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
         } else {
           dest[x+y*width] = 0xff000000;
         }
+      }
+    }
+  }
+}
+
+void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, float gain) {
+  int rm = channel == 0 ? 1 : 0;
+  int gm = channel == 1 ? 1 : 0;
+  int bm = channel == 2 ? 1 : 0;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
+        unsigned int col = source[x+y*width];
+        int r = col & 255;
+        int g = (col>>8) & 255;
+        int b = (col>>16) & 255;
+        int a = (col>>24) & 255;
+        int fc = rm * r + gm * g + bm * b; // g
+        int o = (1-rm) * r; int v = o; o = (1-gm) * g; if (o > v) v = o; o = (1-bm) * b; if (o > v) v = o; // max rb
+        a = fc*factor - v;
+        if (a < 0) a = 0;
+        if (a > 255) a = 255;
+        a = 255 - a;
+        if (binary && a != 0) a = 255; else a *= gain;
+        if (a > 255) a = 255;
+        switch(mode) {
+        case LAYERMODE_PREMULTIPLIEDALPHA: {
+          r = (r*a)/255;
+          g = (g*a)/255;
+          b = (b*a)/255;
+          } break;
+        }
+        dest[x+y*width] = r | (g<<8) | (b<<16) | (a<<24);
       }
     }
   }

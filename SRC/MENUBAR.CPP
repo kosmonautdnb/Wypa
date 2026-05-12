@@ -112,6 +112,7 @@ void drawMenuBar() {
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Edit")) {
+      bool hasSelection = currentCanvas->hasSelection();
       on = true;
       bool one = false;
       int count = 0;
@@ -121,11 +122,11 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Redo",NULL,false,availableRedos>0)) {redo();}
         ImGui::Separator();
       }
-      if (ImGui::MenuItem("Fill selection with color",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));afterUndoPoint();}
-      if (ImGui::MenuItem("Fill selection with alpha",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->fillSelectionWithAlpha((unsigned char)(getUIntColor(foregroundColor)>>24));beforeUndoPoint();}
-      if (ImGui::MenuItem("Erase selection",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(0x00000000);afterUndoPoint();}
+      if (ImGui::MenuItem("Fill selection with color",NULL,false,hasSelection)) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));afterUndoPoint();}
+      if (ImGui::MenuItem("Fill selection with alpha",NULL,false,hasSelection)) {beforeUndoPoint();currentCanvas->fillSelectionWithAlpha((unsigned char)(getUIntColor(foregroundColor)>>24));beforeUndoPoint();}
+      if (ImGui::MenuItem("Erase selection",NULL,false,hasSelection)) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(0x00000000);afterUndoPoint();}
       ImGui::Separator();
-      if (ImGui::MenuItem("Antialias selected",NULL,false,currentCanvas->hasSelection())) {beforeUndoPoint();currentCanvas->antialiasSelected();afterUndoPoint();}
+      if (ImGui::MenuItem("Antialias selected",NULL,false,hasSelection)) {beforeUndoPoint();currentCanvas->antialiasSelected();afterUndoPoint();}
       ImGui::Separator();
       if (ImGui::MenuItem("Greyscale",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->greyScale();afterUndoPoint();}
       if (ImGui::MenuItem("Gradiation curves",NULL,false,count == 1)) {dialogGradiationCurves(true);}
@@ -152,12 +153,15 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Rotate +90 degrees")) {currentCanvas->rotate90DegreesForward();}
       if (ImGui::MenuItem("Rotate -90 degrees")) {currentCanvas->rotate90DegreesBackward();}
       ImGui::Separator();
-      if (ImGui::MenuItem("Configure canvas")) {dialogCanvas(true);}
+      if (ImGui::MenuItem("Image properties")) {dialogCanvas(true);}
       if (ImGui::MenuItem("Resize image")) {dialogImageResize(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Fit canvas to layers")) {currentCanvas->fitCanvasToLayers();}
       if (ImGui::MenuItem("Crop canvas by alpha")) {currentCanvas->cropCanvasByAlpha(1);}
       if (ImGui::MenuItem("Fit canvas to selection")) {currentCanvas->fitCanvasToSelection();}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Duplicate picture")) {duplicatePicture(false);}
+      if (ImGui::MenuItem("Duplicate picture (merged)")) {duplicatePicture(true);}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Layer")) {
@@ -194,7 +198,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Rotate +90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesForwardLayers();}
       if (ImGui::MenuItem("Rotate -90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesBackwardLayers();}
       ImGui::Separator();
-      if (ImGui::MenuItem("Update layer",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {dialogUpdateLayer(true);}
+      if (ImGui::MenuItem("Layer properties",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {dialogUpdateLayer(true);}
       if (ImGui::MenuItem("Crop layer(s) by alpha",NULL,false,one)) {currentCanvas->cropLayersByAlpha(1);}
       ImGui::Separator();
       if (ImGui::MenuItem("Lock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(true);}
@@ -214,6 +218,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Expand/shrink selection")) {dialogExpandShrinkSelection(true);}
       if (ImGui::MenuItem("Select by alpha")) {dialogSelectByAlpha(true);}
       if (ImGui::MenuItem("Selection as outline")) {beforeUndoPoint(); currentCanvas->selectionAsOutline(); afterUndoPoint();}
+      if (ImGui::MenuItem("Extrude selection")) {dialogExtrudeSelection(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Apply selections to layer",NULL,false,count>1&&(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->getLayerSelectionFromLayers(currentCanvas->getActiveLayer());}
       if (ImGui::MenuItem("Clear all other layer selections",NULL,false,(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->clearAllOtherLayerSelections(currentCanvas->getActiveLayer());}
@@ -225,6 +230,8 @@ void drawMenuBar() {
       selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9","",&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
       if (ImGui::MenuItem("Zoom in (+)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,zoomStep);}
       if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
       ImGui::Separator();
       if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
       if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
@@ -242,7 +249,10 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Difference clouds",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterDifferenceClouds();}
       if (ImGui::MenuItem("Edge detect",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterEdgeDetect();}
       if (ImGui::MenuItem("Blur",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogBlur(true);}
+      if (ImGui::MenuItem("Edge soften",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterAlphaSoften();}
+      if (ImGui::MenuItem("Turn to glow",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogGlow(true);}
       if (ImGui::MenuItem("Emboss",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogEmboss(true);}
+      if (ImGui::MenuItem("Keying",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogKeying(true);}
       ImGui::EndMenu();
     }
 

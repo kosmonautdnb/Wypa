@@ -80,10 +80,13 @@ void dialogPictureInfo(bool openIt);
 void dialogGradiationCurves(bool openIt);
 void dialogColorBalance(bool openIt);
 void dialogBlur(bool openIt);
+void dialogGlow(bool openIt);
 void dialogEmboss(bool openIt);
 void dialogHotkeys(bool openIt);
 void dialogColorMatrix(bool openIt);
 void dialogQuantizePalette(bool openIt);
+void dialogExtrudeSelection(bool openIt);
+void dialogKeying(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

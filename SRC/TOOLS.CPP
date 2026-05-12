@@ -39,6 +39,7 @@
 
 Array<Brush *> brushes;
 int currentBrush = 0;
+bool hardEraser = false;
 
 Brush *onePixelBrush = NULL;
 
@@ -834,8 +835,69 @@ double toolAspectY = 1;
 
 int startControlKeyId = CONTROLKEY_NONE;
 
+bool selectionToolMoveActive = false;
+double selectionToolMoveStartX = 0;
+double selectionToolMoveStartY = 0;
+
+bool useToolSelectionMove(Layer *activeLayer) {
+
+  if (!ImGui::IsMouseDown(1)) {
+    showSelectionPlane = false; showSelectionPlaneBounding = false;
+    if (selectionToolMoveActive) {
+      selectionToolMoveActive = false;
+      int c = startControlKeyId;
+      for (int i = 0; i < activeLayer->width*activeLayer->height; i++) {
+        if (c == CONTROLKEY_NONE) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        if (selectionPlane->pixels[i]!=0) {
+          if (c == CONTROLKEY_NONE || c == CONTROLKEY_SHIFT) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED;
+          if (c == CONTROLKEY_CTRL) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        }
+        if (c == (CONTROLKEY_CTRL|CONTROLKEY_SHIFT)) {
+          if (selectionPlane->pixels[i]!=0&&(activeLayer->pixelStates[i] & PIXELSTATE_SELECTED)) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        }
+      }
+      updatedPixelStates(activeLayer);
+      shouldUpdateAll = true;
+    } 
+  }
+
+  double lx,ly; currentCanvas->getCanvasPos(mouseX,mouseY,lx,ly);
+  if (isPaintAreaActive() && ImGui::IsMouseDown(1)) {
+    if (!selectionToolMoveActive) {
+      startControlKeyId = controlKeyId;
+      selectionPlane->init(activeLayer->width, activeLayer->height);
+      selectionPlane->transform = activeLayer->transform;
+      selectionToolMoveActive  = true;
+      selectionToolMoveStartX = lx;
+      selectionToolMoveStartY = ly;
+    }
+  }
+
+  if (selectionToolMoveActive) {
+    showSelectionPlane = true;
+    if (activeLayer->width == selectionPlane->width && activeLayer->height == selectionPlane->height) {
+      int deltaX = selectionToolMoveStartX-lx;
+      int deltaY = selectionToolMoveStartY-ly;
+      for (int y = 0; y < activeLayer->height; y++) {
+        for (int x = 0; x < activeLayer->width; x++) {
+          bool selected = false;
+          int x2 = x + deltaX;
+          int y2 = y + deltaY;
+          if ((unsigned int)x2 < activeLayer->width && (unsigned int)y2 < activeLayer->height) {
+            unsigned char p = activeLayer->pixelStates[x2+y2*activeLayer->width];
+            if (p & PIXELSTATE_SELECTED) selected = true;
+          }
+          selectionPlane->pixels[x+y*selectionPlane->width] = selected ? 1 : 0;
+        }
+      }
+    }
+  }
+
+  return selectionToolMoveActive;
+}
+
 void useToolSelection() {
-  if (wasActiveLayerSwitched()) {selectionToolActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
+  if (wasActiveLayerSwitched()) {selectionToolActive = false; selectionToolMoveActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
 
   Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
   static Layer *selectionToolLayer = activeLayer;
@@ -844,7 +906,13 @@ void useToolSelection() {
 
   mouseClickUndo();
 
+  if ((!selectionToolActive) && useToolSelectionMove(activeLayer)) return; // move the selection
+
   int selectionTool2 = tool == TOOL_OVERLAYS ? SELECTIONTOOL_RECTANGLE : selectionTool;
+
+#define XEORLINE 1
+#define EORLINE 2
+#define SELECTEDLINE 4
 
   if (selectionToolLayer == NULL ||  (!ImGui::IsMouseDown(0)) || (ImGui::IsMouseDown(1) && selectionTool2 != SELECTIONTOOL_POLYGON)) {
     if (selectionToolActive) {
@@ -876,21 +944,21 @@ void useToolSelection() {
             for (int y = 0; y < selectionPlane->height; y++) {
               bool isInSelection = false;
               for (int x = 0; x < selectionPlane->width; x++) {
-                bool edge = selectionPlane->pixels[x+y*selectionPlane->width] & 1 ? true : false;
+                bool edge = selectionPlane->pixels[x+y*selectionPlane->width] & XEORLINE ? true : false;
                 if (x == 0) {isInSelection = edge;edge = false;}
-                if (isInSelection) selectionPlane->pixels[x+y*selectionPlane->width] = 1;
+                if (isInSelection) selectionPlane->pixels[x+y*selectionPlane->width] = SELECTEDLINE;
                 if (edge) {isInSelection = !isInSelection;}
               }
             }
 
             for (int i = 0; i < activeLayer->width*activeLayer->height; i++) {
               if (c == CONTROLKEY_NONE) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-              if (selectionPlane->pixels[i]!=0) {
+              if (selectionPlane->pixels[i]==SELECTEDLINE) {
                 if (c == CONTROLKEY_NONE || c == CONTROLKEY_SHIFT) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED;
                 if (c == CONTROLKEY_CTRL) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
               }
               if (c == (CONTROLKEY_CTRL|CONTROLKEY_SHIFT)) {
-                if (selectionPlane->pixels[i]!=0&&(activeLayer->pixelStates[i] & PIXELSTATE_SELECTED)) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+                if (selectionPlane->pixels[i]==SELECTEDLINE&&(activeLayer->pixelStates[i] & PIXELSTATE_SELECTED)) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
               }
             }
             updatedPixelStates(activeLayer);
@@ -979,20 +1047,20 @@ void useToolSelection() {
         double lx2,ly2; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionX1,lastSelectionY1,lx2,ly2);
         double lx3,ly3; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX0,selectionY0,lx3,ly3);
         if (ImGui::IsMouseDown(1)) {
-          if (pointCount == 0) {selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,1,true); selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,2,true);}
+          if (pointCount == 0) {selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,XEORLINE,true); selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,EORLINE,true);}
           lastSelectionPolygonX1 = lx;
           lastSelectionPolygonY1 = ly;
           pointCount++;
         } 
-        selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,1,true); // delete
-        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true); // paint
-        selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,2,true);
-        selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,2,true);
+        selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,XEORLINE,true); // delete
+        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,XEORLINE,true); // paint
+        selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,EORLINE,true);
+        selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,EORLINE,true);
         if (pointCount > 0) {
-          selectionPlane->pixelXLineEor(lx3,ly3,lx2,ly2,1,true); // delete
-          selectionPlane->pixelXLineEor(lx3,ly3,lx1,ly1,1,true); // paint
-          selectionPlane->pixelLineEor(lx3,ly3,lx2,ly2,2,true);
-          selectionPlane->pixelLineEor(lx3,ly3,lx1,ly1,2,true);
+          selectionPlane->pixelXLineEor(lx3,ly3,lx2,ly2,XEORLINE,true); // delete
+          selectionPlane->pixelXLineEor(lx3,ly3,lx1,ly1,XEORLINE,true); // paint
+          selectionPlane->pixelLineEor(lx3,ly3,lx2,ly2,EORLINE,true);
+          selectionPlane->pixelLineEor(lx3,ly3,lx1,ly1,EORLINE,true);
         }
       } break;
     }
@@ -1134,6 +1202,7 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
   canvasX += xs * brush->randomX * toolAspectX;
   canvasY += ys * brush->randomY * toolAspectY;
   bool pencil = tool == TOOL_PENCIL;
+  if (tool == TOOL_ERASER && hardEraser) pencil = true;
   BrushInstance *b = brush->getCreateInstance(BRUSHINSTANCE_PAINT,brush->pixelWidth(),brush->pixelHeight(),pencil);
   double toolWidth = b->pixelWidth*0.5*toolAspectX;
   double toolHeight = b->pixelHeight*0.5*toolAspectY;

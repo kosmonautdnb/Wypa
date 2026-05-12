@@ -325,7 +325,7 @@ int main(int argc, const char *argv[]) {
 
   while(!quit) {
 
-    if (currentKey == GL_VK_ESCAPE) quit = true;
+    if (currentKey == GL_VK_ESCAPE && ctrl) quit = true;
     perFrame();
 
 

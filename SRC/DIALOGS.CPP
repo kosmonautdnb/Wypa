@@ -112,10 +112,13 @@ void drawDialogs() {
   dialogGradiationCurves(false);
   dialogColorBalance(false);
   dialogBlur(false);
+  dialogGlow(false);
   dialogEmboss(false);
   dialogHotkeys(false);
   dialogColorMatrix(false);
   dialogQuantizePalette(false);
+  dialogExtrudeSelection(false);
+  dialogKeying(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -195,8 +198,9 @@ extern bool quit;
 
 void dialogExit(bool openIt) {
   DIALOGSTART("Exit")
-  ImGui::Text("Do you really want to exit? Did you save all your work?");
-  if (ImGui::Button("Exit##DIALOGEXITEXIT")) {
+  ImGui::Text("Do you really want to exit?");
+  ImGui::Text("Did you save all your work?");
+  if (ImGui::Button("Quit##DIALOGEXITEXIT")) {
     quit = true;
     ImGui::CloseCurrentPopup();
   }
@@ -563,7 +567,7 @@ void dialogPictureInfo(bool openIt) {
   ImGui::Text("Author"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOAUTHOR",currentCanvas->author, PICTURENAMEMAX);
   ImGui::PopStyleColor();
   ImGui::PopItemWidth();
-  ImGui::Text("Timestamp %s",currentCanvas->timeStamp.c_str());
+  ImGui::Text("Date %s",currentCanvas->timeStamp.c_str());
   ImGui::Text("Width %d", currentCanvas->canvasX1-currentCanvas->canvasX0);
   ImGui::Text("Height %d", currentCanvas->canvasY1-currentCanvas->canvasY0);
   ImGui::Text("Comment");
@@ -696,7 +700,7 @@ public:
   }
 
   void generateBezier() {
-#define BEZIER_TESSEL 256
+#define BEZIER_TESSEL 128
     int lxi = points[0].x;
     int lyi = points[0].y;
     for (int i = 0; i < points.size()-1; i++) {
@@ -1184,7 +1188,8 @@ enum BLURTYPES {
   BLURTYPE_GAUSS = 0,
   BLURTYPE_BOX = 1,
   BLURTYPE_RADIAL = 2,
-  BLURTYPE_COUNT = 3
+  BLURTYPE_ITERATIVE = 3,
+  BLURTYPE_COUNT = 4
 };
 
 void dialogBlur(bool openIt) {
@@ -1195,8 +1200,9 @@ void dialogBlur(bool openIt) {
   static float  gaussY = 0;
   static float radialAngle = 0;
   static float radialSize = 0;
+  static int iterativeSteps = 0;
   static int blurType = 0;
-  static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur"};
+  static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur","Iterative"};
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static unsigned int maxBlurPixels = 100;
 
@@ -1211,8 +1217,9 @@ void dialogBlur(bool openIt) {
     radialAngle = 0;
     radialSize = 4;
     gaussX = 2;
-    gaussY = 2;
-    blurType = 0;
+    gaussY = 2; 
+    iterativeSteps = 1;
+    blurType = BLURTYPE_GAUSS;
     updateBlur = true;
   }
   DIALOGSTART("Blur");
@@ -1241,6 +1248,10 @@ void dialogBlur(bool openIt) {
       ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSX",&gaussX,0,0,2)) {updateBlur = true;} if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
       ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSY",&gaussY,0,0,2)) {updateBlur = true;} if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
     } break;
+    case BLURTYPE_ITERATIVE: {
+      ImGui::Text("Iterative blur settings");
+      ImGui::Text("Steps"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURITERATIVE",&iterativeSteps,0,0)) {updateBlur = true;} if (iterativeSteps<0) iterativeSteps = 0; if (iterativeSteps>32) iterativeSteps = 32;
+    } break;
   }
   
   ImGui::PopItemWidth();
@@ -1253,6 +1264,7 @@ void dialogBlur(bool openIt) {
           case BLURTYPE_BOX: {filterBoxBlur(l->pixels,clone->pixels, l->width, l->height, boxWidth, boxHeight,l->pixelStates,l->hasSelection());} break;
           case BLURTYPE_RADIAL: {filterRadialBlur(l->pixels,clone->pixels, l->width, l->height, radialAngle, radialSize,l->pixelStates,l->hasSelection());} break;
           case BLURTYPE_GAUSS: {filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());} break;
+          case BLURTYPE_ITERATIVE: {filterIterativeBlur(l->pixels,clone->pixels, l->width, l->height, iterativeSteps, l->pixelStates,l->hasSelection());} break;
         }
         repaintLayer(l,true);
       }
@@ -1268,6 +1280,55 @@ void dialogBlur(bool openIt) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGBLURCLOSE")) {
+    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+  }
+  DIALOGEND()
+}
+
+void dialogGlow(bool openIt) {
+  static Layer *clone = NULL;
+  static float gaussX = 0;
+  static float  gaussY = 0;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static bool updateBlur = false;
+
+  if (openIt) {
+    beforeUndoPoint();
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    gaussX = 16;
+    gaussY = 16;
+    updateBlur = true;
+  }
+  DIALOGSTART("Turn to glow");
+
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSX",&gaussX,0,0,2)) {updateBlur = true;} if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
+  ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSY",&gaussY,0,0,2)) {updateBlur = true;} if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
+  ImGui::PopItemWidth();
+
+  if (updateBlur) {
+    if (!ImGui::IsAnyItemActive()) {
+      updateBlur = false;
+      if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
+        filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());
+        l->greyScale();
+        repaintLayer(l,true);
+      }
+    }
+  }
+  if (ImGui::Button("Apply##DIALOGGLOWAPPLY")) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGGLOWCLOSE")) {
     if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
@@ -1608,6 +1669,141 @@ void dialogDuplicate(bool openIt) {
   }
   if (ImGui::Button("Close##DIALOGDUPLICATELAYERSCLOSE")) {
     ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogExtrudeSelection(bool openIt) {
+  static Layer *clone = NULL;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static bool updateIt = false;
+  static float angle = 0;
+  static float size = 10;
+  const float maxLength = 100;
+  if (openIt) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    memcpy(clone->pixelStates,l->pixelStates,clone->width*clone->height*sizeof(unsigned char)); // pixelStates get not cloned by default
+    beforeUndoPoint();
+    updateIt = true;
+  }
+  DIALOGSTART("Extrude selection");
+
+  if (!clone->hasSelection()) {
+    ImGui::Text("Nothing selected on this layer.");
+  } else {
+    ImGui::PushItemWidth(360);
+    ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGEXTRUDESELECTIONANGLE",&angle,0,360)) {updateIt = true;} if (angle<0) angle = 0; if (angle>360) angle = 360;
+    ImGui::PopItemWidth();
+    ImGui::PushItemWidth(7*8);
+    ImGui::Text("Length"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGEXTRUDESELECTIONLENGTH",&size,0,0,0)) {updateIt = true;} if (size<0) size = 0; if (size>maxLength) size = maxLength;
+    ImGui::PopItemWidth();
+
+    if (updateIt) {
+      if (!ImGui::IsAnyItemActive()) {
+        updateIt = false;
+        if (clone->width==l->width&&clone->height==l->height) {
+          double sx = sin(-angle*2*PI/360.0);
+          double sy = cos(-angle*2*PI/360.0);
+          int s = (int)floor(size);
+          initStatusBar();
+          for (int y = 0; y < l->height; y++) {
+            if ((y & 63)==0) updateStatusBar();
+            for (int x = 0; x < l->width; x++) {
+              bool selected = false;
+              for (int i = s-1; i >= 0; i--) {
+                int lx = (int)(x + sx * i);
+                int ly = (int)(y + sy * i);
+                if ((unsigned int)lx < clone->width && (unsigned int)ly < clone->height) {
+                  unsigned char p = clone->pixelStates[lx+ly*clone->width];
+                  selected = p & PIXELSTATE_SELECTED;
+                  if (selected) break;
+                }
+              }
+              l->pixelStates[x+y*l->width] &= ~PIXELSTATE_SELECTED;
+              if (selected) l->pixelStates[x+y*l->width] |= PIXELSTATE_SELECTED;
+            }
+          }
+        }
+        repaintLayer(l,true);
+      }
+    }
+
+  
+    if (ImGui::Button("Apply##DIALOGEXTRUDESELECTIONAPPLY")) {
+      if (clone != NULL) {delete clone; clone = NULL;}
+      ImGui::CloseCurrentPopup();
+      shouldUpdateAll = true;
+      updatedPixelStates(l);
+      afterUndoPoint();
+    }
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGEXTRUDESELECTIONCLOSE")) {
+    if (clone->width==l->width&&clone->height==l->height) memcpy(l->pixelStates,clone->pixelStates,l->width*l->height*sizeof(unsigned char));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+  }
+  DIALOGEND()
+}
+
+void dialogKeying(bool openIt) {
+  static Layer *clone = NULL;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static bool updateIt = false;
+  static bool binary = false;
+  static int channel = 0;
+  static float factor = 0;
+  static float gain = 0;
+  if (openIt) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    beforeUndoPoint();
+    updateIt = true;
+    channel = 1;
+    factor = 4;
+    gain = 1;
+    binary = false;
+  }
+  DIALOGSTART("Keying");
+  ImGui::Text("Simple channel keying");
+  ImGui::Text("Red"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL0", &channel, 0)) {updateIt = true;}
+  ImGui::Text("Green"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL1", &channel, 1)) {updateIt = true;}
+  ImGui::Text("Blue"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL2", &channel, 2)) {updateIt = true;}
+  ImGui::PushItemWidth(300);
+  ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR",&factor,0,8)) {updateIt = true;} if (factor<0) factor = 0;
+  ImGui::PopItemWidth();
+  ImGui::Text("Binary");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGBINARY",&binary)) {updateIt = true;}
+  if (!binary) {
+    ImGui::PushItemWidth(200);
+    ImGui::SameLine(); ImGui::Text("Gain"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGKEYINGGAIN",&gain,1,8)) {updateIt = true;} if (gain<1) gain = 1;
+    ImGui::PopItemWidth();
+  }
+
+  if (updateIt) {
+    if (!ImGui::IsAnyItemActive()) {
+      updateIt = false;
+      if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
+        filterSimpleKeying(l->pixels,clone->pixels, l->width, l->height, channel, factor, l->pixelStates,l->hasSelection(),l->mode,binary,gain);
+        repaintLayer(l,true);
+      }
+    }
+  }
+
+  if (ImGui::Button("Apply##DIALOGKEYINGAPPLY")) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGKEYINGCLOSE")) {
+    if (clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
   }
   DIALOGEND()
 }
