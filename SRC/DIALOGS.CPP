@@ -704,7 +704,7 @@ public:
     int lxi = points[0].x;
     int lyi = points[0].y;
     for (int i = 0; i < points.size()-1; i++) {
-      for (int j = 0; j < BEZIER_TESSEL; j++) {
+      for (int j = 0; j < BEZIER_TESSEL+1; j++) {
         double bx = bezier((double)j/BEZIER_TESSEL,points[i].x,points[i].x+points[i].dx[1],points[i+1].x+points[i+1].dx[0],points[i+1].x);
         double by = bezier((double)j/BEZIER_TESSEL,points[i].y,points[i].y+points[i].dy[1],points[i+1].y+points[i+1].dy[0],points[i+1].y);
         int bxi = (int)floor(bx);
