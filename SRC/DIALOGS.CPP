@@ -826,6 +826,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
 
 void getGradingArrayFromCurves(unsigned char *dest) {
   for (int j = 0; j < 5; j++) {
+    curves[j].generateBezier();
     for (int x = 0; x < 256; x++) {
       int v = curves[j].getInterpolation(x);
       if (v < 0) v = 0;
@@ -1033,7 +1034,6 @@ void dialogGradiationCurves(bool openIt) {
 
   if (updateGradientCurvesPreview) {
     if (gradientCurvesToColorTransform == NULL) {
-      for (int i = 0; i < 5; i++) curves[i].generateBezier();
       updateGradientCurvesPreview = false;
       applyColorGradingCurves(l,clone);
       repaintLayer(l,true);
