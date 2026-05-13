@@ -119,6 +119,10 @@ void drawNavigator() {
   if (toolW >= 0 || toolH >= 0) {
     ImGui::Text("%d %d",(int)ceil(toolW),(int)ceil(toolH));
   }
+
+  if (getFreeMemoryInKb()<MEMWARNINGMB*1024) {
+    ImGui::TextColored(ImVec4(1,0,0,1),"Less than %dmb",(int)MEMWARNINGMB);
+  }
   ImGui::SetCursorPos(ImVec2(cursor.x+sidebar_width - navigatorWidth - 10,cursor.y));
   updateNavigatorImage();
   ImVec2 cursor2 = ImGui::GetCursorScreenPos();

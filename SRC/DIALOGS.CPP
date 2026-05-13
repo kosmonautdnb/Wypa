@@ -914,7 +914,7 @@ void dialogGradiationCurves(bool openIt) {
   static GLuint gradiationTexture = 0;
   static int gradiationChannel = 0;
   static bool updateGradientCurvesPreview = false;
-  static const char *channelNames[5] = {"Grey","Red","Green","Blue","Alpha"};
+  static const char *channelNames[5] = {"All","Red","Green","Blue","Alpha"};
   static Layer *clone = NULL;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   if (openIt) {
@@ -1755,7 +1755,6 @@ void dialogKeying(bool openIt) {
   static bool binary = false;
   static int channel = 0;
   static float factor = 0;
-  static float gain = 0;
   if (openIt) {
     if (clone != NULL) {delete clone; clone = NULL;}
     clone = l->clone();
@@ -1763,7 +1762,6 @@ void dialogKeying(bool openIt) {
     updateIt = true;
     channel = 1;
     factor = 4;
-    gain = 1;
     binary = false;
   }
   DIALOGSTART("Keying");
@@ -1775,17 +1773,12 @@ void dialogKeying(bool openIt) {
   ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR",&factor,0,8)) {updateIt = true;} if (factor<0) factor = 0;
   ImGui::PopItemWidth();
   ImGui::Text("Binary");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGBINARY",&binary)) {updateIt = true;}
-  if (!binary) {
-    ImGui::PushItemWidth(200);
-    ImGui::SameLine(); ImGui::Text("Gain"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGKEYINGGAIN",&gain,1,8)) {updateIt = true;} if (gain<1) gain = 1;
-    ImGui::PopItemWidth();
-  }
 
   if (updateIt) {
     if (!ImGui::IsAnyItemActive()) {
       updateIt = false;
       if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
-        filterSimpleKeying(l->pixels,clone->pixels, l->width, l->height, channel, factor, l->pixelStates,l->hasSelection(),l->mode,binary,gain);
+        filterSimpleKeying(l->pixels,clone->pixels, l->width, l->height, channel, factor, l->pixelStates,l->hasSelection(),l->mode,binary);
         repaintLayer(l,true);
       }
     }

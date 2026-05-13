@@ -49,19 +49,26 @@ bool imageButton(const char *svgName, const char *id, bool selected, bool hiligh
 GLuint gradientTexture = 0;
 const int gradientTextureWidth = 100;
 const int gradientTextureHeight = 50;
-unsigned int gradientTextureContent[gradientTextureWidth*gradientTextureHeight];
+//unsigned int gradientTextureContent[gradientTextureWidth*gradientTextureHeight];
+Array<unsigned int> gradientTextureContent; // because of PModeW with WatcomC++11
 
 GLuint tilingTexture = 0;
 const int tilingTextureWidth = 100;
 const int tilingTextureHeight = 100;
-unsigned int tilingTextureContent[tilingTextureWidth*tilingTextureHeight];
-unsigned int tilingTextureContentAnim[tilingTextureWidth*tilingTextureHeight];
+//unsigned int tilingTextureContent[tilingTextureWidth*tilingTextureHeight];
+//unsigned int tilingTextureContentAnim[tilingTextureWidth*tilingTextureHeight];
+Array<unsigned int> tilingTextureContent; // because of PModeW with WatcomC++11
+Array<unsigned int> tilingTextureContentAnim; // because of PModeW with WatcomC++11
 
 void initToolView() {
+  gradientTextureContent.resize(gradientTextureWidth*gradientTextureHeight);
+  tilingTextureContent.resize(tilingTextureWidth*tilingTextureHeight);
+  tilingTextureContentAnim.resize(tilingTextureWidth*tilingTextureHeight);
+
   glGenTextures(1,&gradientTexture);
   glBindTexture(GL_TEXTURE_2D,gradientTexture);
-  memset(gradientTextureContent,0,sizeof(gradientTextureContent));
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, gradientTextureContent);
+  memset(&gradientTextureContent[0],0,gradientTextureContent.size()*sizeof(unsigned int));
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, &gradientTextureContent[0]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -70,8 +77,9 @@ void initToolView() {
 
   glGenTextures(1,&tilingTexture);
   glBindTexture(GL_TEXTURE_2D,tilingTexture);
-  memset(tilingTextureContent,0,sizeof(tilingTextureContent));
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, tilingTextureContent);
+  memset(&tilingTextureContent[0],0,tilingTextureContent.size()*sizeof(unsigned int));
+  memset(&tilingTextureContentAnim[0],0,tilingTextureContentAnim.size()*sizeof(unsigned int));
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, &tilingTextureContent[0]);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -98,7 +106,7 @@ void repaintGradientTexture(Gradient *gradient) {
     }
   }
   glBindTexture(GL_TEXTURE_2D,gradientTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, gradientTextureContent);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, &gradientTextureContent[0]);
   glBindTexture(GL_TEXTURE_2D,0);
 }
 
@@ -704,7 +712,7 @@ void updateTilingGrid(Layer *l, bool visible) {
 
 void updateTilingTexture() {
   glBindTexture(GL_TEXTURE_2D,tilingTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, tilingTextureContent);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, &tilingTextureContent[0]);
   glBindTexture(GL_TEXTURE_2D,0);
 }
 
@@ -754,7 +762,7 @@ void updateTilingImageAnim(const RGBAImage &image) {
     }
   }
   glBindTexture(GL_TEXTURE_2D,tilingTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, tilingTextureContentAnim);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, &tilingTextureContentAnim[0]);
   glBindTexture(GL_TEXTURE_2D,0);
 }
 

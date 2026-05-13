@@ -739,7 +739,7 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
   }
 }
 
-void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, float gain) {
+void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary) {
   int rm = channel == 0 ? 1 : 0;
   int gm = channel == 1 ? 1 : 0;
   int bm = channel == 2 ? 1 : 0;
@@ -753,11 +753,11 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
         int a = (col>>24) & 255;
         int fc = rm * r + gm * g + bm * b; // g
         int o = (1-rm) * r; int v = o; o = (1-gm) * g; if (o > v) v = o; o = (1-bm) * b; if (o > v) v = o; // max rb
-        a = fc*factor - v;
+        a = (fc - v)*factor;
         if (a < 0) a = 0;
         if (a > 255) a = 255;
         a = 255 - a;
-        if (binary && a != 0) a = 255; else a *= gain;
+        if (binary) a = a > 127 ? 255 : 0;
         if (a > 255) a = 255;
         switch(mode) {
         case LAYERMODE_PREMULTIPLIEDALPHA: {

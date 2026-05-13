@@ -42,6 +42,8 @@
 #define CONTROLKEY_CTRL 2
 #define CONTROLKEY_ALT 4
 
+#define MEMWARNINGMB 16
+
 extern double fps;
 extern double timeDelta;
 extern double mouseDX,mouseDY;
@@ -72,5 +74,7 @@ void showDebugWindow();
 
 String combined(const String &c);
 extern char tempBuffer[256];
+
+float getFreeMemoryInKb();
 
 #endif //__CONFIG_H__

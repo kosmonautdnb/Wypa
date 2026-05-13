@@ -53,11 +53,6 @@ extern int undoStackBytes;
 
 #ifdef __WATCOMC__
 #include <i86.h>
-#endif
-#ifdef __DJGPP__
-#include <dos.h>
-#endif
-
 struct meminfo {
     unsigned LargestBlockAvail;
     unsigned MaxUnlockedPage;
@@ -70,6 +65,22 @@ struct meminfo {
     unsigned SizeOfPageFile;
     unsigned Reserved[3];
 } MemInfo;
+#endif
+#ifdef __DJGPP__
+#include <dpmi.h>
+//typedef struct {
+//  unsigned long largest_available_free_block_in_bytes;
+//  unsigned long maximum_unlocked_page_allocation_in_pages;
+//  unsigned long maximum_locked_page_allocation_in_pages;
+//  unsigned long linear_address_space_size_in_pages;
+//  unsigned long total_number_of_unlocked_pages;
+//  unsigned long total_number_of_free_pages;
+//  unsigned long total_number_of_physical_pages;
+//  unsigned long free_linear_address_space_in_pages;
+//  unsigned long size_of_paging_file_partition_in_pages;
+//  unsigned long reserved[3];
+//} __dpmi_free_mem_info;
+#endif
 
 int getAdditionalMemoryFreeBytes() {
 #ifdef __WATCOMC__
@@ -86,8 +97,16 @@ int getAdditionalMemoryFreeBytes() {
   if (mem == 0 && MemInfo.LargestBlockAvail != 0xffffffff) mem = MemInfo.LargestBlockAvail;
   return mem;
 #else
-  return -1;
+  __dpmi_free_mem_info memInfo;
+  __dpmi_get_free_memory_information(&memInfo);
+  int mem = 0;
+  if (memInfo.largest_available_free_block_in_bytes  != 0xffffffff) mem = memInfo.largest_available_free_block_in_bytes;
+  return mem;
 #endif
+}
+
+float getFreeMemoryInKb() {
+  return (float)getAdditionalMemoryFreeBytes()/1024.f;
 }
 
 int getLayersByteCount() {
