@@ -739,7 +739,7 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
   }
 }
 
-void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary) {
+void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert) {
   int rm = channel == 0 ? 1 : 0;
   int gm = channel == 1 ? 1 : 0;
   int bm = channel == 2 ? 1 : 0;
@@ -756,7 +756,7 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
         a = (fc - v)*factor;
         if (a < 0) a = 0;
         if (a > 255) a = 255;
-        a = 255 - a;
+        if (!invert) a = 255 - a;
         if (binary) a = a > 127 ? 255 : 0;
         if (a > 255) a = 255;
         switch(mode) {
@@ -771,3 +771,57 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
     }
   }
 }
+
+void filterDenoise() {
+  int posX[5] = {0,1,-1,0,0};
+  int posY[5] = {0,0,0,1,-1};
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->state.locked) return;
+  Array<unsigned int> copy;
+  copy.resize(l->width*l->height);
+  memcpy(&copy[0],l->pixels,l->width*l->height*sizeof(unsigned int));
+  beforeUndoPoint();
+  bool hasSelection = l->hasSelection();
+  Array<unsigned int> _a;
+  Array<unsigned int> _b;
+  _a.resize(3*3+1);
+  _b.resize(3*3+1);
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
+        int pos = 0;
+        //for (int y2 = -1; y2 <= 1; y2++) {
+        //  for (int x2 = -1; x2 <= 1; x2++) {
+        for (int j = 0; j < 5; j++) {{int x2 = posX[j]; int y2 = posY[j];
+            int x3 = x + x2;
+            int y3 = y + y2;
+            if ((unsigned int)x3 < l->width && (unsigned int)y3 < l->height) {
+              unsigned int col = copy[x3+y3*l->width];
+              int r = col & 255;
+              int g = (col>>8) & 255;
+              int b = (col>>16) & 255;
+              int grey = r*25 + g*60 + b*15;
+              int p = 0;
+              for (; p < pos; p++) {
+                if (_a[p]>=grey) break;
+              }
+              for (int k = pos-1;k>=p;k--) {
+                _a[k+1] = _a[k];
+                _b[k+1] = _b[k];
+              }
+              pos++;
+              _a[p] = grey;
+              _b[p] = col;
+            }
+          }
+        }
+        l->pixels[x+y*l->width] = _b[pos/2];
+      }
+    }
+  }
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+

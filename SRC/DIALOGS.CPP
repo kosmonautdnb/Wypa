@@ -1753,6 +1753,7 @@ void dialogKeying(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static bool updateIt = false;
   static bool binary = false;
+  static bool invert = false;
   static int channel = 0;
   static float factor = 0;
   if (openIt) {
@@ -1763,6 +1764,7 @@ void dialogKeying(bool openIt) {
     channel = 1;
     factor = 4;
     binary = false;
+    invert = false;
   }
   DIALOGSTART("Keying");
   ImGui::Text("Simple channel keying");
@@ -1773,12 +1775,13 @@ void dialogKeying(bool openIt) {
   ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR",&factor,0,8)) {updateIt = true;} if (factor<0) factor = 0;
   ImGui::PopItemWidth();
   ImGui::Text("Binary");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGBINARY",&binary)) {updateIt = true;}
+  ImGui::SameLine();ImGui::Text("Invert");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGINVERT",&invert)) {updateIt = true;}
 
   if (updateIt) {
     if (!ImGui::IsAnyItemActive()) {
       updateIt = false;
       if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
-        filterSimpleKeying(l->pixels,clone->pixels, l->width, l->height, channel, factor, l->pixelStates,l->hasSelection(),l->mode,binary);
+        filterSimpleKeying(l->pixels,clone->pixels, l->width, l->height, channel, factor, l->pixelStates,l->hasSelection(),l->mode,binary,invert);
         repaintLayer(l,true);
       }
     }
