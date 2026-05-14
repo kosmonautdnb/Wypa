@@ -28,7 +28,8 @@ void initFilter();
 void freeFilter();
 
 void filterDifferenceClouds();
-void filterEdgeDetect();
+void filterSobelEdgeDetect();
+void filterMorphologicalEdgeDetect();
 void filterAlphaSoften();
 void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int boxW, int boxH, unsigned char *pixelStates, bool usePixelStates);
 void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radialAngle, float radialSize, unsigned char *pixelStates, bool usePixelStates);
@@ -36,7 +37,9 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
 void filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int steps, unsigned char *pixelStates, bool usePixelStates);
 void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates);
 void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert);
+void filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, unsigned int color, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert);
 void filterDenoise();
+void filterSharpen();
 
 #define S_FILTER_CPP()
 

@@ -130,7 +130,7 @@ void filterDifferenceClouds() {
   afterUndoPoint();
 }
 
-void filterEdgeDetect() {
+void filterSobelEdgeDetect() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
   if (l->state.locked) return;
@@ -219,6 +219,66 @@ void filterEdgeDetect() {
     }
   }
 
+
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
+void filterMorphologicalEdgeDetect() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->state.locked) return;
+  beforeUndoPoint();
+  bool hasSelection = l->hasSelection();
+  float maxv2 = 0;
+  float minv2 = 0;
+  Array<unsigned int> source;
+  source.resize(l->width*l->height);
+  memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
+  int posX[5] ={0,-1,1,0,0};
+  int posY[5] ={0,0,0,-1,1};
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      int i3 = x + y * l->width;
+      if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
+        float maxv = 0;
+        float minv = 0;
+        bool first = true;
+        //for (int y2 = -1; y2 <= 1; y2++) {
+        //  for (int x2 = -1; x2 <= 1; x2++) {
+        for (int j = 0; j < 5; j++) {{int x2 = posX[j]; int y2 = posY[j];
+            int x3 = x + x2;
+            int y3 = y + y2;
+            if ((unsigned int)x3<l->width && (unsigned int)y3<l->height) {
+              unsigned int col = source[x3+y3*l->width];
+              int r = col & 255;
+              int g = (col>>8) & 255;
+              int b = (col>>16) & 255;
+              int l = r + g + b;
+              if (first || l > maxv) maxv = l;
+              if (first || l < minv) minv = l;
+              first = false;
+            }
+          }
+        }
+        int k = maxv-minv;
+        if (first || k > maxv2) maxv2 = k;
+        if (first || k < minv2) minv2 = k;
+        l->pixels[i3] = k;
+      }
+    }
+  }
+  float scale = maxv2-minv2;
+  if (scale != 0) {
+    for (int i3 = 0; i3 < l->width*l->height; i3++) {
+      if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
+        unsigned int v = l->pixels[i3];
+        v = (v-minv2) * 255/scale;
+        l->pixels[i3] = v|(v<<8)|(v<<16)|(0xff000000);
+      }
+    }
+  }
 
   repaintLayer(l,true);
   updatedPixels(l);
@@ -751,6 +811,7 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
         int g = (col>>8) & 255;
         int b = (col>>16) & 255;
         int a = (col>>24) & 255;
+        int a2 = a;
         int fc = rm * r + gm * g + bm * b; // g
         int o = (1-rm) * r; int v = o; o = (1-gm) * g; if (o > v) v = o; o = (1-bm) * b; if (o > v) v = o; // max rb
         a = (fc - v)*factor;
@@ -759,6 +820,46 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
         if (!invert) a = 255 - a;
         if (binary) a = a > 127 ? 255 : 0;
         if (a > 255) a = 255;
+        a = a * a2 / 255;
+        switch(mode) {
+        case LAYERMODE_PREMULTIPLIEDALPHA: {
+          r = (r*a)/255;
+          g = (g*a)/255;
+          b = (b*a)/255;
+          } break;
+        }
+        dest[x+y*width] = r | (g<<8) | (b<<16) | (a<<24);
+      }
+    }
+  }
+}
+
+void filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, unsigned int color, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert) {
+  int cr = color & 255;
+  int cg = (color>>8) & 255;
+  int cb = (color>>16) & 255;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
+        unsigned int col = source[x+y*width];
+        int r = col & 255;
+        int g = (col>>8) & 255;
+        int b = (col>>16) & 255;
+        int a = (col>>24) & 255;
+        int a2 = a;
+        int rd = abs(r - cr);
+        int gd = abs(g - cg);
+        int bd = abs(b - cb);
+        int q = rd;
+        if (gd > q) q = gd;
+        if (bd > q) q = bd;
+        a = q * factor;
+        if (a < 0) a = 0;
+        if (a > 255) a = 255;
+        if (invert) a = 255 - a;
+        if (binary) a = a > 127 ? 255 : 0;
+        if (a > 255) a = 255;
+        a = a * a2 / 255;
         switch(mode) {
         case LAYERMODE_PREMULTIPLIEDALPHA: {
           r = (r*a)/255;
@@ -825,3 +926,66 @@ void filterDenoise() {
   afterUndoPoint();
 }
 
+void filterSharpen() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->state.locked) return;
+  beforeUndoPoint();
+  bool hasSelection = l->hasSelection();
+  Array<unsigned int> source;
+  source.resize(l->width*l->height);
+  memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
+  int posX[5] ={0,-1,1,0,0};
+  int posY[5] ={0,0,0,-1,1};
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      int i3 = x + y * l->width;
+      if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
+        bool first = true;
+        int r = 0;
+        int g = 0;
+        int b = 0;
+        int w = 0;
+        for (int j = 0; j < 5; j++) {int x2 = posX[j]; int y2 = posY[j];
+          int x3 = x + x2;
+          int y3 = y + y2;
+          if ((unsigned int)x3<l->width && (unsigned int)y3<l->height) {
+            unsigned int col = source[x3+y3*l->width];
+            int ra = col & 255;
+            int ga = (col>>8) & 255;
+            int ba = (col>>16) & 255;
+            r += ra;
+            g += ga;
+            b += ba;
+            w++;
+          }
+        }
+        if (w != 0) {
+          r /= w;
+          g /= w;
+          b /= w;
+        }
+        unsigned int col = source[x+y*l->width];
+        int rb = col & 255;
+        int gb = (col>>8) & 255;
+        int bb = (col>>16) & 255;
+        int rd = rb - r;
+        int gd = gb - g;
+        int bd = bb - b;
+        rb += rd;
+        gb += gd;
+        bb += bd;
+        if (rb < 0) rb = 0;
+        if (gb < 0) gb = 0;
+        if (bb < 0) bb = 0;
+        if (rb > 255) rb = 255;
+        if (gb > 255) gb = 255;
+        if (bb > 255) bb = 255;
+        l->pixels[i3] = rb|(gb<<8)|(bb<<16)|(col & 0xff000000);
+      }
+    }
+  }
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}

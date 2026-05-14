@@ -189,7 +189,7 @@ void splashScreen() {
     ImGui::TextColored(ImVec4(1,1,1,1),"%s",descLine);
     ImGui::End();
     ImGui::PopStyleColor();
-    if (ImGui::IsMouseDown(0)||ImGui::IsMouseDown(1)) {
+    if (ImGui::IsMouseDown(0)||ImGui::IsMouseDown(1)||currentKey != 0) {
       splashScreenOn = false;
       glDeleteTextures(1,&glHandle);
     }

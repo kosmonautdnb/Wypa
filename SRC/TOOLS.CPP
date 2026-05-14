@@ -1821,8 +1821,15 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
         const unsigned int rgbA2 = tex(sourceBuffer,width,height,fx+dirx*da2,fy+diry*da2);
         const unsigned int rgbB1 = tex(sourceBuffer,width,height,fx+dirx*db1,fy+diry*db1);
         const unsigned int rgbB2 = tex(sourceBuffer,width,height,fx+dirx*db2,fy+diry*db2);
-        const unsigned int rgbA = ((rgbA1 & 0x00fefefe)+(rgbA2 & 0x00fefefe))>>1;
-        const unsigned int rgbB = ((rgbA & 0x00fefefe)>>1)+(((rgbB1 & 0x00fcfcfc)+(rgbB2 & 0x00fcfcfc))>>2);
+        unsigned int rgbA = ((rgbA1 & 0x00fefefe)+(rgbA2 & 0x00fefefe))>>1;
+        unsigned int rgbB = ((rgbA & 0x00fefefe)>>1)+(((rgbB1 & 0x00fcfcfc)+(rgbB2 & 0x00fcfcfc))>>2);
+        int a1 = (rgbA1>>24) & 0xff;
+        int a2 = (rgbA2>>24) & 0xff;
+        int a = ((a1+a2)>>1);
+        int b1 = (rgbB1>>24) & 0xff;
+        int b2 = (rgbB2>>24) & 0xff;
+        rgbA |= a<<24;
+        rgbB |= ((a>>1)+((b1+b2)>>2))<<24;
         const float lumaB = luma(rgbB);
         if ((lumaB<lumaMin)||(lumaB>lumaMax)) {
           *dest = rgbA|(*dest & 0xff000000);

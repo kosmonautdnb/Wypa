@@ -1748,6 +1748,13 @@ void dialogExtrudeSelection(bool openIt) {
   DIALOGEND()
 }
 
+enum KEYINGTYPES {
+  KEYINGTYPE_SIMPLE = 0,
+  KEYINGTYPE_COLOR = 1,
+  KEYINGTYPE_COUNT = 2
+};
+const char *keyingTypeNames[KEYINGTYPE_COUNT] = {"Simple","Color"};
+
 void dialogKeying(bool openIt) {
   static Layer *clone = NULL;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
@@ -1756,6 +1763,8 @@ void dialogKeying(bool openIt) {
   static bool invert = false;
   static int channel = 0;
   static float factor = 0;
+  static float factor2 = 0;
+  static int type = 0;
   if (openIt) {
     if (clone != NULL) {delete clone; clone = NULL;}
     clone = l->clone();
@@ -1763,17 +1772,33 @@ void dialogKeying(bool openIt) {
     updateIt = true;
     channel = 1;
     factor = 4;
+    factor2 = 1;
     binary = false;
     invert = false;
+    type = KEYINGTYPE_SIMPLE;
   }
   DIALOGSTART("Keying");
-  ImGui::Text("Simple channel keying");
-  ImGui::Text("Red"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL0", &channel, 0)) {updateIt = true;}
-  ImGui::Text("Green"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL1", &channel, 1)) {updateIt = true;}
-  ImGui::Text("Blue"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL2", &channel, 2)) {updateIt = true;}
-  ImGui::PushItemWidth(300);
-  ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR",&factor,0,8)) {updateIt = true;} if (factor<0) factor = 0;
+  ImGui::PushItemWidth(7*12);
+  ImGui::Text("Type");ImGui::SameLine();if (ImGui::Combo("##DIALOGKEYINGTYPE",&type, keyingTypeNames, KEYINGTYPE_COUNT)) {updateIt = true;}
   ImGui::PopItemWidth();
+  switch(type) {
+    case KEYINGTYPE_SIMPLE: {
+      ImGui::Text("Simple channel keying");
+      ImGui::Text("Red"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL0", &channel, 0)) {updateIt = true;}
+      ImGui::Text("Green"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL1", &channel, 1)) {updateIt = true;}
+      ImGui::Text("Blue"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL2", &channel, 2)) {updateIt = true;}
+      ImGui::PushItemWidth(300);
+      ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR",&factor,0,8)) {updateIt = true;} if (factor<0) factor = 0;
+      ImGui::PopItemWidth();
+    } break;
+    case KEYINGTYPE_COLOR: {
+      ImGui::Text("Color keying");
+      colorItem("","##DIALOGKEYINGCOLOR0",&foregroundColor);
+      ImGui::PushItemWidth(300);
+      ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR2",&factor2,0,8)) {updateIt = true;} if (factor2<0) factor2 = 0;
+      ImGui::PopItemWidth();
+    } break;
+  }
   ImGui::Text("Binary");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGBINARY",&binary)) {updateIt = true;}
   ImGui::SameLine();ImGui::Text("Invert");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGINVERT",&invert)) {updateIt = true;}
 
@@ -1781,7 +1806,10 @@ void dialogKeying(bool openIt) {
     if (!ImGui::IsAnyItemActive()) {
       updateIt = false;
       if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
-        filterSimpleKeying(l->pixels,clone->pixels, l->width, l->height, channel, factor, l->pixelStates,l->hasSelection(),l->mode,binary,invert);
+        switch(type) {
+          case KEYINGTYPE_SIMPLE: {filterSimpleKeying(l->pixels,clone->pixels, l->width, l->height, channel, factor, l->pixelStates,l->hasSelection(),l->mode,binary,invert);} break;
+          case KEYINGTYPE_COLOR: {filterColorKeying(l->pixels,clone->pixels, l->width, l->height, getUIntColor(foregroundColor), factor2, l->pixelStates,l->hasSelection(),l->mode,binary,invert);} break;
+        }
         repaintLayer(l,true);
       }
     }
