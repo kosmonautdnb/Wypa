@@ -119,6 +119,7 @@ void drawDialogs() {
   dialogQuantizePalette(false);
   dialogExtrudeSelection(false);
   dialogKeying(false);
+  dialogNewHere(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -143,6 +144,53 @@ void dialogAbout(bool openIt) {
     "------------------------------------\n"
     "This program is freeware.\n"
   ,version / 100, version % 100
+  );
+  ImGui::Separator();
+  if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogNewHere(bool openIt) {
+  DIALOGSTART("If you are new here")
+  ImGui::Text(
+    "Wypa is pretty different to other\n"
+    "paint programs.\n"
+    "\n"
+    "The most distinctive feature is,\n"
+    "that layers mostly keep their\n"
+    "original width and height.\n"
+    "\n"
+    "And that layers have each their\n"
+    "own selection mask.\n"
+    "\n"
+    "So the most important thing to know is:\n"
+    "You can press ctrl at switching of the active\n"
+    "layer to copy the current layers selection to\n"
+    "the new layer.\n"
+    "\n"
+    "In the move tool you can use the right\n"
+    "mouse button to rotate the layers.\n"
+    "And the ctrl key to change the scaling of the layers.\n"
+    "\n"
+    "You have to load a font in order to bake texts.\n"
+    "\n"
+    "When selecting a polygon you can use the right mouse\n"
+    "button to add a point (whilst having the left button pressed).\n"
+    "\n"
+    "If layers are baked, they lose their rotation and scaling.\n"
+    "\n"
+    "The alpha mode may get outlines/seams around the pixels.\n"
+    "\n"
+    "Please use a good DPMI host like the one from\n"
+    "SBEMU 1.0.0-beta.5(2024-08-18) hdpmi32i.exe\n"
+    "it provides around 4GB in WatcomC and DJGPP.\n"
+    "\n"
+    "Currently there is no forum for pictures that\n"
+    "are done with Wypa or providing help on painting.\n"
+    "\n"
+    "Most color operations are done with the Postprocessing tool.\n"
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {

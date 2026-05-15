@@ -87,6 +87,7 @@ void dialogColorMatrix(bool openIt);
 void dialogQuantizePalette(bool openIt);
 void dialogExtrudeSelection(bool openIt);
 void dialogKeying(bool openIt);
+void dialogNewHere(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

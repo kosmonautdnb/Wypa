@@ -26,6 +26,7 @@
 
 #include "STL/GL.H"
 #include "STL/ARRAY.HPP"
+#include "STL/VECTOR.HPP"
 #include <string.h>
 #include <stdio.h>
 
@@ -224,6 +225,17 @@ extern double measureLX1;
 extern double measureLY1;
 
 extern int blurCircleSize;
+
+extern Array<Vector> modifyPointsSource;
+extern Array<Vector> modifyPointsDest;
+extern Array<unsigned int> modifyTriangles;
+extern int selectedModifyPoint;
+extern bool modifyMode;
+extern bool modifyClearBackground;
+extern bool modifyFiltered;
+extern bool modifyOutlined;
+void createModifyTriangles();
+void bakeModify();
 
 extern Array<unsigned short> quantization;
 void reCreateQuantization();

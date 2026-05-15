@@ -282,6 +282,7 @@ void drawMenuBar() {
     if (ImGui::BeginMenu("Help")) {
       if (ImGui::MenuItem("About")) {dialogAbout(true);}
       if (ImGui::MenuItem("Hotkeys")) {dialogHotkeys(true);}
+      if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Show debug window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
       on = true;

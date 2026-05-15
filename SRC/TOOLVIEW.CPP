@@ -1036,6 +1036,67 @@ void drawToolOverlaysView() {
   ImGui::EndChild();
 }
 
+Array<Vector> modifyPointsSourceSaved;
+Array<Vector> modifyPointsDestSaved;
+
+void drawToolModifyView() {
+  bool modifyModeAvailable = modifyMode;
+  if (modifyPointsSource.size()>=3) modifyModeAvailable = true;
+  if (roundButton(modifyMode?"Base mode##DRAWTOOLMODIFYMODE":"Modify mode##DRAWTOOLMODIFYMODE",modifyModeAvailable)) {
+    modifyMode = !modifyMode;
+    if (modifyMode) {
+      modifyPointsDest.clear();
+      for (int i = 0; i < modifyPointsSource.size(); i++) modifyPointsDest.push_back(modifyPointsSource[i]);
+    }
+  }
+  if (roundButton("Bake into##DRAWTOOLMODIFYBAKE",true)) {
+    bakeModify();
+  }
+  int k;
+  ImGui::Separator();
+  ImGui::Text("Pop out"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLMODIFYBG",&modifyClearBackground);
+  ImGui::Text("Outline mode"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLMODIFYOUTLINED",&modifyOutlined);
+  ImGui::Text("Filtered"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLMODIFYFILTERED",&modifyFiltered);
+  ImGui::Separator();
+  if (roundButton("Store##DRAWTOOLMODIFYSTORE",modifyPointsSource.size()==modifyPointsDest.size()&&modifyPointsSource.size()!=0&&modifyMode)) {
+    modifyPointsSourceSaved = modifyPointsSource;
+    modifyPointsDestSaved = modifyPointsDest;
+  }
+  ImGui::SameLine();
+  if (roundButton("Load##DRAWTOOLMODIFYLOAD",modifyPointsSourceSaved.size()!=0)) {
+    modifyPointsSource = modifyPointsSourceSaved;
+    modifyPointsDest = modifyPointsDestSaved;
+    createModifyTriangles();
+    modifyMode = true;
+  }
+  ImGui::Text("Point count %d",modifyPointsSource.size());
+  ImGui::Separator();
+  if ((unsigned int)selectedModifyPoint<modifyPointsSource.size()) {
+    ImGui::Text("Point %d",selectedModifyPoint);
+    ImGui::PushItemWidth(7*5);
+    if (!modifyMode) {
+      k = modifyPointsSource[selectedModifyPoint].x;ImGui::Text("Source x"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTSX",&k,0,0)) {modifyPointsSource[selectedModifyPoint].x = k;}
+      k = modifyPointsSource[selectedModifyPoint].y;ImGui::Text("Source y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTSY",&k,0,0)) {modifyPointsSource[selectedModifyPoint].y = k;}
+      if (roundButton("Remove point##DRAWTOOLMODIFYREMOVE",true)) {
+        modifyPointsSource.erase(selectedModifyPoint,1);
+        if ((unsigned int)selectedModifyPoint<modifyPointsDest.size()) modifyPointsDest.erase(selectedModifyPoint,1);
+        if (selectedModifyPoint>=modifyPointsSource.size()) selectedModifyPoint=modifyPointsSource.size()-1;
+        createModifyTriangles();
+      }
+    } else {
+      k = modifyPointsDest[selectedModifyPoint].x;ImGui::Text("Dest x"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTDX",&k,0,0)) {modifyPointsDest[selectedModifyPoint].x = k;}
+      k = modifyPointsDest[selectedModifyPoint].y;ImGui::Text("Dest y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTDY",&k,0,0)) {modifyPointsDest[selectedModifyPoint].y = k;}
+    }
+    ImGui::PopItemWidth();
+    ImGui::Separator();
+  }
+  if (roundButton("Reset##DRAWTOOLMODIFYRESET",true)) {
+    modifyPointsSource.clear();
+    modifyPointsDest.clear();
+    selectedModifyPoint = -1;
+  }
+}
+
 void drawToolView() {
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
@@ -1090,6 +1151,9 @@ void drawToolView() {
     } break;
   case TOOL_OVERLAYS: {
       drawToolOverlaysView();
+    } break;
+  case TOOL_MODIFY: {
+      drawToolModifyView();
     } break;
   }
   ImGui::End();

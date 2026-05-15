@@ -34,6 +34,7 @@
 #include "STL/IMAGE.HPP"
 #include "UNDO.HPP"
 #include "STL/CHARSET.HPP"
+#include "STL/DELAUNTR.HPP"
 #include <math.h>
 
 
@@ -1940,6 +1941,60 @@ void drawMouseArrow2(int mouseX, int mouseY) {
   }
 }
 
+void drawOpenGLMarkerCircle(double sx, double sy, double r, unsigned int color) {
+  double aspect = aspectRatio * main_window_yres/main_window_xres;
+  if (aspect == 0) aspect = 1;
+  for (int y = -r-1; y <= r+1; y++) {
+    for (int x = -r/aspect-1; x <= r/aspect+1; x++) {
+      double px = sx + x;
+      double py = sy + y;
+      int ix = (int)floor(px);
+      int iy = (int)floor(py);
+      double dx = (ix - sx)*aspect;
+      double dy = iy - sy;
+      double d = sqrt(dx*dx + dy*dy);
+      if (d <= r) {
+        int d2 = (int)floor(d);
+        int alpha = d2<r-1 ? 255 : (1-(d - d2))*255.0;
+        if ((unsigned int)ix < glFrameBufferWidth && (unsigned int)iy < glFrameBufferHeight) {
+          unsigned int c = glFrameBuffer[ix+iy*glFrameBufferWidth];
+          int r = ((int)(color & 255) - (int)(c & 255))*alpha/255+(int)(c & 255);
+          int g = ((int)((color>>8) & 255) - (int)((c>>8) & 255))*alpha/255+(int)((c>>8) & 255);
+          int b = ((int)((color>>16) & 255) - (int)((c>>16) & 255))*alpha/255+(int)((c>>16) & 255);
+          glFrameBuffer[ix+iy*glFrameBufferWidth] = r|(g<<8)|(b<<16)|(c & 0xff000000);
+        }
+      }
+    }
+  }
+}
+
+void drawOpenGLSimpleLine(double sx0, double sy0, double sx1, double sy1, unsigned int color) {
+  sx0 = floor(sx0);
+  sy0 = floor(sy0);
+  sx1 = floor(sx1);
+  sy1 = floor(sy1);
+  int dx = sx1 - sx0;
+  int dy = sy1 - sy0;
+  int d = abs(dx);
+  if (abs(dy)>abs(dx)) d = abs(dy);
+  if (d <= 0) return;
+  double px = sx0;
+  double py = sy0;
+  double xa = (double)dx / d;
+  double ya = (double)dy / d;
+  for (int i = 0; i < d + 1; i++) {
+    int x = floor(px);
+    int y = floor(py);
+
+    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+      glFrameBuffer[x+y*glFrameBufferWidth] = color;
+    }
+
+    px += xa;
+    py += ya;
+  }
+}
+
 void toolCanvasStuff() {
   switch(tool) {
   case TOOL_TILING: {
@@ -1988,6 +2043,95 @@ void toolCanvasStuff() {
 
       }
 
+    } break;
+    case TOOL_MODIFY: {
+      Array<Vector> *points = modifyMode ?&modifyPointsDest : &modifyPointsSource;
+      if (points->empty()) break;
+      if (modifyMode) {
+        Layer *l = currentCanvas->getActiveLayer();
+        if (l != NULL && l->width>0 && l->height>0) {
+          static unsigned int lastUpdatePixelsCountHere = 0;
+          static GLuint modifyGLHandle = 0;
+          bool update = wasActiveLayerSwitched();
+          if (modifyGLHandle == 0) update = true;
+          if (l->undoData.updatePixelsCount != lastUpdatePixelsCountHere) update = true;
+          lastUpdatePixelsCountHere = l->undoData.updatePixelsCount;
+          if (update) {
+            if (modifyGLHandle!=0) glDeleteTextures(1,&modifyGLHandle);
+            glGenTextures(1,&modifyGLHandle);
+            glBindTexture(GL_TEXTURE_2D,modifyGLHandle);
+            glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, l->width, l->height, 0, GL_RGBA, GL_BYTE, l->pixels);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glBindTexture(GL_TEXTURE_2D,0);
+          }
+          glViewport(0, 0, glFrameBufferWidth, glFrameBufferHeight);
+          glMatrixMode(GL_PROJECTION);
+          glLoadIdentity();
+          glOrtho(0,glFrameBufferWidth,glFrameBufferHeight,0,-1,1);
+          glMatrixMode(GL_MODELVIEW);
+          glLoadIdentity();
+
+          if (modifyClearBackground) {
+            glBegin(GL_TRIANGLES);
+            glColor4f(1,0,1,1);
+            for (int i2 = 0; i2 < modifyTriangles.size()/3; i2++) {
+              for (int i3 = 0; i3 < 3; i3++) {
+                int p = modifyTriangles[i2*3+i3];
+                if ((unsigned int)p<points->size()) {
+                  Vector s = modifyPointsSource[p];
+                  double sx = s.x, sy = s.y; currentCanvas->getScreenPos(sx,sy,sx,sy);
+                  glVertex4f(sx,sy,0,1);
+                }
+              }
+            }
+            glEnd();
+          }
+
+          glEnable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D,modifyGLHandle);
+          glBegin(GL_TRIANGLES);
+          glColor4f(1,1,1,1);
+          for (int i2 = 0; i2 < modifyTriangles.size()/3; i2++) {
+            for (int i3 = 0; i3 < 3; i3++) {
+              int p = modifyTriangles[i2*3+i3];
+              if ((unsigned int)p<points->size()) {
+                Vector s = (*points)[p];
+                Vector t = modifyPointsSource[p];
+                double sx = s.x, sy = s.y; currentCanvas->getScreenPos(sx,sy,sx,sy);
+                double tx = t.x, ty = t.y; currentCanvas->getLayerPosFromCanvasPos(l,tx,ty,tx,ty);
+                glTexCoord2d(tx/l->width,ty/l->height);
+                glVertex4f(sx,sy,0,1);
+              }
+            }
+          }
+          glEnd();
+          glDisable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D,0);
+        }
+      }
+      for (int i2 = 0; i2 < modifyTriangles.size()/3; i2++) {
+        for (int i3 = 0; i3 < 3; i3++) {
+          int p0 = modifyTriangles[i2*3+i3];
+          int p1 = modifyTriangles[i2*3+((i3+1)%3)];
+          if ((unsigned int)p0<points->size() && (unsigned int)p1<points->size()) {
+            Vector s0 = (*points)[p0];
+            Vector s1 = (*points)[p1];
+            double sx0 = s0.x, sy0 = s0.y; currentCanvas->getScreenPos(sx0,sy0,sx0,sy0);
+            double sx1 = s1.x, sy1 = s1.y; currentCanvas->getScreenPos(sx1,sy1,sx1,sy1);
+            drawOpenGLSimpleLine(sx0,sy0,sx1,sy1,modifyMode ? 0xffffff00 : 0xff0000ff);
+          }
+        }
+      }
+      for (int i = 0; i < points->size(); i++) {
+        double sx = (*points)[i].x, sy = (*points)[i].y; currentCanvas->getScreenPos(sx,sy,sx,sy);
+        drawOpenGLMarkerCircle(sx+1,sy+1,4,0xff000000);
+        unsigned int col = 0xff0000ff;
+        if (i == selectedModifyPoint) col = 0xffffffff;
+        drawOpenGLMarkerCircle(sx,sy,4,col);
+      }
     } break;
   }
 
@@ -2167,6 +2311,328 @@ void useToolBlur() {
   }
 }
 
+Array<Vector> modifyPointsSource;
+Array<Vector> modifyPointsDest;
+Array<unsigned int> modifyTriangles;
+int selectedModifyPoint = -1;
+bool modifyMode = false;
+bool modifyClearBackground = false;
+bool modifyFiltered = true;
+bool modifyOutlined = false;
+
+void createModifyTriangles() {
+  Array<double> points;
+
+  for (int i = 0; i < modifyPointsSource.size(); i++) {
+    points.push_back(modifyPointsSource[i].x);
+    points.push_back(modifyPointsSource[i].y);
+  }
+
+  Delaunator delau;
+  delau.delaunator(&points);
+
+  modifyTriangles.clear();
+  for (int i2 = 0; i2 < delau.triangles.size(); i2++) modifyTriangles.push_back(delau.triangles[i2]);
+}
+
+void bakeModify() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL || l->width<1 || l->height<1 || modifyPointsSource.size() != modifyPointsDest.size() || modifyPointsSource.size()<3) return;
+  beforeUndoPoint();
+  Vector minB,maxB;
+  bool first = true;
+  for (int i = 0; i < modifyPointsSource.size(); i++) {
+    Vector k = modifyPointsSource[i];
+    if (first || k.x < minB.x) minB.x = k.x;
+    if (first || k.y < minB.y) minB.y = k.y;
+    if (first || k.x > maxB.x) maxB.x = k.x;
+    if (first || k.y > maxB.y) maxB.y = k.y;
+    first = false;
+  }
+  for (int i2 = 0; i2 < modifyPointsDest.size(); i2++) {
+    Vector k = modifyPointsDest[i2];
+    if (first || k.x < minB.x) minB.x = k.x;
+    if (first || k.y < minB.y) minB.y = k.y;
+    if (first || k.x > maxB.x) maxB.x = k.x;
+    if (first || k.y > maxB.y) maxB.y = k.y;
+    first = false;
+  }
+  double lx0 = minB.x, ly0 = minB.y; currentCanvas->getLayerPosFromCanvasPos(l,lx0,ly0,lx0,ly0);
+  double lx1 = maxB.x, ly1 = maxB.y; currentCanvas->getLayerPosFromCanvasPos(l,lx1,ly1,lx1,ly1);
+  int layerStartX = (int)floor(lx0);
+  int layerStartY = (int)floor(ly0);
+  int layerEndX = (int)floor(lx1)+1;
+  int layerEndY = (int)floor(ly1)+1;
+  if (layerStartX < 0) layerStartX = 0;
+  if (layerStartY < 0) layerStartY = 0;
+  if (layerEndX > l->width) layerEndX = l->width;
+  if (layerEndY > l->height) layerEndY = l->height;
+  Layer *clone = l->clone();
+  Array<Vector> source;
+  Array<Vector> dest;
+  int pointCount = modifyPointsSource.size();
+  for (int i3 = 0; i3 < pointCount; i3++) {
+    double lx,ly;
+    lx = modifyPointsSource[i3].x; ly = modifyPointsSource[i3].y; currentCanvas->getLayerPosFromCanvasPos(l,lx,ly,lx,ly); source.push_back(Vector(floor(lx),floor(ly)));
+    lx = modifyPointsDest[i3].x; ly = modifyPointsDest[i3].y; currentCanvas->getLayerPosFromCanvasPos(l,lx,ly,lx,ly); dest.push_back(Vector(floor(lx),floor(ly)));
+  }
+  int triangleCount = modifyTriangles.size()/3;
+  Array<double> values;
+  values.resize(triangleCount*3);
+
+  // meanValueCoordinates (don't work for inner latice points)
+
+  initStatusBar();
+  if (modifyClearBackground) {
+    for (int y = layerStartY; y < layerEndY; y++) {
+      if ((y & 15)==0) updateStatusBar();
+      for (int x = layerStartX; x < layerEndX; x++) {
+        Vector p(x,y);
+        double sum = 0;
+        bool thisPixelShouldBeProcessed = false;
+        for (int i = 0; i < triangleCount; i++) {
+          Vector d[3];
+          d[0] = (unsigned int)modifyTriangles[i*3+0]<pointCount?source[modifyTriangles[i*3+0]]:Vector();
+          d[1] = (unsigned int)modifyTriangles[i*3+1]<pointCount?source[modifyTriangles[i*3+1]]:Vector();
+          d[2] = (unsigned int)modifyTriangles[i*3+2]<pointCount?source[modifyTriangles[i*3+2]]:Vector();
+  
+          bool allIn = true;
+          for (int t = 0; t < 3; t++) {
+            int t2 = (t+1)%3;
+            double nx = d[t2].x-d[t].x;
+            double ny = d[t2].y-d[t].y;
+            double tx = ny;
+            double ty = -nx;
+            double dist = tx*(p.x-d[t].x)+ty*(p.y-d[t].y);
+            if (dist < 0) allIn = false;
+          }
+          if (allIn) thisPixelShouldBeProcessed = true;
+        }         
+        if (thisPixelShouldBeProcessed) l->pixels[x+y*l->width] = 0;
+      }
+    }
+  }
+
+  double bary[3];
+  int baryTriangle = 0;
+  for (int y = layerStartY; y < layerEndY; y++) {
+    if ((y & 15)==0) updateStatusBar();
+    for (int x = layerStartX; x < layerEndX; x++) {
+      Vector p(x,y);
+      double sum = 0;
+      bool thisPixelShouldBeProcessed = false;
+      baryTriangle = -1;
+      for (int i = 0; i < triangleCount; i++) {
+        Vector d[3];
+        d[0] = (unsigned int)modifyTriangles[i*3+0]<pointCount?dest[modifyTriangles[i*3+0]]:Vector();
+        d[1] = (unsigned int)modifyTriangles[i*3+1]<pointCount?dest[modifyTriangles[i*3+1]]:Vector();
+        d[2] = (unsigned int)modifyTriangles[i*3+2]<pointCount?dest[modifyTriangles[i*3+2]]:Vector();
+
+        bool allIn = true;
+        for (int t = 0; t < 3; t++) {
+          int t2 = (t+1)%3;
+          double nx = d[t2].x-d[t].x;
+          double ny = d[t2].y-d[t].y;
+          double tx = ny;
+          double ty = -nx;
+          double dist = tx*(p.x-d[t].x)+ty*(p.y-d[t].y);
+          if (dist < 0) allIn = false;
+        }
+        if (allIn) thisPixelShouldBeProcessed = true;
+        if (allIn) {
+          double w = 0;
+          for (int t = 0; t < 3; t++) {
+            int t2 = (t+1)%3;
+            double nx = d[t2].x-d[t].x;
+            double ny = d[t2].y-d[t].y;
+            double tx = ny;
+            double ty = -nx;
+            double dist = tx*(p.x-d[t].x)+ty*(p.y-d[t].y);
+            bary[t] = dist;
+            w += bary[t];
+          }
+          if (w != 0) {bary[0]/=w;bary[1]/=w;bary[2]/=w;}
+          baryTriangle = i;
+        }
+
+        if (modifyOutlined) {
+          d[0] -= p;
+          d[1] -= p;
+          d[2] -= p;
+          double tans[3];
+          for (int j = 0; j < 3; j++) {
+            int j2 = (j+1)%3;
+            double r = length(d[j]);
+            double r2 = length(d[j2]);
+            if (r < 0.01) r = 0.01;
+            if (r2 < 0.01) r2 = 0.01;
+            double k = r*r2;
+            double ang = 0;
+            if (k != 0) {
+              double dotp = (d[j].x*d[j2].x+d[j].y*d[j2].y)/k;
+              double crossp = (d[j].x*d[j2].y-d[j].y*d[j2].x)/k;
+              if (crossp != 0 || dotp != 0) ang = atan2(crossp,dotp);
+            }
+            tans[j] = tan(ang*0.5);
+          }
+          for (int j2 = 0; j2 < 3; j2++) {
+            double r = length(d[j2]);
+            if (r < 0.01) r = 0.01;
+            values[i*3+j2] = (tans[(j2+3-1)%3]+tans[j2])/r;
+            sum += values[i*3+j2];
+          }
+        }
+      }
+
+      if (thisPixelShouldBeProcessed) {
+        double tx = 0, ty = 0;
+        if (modifyOutlined) {
+          if (sum != 0) {
+            for (int k = 0; k < values.size(); k++) {
+              values[k] /= sum;
+            }
+  
+            for (int i = 0; i < triangleCount; i++) {
+              for (int j = 0; j < 3; j++) {
+                double f = values[i*3+j];
+                Vector d; d = (unsigned int)modifyTriangles[i*3+j]<pointCount?source[modifyTriangles[i*3+j]]:Vector();
+                tx += d.x * f;
+                ty += d.y * f;
+              }
+            }
+          }    
+        } else {
+          if ((unsigned int)baryTriangle < triangleCount) {
+            tx = 0;
+            ty = 0;
+            for (int j = 0; j < 3; j++) {
+              double f = bary[j];
+              int j2 = (j + 3 - 1) % 3;
+              Vector d; d = (unsigned int)modifyTriangles[baryTriangle*3+j2]<pointCount?source[modifyTriangles[baryTriangle*3+j2]]:Vector();
+              tx += d.x * f;
+              ty += d.y * f;
+            }
+          }
+        }
+  
+        int txi = (int)floor(tx);
+        int tyi = (int)floor(ty);
+        if ((unsigned int)txi<clone->width&&(unsigned int)tyi<clone->height) {
+          if (!modifyFiltered) {
+            unsigned int col = clone->pixels[txi+tyi*clone->width];
+            l->pixels[x+y*l->width] = col;
+          } else {
+            double fx = tx-txi;
+            double fy = ty-tyi;
+            unsigned int p00 = clone->pixels[txi+tyi*clone->width];
+            unsigned int p10 = txi<clone->width-1?clone->pixels[txi+1+tyi*clone->width]:p00;
+            unsigned int p01 = tyi<clone->height-1?clone->pixels[txi+(tyi+1)*clone->width]:p00;
+            unsigned int p11 = txi<clone->width-1 && tyi<clone->height-1?clone->pixels[txi+1+(tyi+1)*clone->width]:p00;
+            double rt = ((int)(p10 & 255) - (int)(p00 & 255))*fx + (int)(p00 & 255);
+            double gt = ((int)((p10>>8) & 255) - (int)((p00>>8) & 255))*fx + (int)((p00>>8) & 255);
+            double bt = ((int)((p10>>16) & 255) - (int)((p00>>16) & 255))*fx + (int)((p00>>16) & 255);
+            double at = ((int)((p10>>24) & 255) - (int)((p00>>24) & 255))*fx + (int)((p00>>24) & 255);
+            double rb = ((int)(p11 & 255) - (int)(p01 & 255))*fx + (int)(p01 & 255);
+            double gb = ((int)((p11>>8) & 255) - (int)((p01>>8) & 255))*fx + (int)((p01>>8) & 255);
+            double bb = ((int)((p11>>16) & 255) - (int)((p01>>16) & 255))*fx + (int)((p01>>16) & 255);
+            double ab = ((int)((p11>>24) & 255) - (int)((p01>>24) & 255))*fx + (int)((p01>>24) & 255);
+            int r = floor((rb - rt) * fy + rt);
+            int g = floor((gb - gt) * fy + gt);
+            int b = floor((bb - bt) * fy + bt);
+            int a = floor((ab - at) * fy + at);
+            if (r > 255) r = 255;
+            if (g > 255) g = 255;
+            if (b > 255) b = 255;
+            if (a > 255) a = 255;
+            if (r < 0) r = 0;
+            if (g < 0) g = 0;
+            if (b < 0) b = 0;
+            if (a < 0) a = 0;
+            l->pixels[x+y*l->width] = r|(g<<8)|(b<<16)|(a<<24);
+          }
+        }
+      }
+    }
+  }
+  modifyPointsDest.clear();
+  modifyMode = false;
+  delete clone;
+  updatedPixels(l);
+  repaintLayer(l,true);
+  afterUndoPoint();
+}
+
+void useToolModify() {
+  if (!isPaintAreaActive()) return;
+
+  static bool lastMouseDown = false;
+  static bool clickEnabled = false;
+  static double startMouseX=0;
+  static double startMouseY=0;
+  bool clicked = false;
+  static bool prohibit = false;
+  if (ImGui::IsMouseDown(0)) {
+    if (!lastMouseDown) {
+      startMouseX = mouseX;
+      startMouseY = mouseY;
+      clickEnabled = true;
+      prohibit = false;
+    }
+    double dx = mouseX - startMouseX;
+    double dy = mouseY - startMouseY;
+    double d = sqrt(dx*dx+dy*dy);
+    if (d > 4) clickEnabled = false;
+    lastMouseDown = true;
+  } else {
+    if (lastMouseDown) clicked = true;
+    lastMouseDown = false;
+  }
+
+  if (ImGui::IsMouseDown(1)) {
+    prohibit = true;
+  }
+
+  Array<Vector> *points = modifyMode ? &modifyPointsDest : &modifyPointsSource;
+
+  if (ImGui::IsMouseClicked(0)) {
+    double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+    int found = -1;
+    double ld = 0;
+    for (int i = 0; i < points->size(); i++) {
+      double dx = (*points)[i].x - cx;
+      double dy = (*points)[i].y - cy;
+      double d = dx*dx+dy*dy;
+      if (d < ld || i == 0) {
+        ld = d;
+        found = i;
+      }
+    }
+    selectedModifyPoint = found;
+  }
+
+  if (clicked && clickEnabled) {
+    if (!prohibit) {
+      if (!modifyMode) {
+        double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+        points->push_back(Vector(cx,cy));
+        selectedModifyPoint = points->size()-1;
+        createModifyTriangles();
+      }
+    }
+  }
+
+  if (ImGui::IsMouseDown(0) && (!clickEnabled)) {
+    if (!prohibit) {
+      if ((unsigned int)selectedModifyPoint<points->size()) {
+        double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+        (*points)[selectedModifyPoint].x = cx;
+        (*points)[selectedModifyPoint].y = cy;
+        if (!modifyMode) createModifyTriangles();
+      }
+    }
+  }
+}
+
 void useTool() {
   double mouseXBefore = mouseX;
   double mouseYBefore = mouseY;
@@ -2214,6 +2680,9 @@ void useTool() {
     } break;
   case TOOL_OVERLAYS: {
     useToolSelection();
+    } break;
+  case TOOL_MODIFY: {
+    useToolModify();
     } break;
   }
   mouseX = mouseXBefore;
