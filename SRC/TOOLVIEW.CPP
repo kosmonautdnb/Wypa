@@ -93,21 +93,23 @@ void freeToolView() {
 }
 
 void repaintGradientTexture(Gradient *gradient) {
-  for (int y = 0; y < gradientTextureHeight; y++) {
-    for (int x = 0; x < gradientTextureWidth; x++) {
-      float fx = (float)x / (gradientTextureWidth-1);
-      float fy = (float)y / (gradientTextureHeight-1);
-      if (gradient->round) {
-        fx = fx * 2 - 1;
-        fy = fy * 2 - 1;
+  if (gradientTexture != 0) {
+    for (int y = 0; y < gradientTextureHeight; y++) {
+      for (int x = 0; x < gradientTextureWidth; x++) {
+        float fx = (float)x / (gradientTextureWidth-1);
+        float fy = (float)y / (gradientTextureHeight-1);
+        if (gradient->round) {
+          fx = fx * 2 - 1;
+          fy = fy * 2 - 1;
+        }
+        unsigned int col = gradient->getColor2D(fx,fy);
+        gradientTextureContent[x+y*gradientTextureWidth] = gammaCorrect(col);
       }
-      unsigned int col = gradient->getColor2D(fx,fy);
-      gradientTextureContent[x+y*gradientTextureWidth] = col;
     }
+    glBindTexture(GL_TEXTURE_2D,gradientTexture);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, &gradientTextureContent[0]);
+    glBindTexture(GL_TEXTURE_2D,0);
   }
-  glBindTexture(GL_TEXTURE_2D,gradientTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, gradientTextureWidth, gradientTextureHeight, 0, GL_RGBA, GL_BYTE, &gradientTextureContent[0]);
-  glBindTexture(GL_TEXTURE_2D,0);
 }
 
 void drawToolWandView() {
@@ -272,6 +274,57 @@ void drawBrushSelect(bool pencil) {
   if (roundButton("Load##DRAWBRUSHSELECTLOADBRUSH",true)) {dialogLoadSave(true,DIALOG_LOADBRUSH);}
   ImGui::SameLine();
   if (roundButton("Save##DRAWBRUSHSELECTSAVEBRUSH",true)) {dialogLoadSave(true,DIALOG_SAVEBRUSH);}  
+  ImGui::SameLine();
+  if (roundButton("Get##DRAWBRUSHSELECTGETBRUSH1",true)) {
+    Layer *l = currentCanvas->getActiveLayer();
+    if (l != NULL && l->hasSelection() != NULL) {
+      if ((unsigned int)currentBrush<brushes.size()) {
+        Brush *brush = brushes[currentBrush];
+        int minX = 0, minY = 0, maxX = 0, maxY = 0; bool first = true;
+        for (int y = 0; y < l->height; y++) {
+          for (int x = 0; x < l->width; x++) {
+            if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {
+              if (first || x < minX) minX = x;
+              if (first || y < minY) minY = y;
+              if (first || x > maxX) maxX = x;
+              if (first || y > maxY) maxY = y;
+              first = false;
+            }
+          }
+        }
+        maxX++;
+        maxY++;
+        RGBAImage img;
+        img.width = maxX-minX;
+        img.height = maxY-minY;
+        img.data = (unsigned int*)malloc(img.width*img.height*sizeof(unsigned int));
+        for (int y2 = 0; y2 < img.height; y2++) {
+          for (int x2 = 0; x2 < img.width; x2++) {
+            int sx = x2 + minX;
+            int sy = y2 + minY;
+            unsigned int col = 0x00000000;
+            if ((unsigned int)sx < l->width && (unsigned int)sy < l->height) {
+              col = l->pixels[sx+sy*l->width];
+            }
+            img.data[x2+y2*img.width] = col;
+          }
+        }
+        if (img.width > 128 || img.height > 128) {
+          int m = img.width;
+          if (img.height > m) m = img.height;
+          if (m != 0) {
+            RGBAImage img2 = img.getResized(128*img.width/m,128*img.height/m);
+            img.free();
+            img = img2;
+          }
+        }
+        scanSampleDistanceField(brush, img);
+        brush->isDistanceField = true;
+        brush->update();
+        img.free();
+      }
+    }
+  } 
   if (roundButton("Load brushes##DRAWBRUSHSELECTLOADBRUSHES",true)) {dialogLoadSave(true,DIALOG_LOADBRUSHES);}
   if (roundButton("Save brushes##DRAWBRUSHSELECTSAVEBRUSHES",true)) {dialogLoadSave(true,DIALOG_SAVEBRUSHES);}  
   ImGui::Separator();
@@ -356,6 +409,10 @@ void drawToolLineView() {
   ImGui::InputFloat("##DRAWTOOLLINEVIEWLINEWIDTH",&lineWidth,0,0,2); if (lineWidth < 0) lineWidth = 0;
   ImGui::Text("Line cap"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLLINEVIEWLINECAP",&lineCap);
   ImGui::Text("Antialiasing"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLLINEVIEWLINEANTIALIASING",&lineAntialiasing);
+}
+
+void refreshToolViewTextures() {
+  repaintGradientTexture(&gradient);
 }
 
 void updateGradient() {
@@ -500,7 +557,7 @@ void drawToolMagicView() {
 
     if (roundButton("Gradiation##DRAWTOOLMAGICGRADIENTCURVES",true)) {gradientCurvesToColorTransform = t; dialogGradiationCurves(true);}
    
-    ImGui::Text("Monitor gamma");
+    ImGui::Text("Output gamma");
     v = &t->gamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;}
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAMMAINVERT",&t->gammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;}
       
@@ -711,9 +768,11 @@ void updateTilingGrid(Layer *l, bool visible) {
 }
 
 void updateTilingTexture() {
-  glBindTexture(GL_TEXTURE_2D,tilingTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, &tilingTextureContent[0]);
-  glBindTexture(GL_TEXTURE_2D,0);
+  if (tilingTexture != 0) {
+    glBindTexture(GL_TEXTURE_2D,tilingTexture);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, &tilingTextureContent[0]);
+    glBindTexture(GL_TEXTURE_2D,0);
+  }
 }
 
 void updateTilingImage(const RGBAImage &image) {
@@ -734,39 +793,42 @@ void updateTilingImage(const RGBAImage &image) {
         int y3 = (int)floor(y2);
         if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
       }
-      tilingTextureContent[x+y*tilingTextureWidth] = col;
+      tilingTextureContent[x+y*tilingTextureWidth] = gammaCorrect(col);
     }
   }
   updateTilingTexture();
 }
 
 void updateTilingImageAnim(const RGBAImage &image) {
-  double px = currentCanvas->control.pixelSizeX;
-  double py = currentCanvas->control.pixelSizeY;
-  for (int y = 0; y < tilingTextureHeight; y++) {
-    for (int x = 0; x < tilingTextureWidth; x++) {
-      unsigned int col = 0x00000000;
-      if (image.data != NULL && image.width > 0 && image.height > 0 && px > 0 && py > 0) {
-        double scaleX = (double)image.width/tilingTextureWidth*px;
-        double scaleY = (double)image.height/tilingTextureHeight*py;
-        double scale = scaleX > scaleY ? scaleX : scaleY;
-        double x2 = (double)(x - tilingTextureWidth*0.5)*scale/px;
-        double y2 = (double)(y - tilingTextureHeight*0.5)*scale/py;
-        x2 += image.width*0.5;
-        y2 += image.height*0.5;
-        int x3 = (int)floor(x2);
-        int y3 = (int)floor(y2);
-        if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
+  if (tilingTexture != 0) {
+    double px = currentCanvas->control.pixelSizeX;
+    double py = currentCanvas->control.pixelSizeY;
+    for (int y = 0; y < tilingTextureHeight; y++) {
+      for (int x = 0; x < tilingTextureWidth; x++) {
+        unsigned int col = 0x00000000;
+        if (image.data != NULL && image.width > 0 && image.height > 0 && px > 0 && py > 0) {
+          double scaleX = (double)image.width/tilingTextureWidth*px;
+          double scaleY = (double)image.height/tilingTextureHeight*py;
+          double scale = scaleX > scaleY ? scaleX : scaleY;
+          double x2 = (double)(x - tilingTextureWidth*0.5)*scale/px;
+          double y2 = (double)(y - tilingTextureHeight*0.5)*scale/py;
+          x2 += image.width*0.5;
+          y2 += image.height*0.5;
+          int x3 = (int)floor(x2);
+          int y3 = (int)floor(y2);
+          if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
+        }
+        tilingTextureContentAnim[x+y*tilingTextureWidth] = gammaCorrect(col);
       }
-      tilingTextureContentAnim[x+y*tilingTextureWidth] = col;
     }
+    glBindTexture(GL_TEXTURE_2D,tilingTexture);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, &tilingTextureContentAnim[0]);
+    glBindTexture(GL_TEXTURE_2D,0);
   }
-  glBindTexture(GL_TEXTURE_2D,tilingTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, tilingTextureWidth, tilingTextureHeight, 0, GL_RGBA, GL_BYTE, &tilingTextureContentAnim[0]);
-  glBindTexture(GL_TEXTURE_2D,0);
 }
 
 RGBAImage getImageFromLayer(Layer *l, int sx,int sy, int width, int height);
+void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy);
 
 bool getTilingAnimationFrameLayerCell(Layer *l,int frame, int &cx, int &cy, int &outaX, int &outaY) {
   if (l->toolInfo.tilingWidth <= 0) return false;
@@ -781,7 +843,21 @@ bool getTilingAnimationFrameLayerCell(Layer *l,int frame, int &cx, int &cy, int 
   return true;
 }
 
-void blitTilingAnimFrame(Layer *l,int frame) {
+RGBAImage getTilingAnimRGBAImage(Layer *l,int frame) {
+  RGBAImage ret;
+  int cx,cy,outaX,outaY; 
+  if (!getTilingAnimationFrameLayerCell(l,frame,cx,cy,outaX,outaY)) return ret;
+  cx *= l->toolInfo.tilingWidth;
+  cy *= l->toolInfo.tilingHeight;
+  cx += outaX;
+  cy += outaY;
+  int tw = l->toolInfo.tilingWidth;
+  int th = l->toolInfo.tilingHeight;
+  ret = getImageFromLayer(l,cx,cy,tw,th);
+  return ret;
+}
+
+void putTilingAnimRGBAImage(const RGBAImage &img, Layer *l,int frame) {
   int cx,cy,outaX,outaY; 
   if (!getTilingAnimationFrameLayerCell(l,frame,cx,cy,outaX,outaY)) return;
   cx *= l->toolInfo.tilingWidth;
@@ -790,7 +866,13 @@ void blitTilingAnimFrame(Layer *l,int frame) {
   cy += outaY;
   int tw = l->toolInfo.tilingWidth;
   int th = l->toolInfo.tilingHeight;
-  RGBAImage tile = getImageFromLayer(l,cx,cy,tw,th);
+  if (tw != img.width || th != img.height) return;
+  putImageToLayer(l,img,cx,cy);
+}
+
+void blitTilingAnimFrame(Layer *l,int frame) {
+  RGBAImage tile = getTilingAnimRGBAImage(l,frame);
+  if (tile.data == NULL) return;
   updateTilingImageAnim(tile);
   tile.free();
 }
@@ -805,7 +887,7 @@ void playTilingAnimation(Layer *l) {
   if (l->toolInfo.tilingAnimTime<0) {l->toolInfo.tilingAnimTime += s * floor(-l->toolInfo.tilingAnimTime/s+1);}
   int tilingFrame = floor(l->toolInfo.tilingAnimTime);
   if (tilingFrame<0) {blitTilingAnimFrame(l,f0); return;}
-  tilingFrame %= s;
+  tilingFrame %= (s+1);
   tilingFrame += l->toolInfo.tilingAnimFirstFrame;
   l->toolInfo.tilingAnimFrame = tilingFrame;
   blitTilingAnimFrame(l,tilingFrame);
@@ -863,6 +945,9 @@ void drawToolTilingView() {
     ImGui::Text("Reverse"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLTILINGANIMATIONREVERSE",&l->toolInfo.tilingAnimReverse);
     ImGui::PopItemWidth();
     if (l->toolInfo.tilingAnimPlaying) playTilingAnimation(l);
+    ImGui::Separator();
+    if (roundButton("Save anim",l->toolInfo.tilingAnimLastFrame>=l->toolInfo.tilingAnimFirstFrame)) {dialogLoadSave(true, DIALOG_SAVETILINGANIM);}
+    if (roundButton("Load anim",true)) {dialogLoadSave(true, DIALOG_LOADTILINGANIM);}
   }
 }
 
@@ -973,10 +1058,27 @@ void drawToolOverlaysView() {
     o->ly0 = ly0;
     currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
   }
+  if (roundButton("Add sprite##DRAWTOOLOVERLAYSVIEWADDSPRITE",hasSel)) {
+    int lx0=0,ly0=0,lx1=0,ly1=0; bool first = true; for (int y = 0; y < l->height; y++) {for (int x = 0; x < l->width; x++) {if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {if (first || x < lx0) lx0 = x; if (first || y < ly0) ly0 = y; if (first || x > lx1) lx1 = x; if (first || y > ly1) ly1 = y; first = false; } } }
+    lx1++;
+    ly1++;
+    Overlay *o = new Overlay();
+    o->type = OVERLAYTYPE_CANVASSPRITE; o->layerId = l->id;
+    o->lx0 = lx0;
+    o->ly0 = ly0;
+    o->lx1 = lx1;
+    o->ly1 = ly1;
+    o->cx0 = 0;
+    o->cy0 = 0;
+    currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
+  }
   ImGui::Text("Overlays"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWOVERLAYS",&currentCanvas->showOverlays)) {shouldUpdateAll = true;}
   ImGui::Text("Annotations"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWANNOTATIONS",&currentCanvas->showAnnotations)) {shouldUpdateAll = true;}
   ImGui::Text("Lines"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWLINES",&currentCanvas->showLines)) {shouldUpdateAll = true;}
-  ImGui::BeginChild("DRAWTOOLOVERLAYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
+  ImGui::Text("Sprites"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWSPRITES",&currentCanvas->showSprites)) {shouldUpdateAll = true;}
+  ImGui::BeginChild("DRAWTOOLOVERLAYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y-20));
+  static int selectedOverlay = -1;
+  static bool scrollToSelectedOverlay = false;
   for (int i = 0; i < currentCanvas->overlays.size(); i++) {
     Overlay *o = currentCanvas->overlays[i];
     Layer *l = NULL;
@@ -987,6 +1089,8 @@ void drawToolOverlaysView() {
       }
     }
     if (l != NULL) {
+      ImVec2 cursor2 = ImGui::GetCursorScreenPos();
+      if (scrollToSelectedOverlay && selectedOverlay == i) {scrollToSelectedOverlay = false; ImGui::SetScrollPosHere();}
       ImGui::Text("%s",l->name);
       ImGui::Text("Visible"); ImGui::SameLine(); if (ImGui::Checkbox(combined(String("##DRAWTOOLOVERLAYSVIEWVISIBLE")+String::fromInt(i)).c_str(),&o->visible)) {shouldUpdateAll = true;}
       switch(o->type) {
@@ -1024,7 +1128,22 @@ void drawToolOverlaysView() {
         case OVERLAYTYPE_SEPERATINGLINEY: {
           ImGui::Text("Vertical %d",o->lx0);
         } break;
+        case OVERLAYTYPE_CANVASSPRITE: {
+          ImGui::Text("W %d H %d",o->lx1-o->lx0,o->ly1-o->ly0);
+          int x = o->cx0;
+          int y = o->cy0;
+          ImGui::PushItemWidth(7*5);
+          ImGui::Text("Pos X"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWSCX0")+String::fromInt(i)).c_str(),&x,0,0)) {shouldUpdateAll = true;}
+          ImGui::Text("Pos Y"); ImGui::SameLine(); if (ImGui::InputInt(combined(String("##DRAWTOOLOVERLAYSVIEWSCY0")+String::fromInt(i)).c_str(),&y,0,0)) {shouldUpdateAll = true;}
+          ImGui::PopItemWidth();
+          o->cx0 = x;
+          o->cy0 = y;
+        } break;
       }
+      ImVec2 cursor3 = ImGui::GetCursorScreenPos();
+      cursor3.x = cursor2.x + toolview_width;
+      if (ImGui::IsMouseDown(0) && ImGui::IsMouseHoveringRect(cursor2,cursor3)) selectedOverlay = i;
+      if (selectedOverlay == i) ImGui::GetWindowDrawList()->AddRectFilled(cursor2,cursor3,0x40c0c000);
     }
     if (roundButton(combined(String("Remove##DRAWTOOLOVERLAYSVIEWREMOVEOVERLAY")+String::fromInt(i)).c_str(),true)) {
       shouldUpdateAll = true;
@@ -1034,6 +1153,24 @@ void drawToolOverlaysView() {
     ImGui::Separator();
   }
   ImGui::EndChild();
+
+  if ((unsigned int)selectedOverlay < currentCanvas->overlays.size()) {
+    if (roundButton("Up##DRAWTOOLOVERLAYVIEWMOVEUP",selectedOverlay>0)) {
+      Overlay *o = currentCanvas->overlays[selectedOverlay];
+      currentCanvas->overlays.erase(selectedOverlay,1);
+      selectedOverlay--;
+      scrollToSelectedOverlay = true;
+      currentCanvas->overlays.insert(o,selectedOverlay);
+    }
+    ImGui::SameLine();
+    if (roundButton("Down##DRAWTOOLOVERLAYVIEWMOVEDOWN",selectedOverlay<currentCanvas->overlays.size()-1)) {
+      Overlay *o = currentCanvas->overlays[selectedOverlay];
+      currentCanvas->overlays.erase(selectedOverlay,1);
+      selectedOverlay++;
+      scrollToSelectedOverlay = true;
+      currentCanvas->overlays.insert(o,selectedOverlay);
+    }
+  }
 }
 
 Array<Vector> modifyPointsSourceSaved;
@@ -1050,7 +1187,10 @@ void drawToolModifyView() {
     }
   }
   if (roundButton("Bake into##DRAWTOOLMODIFYBAKE",true)) {
-    bakeModify();
+    bakeModify(false);
+  }
+  if (roundButton("Make selection##DRAWTOOLMODIFYCREATESELECTION",true)) {
+    bakeModify(true);
   }
   int k;
   ImGui::Separator();

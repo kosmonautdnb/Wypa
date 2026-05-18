@@ -560,7 +560,8 @@ enum OVERLAYTYPES {
   OVERLAYTYPE_NORMAL = 0,
   OVERLAYTYPE_ANNOTATION = 1,
   OVERLAYTYPE_SEPERATINGLINEX = 2,
-  OVERLAYTYPE_SEPERATINGLINEY = 3
+  OVERLAYTYPE_SEPERATINGLINEY = 3,
+  OVERLAYTYPE_CANVASSPRITE = 4
 };
 
 class Overlay {
@@ -574,8 +575,11 @@ public:
     annotationColor = 0xffffffff;
     annotationFontSize = 3.f;
     sprintf(annotationText,"annotation");
+    static int idCounter = 0; idCounter++;
+    id = idCounter;
   }
   bool visible;
+  int id;
   int type;
   unsigned int layerId;
   int lx0,ly0,lx1,ly1;
@@ -587,6 +591,7 @@ public:
 #define S_OVERLAY(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
   S_IDREFERENCE("layerId",(__o__)->layerId);\
+  S_INT("id",(__o__)->id);\
   S_INT("type",(__o__)->type);\
   S_BOOL("visible",(__o__)->visible);\
   S_INT("lx0",(__o__)->lx0);\
@@ -679,6 +684,7 @@ public:
   bool showOverlays;
   bool showAnnotations;
   bool showLines;
+  bool showSprites;
 
   Canvas() {
     width = 0;
@@ -708,6 +714,7 @@ public:
     showOverlays = true;
     showAnnotations = true;
     showLines = true;
+    showSprites = true;
   }
 
   ~Canvas() {
@@ -767,6 +774,7 @@ public:
   void insertAlphaMasks();
   void applyAlphaMaskToBelow();
   void quantizeLayers();
+  void convertFromAlphaToPremul();
 
   void selectAll();
   void selectNone(bool all);
@@ -778,8 +786,8 @@ public:
   void selectAllLayers();
   void showAllLayers(bool show);
 
-  void moveLayersUp();
-  void moveLayersDown();
+  unsigned int moveLayersUp();
+  unsigned int moveLayersDown();
   void compactLayers();
 
   void fillSelectionWithColor(unsigned int color);
@@ -849,6 +857,7 @@ public:
   S_BOOL("showAnnotations",(__o__)->showAnnotations);\
   S_BOOL("showOverlays",(__o__)->showOverlays);\
   S_BOOL("showLines",(__o__)->showLines);\
+  S_BOOL("showSprites",(__o__)->showSprites);\
   S_CANVASCONTROL("control",&(__o__)->control);\
   (__o__)->control.setCanvasTransform(__o__);\
   Canvas *helperCanvas = __o__; S_POINTER_ARRAY("layers",helperCanvas->layers,Layer,S_LAYER(NULL,helperCanvas->layers[i]));\
@@ -864,8 +873,9 @@ extern Layer *selectionPlane;
 extern bool showSelectionPlane;
 extern bool showSelectionPlaneBounding;
 extern bool clearOutlineAfterNextPaint;
-
+extern float monitorGamma;
 extern bool shouldRecreateQuantization;
+extern bool showOnlyActiveLayersSelection;
 
 void repaintLayer(Layer *layer, bool fullUpdate);
 void blitCanvas();
@@ -878,6 +888,7 @@ void addTempPicture();
 void newPicture(int w, int h,const String &pictureName);
 void duplicatePicture(bool mergeLayers);
 
-#define S_LAYERS_CPP()
+#define S_LAYERS_CPP()\
+  S_BOOL("showOnlyActiveLayersSelection", showOnlyActiveLayersSelection);
 
 #endif //__LAYERS_HPP__

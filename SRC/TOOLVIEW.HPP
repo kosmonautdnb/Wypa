@@ -24,16 +24,21 @@
 #ifndef __TOOLVIEW_HPP__
 #define __TOOLVIEW_HPP__
 
+#include "STL/IMAGE.HPP"
+
 extern int toolview_width;
 
 void initToolView();
 void freeToolView();
 void drawToolView();
 
+void refreshToolViewTextures();
 void updateGradient();
 void updateTilingImage(const class RGBAImage &image);
 void toolChangeMessage(int lastTool, int tool);
 
+RGBAImage getTilingAnimRGBAImage(class Layer *l,int frame);
+void putTilingAnimRGBAImage(const RGBAImage &img, Layer *l,int frame);
 bool getTilingAnimationFrameLayerCell(class Layer *l,int frame, int &cx, int &cy, int &outaX, int &outaY);
 
 #define S_TOOLVIEW_CPP()

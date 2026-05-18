@@ -35,7 +35,7 @@
 
 bool roundButton(const char *name, bool enabled);
 
-int scrollToLayerId = 0;
+unsigned int scrollToLayerId = 0;
 
 void initLayerView() {
 }
@@ -92,8 +92,7 @@ void drawLayerView() {
     ImVec2 cursor = ImGui::GetCursorScreenPos();
 
     if (scrollToLayerId != 0) {
-      if (l->id == scrollToLayerId) ImGui::SetScrollPosHere();
-      scrollToLayerId = 0;
+      if (l->id == scrollToLayerId) {ImGui::SetScrollPosHere(); scrollToLayerId = 0;}
     }
 
     SVG *svg = &svgs["visible"];
@@ -118,7 +117,7 @@ void drawLayerView() {
     ImGui::InvisibleButton("##LAYERVIEWINVISIBLEBUTTON",ImVec2(sidebar_width,CELLSIZE));
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_NONE) {currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_CTRL) {currentCanvas->copyActiveSelectionToLayer(currentCanvas->getActiveLayerIndex(),i);currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_SHIFT) {l->state.selected = !l->state.selected;Layer *k = currentCanvas->getActiveLayer(); if (k != NULL) k->state.selected = true;}// currentCanvas->setActiveLayer(-1);}
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_SHIFT) {l->state.selected = !l->state.selected;Layer *k = currentCanvas->getActiveLayer(); if (k != NULL) k->state.selected = true; shouldUpdateAll = true;}// currentCanvas->setActiveLayer(-1);}
     if (l->type == LAYERTYPE_ADJUSTMENT) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ff00ff);
     }
@@ -152,11 +151,11 @@ void drawLayerView() {
 
   if (!currentCanvas->layers.empty()) {
     if (roundButton("Move up##LAYERVIEWADMOVEUP",one && (!(currentCanvas->layers[0]->state.selected || currentCanvas->layers[0]->state.active)))) {
-      currentCanvas->moveLayersUp();
+      scrollToLayerId = currentCanvas->moveLayersUp();
     }
     ImGui::SameLine();
     if (roundButton("Move down##LAYERVIEWADMOVEDOWN",one && (!(currentCanvas->layers[currentCanvas->layers.size()-1]->state.selected || currentCanvas->layers[currentCanvas->layers.size()-1]->state.active)))) {
-      currentCanvas->moveLayersDown();
+      scrollToLayerId = currentCanvas->moveLayersDown();
     }
     ImGui::SameLine();
     if (roundButton("Compact##LAYERVIEWADMOVECOMPACT",count>1)) {

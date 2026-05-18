@@ -1187,6 +1187,88 @@ void saveGradientCurve(const char *shortPath, const char *longFileName) {
   dialogGradiationCurves(true);
 }
 
+void loadTilingAnim(const char *shortPath, const char *longFileName) {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->toolInfo.tilingWidth <= 0) return;
+  if (l->toolInfo.tilingHeight <= 0) return;
+  int index0 = l->toolInfo.tilingAnimFirstFrame;
+  RGBAIMAGEFROMFILE(img,shortPath,longFileName);
+  if (img.data == NULL) return;
+  if (img.data[0] != 0xff0000ff) {img.free(); return;}
+  int th = img.height-1;
+  int tw = img.width;
+  for (int i = 1; i < tw; i++) {if (img.data[i] == 0xff0000ff) {tw = i; break;}}
+  int count = img.width / tw;
+  beforeUndoPoint();
+  RGBAImage t;
+  t.width = l->toolInfo.tilingWidth;
+  t.height = l->toolInfo.tilingHeight;
+  t.data = (unsigned int*)malloc(t.width*t.height*sizeof(unsigned int));
+  for (int j = 0; j < count; j++) {
+    for (int y = 0; y < t.height; y++) {
+      for (int x = 0; x < t.width; x++) {
+        unsigned int col = 0x00000000;
+        if ((unsigned int)x < tw && (unsigned int)y < th) {
+          int sx = x + j * tw;
+          int sy = y + 1;
+          if ((unsigned int)sx < img.width && (unsigned int)sy < img.height) {
+            col = img.data[sx+sy*img.width];
+          }
+        }
+        t.data[x+y*t.width] = col;
+      }
+    }
+    int index = index0+j;
+    putTilingAnimRGBAImage(t, l, index);
+  }
+  t.free();
+  img.free();
+  updatedPixels(l);
+  afterUndoPoint();
+  repaintLayer(l,true);
+}
+
+void saveTilingAnim(const char *shortPath, const char *longFileName) {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->toolInfo.tilingWidth <= 0) return;
+  if (l->toolInfo.tilingHeight <= 0) return;
+  int index0 = l->toolInfo.tilingAnimFirstFrame;
+  int indexN = l->toolInfo.tilingAnimLastFrame;
+  int count = (indexN-index0)+1;
+  if (count <= 0) return;
+  RGBAImage img;
+  img.width = l->toolInfo.tilingWidth * count;
+  img.height = l->toolInfo.tilingHeight + 1;
+  img.data = (unsigned int*)malloc(img.width*img.height*sizeof(unsigned int));
+
+  for (int i = 0; i < count; i++) {
+    RGBAImage t = getTilingAnimRGBAImage(l,i+index0);
+    if (t.data == NULL) continue;
+    if (t.width == l->toolInfo.tilingWidth && t.height == l->toolInfo.tilingHeight) {
+      for (int x = 0; x < img.width; x++) {
+        img.data[x] = (x % t.width) == 0 ? 0xff0000ff : 0x00000000;
+      }
+      for (int y = 0; y < t.height; y++) {
+        for (int x = 0; x < t.width; x++) {
+          int dx = x + i * l->toolInfo.tilingWidth;
+          int dy = y + 1;
+          if ((unsigned int)dx < img.width && (unsigned int)dy < img.height)
+            img.data[dx+dy*img.width] = t.data[x+y*t.width];
+        }
+      }
+    }
+    t.free();
+  }
+
+  String tempName = getTempFileName(shortPath);
+  img.savePNG(tempName.c_str());
+  renameTempFile(shortPath, longFileName);
+
+  img.free();
+}
+
 Layer *loadImage(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAIMAGEFROMFILE(img,filePath,fileName);

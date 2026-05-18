@@ -120,6 +120,7 @@ void drawDialogs() {
   dialogExtrudeSelection(false);
   dialogKeying(false);
   dialogNewHere(false);
+  dialogMonitorGamma(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -191,9 +192,32 @@ void dialogNewHere(bool openIt) {
     "are done with Wypa or providing help on painting.\n"
     "\n"
     "Most color operations are done with the Postprocessing tool.\n"
+    "\n"
+    "When painting you may use the right mouse to get the current layer color.\n"
+    "\n"
+    "You can use ctrl and shift (or both) when selecting things.\n"
+    "In selection mode you can also use the right mouse to move the selection.\n"
+    "\n"
+    "You may have to use \"convert alpha to premul\" after loading external images.\n"
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogMonitorGamma(bool openIt) {
+  DIALOGSTART("Monitor gamma")
+  ImGui::PushItemWidth(7*9);
+  bool updateIt = false;
+  ImGui::Text("Monitor gamma"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAGAMMA",&monitorGamma)) {updateIt = true;} if (monitorGamma<0.0001) monitorGamma = 0.0001; if (monitorGamma>400) monitorGamma = 400;
+  if (updateIt) {
+    updateIt = false;
+    reGenMonitorGamma();
+  }
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Close##DIALOGMONITORGAMMACLOSE")) {
     ImGui::CloseCurrentPopup();
   }
   DIALOGEND()
@@ -1242,13 +1266,13 @@ enum BLURTYPES {
 
 void dialogBlur(bool openIt) {
   static Layer *clone = NULL;
-  static int boxWidth = 0;
-  static int boxHeight = 0;
-  static float gaussX = 0;
-  static float  gaussY = 0;
+  static int boxWidth = 4;
+  static int boxHeight = 4;
+  static float gaussX = 2;
+  static float  gaussY = 2;
   static float radialAngle = 0;
-  static float radialSize = 0;
-  static int iterativeSteps = 0;
+  static float radialSize = 4;
+  static int iterativeSteps = 1;
   static int blurType = 0;
   static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur","Iterative"};
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
@@ -1260,13 +1284,6 @@ void dialogBlur(bool openIt) {
     beforeUndoPoint();
     if (clone != NULL) {delete clone; clone = NULL;}
     clone = l->clone();
-    boxWidth = 4;
-    boxHeight = 4;
-    radialAngle = 0;
-    radialSize = 4;
-    gaussX = 2;
-    gaussY = 2; 
-    iterativeSteps = 1;
     blurType = BLURTYPE_GAUSS;
     updateBlur = true;
   }
@@ -1304,6 +1321,12 @@ void dialogBlur(bool openIt) {
   
   ImGui::PopItemWidth();
 
+  bool apply = false;
+  if (ImGui::Button("Apply##DIALOGBLURAPPLY")) {
+    updateBlur = true;
+    apply = true;
+  }
+
   if (updateBlur) {
     if (!ImGui::IsAnyItemActive()) {
       updateBlur = false;
@@ -1319,7 +1342,7 @@ void dialogBlur(bool openIt) {
     }
   }
 
-  if (ImGui::Button("Apply##DIALOGBLURAPPLY")) {
+  if (apply) {
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
@@ -1764,7 +1787,7 @@ void dialogExtrudeSelection(bool openIt) {
                 int ly = (int)(y + sy * i);
                 if ((unsigned int)lx < clone->width && (unsigned int)ly < clone->height) {
                   unsigned char p = clone->pixelStates[lx+ly*clone->width];
-                  selected = p & PIXELSTATE_SELECTED;
+                  selected = p & PIXELSTATE_SELECTED ? true : false;
                   if (selected) break;
                 }
               }
@@ -1953,8 +1976,19 @@ void dialogBakeLayers(bool openIt) {
   DIALOGEND()
 }
 
+enum IMAGEMEASURES {
+  IMAGEMEASURE_PIXELS = 0,
+  IMAGEMEASURE_CM = 1,
+  IMAGEMEASURE_COUNT = 2
+};
+const char *imageMeasureNames[IMAGEMEASURE_COUNT] = {"Pixels","Centimeters"};
+
 void dialogNewImage(bool openIt) {
   static int w = 1920,h = 1080;
+  static int type = IMAGEMEASURE_PIXELS;
+  static int dpi = 72;
+  static float wcm = 29.7; static float hcm = 21.0;
+  static float oneInch = 2.54;
   static char imageName[PICTURENAMEMAX];
   if (openIt) {
     static int counter = 0; counter++;
@@ -1962,9 +1996,24 @@ void dialogNewImage(bool openIt) {
   }
   DIALOGSTART("New picture");
   ImGui::Text("Picture name"); ImGui::SameLine(); ImGui::InputText("##DIALOGNEWIMAGENAME",imageName,PICTURENAMEMAX);
+  ImGui::PushItemWidth(7*14);
+  ImGui::Text("Type"); ImGui::SameLine(); ImGui::Combo("##DIALOGNEWIMAGETYPE",&type, imageMeasureNames, IMAGEMEASURE_COUNT);
+  ImGui::PopItemWidth();
   ImGui::PushItemWidth(64+16*2);
-  ImGui::Text("Picture width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w);
-  ImGui::Text("Picture height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h);
+  switch(type) {
+    case IMAGEMEASURE_PIXELS: {
+      ImGui::Text("Picture width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w);
+      ImGui::Text("Picture height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h);
+    } break;
+    case IMAGEMEASURE_CM: {
+      ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi);
+      ImGui::Text("Picture width in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHCM",&wcm,0,0,2);
+      ImGui::Text("Picture height in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTCM",&hcm,0,0,2);
+      w = wcm / oneInch * dpi;
+      h = hcm / oneInch * dpi;
+      ImGui::Text("Pixels width %d height %d",w,h);
+    } break;
+  }
   ImGui::PopItemWidth();
 
   if (ImGui::Button("Create##DIALOGNEWIMAGECREATE")) {
@@ -2080,11 +2129,11 @@ const char *svg = "*.svg";
 const char *img = "*.wyp";
 const char *fnt = "*.ttf";
 const char *gradientCrv = "*.cr2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {

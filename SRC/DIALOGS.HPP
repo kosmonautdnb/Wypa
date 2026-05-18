@@ -56,7 +56,9 @@ enum DIALOGMODE {
   DIALOG_SAVEFONT = 20,
   DIALOG_LOADGRADIENTCURVES = 21,
   DIALOG_SAVEGRADIENTCURVES = 22,
-  DIALOG_COUNT = 23
+  DIALOG_LOADTILINGANIM = 23,
+  DIALOG_SAVETILINGANIM = 24,
+  DIALOG_COUNT = 25
 };
 
 void dialogCanvas(bool openIt);
@@ -88,6 +90,7 @@ void dialogQuantizePalette(bool openIt);
 void dialogExtrudeSelection(bool openIt);
 void dialogKeying(bool openIt);
 void dialogNewHere(bool openIt);
+void dialogMonitorGamma(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

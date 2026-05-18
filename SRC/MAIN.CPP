@@ -21,11 +21,11 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
-#include "GL.H"
-#include "IMGUIGL.HPP"
-#include "UTIL\LOG.HPP"
+#include "STL/GL.H"
+#include "IMGUI/IMGUIGL.HPP"
+#include "UTIL/LOG.HPP"
 #include "CONFIG.HPP"
-#include "DOS.HPP"
+#include "STL/DOS.HPP"
 #include "STL/IMAGE.HPP"
 #include "MENUBAR.HPP"
 #include "SVG.HPP"

@@ -29,7 +29,7 @@ void freeLayerView();
 
 void drawLayerView();
 
-extern int scrollToLayerId;
+extern unsigned int scrollToLayerId;
 
 #define S_LAYERV_CPP()
 

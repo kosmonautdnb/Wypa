@@ -36,6 +36,11 @@ extern Array<ImVec4> palette;
 extern Array<ImVec4> *paletteToSave;
 extern bool showPalette;
 
+extern unsigned char gammaTable[256];
+void reGenMonitorGamma();
+unsigned int gammaCorrect(unsigned int col);
+ImVec4 gammaCorrect4(const ImVec4 &col);
+
 unsigned int swapRB(unsigned int color);
 unsigned int getUIntColor(const ImVec4 &k);
 ImVec4 getImVec4Color(unsigned int v);
@@ -62,6 +67,8 @@ extern unsigned int colorTraceBacks[COLORTRACEBACKS];
   S_BOOL("showPalette", showPalette);\
   S_CARRAY("colorTraceBacks",colorTraceBacks,S_UINT(NULL,colorTraceBacks[i]),COLORTRACEBACKS);\
   zipPalette(palette,paletteColorsPerRow,save);\
-  if (!save) shouldRecreateQuantization = true;
+  if (!save) shouldRecreateQuantization = true;\
+  S_FLOAT("monitorGamma", monitorGamma);\
+  reGenMonitorGamma();
 
 #endif // __COLORFLD_HPP__

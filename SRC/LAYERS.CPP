@@ -84,7 +84,7 @@ bool showSelectionPlane = false;
 bool showSelectionPlaneBounding = false;
 bool clearOutlineAfterNextPaint = false;
 bool shouldRecreateQuantization = true;
-
+bool showOnlyActiveLayersSelection = true;
 
 void initLayers() {
   selectionPlane = new Layer();
@@ -504,7 +504,7 @@ void ColorTransform::fromProcessing(float *processing) {
 }
 
 void ColorTransform::reset() {
-  memset(&colorMatrix,0,sizeof(colorMatrix));
+  memset(colorMatrix,0,sizeof(colorMatrix));
   colorMatrix[0*4+0] = 1;
   colorMatrix[1*4+1] = 1;
   colorMatrix[2*4+2] = 1;
@@ -721,6 +721,7 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool c
 }
 
 void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer) {
+  UNUSED(clampOnLayer);
   if (state.locked) return;
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
@@ -838,6 +839,7 @@ void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned ch
     a ^= eor2;
     pixelStates2[i] = a;
   }
+  for (int j = width*height/4*4; j < width*height; j++) {unsigned char a = pixelStates[j]; a &= _and; a |= _or; a ^= _eor; pixelStates[j] = a;}
   updatedPixelStates(this);
 }
 
@@ -913,6 +915,7 @@ void Layer::selectNone() {
   unsigned char f = ~PIXELSTATE_SELECTED; unsigned int f2 = (f)|(f<<8)|(f<<16)|(f<<24);
   unsigned int *pixelStates2 = (unsigned int*)pixelStates;
   for (int i = 0; i < width * height/4; i++) pixelStates2[i] &= f2;
+  for (int j = width*height/4*4; j < width*height; j++) {pixelStates[j] &= f;}
   shouldUpdateAll = true;
   updatedPixelStates(this);
 }
@@ -1058,6 +1061,8 @@ void Layer::addSelectionRectangle(int lx0, int ly0, int lx1, int ly1) {
 bool Layer::hasSelection() {
   unsigned char f = PIXELSTATE_SELECTED; unsigned int f2 = f|(f<<8)|(f<<16)|(f<<24); unsigned int *pixelStates2 = (unsigned int *)pixelStates;
   for (int i = 0; i < width * height/4; i++) if (pixelStates2[i] & f2) return true;
+  for (int j = width*height/4*4; j < width*height; j++) if (pixelStates[j] & f) return true;
+
   return false;
 }
 
@@ -1771,6 +1776,8 @@ void Canvas::clearUpdateFlag() {
   unsigned int f2 = (f)|(f<<8)|(f<<16)|(f<<24);
   unsigned int *pixelStates2 = (unsigned int*)pixelStates;
   for (int i = 0; i < width * height/4; i++) pixelStates2[i] &= f2;
+  for (int j = width*height/4*4; j < width*height; j++) pixelStates[j] &= f;
+
 }
 
 void Canvas::updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor) {
@@ -1785,6 +1792,7 @@ void Canvas::updatePixelStates(unsigned char _and, unsigned char _or, unsigned c
     a ^= eor2;
     pixelStates2[i] = a;
   }
+  for (int j = width*height/4*4; j < width*height; j++) {unsigned char a = pixelStates[j]; a &= _and; a |= _or; a ^= _eor; pixelStates[j] = a;}
 }
 
 void Canvas::getLayerPos(Layer *layer, double screenX, double screenY, double &layerX, double &layerY) {
@@ -1955,6 +1963,11 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   int thresholdBlue = (int)floor(layer->colorTransform.thresholdBlue*256);
   int thresholdAlpha = (int)floor(layer->colorTransform.thresholdAlpha*256);
 
+  bool showSelection = true;
+  if (showOnlyActiveLayersSelection) {
+    showSelection = layer->state.selected || layer->state.active;
+  }
+
   for (int y = y0; y < y1; y++) {
     for (int x = x0; x < x1; x++) {
       int lx = (int)(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
@@ -1965,8 +1978,11 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
 
       unsigned char a = canvas->pixelStates[x+y*canvas->width];
       if (!(a & PIXELSTATE_UPDATED)) continue;
-      if (layer->justSelection && (!(layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED))) continue;
-      canvas->pixelStates[x+y*canvas->width] = (unsigned char)(a | (layer->pixelStates[lx+ly*layer->width] & (PIXELSTATE_SELECTED|PIXELSTATE_OUTLINE|PIXELSTATE_GRID|PIXELSTATE_CANVAS_OVERLAY))|PIXELSTATE_CANVAS_UPDATED);
+      unsigned char sl = layer->pixelStates[lx+ly*layer->width];
+      if (layer->justSelection && (!(sl & PIXELSTATE_SELECTED))) continue;
+      unsigned char sl2 = sl;
+      if (!showSelection) sl2 &= ~PIXELSTATE_SELECTED;
+      canvas->pixelStates[x+y*canvas->width] = (unsigned char)(a | (sl2 & (PIXELSTATE_SELECTED|PIXELSTATE_OUTLINE|PIXELSTATE_GRID|PIXELSTATE_CANVAS_OVERLAY))|PIXELSTATE_CANVAS_UPDATED);
 
       unsigned int col = 0xffff00ff;
       unsigned int rgb0 = canvas->pixels[x+y*canvas->width];
@@ -1977,7 +1993,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       }
 
       if (useColorTransform) {
-        if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
+        if ((!layer->showColorTransformOnlyInSelection) || (sl & PIXELSTATE_SELECTED)) {
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
@@ -2002,7 +2018,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       }
 
       if (usePosterize) {
-        if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
+        if ((!layer->showColorTransformOnlyInSelection) || (sl & PIXELSTATE_SELECTED)) {
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
@@ -2026,7 +2042,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       }
 
       if (useThreshold) {
-        if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
+        if ((!layer->showColorTransformOnlyInSelection) || (sl & PIXELSTATE_SELECTED)) {
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
@@ -2041,7 +2057,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       }
 
       if (useQuantization) {
-        if ((!layer->showColorTransformOnlyInSelection) || (layer->pixelStates[lx+ly*layer->width] & PIXELSTATE_SELECTED)) {
+        if ((!layer->showColorTransformOnlyInSelection) || (sl & PIXELSTATE_SELECTED)) {
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
@@ -2396,6 +2412,9 @@ void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, O
     case OVERLAYTYPE_SEPERATINGLINEY: {
         if (!canvas->showLines) return;
       } break;
+    case OVERLAYTYPE_CANVASSPRITE: {
+        if (!canvas->showSprites) return;
+      } break;
   }
 
   double s = canvas->control.zoom/100.0;
@@ -2447,6 +2466,22 @@ void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, O
       double cx = overlay->lx0; double cy = overlay->ly0; canvas->getCanvasPosFromLayerPos(source,cx,cy,cx,cy);
       canvas->getScreenPos(cx,cy,cx,cy); cx -= canvas->screenPosX; cy -= canvas->screenPosY;
       canvas->pixelLine(cx,0,cx,canvas->height,0xff00ffff);
+    } break;
+    case OVERLAYTYPE_CANVASSPRITE: {
+      l->init(w,h);
+      l->setLayerPos(overlay->cx0,overlay->cy0);
+      for (int x = 0; x < w; x++) {
+        for (int y = 0; y < h; y++) {
+          int sx = x + overlay->lx0;
+          int sy = y + overlay->ly0;
+          unsigned int col = 0x00000000;
+          if ((unsigned int)sx < source->width && (unsigned int)sy < source->height) {
+            col = source->pixels[sx+sy*source->width];
+          }
+          l->pixels[x+y*w] = col;
+        }
+      }
+      updateCanvas(canvas, x0, y0, x1, y1, l);
     } break;
   }
   delete l;
@@ -2509,6 +2544,7 @@ void Canvas::update(bool forceUpdate) {
     unsigned int f2 = f|(f<<8)|(f<<16)|(f<<24);
     unsigned int *pixelStates2 = (unsigned int*)pixelStates;
     for (int i = 0; i < width*height/4; i++) pixelStates2[i] |= f2;
+    for (int j = width*height/4*4; j < width*height; j++) pixelStates[j] |= f;
   }
   updateRegion(screenPosX,screenPosY,screenPosX+width,screenPosY+height);
 }
@@ -2787,6 +2823,16 @@ void Canvas::quantizeLayers() {
   }
 }
 
+void Canvas::convertFromAlphaToPremul() {
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      layers[i]->mode = LAYERMODE_ALPHA;
+      layers[i]->convertToPremul();
+    }
+  }
+  shouldUpdateAll = true;
+}
+
 void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpolation) {
   double w2 = canvasX1 - canvasX0;
   double h2 = canvasY1 - canvasY0;
@@ -3018,28 +3064,34 @@ void Canvas::showAllLayers(bool show) {
   shouldUpdateAll = true;
 }
 
-void Canvas::moveLayersUp() {
-  if ((!layers.empty()) && (layers[0]->state.selected || layers[0]->state.active)) return;
+unsigned int Canvas::moveLayersUp() {
+  unsigned int ret = 0;
+  if ((!layers.empty()) && (layers[0]->state.selected || layers[0]->state.active)) return ret;
   for (int i = 1; i < layers.size(); i++) {
     if (layers[i]->state.selected||layers[i]->state.active) {
       Layer *t = layers[i-1];
+      if (ret == 0) ret = layers[i]->id;
       layers[i-1] = layers[i];
       layers[i] = t;
     }
   }
   shouldUpdateAll = true;
+  return ret;
 }
 
-void Canvas::moveLayersDown() {
-  if ((!layers.empty()) && (layers.back()->state.selected || layers.back()->state.active)) return;
+unsigned int Canvas::moveLayersDown() {
+  unsigned int ret = 0;
+  if ((!layers.empty()) && (layers.back()->state.selected || layers.back()->state.active)) return ret;
   for (int i = layers.size()-2; i >= 0; i--) {
     if (layers[i]->state.selected||layers[i]->state.active) {
       Layer *t = layers[i+1];
+      ret = layers[i]->id;
       layers[i+1] = layers[i];
       layers[i] = t;
     }
   }
   shouldUpdateAll = true;
+  return ret;
 }
 
 void Canvas::compactLayers() {
@@ -3676,6 +3728,9 @@ void blitCanvas() {
       int dx = x + currentCanvas->screenPosX;
       if ((unsigned int)dx >= glFrameBufferWidth) continue;
       unsigned int col = currentCanvas->pixels[x+y*currentCanvas->width];
+      if (monitorGamma != 1.f) {
+        col = gammaTable[col & 255]|(gammaTable[(col>>8) & 255]<<8)|(gammaTable[(col>>16) & 255]<<16)|(col & 0xff000000);
+      }
       double lx3 = x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4];
       double ly3 = x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4];
       int lx2 = (int)(lx3+4*100000)-4*100000;

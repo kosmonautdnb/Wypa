@@ -235,7 +235,7 @@ extern bool modifyClearBackground;
 extern bool modifyFiltered;
 extern bool modifyOutlined;
 void createModifyTriangles();
-void bakeModify();
+void bakeModify(bool justCreateSelection);
 
 extern Array<unsigned short> quantization;
 void reCreateQuantization();

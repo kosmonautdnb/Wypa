@@ -460,13 +460,14 @@ void reCreateQuantization() {
       for (int b = 0; b < 64; b++) {
         int bs = b * 4;
         int found = 0;
-        int ld = 256*256*5;
+        double ld = 256*256*5;
         for (int i = 0; i < palette.size(); i++) {
           unsigned int col = colors[i];
-          int rd = (int)(col & 255)-rs;
-          int gd = (int)((col>>8) & 255)-gs;
-          int bd = (int)((col>>16) & 255)-bs;
-          int dist = rd*rd+gd*gd+bd*bd;
+          double rd = (double)(col & 255)-rs;
+          double gd = (double)((col>>8) & 255)-gs;
+          double bd = (double)((col>>16) & 255)-bs;
+          //rd *= 0.25; gd *= 0.6; bd *= 0.15;
+          double dist = rd*rd+gd*gd+bd*bd;
           if (dist < ld) {
             ld = dist;
             found = i;
@@ -2335,9 +2336,54 @@ void createModifyTriangles() {
   for (int i2 = 0; i2 < delau.triangles.size(); i2++) modifyTriangles.push_back(delau.triangles[i2]);
 }
 
-void bakeModify() {
+void bakeModify(bool justCreateSelection) {
   Layer *l = currentCanvas->getActiveLayer();
+
+  if (l != NULL && justCreateSelection) {
+    
+    beforeUndoPoint();
+
+    Array<Vector> here;
+    int pointCount = modifyMode ? modifyPointsDest.size() : modifyPointsSource.size();
+    int triangleCount = modifyTriangles.size()/3;
+    for (int i3 = 0; i3 < pointCount; i3++) {
+      double lx,ly; lx = modifyMode ? modifyPointsDest[i3].x : modifyPointsSource[i3].x; ly = modifyMode ? modifyPointsDest[i3].y : modifyPointsSource[i3].y; currentCanvas->getLayerPosFromCanvasPos(l,lx,ly,lx,ly); here.push_back(Vector(floor(lx),floor(ly)));
+    }
+
+    for (int y = 0; y < l->height; y++) {
+      for (int x = 0; x < l->width; x++) {
+        Vector p(x,y);
+        double sum = 0;
+        bool thisPixelShouldBeProcessed = false;
+        for (int i = 0; i < triangleCount; i++) {
+          Vector d[3];
+          d[0] = (unsigned int)modifyTriangles[i*3+0]<pointCount?here[modifyTriangles[i*3+0]]:Vector();
+          d[1] = (unsigned int)modifyTriangles[i*3+1]<pointCount?here[modifyTriangles[i*3+1]]:Vector();
+          d[2] = (unsigned int)modifyTriangles[i*3+2]<pointCount?here[modifyTriangles[i*3+2]]:Vector();
+  
+          bool allIn = true;
+          for (int t = 0; t < 3; t++) {
+            int t2 = (t+1)%3;
+            double nx = d[t2].x-d[t].x;
+            double ny = d[t2].y-d[t].y;
+            double tx = ny;
+            double ty = -nx;
+            double dist = tx*(p.x-d[t].x)+ty*(p.y-d[t].y);
+            if (dist < 0) allIn = false;
+          }
+          if (allIn) thisPixelShouldBeProcessed = true;
+        }         
+        if (thisPixelShouldBeProcessed) l->pixelStates[x+y*l->width] |= PIXELSTATE_SELECTED; else l->pixelStates[x+y*l->width] &= ~PIXELSTATE_SELECTED;
+      }
+    }
+    updatedPixelStates(l);
+    repaintLayer(l,true);
+    afterUndoPoint();
+    return;
+  }
+
   if (l == NULL || l->width<1 || l->height<1 || modifyPointsSource.size() != modifyPointsDest.size() || modifyPointsSource.size()<3) return;
+
   beforeUndoPoint();
   Vector minB,maxB;
   bool first = true;
@@ -2380,8 +2426,6 @@ void bakeModify() {
   Array<double> values;
   values.resize(triangleCount*3);
 
-  // meanValueCoordinates (don't work for inner latice points)
-
   initStatusBar();
   if (modifyClearBackground) {
     for (int y = layerStartY; y < layerEndY; y++) {
@@ -2413,6 +2457,7 @@ void bakeModify() {
     }
   }
 
+  // meanValueCoordinates (don't work for inner latice points)
   double bary[3];
   int baryTriangle = 0;
   for (int y = layerStartY; y < layerEndY; y++) {
@@ -2556,8 +2601,9 @@ void bakeModify() {
   }
   modifyPointsDest.clear();
   modifyMode = false;
-  delete clone;
   updatedPixels(l);
+
+  delete clone;
   repaintLayer(l,true);
   afterUndoPoint();
 }
@@ -2594,6 +2640,7 @@ void useToolModify() {
 
   Array<Vector> *points = modifyMode ? &modifyPointsDest : &modifyPointsSource;
 
+  static double lastClickDist = 0;
   if (ImGui::IsMouseClicked(0)) {
     double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
     int found = -1;
@@ -2607,11 +2654,12 @@ void useToolModify() {
         found = i;
       }
     }
+    lastClickDist = sqrt(ld);
     selectedModifyPoint = found;
   }
 
   if (clicked && clickEnabled) {
-    if (!prohibit) {
+    if (!prohibit && (lastClickDist > 4 || points->empty())) {
       if (!modifyMode) {
         double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
         points->push_back(Vector(cx,cy));
