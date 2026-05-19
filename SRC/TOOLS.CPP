@@ -699,10 +699,18 @@ void useToolMove() {
       moveX=currentCanvas->gridStepX;
       moveY=currentCanvas->gridStepY;
     }
-    if (currentKey == GL_VK_LEFT) moveSelectedLayersByCanvasPixels(-moveX,0);
-    if (currentKey == GL_VK_RIGHT) moveSelectedLayersByCanvasPixels(moveX,0);
-    if (currentKey == GL_VK_UP) moveSelectedLayersByCanvasPixels(0,-moveY);
-    if (currentKey == GL_VK_DOWN) moveSelectedLayersByCanvasPixels(0,moveY);
+    double x = 0, y = 0;
+    switch(currentKey) {
+      case '4': {x=-moveX;} break;
+      case '6': {x=+moveX;} break;
+      case '8': {y=-moveY;} break;
+      case '2': {y=+moveY;} break;
+      case '7': {x=-moveX;y=-moveY;} break;
+      case '1': {x=-moveX;y=+moveY;} break;
+      case '9': {x=+moveX;y=-moveY;} break;
+      case '3': {x=+moveX;y=+moveY;} break;
+    }
+    if (x != 0 || y != 0) moveSelectedLayersByCanvasPixels(x,y);
   }
 
   if (!isPaintAreaActive()) return;
@@ -843,7 +851,7 @@ double selectionToolMoveStartY = 0;
 
 bool useToolSelectionMove(Layer *activeLayer) {
 
-  if (!ImGui::IsMouseDown(1)) {
+  if (!ImGui::IsMouseDown(1)) { // also handles moveByKey
     showSelectionPlane = false; showSelectionPlaneBounding = false;
     if (selectionToolMoveActive) {
       selectionToolMoveActive = false;
@@ -863,8 +871,21 @@ bool useToolSelectionMove(Layer *activeLayer) {
     } 
   }
 
-  double lx,ly; currentCanvas->getCanvasPos(mouseX,mouseY,lx,ly);
-  if (isPaintAreaActive() && ImGui::IsMouseDown(1)) {
+  double x = 0, y = 0, moveX = 1, moveY = 1;
+  switch(currentKey) {
+    case '4': {x=-moveX;} break;
+    case '6': {x=+moveX;} break;
+    case '8': {y=-moveY;} break;
+    case '2': {y=+moveY;} break;
+    case '7': {x=-moveX;y=-moveY;} break;
+    case '1': {x=-moveX;y=+moveY;} break;
+    case '9': {x=+moveX;y=-moveY;} break;
+    case '3': {x=+moveX;y=+moveY;} break;
+  }
+  bool moveByKey = x != 0 || y != 0;
+
+  double lx,ly; currentCanvas->getLayerPos(activeLayer,mouseX,mouseY,lx,ly);
+  if (isPaintAreaActive() && (ImGui::IsMouseDown(1)||moveByKey)) {
     if (!selectionToolMoveActive) {
       startControlKeyId = controlKeyId;
       selectionPlane->init(activeLayer->width, activeLayer->height);
@@ -875,7 +896,12 @@ bool useToolSelectionMove(Layer *activeLayer) {
     }
   }
 
-  if (selectionToolMoveActive) {
+  if (moveByKey) {
+    lx += x;
+    ly += y;
+  }
+
+  if (selectionToolMoveActive || x != 0 || y != 0) {
     showSelectionPlane = true;
     if (activeLayer->width == selectionPlane->width && activeLayer->height == selectionPlane->height) {
       int deltaX = selectionToolMoveStartX-lx;

@@ -199,6 +199,11 @@ void dialogNewHere(bool openIt) {
     "In selection mode you can also use the right mouse to move the selection.\n"
     "\n"
     "You may have to use \"convert alpha to premul\" after loading external images.\n"
+    "\n"
+    "You can move the mouse by one pixel with the Numblock.\n"
+    "In move mode you can also move with the Numblock.\n"
+    "\n"
+    "Alt and mouse pans the image plane.\n"
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {

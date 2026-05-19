@@ -843,10 +843,16 @@ void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned ch
   updatedPixelStates(this);
 }
 
+void fixTransform(TransformationState &t) {
+  t.translate(0.000001,0.000001); // sadly this is needed the merge of layers fails else by one pixel if layers where mirrored or rotated
+  t.update();
+}
+
 void Layer::mirrorHorizontally() {
   Matrix center; center.translate(Vector((double)width/2,0,0));
   Matrix modify; modify.scale3(Vector(-1,1,1));
   transform.transformation = center * modify * inverse2(center) * transform.transformation;
+  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -855,6 +861,7 @@ void Layer::mirrorVertically() {
   Matrix center; center.translate(Vector(0,(double)height/2,0));
   Matrix modify; modify.scale3(Vector(1,-1,1));
   transform.transformation = center * modify * inverse2(center) * transform.transformation;
+  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -878,6 +885,7 @@ void Layer::rotate90DegreesForward() {
   Matrix modify; modify = rotationMatrixAngleAxis(PI*-0.5,0,0,1);
   modify = straighten(modify);
   transform.transformation = transform.transformation * center * modify * inverse2(center);
+  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -889,6 +897,7 @@ void Layer::rotate90DegreesBackward() {
   Matrix modify; modify = rotationMatrixAngleAxis(PI*0.5,0,0,1);
   modify = straighten(modify);
   transform.transformation = transform.transformation * center * modify * inverse2(center);
+  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -899,6 +908,7 @@ void Layer::rotateByDegrees(double degrees) {
   Matrix center; center.translate(Vector(c.x,c.y,0));
   Matrix modify; modify = rotationMatrixAngleAxis(-degrees*PI/180.0,0,0,1);
   transform.transformation = transform.transformation * center * modify * inverse2(center);
+  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -1375,6 +1385,7 @@ void Layer::setLayerSize(double width, double height) {
     Vector c = b.xy();
     Matrix center; center.translate(Vector(c.x,c.y,0));
     transform.transformation = transform.transformation * center * modify * inverse2(center);
+    fixTransform(transform);
     transform.update();
     shouldUpdateAll = true;
   }
@@ -1454,6 +1465,7 @@ void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
   height = newHeight;
   Matrix modify; modify.translate(Vector(left,top,0));
   transform.transformation = modify * transform.transformation;
+  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
   updatedPixels(this);
@@ -2749,6 +2761,7 @@ void Canvas::mergeDownLayers() {
   Layer *l = getSelectionAsLayer(false,false,false);
   if (l == NULL) return;
   sprintf(l->name,layers[lastPos]->name);
+  l->id = layers[lastPos]->id; // so all referencing stays
   for (int i2 = 0; i2 < layers.size(); i2++) {
     if (layers[i2]->state.selected || layers[i2]->state.active) {
       if (lastPos>i2) lastPos--;
@@ -3214,10 +3227,10 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     if (i3 == 0 || here.z > boundingBox.z) boundingBox.z = here.z;
     if (i3 == 0 || here.w > boundingBox.w) boundingBox.w = here.w;
   }
-  int x0 = floor(boundingBox.x);
-  int y0 = floor(boundingBox.y);
-  int x1 = floor(boundingBox.z);
-  int y1 = floor(boundingBox.w);
+  int x0 = (int)floor(boundingBox.x);
+  int y0 = (int)floor(boundingBox.y);
+  int x1 = (int)floor(boundingBox.z);
+  int y1 = (int)floor(boundingBox.w);
   Canvas *copyCanvas = new Canvas();
   if (!keepCanvasSize) {
     int w = x1-x0;
@@ -3229,8 +3242,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     copyCanvas->canvasX1 = w;
     copyCanvas->canvasY1 = h;
     copyCanvas->transform.fresh();
-    //copyCanvas->transform.translate(x0,y0);
-    copyCanvas->transform.translate(boundingBox.x,boundingBox.y); // so the bounding box fits directly with the layer border
+    copyCanvas->transform.translate(x0,y0);
   } else {
     int w = canvasX1-canvasX0;
     int h = canvasY1-canvasY0;
@@ -3513,6 +3525,7 @@ void Canvas::setBoundingAngleDegrees(double degrees) {
       Layer *l = layers[i];
       Matrix t; t.translate(Vector(center.x,center.y,0));
       l->transform.transformation = l->transform.transformation * t * modify * inverse2(t);
+      fixTransform(l->transform);
       l->transform.update();
     }
   }

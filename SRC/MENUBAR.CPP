@@ -231,6 +231,9 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Monitor gamma","",monitorGamma != 1.0)) {dialogMonitorGamma(true);}
       selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9","",&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
       ImGui::Separator();
+      if (ImGui::MenuItem("Zoom 100%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,100.f);}
+      if (ImGui::MenuItem("Zoom 200%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,200.f);}
+      ImGui::Separator();
       if (ImGui::MenuItem("Zoom in (+)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,zoomStep);}
       if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
       ImGui::Separator();

@@ -337,11 +337,33 @@ int main(int argc, const char *argv[]) {
   
       if (controlKeyId == CONTROLKEY_ALT) {currentCanvas->control.moveByPixels(currentCanvas,mouseDX,mouseDY);}
 
-      bool enableScrollKeys = tool != TOOL_MOVE;      
-      if (enableScrollKeys && currentKey == GL_VK_LEFT) currentCanvas->control.moveByPixels(currentCanvas,scrollKeyPixels,0);
-      if (enableScrollKeys && currentKey == GL_VK_RIGHT) currentCanvas->control.moveByPixels(currentCanvas,-scrollKeyPixels,0);
-      if (enableScrollKeys && currentKey == GL_VK_UP) currentCanvas->control.moveByPixels(currentCanvas,0,scrollKeyPixels);
-      if (enableScrollKeys && currentKey == GL_VK_DOWN) currentCanvas->control.moveByPixels(currentCanvas,0,-scrollKeyPixels);
+      if (currentKey == GL_VK_LEFT) currentCanvas->control.moveByPixels(currentCanvas,scrollKeyPixels,0);
+      if (currentKey == GL_VK_RIGHT) currentCanvas->control.moveByPixels(currentCanvas,-scrollKeyPixels,0);
+      if (currentKey == GL_VK_UP) currentCanvas->control.moveByPixels(currentCanvas,0,scrollKeyPixels);
+      if (currentKey == GL_VK_DOWN) currentCanvas->control.moveByPixels(currentCanvas,0,-scrollKeyPixels);
+
+      bool mouseMoveKeysEnabled = tool != TOOL_MOVE && tool != TOOL_SELECTION;
+      if (mouseMoveKeysEnabled) {
+        Layer *l = currentCanvas->getActiveLayer();
+        if (l != NULL) {
+          double lx0 = mouseX, ly0 = mouseY; currentCanvas->getLayerPos(l,lx0,ly0,lx0,ly0);
+          double x0 = lx0+1, y0 = ly0; currentCanvas->getScreenPos(l,x0,y0,x0,y0);
+          double x1 = lx0, y1 = ly0+1; currentCanvas->getScreenPos(l,x1,y1,x1,y1);
+          double x = 0, y = 0, moveX = 1, moveY = 1;
+          switch(currentKey) {
+            case '4': {x=-moveX;} break;
+            case '6': {x=+moveX;} break;
+            case '8': {y=-moveY;} break;
+            case '2': {y=+moveY;} break;
+            case '7': {x=-moveX;y=-moveY;} break;
+            case '1': {x=-moveX;y=+moveY;} break;
+            case '9': {x=+moveX;y=-moveY;} break;
+            case '3': {x=+moveX;y=+moveY;} break;
+            case '5': {ImGui::GetIO().MouseDown[0] = true;};
+          }
+          if (x != 0 || y != 0) {mouseX += x * (x0-mouseX); mouseY += x * (y0 - mouseY); mouseX += y * (x1-mouseX); mouseY += y * (y1 - mouseY);}
+        }
+      }
     }
 
     applyHotKeys();
