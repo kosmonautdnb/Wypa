@@ -277,7 +277,7 @@ void drawBrushSelect(bool pencil) {
   ImGui::SameLine();
   if (roundButton("Get##DRAWBRUSHSELECTGETBRUSH1",true)) {
     Layer *l = currentCanvas->getActiveLayer();
-    if (l != NULL && l->hasSelection() != NULL) {
+    if (l != NULL && l->hasSelection()) {
       if ((unsigned int)currentBrush<brushes.size()) {
         Brush *brush = brushes[currentBrush];
         int minX = 0, minY = 0, maxX = 0, maxY = 0; bool first = true;

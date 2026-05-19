@@ -118,10 +118,12 @@ void updateLayerImage() {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       unsigned int col = 0xff000000;
-      int sx = x * l->width / width;
-      int sy = y * l->height / height;
-      if (l != NULL && sx >= 0 && sx < l->width && sy >= 0 && sy < l->height) 
-        col = l->pixels[sx+sy*l->width];
+      if (l != NULL) {
+        int sx = x * l->width / width;
+        int sy = y * l->height / height;
+        if (sx >= 0 && sx < l->width && sy >= 0 && sy < l->height) 
+          col = l->pixels[sx+sy*l->width];
+      }
       dest[x+y*width] = gammaCorrect(col);
     }
   }
