@@ -375,6 +375,7 @@ int main(int argc, const char *argv[]) {
 
     if (fullScreen) glClear(GL_COLOR_BUFFER_BIT);
 
+
     blitCanvas();
     toolCanvasStuff();
     

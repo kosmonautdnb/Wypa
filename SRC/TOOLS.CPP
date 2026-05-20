@@ -789,6 +789,8 @@ void useToolFill() {
 
   mouseClickUndo();
 
+  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+
   if (!ImGui::IsMouseClicked(0)) return;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; if (l->state.locked) return;
   int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
@@ -901,7 +903,7 @@ bool useToolSelectionMove(Layer *activeLayer) {
     ly += y;
   }
 
-  if (selectionToolMoveActive || x != 0 || y != 0) {
+  if (selectionToolMoveActive || moveByKey) {
     showSelectionPlane = true;
     if (activeLayer->width == selectionPlane->width && activeLayer->height == selectionPlane->height) {
       int deltaX = selectionToolMoveStartX-lx;

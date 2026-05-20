@@ -1385,7 +1385,6 @@ void Layer::setLayerSize(double width, double height) {
     Vector c = b.xy();
     Matrix center; center.translate(Vector(c.x,c.y,0));
     transform.transformation = transform.transformation * center * modify * inverse2(center);
-    fixTransform(transform);
     transform.update();
     shouldUpdateAll = true;
   }
@@ -2760,20 +2759,20 @@ void Canvas::mergeDownLayers() {
   if ((unsigned int)lastPos >= layers.size()) return;
   Layer *l = getSelectionAsLayer(false,false,false);
   if (l == NULL) return;
-  sprintf(l->name,layers[lastPos]->name);
-  l->id = layers[lastPos]->id; // so all referencing stays
+  layerGetContent(layers[lastPos],l); layers[lastPos]->transform = l->transform; layers[lastPos]->colorTransform = l->colorTransform;
+  setActiveLayer(lastPos);
+  delete l;
   for (int i2 = 0; i2 < layers.size(); i2++) {
     if (layers[i2]->state.selected || layers[i2]->state.active) {
-      if (lastPos>i2) lastPos--;
-      delete layers[i2];
-      layers.erase(i2,1);
-      i2--;
+      if (i2 != lastPos) {
+        if (i2 < lastPos) lastPos--;
+        delete layers[i2];
+        layers.erase(i2,1);
+        i2--;
+      }
     }
   }
   shouldUpdateAll = true;
-  if ((unsigned int)lastPos > layers.size()) {delete l; return;}
-  layers.insert(l,lastPos);
-  setActiveLayer(lastPos);
 }
 
 void Canvas::insertMergeOfLayers() {

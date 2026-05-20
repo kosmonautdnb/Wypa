@@ -32,6 +32,7 @@
 #include "DIALOGS.HPP"
 #include "SVG.HPP"
 #include "TOOLBAR.HPP"
+#include "TOOLVIEW.HPP"
 
 bool roundButton(const char *name, bool enabled);
 
@@ -74,6 +75,15 @@ void drawLayerView() {
   if (roundButton("Bake layers##LAYERVIEWBAKELAYERS",true)) {
     dialogBakeLayers(true);
   }
+  if (currentLayer != NULL) {
+    Vector b = currentLayer->boundingBox();
+    bool somethingToFit = notInt(b.x)||notInt(b.y)||notInt(b.z)||notInt(b.w);
+    ImGui::SameLine();
+    if (roundButton("!##LAYERVIEWFITLAYERS",somethingToFit)) {
+      currentLayer->quantizeBoundingBox();
+    }
+  }
+
   if (roundButton(currentCanvas->justSingle?"Single off##LAYERVIEWSINGLE":"Single on ##LAYERVIEWSINGLE",true)) {
     currentCanvas->justSingle = !currentCanvas->justSingle;
     shouldUpdateAll = true;

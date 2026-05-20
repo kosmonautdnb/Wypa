@@ -56,6 +56,7 @@
 #define HOTKEY_FULLSCREEN HOTKEY('u',false,false,"<u> Raw view without panels")
 #define HOTKEY_ERASE HOTKEY(GL_VK_DELETE,false,false,"<DEL> Erase selection area")
 #define HOTKEY_FILLCOLOR HOTKEY(GL_VK_INSERT,false,false,"<INS> Fill selection area with color")
+#define HOTKEY_ZOOM100 HOTKEY('j',false,false,"<j> zoom to 100% of canvas size")
 
 void initHotkeys();
 void freeHotkeys();

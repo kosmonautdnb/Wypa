@@ -73,6 +73,10 @@ void noUndoMessage() {
   ImGui::TextColored(ImVec4(1,0,0,1),"Be aware that there is no <undo> for this!!");
 }
 
+GLuint dialogPreviewTexture[2] = {0,0};
+int dialogPreviewTextureWidth = 100;
+int dialogPreviewTextureHeight = 100;
+
 void initDialogs() {
   glGenTextures(1,&previewTexture);
   glBindTexture(GL_TEXTURE_2D,previewTexture);
@@ -82,10 +86,23 @@ void initDialogs() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   clearPreview();
   glBindTexture(GL_TEXTURE_2D,0);
+
+  for (int i = 0; i < 2; i++) {
+    glGenTextures(1,&dialogPreviewTexture[i]);
+    glBindTexture(GL_TEXTURE_2D,dialogPreviewTexture[i]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D,0);
+  }
 }
 
 void freeDialogs() {
   glDeleteTextures(1, &previewTexture);
+  for (int i = 0; i < 2; i++) {
+    glDeleteTextures(1, &dialogPreviewTexture[i]);
+  }
 }
 
 void drawDialogs() {
@@ -170,6 +187,8 @@ void dialogNewHere(bool openIt) {
     "You can press ctrl at switching of the active\n"
     "layer to copy the current layers selection to\n"
     "the new layer.\n"
+    "\n"
+    "Secondly use the '!' button to fit the layers to the picture (e.g. before merging).\n"
     "\n"
     "In the move tool you can use the right\n"
     "mouse button to rotate the layers.\n"
@@ -264,6 +283,7 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_FULLSCREEN
   HOTKEY_ERASE
   HOTKEY_FILLCOLOR
+  HOTKEY_ZOOM100
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
     ImGui::CloseCurrentPopup();
@@ -984,6 +1004,48 @@ void applyColorGradingCurves(Layer *dest, Layer *source) {
   }
 }
 
+void dialogPreview(Layer *l0, Layer *l1) {
+  Layer *l2;
+  Array<unsigned int> image;
+  image.resize(dialogPreviewTextureWidth*dialogPreviewTextureHeight);
+  glBindTexture(GL_TEXTURE_2D,dialogPreviewTexture[0]);
+  l2 = l0;
+  for (int y = 0; y < dialogPreviewTextureHeight; y++) {
+    for (int x = 0; x < dialogPreviewTextureWidth; x++) {
+      unsigned int col = 0xff000000;
+      if (l2 != NULL) {
+        int sx = x * l2->width / dialogPreviewTextureWidth;
+        int sy = y * l2->height / dialogPreviewTextureHeight;
+        if ((unsigned int)sx < l2->width && (unsigned int)sy < l2->height) col = l2->pixels[sx+sy*l2->width];
+      }
+      image[x+y*dialogPreviewTextureWidth] = col;
+    }
+  }
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, dialogPreviewTextureWidth, dialogPreviewTextureHeight, 0, GL_RGBA, GL_BYTE, &image[0]);
+  glBindTexture(GL_TEXTURE_2D,dialogPreviewTexture[1]);
+  l2 = l1;
+  {for (int y = 0; y < dialogPreviewTextureHeight; y++) {
+    for (int x = 0; x < dialogPreviewTextureWidth; x++) {
+      unsigned int col = 0xff000000;
+      if (l2 != NULL) {
+        int sx = x * l2->width / dialogPreviewTextureWidth;
+        int sy = y * l2->height / dialogPreviewTextureHeight;
+        if ((unsigned int)sx < l2->width && (unsigned int)sy < l2->height) col = l2->pixels[sx+sy*l2->width];
+      }
+      image[x+y*dialogPreviewTextureWidth] = col;
+    }
+  }}
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, dialogPreviewTextureWidth, dialogPreviewTextureHeight, 0, GL_RGBA, GL_BYTE, &image[0]);
+  glBindTexture(GL_TEXTURE_2D,0);
+  double a = main_window_yres == 0 || aspectRatio == 0 ? 1 : 1.0/aspectRatio * main_window_xres / main_window_yres;
+  int dialogPreviewTextureWidth2 = dialogPreviewTextureWidth * a;
+  ImGui::Image((ImTextureID)dialogPreviewTexture[0],ImVec2(dialogPreviewTextureWidth2,dialogPreviewTextureHeight));
+  ImGui::SameLine();
+  ImGui::Image((ImTextureID)dialogPreviewTexture[1],ImVec2(dialogPreviewTextureWidth2,dialogPreviewTextureHeight));
+}
+
+#define DIALOGPREVIEW(__layerAfter__, __layerBefore__) dialogPreview(__layerAfter__,__layerBefore__);
+
 ColorTransform *gradientCurvesToColorTransform = NULL;
 
 void dialogGradiationCurves(bool openIt) {
@@ -1040,6 +1102,9 @@ void dialogGradiationCurves(bool openIt) {
   ImVec2 maxB = ImGui::GetItemRectMax();
   drawCurve(minB,maxB,curves[gradiationChannel]);
   ImGui::EndChild();
+
+  if (gradientCurvesToColorTransform == NULL) {ImGui::SameLine(); DIALOGPREVIEW(l,clone);}
+
   ImVec2 minB2 = minB;
   minB2.x -= 1;
   minB2.y -= 1;
@@ -1152,6 +1217,7 @@ void dialogGradiationCurves(bool openIt) {
     shouldUpdateAll = true;
     gradientCurvesToColorTransform = NULL;
   }
+
   DIALOGEND()
 }
 
@@ -1163,6 +1229,7 @@ void dialogColorBalance(bool openIt) {
   static float colorBalanceB[3];
   static bool keepLuminance = true;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static bool updateImage = false;
   if (openIt) {
     beforeUndoPoint();
     if (clone != NULL) {delete clone; clone = NULL;}
@@ -1174,10 +1241,11 @@ void dialogColorBalance(bool openIt) {
       colorBalanceB[i] = 0;
     }
     keepLuminance = true;
+    updateImage = true;
   }
   DIALOGSTART("Color balance");
+  DIALOGPREVIEW(l,clone);
 
-  bool updateImage = false;
   float *k;
   ImGui::PushItemWidth(200);
   k = &colorBalanceR[channel]; ImGui::Text("purple - red - yellow"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCEPRY",k,-1,1)) {updateImage = true;} if (*k<-1) *k = -1; if (*k>1) *k = 1;
@@ -1185,12 +1253,12 @@ void dialogColorBalance(bool openIt) {
   k = &colorBalanceB[channel]; ImGui::Text("cyan - blue - purple"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCECBP",k,-1,1)) {updateImage = true;} if (*k<-1) *k = -1; if (*k>1) *k = 1;
   ImGui::Text("");   
   ImGui::Text("Shadows"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL0", &channel, 0);
-  ImGui::SameLine();ImGui::Text("Mids"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL1", &channel, 1);
-  ImGui::SameLine();ImGui::Text("Lights"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL2", &channel, 2);
+  ImGui::Text("Mids"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL1", &channel, 1);
+  ImGui::Text("Lights"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL2", &channel, 2);
   ImGui::Text("Keep luminance"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCOLORBALANCEKEEPLUMINANCE", &keepLuminance)) {updateImage = true;}
   ImGui::PopItemWidth();
 
-  if (updateImage) {
+  if (updateImage && (!ImGui::IsAnyItemActive())) {
     if ((!l->state.locked) && l->height == clone->height && l->width == clone->width) {
       bool hasSelection = l->hasSelection();
       for (int i = 0; i < l->width * l->height; i++) {
@@ -1242,6 +1310,7 @@ void dialogColorBalance(bool openIt) {
       }
       repaintLayer(l,true);
     }
+    updateImage = false;
   }
 
   if (ImGui::Button("Apply##DIALOGCOLORBALANCEAPPLY")) {
@@ -1984,15 +2053,17 @@ void dialogBakeLayers(bool openIt) {
 enum IMAGEMEASURES {
   IMAGEMEASURE_PIXELS = 0,
   IMAGEMEASURE_CM = 1,
-  IMAGEMEASURE_COUNT = 2
+  IMAGEMEASURE_INCHES = 2,
+  IMAGEMEASURE_COUNT = 3
 };
-const char *imageMeasureNames[IMAGEMEASURE_COUNT] = {"Pixels","Centimeters"};
+const char *imageMeasureNames[IMAGEMEASURE_COUNT] = {"Pixels","Centimeters","Inches"};
 
 void dialogNewImage(bool openIt) {
   static int w = 1920,h = 1080;
   static int type = IMAGEMEASURE_PIXELS;
   static int dpi = 72;
   static float wcm = 29.7; static float hcm = 21.0;
+  static float winches = 11; static float hinches = 8.5;
   static float oneInch = 2.54;
   static char imageName[PICTURENAMEMAX];
   if (openIt) {
@@ -2016,6 +2087,14 @@ void dialogNewImage(bool openIt) {
       ImGui::Text("Picture height in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTCM",&hcm,0,0,2);
       w = wcm / oneInch * dpi;
       h = hcm / oneInch * dpi;
+      ImGui::Text("Pixels width %d height %d",w,h);
+    } break;
+    case IMAGEMEASURE_INCHES: {
+      ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi);
+      ImGui::Text("Picture width in inches"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHINCHES",&winches,0,0,2);
+      ImGui::Text("Picture height in inches"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTINCHES",&hinches,0,0,2);
+      w = winches * dpi;
+      h = hinches * dpi;
       ImGui::Text("Pixels width %d height %d",w,h);
     } break;
   }

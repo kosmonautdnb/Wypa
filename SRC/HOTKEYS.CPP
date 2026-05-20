@@ -84,5 +84,6 @@ void applyHotKeys() {
     case HOTKEY_FULLSCREEN: {fullScreen = !fullScreen;} break;
     case HOTKEY_ERASE: {if (currentCanvas->hasSelection()) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(0x00000000);afterUndoPoint();}} break;
     case HOTKEY_FILLCOLOR: {if (currentCanvas->hasSelection()) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));afterUndoPoint();}} break;
+    case HOTKEY_ZOOM100: {currentCanvas->control.zoomTo(currentCanvas,mouseX,mouseY,100);} break;
   }
 }

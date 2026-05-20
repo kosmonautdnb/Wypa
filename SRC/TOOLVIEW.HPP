@@ -41,6 +41,8 @@ RGBAImage getTilingAnimRGBAImage(class Layer *l,int frame);
 void putTilingAnimRGBAImage(const RGBAImage &img, Layer *l,int frame);
 bool getTilingAnimationFrameLayerCell(class Layer *l,int frame, int &cx, int &cy, int &outaX, int &outaY);
 
+bool notInt(double v);
+
 #define S_TOOLVIEW_CPP()
 
 #endif // __TOOLVIEW_HPP__
