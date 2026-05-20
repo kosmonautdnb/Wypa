@@ -70,7 +70,9 @@ void clearPreview() {
 }
 
 void noUndoMessage() {
-  ImGui::TextColored(ImVec4(1,0,0,1),"Be aware that there is no <undo> for this!!");
+  static double k = 0; k += timeDelta*2; k = fmod(k,100);
+  int t = k;
+  ImGui::TextColored(ImVec4(1,0,0,(t & 1)*0.5+0.5),"Be aware that there is no <undo> for this!!");
 }
 
 GLuint dialogPreviewTexture[2] = {0,0};
@@ -174,7 +176,7 @@ void dialogNewHere(bool openIt) {
   DIALOGSTART("If you are new here")
   ImGui::Text(
     "Wypa is pretty different to other\n"
-    "paint programs.\n"
+    "paint programs. (e.g. undo is not possible anywhere)\n"
     "\n"
     "The most distinctive feature is,\n"
     "that layers mostly keep their\n"
@@ -184,11 +186,12 @@ void dialogNewHere(bool openIt) {
     "own selection mask.\n"
     "\n"
     "So the most important thing to know is:\n"
-    "You can press ctrl at switching of the active\n"
+    "You can press <ctrl> at switching of the active\n"
     "layer to copy the current layers selection to\n"
     "the new layer.\n"
     "\n"
     "Secondly use the '!' button to fit the layers to the picture (e.g. before merging).\n"
+    "Merged layers have no undo.\n"
     "\n"
     "In the move tool you can use the right\n"
     "mouse button to rotate the layers.\n"
@@ -214,7 +217,7 @@ void dialogNewHere(bool openIt) {
     "\n"
     "When painting you may use the right mouse to get the current layer color.\n"
     "\n"
-    "You can use ctrl and shift (or both) when selecting things.\n"
+    "You can use <ctrl> and <shift> (or both) when selecting things.\n"
     "In selection mode you can also use the right mouse to move the selection.\n"
     "\n"
     "You may have to use \"convert alpha to premul\" after loading external images.\n"
@@ -222,7 +225,7 @@ void dialogNewHere(bool openIt) {
     "You can move the mouse by one pixel with the Numblock.\n"
     "In move mode you can also move with the Numblock.\n"
     "\n"
-    "Alt and mouse pans the image plane.\n"
+    "<Alt> and mouse pans the image plane.\n"
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
@@ -593,7 +596,9 @@ void dialogMergeDown(bool openIt) {
 
   if (!layers.empty()) {
     if (ImGui::Button("Merge down these layers##DIALOGMERGEDOWNLAYERSMERGE")) {
+      beforeUndoPoint();
       currentCanvas->mergeDownLayers();
+      afterUndoPoint();
       ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();

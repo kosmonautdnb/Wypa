@@ -1303,6 +1303,11 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
               paintValues[p] = value;
             }
           }
+          if (b->pixelWidth<=1||b->pixelHeight<=1) { // just one pixel (maybe a hack)
+            x = layerUpdateX1;
+            y = layerUpdateY1;
+            break;
+          }
         }
       }
     }
@@ -1705,10 +1710,11 @@ void useToolPainting() {
               gd /= a;
               bd /= a;
             }
-            int r = (rs-rd)*as/255+rd;
-            int g = (gs-gd)*as/255+gd;
-            int b = (bs-bd)*as/255+bd;
+            int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
+            int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
+            int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
             paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
+
           } break;
           case TOOL_ERASER: {
             int ad = (col>>24) & 255;

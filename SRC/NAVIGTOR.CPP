@@ -140,6 +140,7 @@ void drawNavigator() {
   ImGui::PushItemWidth(nameSize);
   ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9,0.9,0.9,1));
   ImGui::InputText("##DRAWNAVIGATORPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX);
+  toolTip("Picture name");
   ImGui::PopStyleColor();
   ImGui::PopItemWidth();
 
@@ -147,18 +148,18 @@ void drawNavigator() {
   int xp = (int)floor(x);
   int yp = (int)floor(y);
   if (!currentCanvas->gridOn) {
-    ImGui::Text("%d %d",xp,yp);
+    ImGui::Text("%d %d",xp,yp); toolTip("Mouse picture pos");
   } else {
     int gridX = (xp - currentCanvas->gridOffsetX+currentCanvas->gridStepX*10000) / currentCanvas->gridStepX-10000;
     int gridY = (yp - currentCanvas->gridOffsetY+currentCanvas->gridStepY*10000) / currentCanvas->gridStepY-10000;
-    ImGui::Text("%d[%d] %d[%d]",xp,gridX,yp,gridY);
+    ImGui::Text("%d[%d] %d[%d]",xp,gridX,yp,gridY); toolTip("Mouse picture pos with grid cell");
   }
   if (toolW >= 0 || toolH >= 0) {
-    ImGui::Text("%d %d",(int)ceil(toolW),(int)ceil(toolH));
+    ImGui::Text("%d %d",(int)ceil(toolW),(int)ceil(toolH)); toolTip("Width and height");
   }
 
   if (getFreeMemoryInKb()<MEMWARNINGMB*1024) {
-    ImGui::TextColored(ImVec4(1,0,0,1),"Less than %dmb",(int)MEMWARNINGMB);
+    ImGui::TextColored(ImVec4(1,0,0,1),"Less than %dmb",(int)MEMWARNINGMB); toolTip("Almost out of memory");
   }
   ImGui::SetCursorPos(ImVec2(cursor.x+sidebar_width - navigatorWidth - 10,cursor.y));
   updateNavigatorImage();
@@ -167,7 +168,7 @@ void drawNavigator() {
     navigatorWidth = navigatorHeight / aspectRatio * main_window_xres / main_window_yres;
   }
   if (ImGui::ImageButton((ImTextureID)navigatorTexture,ImVec2(navigatorWidth,navigatorHeight),ImVec2(0,0),ImVec2(1,1),0)) {
-  }
+  } else toolTip("Pixel view");
   ImVec2 c0 = ImVec2((double)navigatorWidth*(navigatorX/2)/navigatorX,(double)navigatorHeight*(navigatorY/2)/navigatorY);
   ImVec2 c1 = ImVec2((double)navigatorWidth*(navigatorX/2+1)/navigatorX,(double)navigatorHeight*(navigatorY/2+1)/navigatorY);
   c0.x += cursor2.x - 1;
@@ -180,7 +181,7 @@ void drawNavigator() {
   c0.x = cursor3.x + sidebar_width - navigatorWidth - 10 - layerTextureSizeX;
   c0.y = cursor3.y + navigatorHeight - layerTextureSizeY - 8;
   ImGui::SetCursorScreenPos(c0);
-  ImGui::Image((ImTextureID)layerTexture,ImVec2(layerTextureSizeX,layerTextureSizeY));
+  ImGui::Image((ImTextureID)layerTexture,ImVec2(layerTextureSizeX,layerTextureSizeY)); toolTip("Current layer");
 
   updateLayerImage();
   updateNavigatorImage();

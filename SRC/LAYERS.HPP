@@ -577,10 +577,12 @@ public:
     sprintf(annotationText,"annotation");
     static int idCounter = 0; idCounter++;
     id = idCounter;
+    sourceCounter = 0;
   }
   bool visible;
   int id;
   int type;
+  unsigned int sourceCounter;
   unsigned int layerId;
   int lx0,ly0,lx1,ly1;
   int cx0,cy0,cx1,cy1;

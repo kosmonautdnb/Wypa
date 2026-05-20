@@ -48,6 +48,7 @@ unsigned int undoStageCount = 10;
 bool useUndo = true;
 
 bool debugWindowOn = false;
+bool showToolTips = true;
 
 extern int undoStackBytes;
 
@@ -164,3 +165,17 @@ String combined(const String &c) {
 }
 
 char tempBuffer[256];
+
+void toolTip(const char *fmt, ...) {
+  if (!showToolTips) return;
+  if (ImGui::IsItemHovered()) {
+    ImGui::BeginTooltip();
+    ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0.0,0.0,0.0,1));
+    va_list args;
+    va_start(args, fmt);
+    ImGui::TextV(fmt, args);
+    va_end(args);
+    ImGui::PopStyleColor();
+    ImGui::EndTooltip();
+  }
+}

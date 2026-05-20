@@ -102,23 +102,23 @@ void drawToolBar() {
   if (!fullScreen) {
     ImGui::SetNextWindowPos(ImVec2(0,menuBar_height));
     ImGui::Begin("TOOLBAR", NULL, ImVec2(toolbar_width,main_window_yres-menuBar_height-toolbar_bottom_height),1.0,FROZENWINDOW);
-    toolBarButton("selectionTool",TOOL_SELECTION);
-    toolBarButton("moveTool",TOOL_MOVE);
-    toolBarButton("wandTool",TOOL_WAND);
-    toolBarButton("pipetteTool",TOOL_PIPETTE);
-    toolBarButton("pencilTool",TOOL_PENCIL);
-    toolBarButton("paintBrushTool",TOOL_PAINTBRUSH);
-    toolBarButton("eraserTool",TOOL_ERASER);
-    toolBarButton("fillTool",TOOL_FILL);
-    toolBarButton("lineTool",TOOL_LINE);
-    toolBarButton("gradientTool",TOOL_GRADIENT);
-    toolBarButton("textTool",TOOL_TEXT);
-    toolBarButton("magicTool",TOOL_MAGIC);
-    toolBarButton("blurTool",TOOL_BLUR);
-    toolBarButton("measureTool",TOOL_MEASURE);
-    toolBarButton("tilingTool",TOOL_TILING);
-    toolBarButton("overlaysTool",TOOL_OVERLAYS);
-    toolBarButton("modifyTool",TOOL_MODIFY);
+    toolBarButton("selectionTool",TOOL_SELECTION); toolTip("Selection tool");
+    toolBarButton("moveTool",TOOL_MOVE); toolTip("Move tool");
+    toolBarButton("wandTool",TOOL_WAND); toolTip("Magic wand tool");
+    toolBarButton("pipetteTool",TOOL_PIPETTE); toolTip("Pipette tool");
+    toolBarButton("pencilTool",TOOL_PENCIL); toolTip("Pencil tool");
+    toolBarButton("paintBrushTool",TOOL_PAINTBRUSH); toolTip("Brush tool");
+    toolBarButton("eraserTool",TOOL_ERASER); toolTip("Eraser tool");
+    toolBarButton("fillTool",TOOL_FILL); toolTip("Fill tool");
+    toolBarButton("lineTool",TOOL_LINE); toolTip("Line tool");
+    toolBarButton("gradientTool",TOOL_GRADIENT); toolTip("Gradient tool");
+    toolBarButton("textTool",TOOL_TEXT); toolTip("Text tool");
+    toolBarButton("magicTool",TOOL_MAGIC); toolTip("Postprocessing tool");
+    toolBarButton("blurTool",TOOL_BLUR); toolTip("Blur tool");
+    toolBarButton("measureTool",TOOL_MEASURE); toolTip("Measure tool");
+    toolBarButton("tilingTool",TOOL_TILING); toolTip("Tiling tool");
+    toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
+    toolBarButton("modifyTool",TOOL_MODIFY); toolTip("Modify tool");
     ImGui::End();
   }
   if (lastTool != tool) {toolChangeMessage(lastTool,tool); lastTool = tool;}
@@ -131,7 +131,7 @@ void drawToolBar() {
   ImGui::PopStyleColor();
   drawDialogs();
   ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.7,0.7,0.7,1));
-  ImGui::Checkbox("##TOOLBARBOTTOMFULLSCREEN",&fullScreen);
+  if (ImGui::Checkbox("##TOOLBARBOTTOMFULLSCREEN",&fullScreen)) {} else toolTip("\"Fullscreen\"");
   ImGui::End();
   ImGui::PopStyleColor();
 }

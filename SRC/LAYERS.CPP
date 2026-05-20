@@ -2405,6 +2405,36 @@ void drawTextIntoLayer(Layer *layer, int xa, int ya, const char *text, uint32_t 
   }
 }
 
+void updateCanvasPaintFlagByOverlay(Canvas *canvas, Overlay *overlay, Layer *source, Layer *overlayLayer) {
+  if (overlay->sourceCounter != source->undoData.updatePixelsCount) {
+    overlay->sourceCounter = source->undoData.updatePixelsCount;
+    Vector b = overlayLayer->boundingBox();
+    Vector b1 = b.xy();
+    Vector b2; b2.x = b.z; b2.y = b.w;
+    b1 = inverse2(canvas->transform.transformation) * b1;
+    b2 = inverse2(canvas->transform.transformation) * b2;
+    b2.x += 1; // no better solution, yet
+    b2.y += 1; // no better solution, yet
+    int x0 = b1.x;
+    int y0 = b1.y;
+    int x1 = b2.x;
+    int y1 = b2.y;
+  
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > canvas->width) x1 = canvas->width;
+    if (y1 > canvas->height) y1 = canvas->height;
+    if (x0 >= x1) return;
+    if (y0 >= y1) return;
+
+    for (int y = y0; y < y1; y++) {
+      for (int x = x0; x < x1; x++) {
+        canvas->pixelStates[x+y*canvas->width] |= PIXELSTATE_UPDATED;
+      }
+    }
+  }
+}
+
 void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, Overlay *overlay) {
 
   int w = overlay->lx1-overlay->lx0;
@@ -2452,6 +2482,7 @@ void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, O
           l->pixels[x+y*w] = col;
         }
       }
+      updateCanvasPaintFlagByOverlay(canvas,overlay,source,l);
       updateCanvas(canvas, x0, y0, x1, y1, l);
     } break;
     case OVERLAYTYPE_ANNOTATION: {
@@ -2492,6 +2523,7 @@ void drawOverlay(int x0,int y0, int x1, int y1, Canvas *canvas, Layer *source, O
           l->pixels[x+y*w] = col;
         }
       }
+      updateCanvasPaintFlagByOverlay(canvas,overlay,source,l);
       updateCanvas(canvas, x0, y0, x1, y1, l);
     } break;
   }

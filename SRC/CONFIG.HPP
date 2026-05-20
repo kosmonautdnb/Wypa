@@ -68,9 +68,13 @@ extern unsigned int undoStageCount;
 extern bool debugWindowOn;
 void showDebugWindow();
 
+extern bool showToolTips;
+void toolTip(const char *fmt, ...);
+
 #define S_CONFIG_CPP()\
   S_DOUBLE("aspectRatio",aspectRatio);\
-  S_BOOL("useUndo",useUndo);
+  S_BOOL("useUndo",useUndo);\
+  S_BOOL("showToolTips",showToolTips);
 
 String combined(const String &c);
 extern char tempBuffer[256];

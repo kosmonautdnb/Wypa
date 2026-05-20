@@ -90,6 +90,7 @@ void drawMenuBar() {
     ImGui::Image((ImTextureID)0,ImVec2(svg->w,svg->h));
     cursor.y -= 4;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
+    toolTip("Wypa version %d.%02d", version / 100, version % 100);
     ImGui::SameLine();
     if (ImGui::BeginMenu("File")) {
       on = true;
@@ -291,6 +292,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Hotkeys")) {dialogHotkeys(true);}
       if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
       ImGui::Separator();
+      if (ImGui::MenuItem("Show tooltips",NULL,showToolTips,true)) {showToolTips = !showToolTips;}
       if (ImGui::MenuItem("Show debug window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
       on = true;
       ImGui::EndMenu();
@@ -315,7 +317,7 @@ void drawMenuBar() {
       if (mouseSensitivity < 1) mouseSensitivity = 1;
       if (mouseSensitivity > 5) mouseSensitivity = 5;
       setMouseSensitivity();
-    }
+    } else toolTip("Mouse velocity");
     ImGui::PopStyleColor();
     ImGui::PopItemWidth();
 
@@ -331,7 +333,7 @@ void drawMenuBar() {
     if (ImGui::InputFloat("##DRAWMENUBARZOOM",&zoom,0,0,2)) {
       if (zoom < 0.01) zoom = 0.01;
       currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,zoom);
-    }
+    } else toolTip("Zoom of the complete picture");
     ImGui::PopStyleColor();
     ImGui::PopItemWidth();
 

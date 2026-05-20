@@ -33,6 +33,7 @@
 #include "SVG.HPP"
 #include "TOOLBAR.HPP"
 #include "TOOLVIEW.HPP"
+#include "UNDO.HPP"
 
 bool roundButton(const char *name, bool enabled);
 
@@ -55,7 +56,7 @@ void drawLayerView() {
     int mode = currentLayer->mode - 1; if (ImGui::Combo("##DRAWLAYERVIEWTRANSPARENCYTYPE",&mode, &(layerModeNames[1]), LAYERMODE_COUNT-1)) {
       currentLayer->mode = mode + 1;
       repaintLayer(currentLayer,true);
-    }
+    } else toolTip("Layer paint mode");
     ImGui::PopItemWidth();
     ImGui::SameLine();
     ImGui::PushItemWidth(sidebar_width-(7*8+16)-16);
@@ -64,35 +65,37 @@ void drawLayerView() {
       if (alpha > 1) alpha = 1;
       currentLayer->state.alpha = alpha;
       repaintLayer(currentLayer,true);
-    }
+    } else toolTip("Layer opacity");
     ImGui::PopItemWidth();
   }
 
   if (roundButton("Add layer##LAYERVIEWADDLAYER",true)) {
     dialogAddLayer(true);
-  }
+  } else toolTip("Add a picture sized layer");
   ImGui::SameLine();
   if (roundButton("Bake layers##LAYERVIEWBAKELAYERS",true)) {
     dialogBakeLayers(true);
-  }
+  } else toolTip("Bake/rectify current layer");
   if (currentLayer != NULL) {
     Vector b = currentLayer->boundingBox();
     bool somethingToFit = notInt(b.x)||notInt(b.y)||notInt(b.z)||notInt(b.w);
     ImGui::SameLine();
     if (roundButton("!##LAYERVIEWFITLAYERS",somethingToFit)) {
+      beforeUndoPoint();
       currentLayer->quantizeBoundingBox();
-    }
+      afterUndoPoint();
+    } else toolTip("Fit layer coordinates");
   }
 
   if (roundButton(currentCanvas->justSingle?"Single off##LAYERVIEWSINGLE":"Single on ##LAYERVIEWSINGLE",true)) {
     currentCanvas->justSingle = !currentCanvas->justSingle;
     shouldUpdateAll = true;
-  }
+  } else toolTip("Show only the selected layer");
   ImGui::SameLine();
   if (roundButton(currentCanvas->hilightSelection?"No highlight##LAYERVIEWHILIGHT":"Hilight layers##LAYERVIEWHILIGHT",true)) {
     currentCanvas->hilightSelection = !currentCanvas->hilightSelection;
     shouldUpdateAll = true;
-  }
+  } else toolTip("Darken all non selected layer(s)");
 
 #define CELLSIZE 24
 #define CELLPRE 4
@@ -107,19 +110,19 @@ void drawLayerView() {
 
     SVG *svg = &svgs["visible"];
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
-    ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,l->state.visible ? 1:0.5));
+    ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,l->state.visible ? 1:0.5)); toolTip("Layer visibility");
 
 
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
     if (ImGui::InvisibleButton(combined(String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),ImVec2(svg->w,svg->h))) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}
 
     ImGui::SameLine();
-    ImGui::Checkbox(combined(String("##LAYERVIEWCHILDSELECTED")+String::fromInt(i)).c_str(),&l->state.selected);
-    ImGui::SameLine();
+    //ImGui::Checkbox(combined(String("##LAYERVIEWCHILDSELECTED")+String::fromInt(i)).c_str(),&l->state.selected);
+    //ImGui::SameLine();
     bool a = ImGui::GetIO().MouseClicked[0];
     ImGui::GetIO().MouseClicked[0] = (ImGui::GetIO().MouseClicked[0] && (l->state.imGuiActive))||(ImGui::GetIO().MouseDoubleClicked[0] && (!l->state.imGuiActive));
     if (l->state.permanentlyLocked) {ImGui::Text(">"); ImGui::SameLine();}
-    ImGui::InputText(combined(String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX);
+    ImGui::InputText(combined(String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX); toolTip("Layer name");
     l->state.imGuiActive = ImGui::IsItemActive();
     ImGui::GetIO().MouseClicked[0] = a;
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y));
@@ -162,15 +165,20 @@ void drawLayerView() {
   if (!currentCanvas->layers.empty()) {
     if (roundButton("Move up##LAYERVIEWADMOVEUP",one && (!(currentCanvas->layers[0]->state.selected || currentCanvas->layers[0]->state.active)))) {
       scrollToLayerId = currentCanvas->moveLayersUp();
-    }
+    } else toolTip("Move selected layers up in hierarchy");
     ImGui::SameLine();
     if (roundButton("Move down##LAYERVIEWADMOVEDOWN",one && (!(currentCanvas->layers[currentCanvas->layers.size()-1]->state.selected || currentCanvas->layers[currentCanvas->layers.size()-1]->state.active)))) {
       scrollToLayerId = currentCanvas->moveLayersDown();
-    }
+    } else toolTip("Move selected layers down in hierarchy");
     ImGui::SameLine();
-    if (roundButton("Compact##LAYERVIEWADMOVECOMPACT",count>1)) {
-      currentCanvas->compactLayers();
-    }
+    //if (roundButton("Compact##LAYERVIEWADMOVECOMPACT",count>1)) {
+    //  currentCanvas->compactLayers();
+    //} else toolTip("Selected layers one after another");
+    if (roundButton("Merge##LAYERVIEWADMOVEMERGE",count>1)) {
+      beforeUndoPoint();
+      currentCanvas->mergeDownLayers();
+      afterUndoPoint();
+    } else toolTip("Merge the layers onto the lowest selected layer");
   }
 
 
