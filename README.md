@@ -3,7 +3,7 @@ A tiny and fastcoded swift and DOS based Photoshop like picture edit program. (i
 
 ![ScreenShot](https://raw.github.com/kosmonautdnb/Wypa/main/GITHUB.PNG)
 
-##"WYPA" is an easy-to-use graphics program.. if you know how.  
+## "WYPA" is an easy-to-use graphics program.. if you know how.  
 
 If you want to use a very simple graphics program on DOS/FreeDOS, you should  
 check out Grafx2, Deluxe Paint, or Paintbrush. Wypa is more for  
