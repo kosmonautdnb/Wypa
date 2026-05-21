@@ -368,6 +368,7 @@ public:
     fontAlignment = ALIGN_LEFT;
     fontColor = 0xff202020;
     fontId = 0;
+    blink = false;
   }
   int tilingOffsetX;
   int tilingOffsetY;
@@ -395,6 +396,8 @@ public:
   int fontAlignment;
   unsigned int fontColor;
   unsigned int fontId;
+
+  bool blink;
 };
 #define S_LAYERADDITIONALTOOLINFO(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\

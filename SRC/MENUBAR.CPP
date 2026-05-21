@@ -39,7 +39,7 @@
 #include <math.h>
 
 int menuBar_height = 17;
-bool undoBlink = false;
+unsigned int undoBlink = 0;
 
 float mouseSensitivity = 3;
 
@@ -142,10 +142,11 @@ void drawMenuBar() {
       ImVec2 maxB = ImGui::GetItemRectMax();
       maxB.x--;
       maxB.y--;
-      if (undoBlink) {
+      static unsigned int lastMenuUndoBlink = 0;
+      if (lastMenuUndoBlink != undoBlink) {
         ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x08ffffff);
+        lastMenuUndoBlink = undoBlink;
       }
-      undoBlink = false;
     }
     if (ImGui::BeginMenu("Image")) {
       on = true;

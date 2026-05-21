@@ -3314,7 +3314,7 @@ Layer *Canvas::getSelectionAsLayer(bool pixelSelection,bool selectAllLayers, boo
   Array<Layer*> selection;
   for (int i2 = 0; i2 < layers.size(); i2++) {
     Layer *l = layers[i2];
-    if ((one && l->state.selected) || ((!one)&&l->state.active) || selectAllLayers) selection.push_back(l);
+    if ((one && l->state.selected) || ((!one)&&l->state.active) || selectAllLayers) {selection.push_back(l); l->toolInfo.blink = true;}
   }
   if (selection.empty()) return l;
   l = getMergedLayer(selection,pixelSelection,keepCanvasSize);
@@ -3384,9 +3384,9 @@ void Canvas::paste() {
   bool one = false; for (int i = 0; i < layers.size(); i++) {Layer *l = layers[i]; if (l->state.selected) one = true;}
   int layerPos = 0;
   for (int i2 = 0; i2 < layers.size(); i2++) {Layer *l = layers[i2]; if ((l->state.selected && one)||(l->state.active && (!one))) {layerPos = i2; break;}}
-  insertLayer(copyLayer,layerPos);
+  insertLayer(copyLayer,layerPos); copyLayer = NULL;
+  //insertLayer(copyLayer->clone(),layerPos); //copyLayer = NULL;
   setActiveLayer(layerPos);
-  copyLayer = NULL;
   updatedPixels(getActiveLayer());
   updatedPixelStates(getActiveLayer());
 }

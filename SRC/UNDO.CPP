@@ -377,7 +377,7 @@ void afterUndoPoint() {
     if (packetAfterUndo->isSame(packetBeforeUndo) && (!isForcedUndoPoint)) {
       delete packetAfterUndo;
     } else {
-      undoBlink = true;
+      undoBlink++;
       for (int i2 = undoStages.size()-availableUndos-1; i2 >= 0 ; i2--) {
         if (!undoStages.empty()) {
           delete undoStages.back();

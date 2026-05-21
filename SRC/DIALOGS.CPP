@@ -287,6 +287,7 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_ERASE
   HOTKEY_FILLCOLOR
   HOTKEY_ZOOM100
+  HOTKEY_FITLAYER
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
     ImGui::CloseCurrentPopup();

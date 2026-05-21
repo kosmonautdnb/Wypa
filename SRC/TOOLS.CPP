@@ -929,6 +929,8 @@ bool useToolSelectionMove(Layer *activeLayer) {
 void useToolSelection() {
   if (wasActiveLayerSwitched()) {selectionToolActive = false; selectionToolMoveActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
 
+  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+
   Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
   static Layer *selectionToolLayer = activeLayer;
   selectionToolLayer = activeLayer;
@@ -1031,8 +1033,8 @@ void useToolSelection() {
     double y1 = selectionY0 < selectionY1 ? selectionY1 : selectionY0;
     x0 = floor(x0);
     y0 = floor(y0);
-    x1 = floor(x1);
-    y1 = floor(y1);
+    x1 = floor(x1)+1;
+    y1 = floor(y1)+1;
     selectionToolActive = true;
     showSelectionPlane = true;
     showSelectionPlaneBounding = selectionTool2 == SELECTIONTOOL_ELLIPSE;

@@ -146,6 +146,10 @@ void drawLayerView() {
     if (ImGui::IsItemHovered() && controlKeyId == CONTROLKEY_CTRL) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ffff00);
     }
+    if (l->toolInfo.blink) {
+      l->toolInfo.blink = false;
+      ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x8000ff00);
+    }
     //ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLSIZE));
     ImGui::Separator();
   }
@@ -175,9 +179,10 @@ void drawLayerView() {
     //  currentCanvas->compactLayers();
     //} else toolTip("Selected layers one after another");
     if (roundButton("Merge##LAYERVIEWADMOVEMERGE",count>1)) {
-      beforeUndoPoint();
-      currentCanvas->mergeDownLayers();
-      afterUndoPoint();
+      dialogMergeDown(true);
+      //beforeUndoPoint();
+      //currentCanvas->mergeDownLayers();
+      //afterUndoPoint();
     } else toolTip("Merge the layers onto the lowest selected layer");
   }
 
