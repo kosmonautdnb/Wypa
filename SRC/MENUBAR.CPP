@@ -36,6 +36,7 @@
 #include "TOOLBAR.HPP"
 #include "FILTER.HPP"
 #include "HOTKEYS.HPP"
+#include "STL/IMAGE.HPP"
 #include <math.h>
 
 int menuBar_height = 17;
@@ -75,7 +76,27 @@ void initMenuBar() {
 void freeMenuBar() {
 }
 
+void takeScreenShot() {
+  RGBAImage img;
+  img.data = glFrameBuffer;
+  img.width = glFrameBufferWidth;
+  img.height = glFrameBufferHeight;
+  int newWidth = img.width * aspectRatio * main_window_yres/main_window_xres;
+  img = img.getResized(newWidth,img.height);
+  memset(glFrameBuffer,0xff,glFrameBufferWidth*glFrameBufferHeight*sizeof(unsigned int));
+  if (refreshMasked) glRefreshMasked(); else glRefresh();
+  static int c = -1; c++;
+  img.savePNG(combined(String("SCN")+String::fromInt(c)+String(".PNG")).c_str());
+  img.free();
+}
+
+
 void drawMenuBar() {
+  static int screenShot = 0;
+  if (screenShot > 0) {
+    screenShot--;
+    if (screenShot == 0) takeScreenShot();
+  }
   bool on = false;
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10,1));
   ImGui::PushStyleColor(ImGuiCol_MenuBarBg,ImVec4(0.f,0.f,0.f,1.f));
@@ -108,6 +129,8 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Export png")) {dialogLoadSave(true,DIALOG_EXPORTPNG);}
       if (ImGui::MenuItem("Save selected layer(s) as single png")) {dialogLoadSave(true,DIALOG_EXPORTLAYERS);}
       if (ImGui::MenuItem("Save selected layer(s) as multiple pngs")) {dialogLoadSave(true,DIALOG_EXPORTLAYERSRAW);}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
       ImGui::Separator();
       if (ImGui::MenuItem("Exit")) {dialogExit(true);}
       ImGui::EndMenu();
