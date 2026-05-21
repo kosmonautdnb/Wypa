@@ -816,7 +816,17 @@ void updateTilingImageAnim(const RGBAImage &image) {
           y2 += image.height*0.5;
           int x3 = (int)floor(x2);
           int y3 = (int)floor(y2);
-          if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
+          if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) {
+            col = image.data[x3+y3*image.width];
+            int r = (col) & 255;
+            int g = (col>>8) & 255;
+            int b = (col>>16) & 255;
+            int a = (col>>24) & 255;
+            r = (r-0x80)*a/255+0x80;
+            g = (g-0x80)*a/255+0x80;
+            b = (b-0x80)*a/255+0x80;
+            col = r|(g<<8)|(b<<16)|0xff000000;
+          }
         }
         tilingTextureContentAnim[x+y*tilingTextureWidth] = gammaCorrect(col);
       }
@@ -883,11 +893,18 @@ void playTilingAnimation(Layer *l) {
   int fn = l->toolInfo.tilingAnimLastFrame;
   int s = fn-f0;
   if (s<=0||l->toolInfo.tilingAnimFPS<=0) {blitTilingAnimFrame(l,f0); return;}
+  int s2 = s;
+  bool doubleSided = l->toolInfo.tilingAnimDoubleSided;
+  if (s < 2) doubleSided = false;
+  if (doubleSided) {s += s-1;}
   l->toolInfo.tilingAnimTime += timeDelta * l->toolInfo.tilingAnimFPS * (l->toolInfo.tilingAnimReverse ? -1 : 1); // actually the current frame
   if (l->toolInfo.tilingAnimTime<0) {l->toolInfo.tilingAnimTime += s * floor(-l->toolInfo.tilingAnimTime/s+1);}
   int tilingFrame = floor(l->toolInfo.tilingAnimTime);
   if (tilingFrame<0) {blitTilingAnimFrame(l,f0); return;}
   tilingFrame %= (s+1);
+  if (doubleSided && tilingFrame >= s2) {
+    tilingFrame = s - 1 - (tilingFrame - s2);
+  }
   tilingFrame += l->toolInfo.tilingAnimFirstFrame;
   l->toolInfo.tilingAnimFrame = tilingFrame;
   blitTilingAnimFrame(l,tilingFrame);
@@ -943,6 +960,7 @@ void drawToolTilingView() {
     ImGui::Text("Index0"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGANIMATIONFIRSTFRAME",&l->toolInfo.tilingAnimFirstFrame,0,0)) {l->toolInfo.tilingAnimPlaying=false;} else toolTip("The first frame of the animation"); if (l->toolInfo.tilingAnimFirstFrame<0) l->toolInfo.tilingAnimFirstFrame=0;
     ImGui::Text("IndexN"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGANIMATIONLASTFRAME",&l->toolInfo.tilingAnimLastFrame,0,0)) {l->toolInfo.tilingAnimPlaying=false;} else toolTip("The last frame of the animation"); if (l->toolInfo.tilingAnimLastFrame<0) l->toolInfo.tilingAnimLastFrame=0;
     ImGui::Text("Reverse"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGANIMATIONREVERSE",&l->toolInfo.tilingAnimReverse)) {} else toolTip("Play animation backwards");
+    ImGui::Text("Double sided"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGANIMATIONDOUBLESIDED",&l->toolInfo.tilingAnimDoubleSided)) {} else toolTip("Play animation forward+backwards");
     ImGui::PopItemWidth();
     if (l->toolInfo.tilingAnimPlaying) playTilingAnimation(l);
     ImGui::Separator();

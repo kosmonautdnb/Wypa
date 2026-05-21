@@ -565,6 +565,7 @@ void dialogDeleteLayers(bool openIt) {
       for (int i = 0; i < layers.size(); i++) {
         currentCanvas->eraseLayer(layers[i]);
       }
+      if (!currentCanvas->layers.empty()) currentCanvas->setActiveLayer(0);
       shouldUpdateAll = true;
       ImGui::CloseCurrentPopup();
     }

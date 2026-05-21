@@ -353,6 +353,7 @@ public:
     tilingAnimLastFrame = 0;
     tilingAnimPlaying = false;
     tilingAnimReverse = false;
+    tilingAnimDoubleSided = false;
     tilingAnimTime = 0;
     tilingAnimFrame = 0;
 
@@ -382,6 +383,7 @@ public:
   int tilingAnimFrame;
   bool tilingAnimPlaying;
   bool tilingAnimReverse;
+  bool tilingAnimDoubleSided;
   float tilingAnimTime;
 
   bool showTilingGrid;
@@ -411,6 +413,7 @@ public:
   S_INT("tilingAnimLastFrame",(__o__)->tilingAnimLastFrame);\
   S_BOOL("tilingAnimPlaying",(__o__)->tilingAnimPlaying);\
   S_BOOL("tilingAnimReverse",(__o__)->tilingAnimReverse);\
+  S_BOOL("tilingAnimDoubleSided",(__o__)->tilingAnimDoubleSided);\
   S_BOOL("showTilingGrid",(__o__)->showTilingGrid);\
   S_BOOL("showTilingGridIndices",(__o__)->showTilingGridIndices);\
   S_BASE64("textEditText",(__o__)->textEditText,MAXTEXTEDITTEXT);\

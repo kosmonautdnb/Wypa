@@ -843,16 +843,10 @@ void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned ch
   updatedPixelStates(this);
 }
 
-void fixTransform(TransformationState &t) {
-  t.translate(0.000001,0.000001); // sadly this is needed the merge of layers fails else by one pixel if layers where mirrored or rotated
-  t.update();
-}
-
 void Layer::mirrorHorizontally() {
   Matrix center; center.translate(Vector((double)width/2,0,0));
   Matrix modify; modify.scale3(Vector(-1,1,1));
   transform.transformation = center * modify * inverse2(center) * transform.transformation;
-  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -861,7 +855,6 @@ void Layer::mirrorVertically() {
   Matrix center; center.translate(Vector(0,(double)height/2,0));
   Matrix modify; modify.scale3(Vector(1,-1,1));
   transform.transformation = center * modify * inverse2(center) * transform.transformation;
-  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -885,7 +878,6 @@ void Layer::rotate90DegreesForward() {
   Matrix modify; modify = rotationMatrixAngleAxis(PI*-0.5,0,0,1);
   modify = straighten(modify);
   transform.transformation = transform.transformation * center * modify * inverse2(center);
-  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -897,7 +889,6 @@ void Layer::rotate90DegreesBackward() {
   Matrix modify; modify = rotationMatrixAngleAxis(PI*0.5,0,0,1);
   modify = straighten(modify);
   transform.transformation = transform.transformation * center * modify * inverse2(center);
-  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -908,7 +899,6 @@ void Layer::rotateByDegrees(double degrees) {
   Matrix center; center.translate(Vector(c.x,c.y,0));
   Matrix modify; modify = rotationMatrixAngleAxis(-degrees*PI/180.0,0,0,1);
   transform.transformation = transform.transformation * center * modify * inverse2(center);
-  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
 }
@@ -1464,7 +1454,6 @@ void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
   height = newHeight;
   Matrix modify; modify.translate(Vector(left,top,0));
   transform.transformation = modify * transform.transformation;
-  fixTransform(transform);
   transform.update();
   shouldUpdateAll = true;
   updatedPixels(this);
@@ -3273,7 +3262,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     copyCanvas->canvasX1 = w;
     copyCanvas->canvasY1 = h;
     copyCanvas->transform.fresh();
-    copyCanvas->transform.translate(x0,y0);
+    copyCanvas->transform.translate(x0+0.001,y0+0.001); // somehow this offset seems to prevent a whole pixel shift
   } else {
     int w = canvasX1-canvasX0;
     int h = canvasY1-canvasY0;
@@ -3284,7 +3273,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     copyCanvas->canvasX1 = w;
     copyCanvas->canvasY1 = h;
     copyCanvas->transform.fresh();
-    copyCanvas->transform.translate(canvasX0,canvasY0);
+    copyCanvas->transform.translate(canvasX0+0.001,canvasY0+0.001); // somehow this offset seems to prevent a whole pixel shift
   }
   dontUsePostProcessing = layers.size() == 1;
   copyCanvas->transform.update();
@@ -3556,7 +3545,6 @@ void Canvas::setBoundingAngleDegrees(double degrees) {
       Layer *l = layers[i];
       Matrix t; t.translate(Vector(center.x,center.y,0));
       l->transform.transformation = l->transform.transformation * t * modify * inverse2(t);
-      fixTransform(l->transform);
       l->transform.update();
     }
   }
