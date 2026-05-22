@@ -34,8 +34,29 @@
 #include "TOOLBAR.HPP"
 #include "TOOLVIEW.HPP"
 #include "UNDO.HPP"
+#include <math.h>
 
 bool roundButton(const char *name, bool enabled);
+
+bool blinkingRoundButton(const char *name, bool enabled) {
+  static double t = 0; t += timeDelta; t = fmod(t,100); int k = t * 2;
+  ImVec4 color_button_off_bg = ImVec4(0.7,0.7,0.7,1);
+  ImVec4 color_button_on_bg = ImVec4((k & 1)*0.5+0.5,0.0,0.0,1);
+  ImVec4 color_button_off_text = ImVec4(0,0,0,1);
+  ImVec4 color_button_on_text = ImVec4(1,1,1,1);
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5,0));
+  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3);
+  ImGui::PushStyleColor(ImGuiCol_Button,enabled ? color_button_on_bg : color_button_off_bg);
+  ImGui::PushStyleColor(ImGuiCol_Text,enabled ? color_button_on_text : color_button_off_text);
+  bool ret = ImGui::Button(name);
+  if (!enabled) ret = false;
+  ImGui::PopStyleColor();
+  ImGui::PopStyleColor();
+  ImGui::PopStyleVar();
+  ImGui::PopStyleVar();
+  return ret;
+}
+
 
 unsigned int scrollToLayerId = 0;
 
@@ -80,7 +101,7 @@ void drawLayerView() {
     Vector b = currentLayer->boundingBox();
     bool somethingToFit = notInt(b.x)||notInt(b.y)||notInt(b.z)||notInt(b.w);
     ImGui::SameLine();
-    if (roundButton("!##LAYERVIEWFITLAYERS",somethingToFit)) {
+    if (blinkingRoundButton("!##LAYERVIEWFITLAYERS",somethingToFit)) {
       beforeUndoPoint();
       currentLayer->quantizeBoundingBox();
       afterUndoPoint();

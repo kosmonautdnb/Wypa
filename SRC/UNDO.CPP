@@ -63,7 +63,7 @@ public:
         if (undoCanvas->layers[i]->type == LAYERTYPE_TEXT) useThis = true;
         if (useThis) {
           Layer *l2 = undoCanvas->layers[i]; int id = l2->id; 
-          Layer *l = l2->clone(); l->id = id; 
+          Layer *l = l2->clone(); reverseLastLayerIdCountUp(); l->id = id;
           memcpy(l->pixelStates,l2->pixelStates,l->width*l->height*sizeof(unsigned char)); // sorry (not cloned before)
           undoLayers.push_back(l);
         }
@@ -257,7 +257,7 @@ public:
         i--;
         continue;
       }
-      Layer *before = source.undoLayers[foundSourceLayer]; before = before->clone(); before->invalidateContent();
+      Layer *before = source.undoLayers[foundSourceLayer]; before = before->clone(); reverseLastLayerIdCountUp(); before->invalidateContent();
       generateDeltas(undoLayers[i],source.undoLayers[foundSourceLayer]);
       undoLayers[i]->undoData.undoLayer = before;
       undoLayers[i]->invalidateContent();

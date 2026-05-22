@@ -41,6 +41,7 @@
 
 int menuBar_height = 17;
 unsigned int undoBlink = 0;
+unsigned int selectionBlink = 0;
 
 float mouseSensitivity = 3;
 
@@ -249,6 +250,16 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Apply selections to layer",NULL,false,count>1&&(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->getLayerSelectionFromLayers(currentCanvas->getActiveLayer());}
       if (ImGui::MenuItem("Clear all other layer selections",NULL,false,(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->clearAllOtherLayerSelections(currentCanvas->getActiveLayer());}
       ImGui::EndMenu();
+    } else {
+      ImVec2 minB = ImGui::GetItemRectMin();
+      ImVec2 maxB = ImGui::GetItemRectMax();
+      maxB.x--;
+      maxB.y--;
+      static unsigned int lastMenuSelectionBlink = 0;
+      if (lastMenuSelectionBlink != selectionBlink) {
+        ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0xffffffff);
+        lastMenuSelectionBlink = selectionBlink;
+      }
     }
     if (ImGui::BeginMenu("View")) {
       on = true;

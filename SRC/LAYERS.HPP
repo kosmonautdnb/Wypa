@@ -466,9 +466,8 @@ public:
     justSelection = false;
     hasOutline = false;
     showColorTransformOnlyInSelection = false;
-    static int layerCounter = 0; layerCounter++;
-    sprintf(name,"Layer %d", layerCounter);
     layerIdCounter++; id = layerIdCounter;
+    sprintf(name,"Layer %d", layerIdCounter);
   }
 
   ~Layer() {

@@ -856,6 +856,7 @@ bool writeZippedFiles(const Array<ZipDesc> &desc, const char *shortPath, const c
 
 bool readZippedFile(const char *shortPath, const char *longFileName, const char *inZipFileName, Array<unsigned char> &array) {
   bool ret = false;
+  array.clear();
   String fullFileName = shortFileName(dosFileName(String(shortPath)+String(longFileName)));
   String fileName = dosFileName(fullFileName);
   String toLookFor = toLower(unixFileName(inZipFileName));
@@ -885,8 +886,9 @@ bool readZippedFile(const char *shortPath, const char *longFileName, const char 
 
 String getStringFromZippedFile(const char *shortPath, const char *longFileName, const char *inZipFileName) {
   static Array<unsigned char> array;
+  array.clear();
   readZippedFile(shortPath, longFileName, inZipFileName, array);
-  String ret;
+  String ret = "";
   ret.resize(array.size());
   memcpy(&ret[0],&array[0],array.size()*sizeof(unsigned char));
   return ret;
@@ -1088,15 +1090,21 @@ void loadImage(const char *shortPath, const char *longFileName) {
     if (!serializeCanvas(canvasHere, false, &string)) {allWentWell = false;}
   } else allWentWell = false;
 
+  if (allWentWell && canvasHere.empty()) allWentWell = false;
+
   // finished
   if (allWentWell) {
-    if (!canvasHere.empty()) {
-      addCanvas(canvasHere[0]);
-      canvasHere.erase(0,1);
-    }
+    addCanvas(canvasHere[0]);
+    canvasHere.erase(0,1);
   }
+
   for (int i = 0; i < canvasHere.size(); i++) delete canvasHere[i];
   canvasHere.clear();
+
+  if (!allWentWell) {
+    addPicture(String(shortPath)+String(longFileName));
+  }
+
   loadedSomething();
 }
 

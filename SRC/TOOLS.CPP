@@ -1226,15 +1226,13 @@ bool lockedMouseY = false;
 int lockedMousePosX = 0;
 int lockedMousePosY = 0;
 
-void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double angle, bool justSelection, bool paintJustIntoOutline) {
+void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double angle, bool justSelection, bool paintJustIntoOutline, bool pencil) {
    if (layer->state.locked) return;
 
   double xs = (rand() & 1023)/1023.0*2.0-1.0;
   double ys = (rand() & 1023)/1023.0*2.0-1.0;
   canvasX += xs * brush->randomX * toolAspectX;
   canvasY += ys * brush->randomY * toolAspectY;
-  bool pencil = tool == TOOL_PENCIL;
-  if (tool == TOOL_ERASER && hardEraser) pencil = true;
   BrushInstance *b = brush->getCreateInstance(BRUSHINSTANCE_PAINT,brush->pixelWidth(),brush->pixelHeight(),pencil);
   double toolWidth = b->pixelWidth*0.5*toolAspectX;
   double toolHeight = b->pixelHeight*0.5*toolAspectY;
@@ -1483,6 +1481,12 @@ void updateUpdateFlagByBrushLine(Layer *l,double cx0,double cy0, double cx1, dou
 
 void useToolPainting() {
 
+  int tool2 = tool;
+  if (controlKeyId == CONTROLKEY_CTRL) tool2 = TOOL_ERASER;
+  bool pencil = tool == TOOL_PENCIL; 
+  if (tool == TOOL_ERASER && hardEraser) pencil = true;
+  if (tool2 == TOOL_ERASER && tool != TOOL_ERASER) pencil = true;
+
   if (wasActiveLayerSwitched()) {paintingOn = false; return;}
 
   toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
@@ -1511,7 +1515,7 @@ void useToolPainting() {
     cx = floor(cx);
     cy = floor(cy);
     paintToolLayer->updatePixelStates(~PIXELSTATE_OUTLINE,0,0); reverseLastUpdatedPixelStates(paintToolLayer);
-    drawTool(paintToolLayer,brush,cx,cy,0,false,true);
+    drawTool(paintToolLayer,brush,cx,cy,0,false,true,pencil);
 
     double toolWidth = (brush->pixelWidth()*0.5+brush->randomX) * toolAspectX;
     double toolHeight = (brush->pixelHeight()*0.5+brush->randomY) * toolAspectY;
@@ -1562,7 +1566,7 @@ void useToolPainting() {
     }
     paintingPointLastX1 = paintingPointX1;
     paintingPointLastY1 = paintingPointY1;
-    switch(tool) {
+    switch(tool2) {
       case TOOL_PAINTBRUSH:
       case TOOL_PENCIL:
       case TOOL_ERASER:
@@ -1624,7 +1628,7 @@ void useToolPainting() {
     int deltaY = lpy1-lpy0;
     int delta = abs(deltaX);
     if (abs(deltaY)>delta) delta = abs(deltaY);
-    switch(tool) {
+    switch(tool2) {
       case TOOL_PAINTBRUSH:
       case TOOL_PENCIL:
       case TOOL_ERASER:
@@ -1656,7 +1660,7 @@ void useToolPainting() {
             rateCounter = 0;
             double cx = px*m2.m[4*0+0]+py*m2.m[4*1+0]+m2.m[4*3+0];
             double cy = px*m2.m[4*0+1]+py*m2.m[4*1+1]+m2.m[4*3+1];
-            drawTool(paintToolLayer,brush,cx,cy,angle,justSelection,false);
+            drawTool(paintToolLayer,brush,cx,cy,angle,justSelection,false,pencil);
           }
           px += ax;
           py += ay;
@@ -1681,7 +1685,7 @@ void useToolPainting() {
         int p = x + y * paintToolLayer->width;
         float value = paintValues[p];
         unsigned int col = paintBackground[p];
-        switch(tool) {
+        switch(tool2) {
           case TOOL_LINE:
           case TOOL_PAINTBRUSH:
           case TOOL_MAGIC:
@@ -1901,8 +1905,8 @@ RGBAImage getImageFromLayer(Layer *l, int sx,int sy, int width, int height) {
   if (l->state.locked) return ret;
   if (sx < 0) {width += sx; sx = 0;}
   if (sy < 0) {height += sy; sy = 0;}
-  if (width > l->width) width = l->width;
-  if (height > l->height) height = l->height;
+  if (width + sx > l->width) width = l->width - sx;
+  if (height + sy > l->height) height = l->height - sy;
   if (width<=0 || height<=0) return ret;
   ret.width = width;
   ret.height = height;
@@ -1915,7 +1919,7 @@ RGBAImage getImageFromLayer(Layer *l, int sx,int sy, int width, int height) {
   return ret;
 }
 
-void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy) {
+void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy, bool useAlpha) {
   if (c.data == NULL || c.width <= 0 || c.height <= 0) return;
   if (l == NULL) return;
   if (l->state.locked) return;
@@ -1923,7 +1927,11 @@ void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy) {
     for (int x = 0; x < c.width; x++) {
       int dx = sx + x;
       int dy = sy + y;
-      if ((unsigned int)dx < l->width && (unsigned int)dy < l->height) l->pixels[dx+dy*l->width] = c.data[x+y*c.width];
+      if ((unsigned int)dx < l->width && (unsigned int)dy < l->height) {
+        unsigned int col = c.data[x+y*c.width];
+        if ((!useAlpha)||(((col>>24)&255)!=0))
+          l->pixels[dx+dy*l->width] = col;
+      }
     }
   }
   updatedPixels(l);
@@ -1949,7 +1957,7 @@ void useToolTiling() {
     }
   }
   if (ImGui::IsMouseDown(1)) {
-    putImageToLayer(l,copiedTiling,sx,sy);
+    putImageToLayer(l,copiedTiling,sx,sy,controlKeyId == CONTROLKEY_CTRL);
     repaintLayer(l,true);
   }
 }

@@ -256,10 +256,14 @@ void drawBrushSelect(bool pencil) {
   int toolButtonYCount = 4;
   int toolButtonHeight = (toolview_width - 16) / toolButtonXCount - 4;
   int toolButtonWidth = toolButtonHeight;
+  if (controlKeyId == CONTROLKEY_CTRL)
+    ImGui::Text("Erase (hard)");
+  else
+    ImGui::Text("");
   if (roundButton("Insert##DRAWBRUSHSELECTINSERTBRUSH",true)) {insertBrush();} else toolTip("Insert a new brush");
   ImGui::SameLine();
   if (roundButton("Erase##DRAWBRUSHSELECTERASEBRUSH",true)) {eraseBrush();} else toolTip("Erase the current brush");
-  ImGui::Text("Brushes %d",brushes.size()); toolTip("Current brush count");
+  //ImGui::Text("Brushes %d",brushes.size()); toolTip("Current brush count");
   ImGui::BeginChild("DRAWBRUSHSELECTCHILD", ImVec2(toolview_width,toolButtonHeight*toolButtonYCount));
   for (int i = 0; i < brushes.size(); i++) {
     if ((i % toolButtonXCount) != 0) ImGui::SameLine();
@@ -838,7 +842,7 @@ void updateTilingImageAnim(const RGBAImage &image) {
 }
 
 RGBAImage getImageFromLayer(Layer *l, int sx,int sy, int width, int height);
-void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy);
+void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy, bool useAlpha);
 
 bool getTilingAnimationFrameLayerCell(Layer *l,int frame, int &cx, int &cy, int &outaX, int &outaY) {
   if (l->toolInfo.tilingWidth <= 0) return false;
@@ -877,7 +881,7 @@ void putTilingAnimRGBAImage(const RGBAImage &img, Layer *l,int frame) {
   int tw = l->toolInfo.tilingWidth;
   int th = l->toolInfo.tilingHeight;
   if (tw != img.width || th != img.height) return;
-  putImageToLayer(l,img,cx,cy);
+  putImageToLayer(l,img,cx,cy,false);
 }
 
 void blitTilingAnimFrame(Layer *l,int frame) {
@@ -911,6 +915,11 @@ void playTilingAnimation(Layer *l) {
 }
 
 void drawToolTilingView() {
+  if (wasActiveLayerSwitched()) {
+    for (int i = 0; i < currentCanvas->layers.size(); i++) updateTilingGrid(currentCanvas->layers[i],false);
+    Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) updateTilingGrid(l,true);
+  }
+
   Layer *l = currentCanvas->getActiveLayer();
   if (l != NULL) {
     ImGui::PushItemWidth(7*5);
@@ -919,6 +928,9 @@ void drawToolTilingView() {
     int y = (int)floor((ly - l->toolInfo.tilingOffsetY) / (double)l->toolInfo.tilingHeight);
     if (controlKeyId == CONTROLKEY_SHIFT) 
       ImGui::Text("Select cell");
+    else
+    if (controlKeyId == CONTROLKEY_CTRL) 
+      ImGui::Text("Alpha paste");
     else
       ImGui::Text("");
     ImGui::Text("[%d] [%d]",x,y);
@@ -1320,7 +1332,7 @@ void drawToolView() {
 
 void toolChangeMessage(int lastTool, int tool) {
   switch(lastTool) {
-  case TOOL_TILING : {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) updateTilingGrid(l,false);} break;
+  case TOOL_TILING : {for (int i = 0; i < currentCanvas->layers.size(); i++) updateTilingGrid(currentCanvas->layers[i],false);} break;
   }
   switch(tool) {
   case TOOL_TILING : {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) updateTilingGrid(l,true);} break;

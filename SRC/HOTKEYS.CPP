@@ -22,6 +22,7 @@
   SOFTWARE.
 */
 #include "HOTKEYS.HPP"
+#include "STL/GL.H"
 #include "IMGUI/IMGUI.H"
 #include "IMGUI/IMGUIGL.HPP"
 #include "TOOLS.HPP"
@@ -31,6 +32,7 @@
 #include "LAYERS.HPP"
 #include "LAYERV.HPP"
 #include "UNDO.HPP"
+#include <math.h>
 
 #define HOTKEY(__char__,__ctrl__,__alt__,__text__) ((__char__) | (((__ctrl__?CONTROLKEY_CTRL:0)|(__alt__?CONTROLKEY_ALT:0))<<16))
 
@@ -48,6 +50,27 @@ void initHotkeys() {
 }
 
 void freeHotkeys() {
+}
+
+void mouseToGrid() {
+  double cx = mouseX; double cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+  cx -= currentCanvas->gridOffsetX;
+  cy -= currentCanvas->gridOffsetY;
+  if (currentCanvas->gridStepX != 0 && currentCanvas->gridStepY != 0) {
+    cx = floor(cx / currentCanvas->gridStepX)*currentCanvas->gridStepX;
+    cy = floor(cy / currentCanvas->gridStepY)*currentCanvas->gridStepY;
+  }
+  cx += currentCanvas->gridOffsetX;
+  cy += currentCanvas->gridOffsetY;
+  currentCanvas->getScreenPos(cx,cy,cx,cy);
+  cx = floor(cx)+1;
+  cy = floor(cy)+1;
+  if (cx < 0) cx = 0;
+  if (cy < 0) cy = 0;
+  if (cx > glFrameBufferWidth-1) cx = glFrameBufferWidth-1;
+  if (cy > glFrameBufferHeight-1) cx = glFrameBufferHeight-1;
+  mouseX = cx;
+  mouseY = cy;
 }
 
 void applyHotKeys() {
@@ -86,5 +109,6 @@ void applyHotKeys() {
     case HOTKEY_FILLCOLOR: {if (currentCanvas->hasSelection()) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));afterUndoPoint();}} break;
     case HOTKEY_ZOOM100: {currentCanvas->control.zoomTo(currentCanvas,mouseX,mouseY,100);} break;
     case HOTKEY_FITLAYER: {if (currentCanvas->getActiveLayer() != NULL) {beforeUndoPoint(); currentCanvas->getActiveLayer()->quantizeBoundingBox(); afterUndoPoint();}} break;
+    case HOTKEY_MOUSETOGRID: {mouseToGrid();} break;
   }
 }

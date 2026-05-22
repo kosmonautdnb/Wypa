@@ -73,6 +73,7 @@ void toolTip(const char *fmt, ...);
 
 #define S_CONFIG_CPP()\
   S_DOUBLE("aspectRatio",aspectRatio);\
+  if (fabs(aspectRatio-16.0/9.0) < 0.0001) aspectRatio = 16.0/9.0;\
   S_BOOL("useUndo",useUndo);\
   S_BOOL("showToolTips",showToolTips);
 

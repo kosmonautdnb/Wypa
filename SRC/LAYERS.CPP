@@ -3262,7 +3262,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     copyCanvas->canvasX1 = w;
     copyCanvas->canvasY1 = h;
     copyCanvas->transform.fresh();
-    copyCanvas->transform.translate(x0+0.001,y0+0.001); // somehow this offset seems to prevent a whole pixel shift
+    copyCanvas->transform.translate(x0,y0);
   } else {
     int w = canvasX1-canvasX0;
     int h = canvasY1-canvasY0;
@@ -3273,17 +3273,26 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     copyCanvas->canvasX1 = w;
     copyCanvas->canvasY1 = h;
     copyCanvas->transform.fresh();
-    copyCanvas->transform.translate(canvasX0+0.001,canvasY0+0.001); // somehow this offset seems to prevent a whole pixel shift
+    copyCanvas->transform.translate(canvasX0,canvasY0);
   }
   dontUsePostProcessing = layers.size() == 1;
+
+  double eps = 0.001;
+  copyCanvas->transform.translate(eps,eps);
   copyCanvas->transform.update();
+
   copyCanvas->layers = layers;
   hilightSelection = false;
   overlaysOn = false;
   copyCanvas->update(true);
   overlaysOn = true;
   copyCanvas->layers.clear();
+
+  copyCanvas->transform.translate(-eps,-eps);
+  copyCanvas->transform.update();
+
   ret = layerFromCanvas(copyCanvas);
+
   if (dontUsePostProcessing) {
     ret->colorTransform = layers[0]->colorTransform;
     ret->toolInfo = layers[0]->toolInfo;
@@ -3364,8 +3373,9 @@ void Canvas::insertLayerLikeThisLayer() {
 void Canvas::copy() {
   if (copyLayer != NULL) {delete copyLayer; copyLayer = NULL;}
   copyLayer = getSelectionAsLayer(true,false,false);
-  selectNone(true);
-  noSelectedLayers();
+  //selectNone(true);
+  //noSelectedLayers();
+  selectionBlink++;
 }
 
 void Canvas::paste() {
@@ -3378,6 +3388,7 @@ void Canvas::paste() {
   setActiveLayer(layerPos);
   updatedPixels(getActiveLayer());
   updatedPixelStates(getActiveLayer());
+  if (tool == TOOL_SELECTION) switchTool(TOOL_MOVE);
 }
 
 int Canvas::getActiveLayerIndex() {
@@ -3902,10 +3913,12 @@ void canvasDefault(Canvas *canvas) {
 }
 
 void addPicture(String fileName) {
+  Layer *l = loadImage("",fileName);
+  if (l == NULL) return;
   currentCanvas = new Canvas();
   canvas.push_back(currentCanvas);
   canvasDefault(currentCanvas);
-  currentCanvas->addLayer(loadImage("",fileName));
+  currentCanvas->addLayer(l);
   currentCanvas->setActiveLayer(0);
   currentCanvas->fitCanvasToLayers();
   shouldUpdateAll = true;
@@ -3925,16 +3938,25 @@ void addCanvas(Canvas *canvas) {
 }
 
 void insertPicture(String fileName) {
-  Layer *l = loadImage("",fileName);
-  if (l == NULL) return;
-  int pos = 0;
-  for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
-  currentCanvas->layers.insert(l,pos);
-  currentCanvas->setActiveLayer(pos);
-  shouldUpdateAll = true;
-  updatedPixels(currentCanvas->getActiveLayer());
-  updatedPixelStates(currentCanvas->getActiveLayer());
-  signSave(currentCanvas->getActiveLayer());
+  int before = canvas.size();
+  int pos = 0; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
+  loadImage("",fileName.c_str());
+  if (canvas.size()>before) {
+    Canvas *loaded = currentCanvas;
+    currentCanvas = canvas[before-1];
+    int p2 = pos;
+    for (int i = 0; i < loaded->layers.size(); i++) {
+      Layer *l = loaded->layers[i];
+      currentCanvas->layers.insert(l->clone(),pos);
+      pos++;
+    }
+    currentCanvas->setActiveLayer(p2);
+    shouldUpdateAll = true;
+    updatedPixels(currentCanvas->getActiveLayer());
+    updatedPixelStates(currentCanvas->getActiveLayer());
+    signSave(currentCanvas->getActiveLayer());
+    delete canvas[canvas.size()-1]; canvas.resize(canvas.size()-1);
+  }
 }
 
 void addTempPicture() {

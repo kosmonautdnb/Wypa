@@ -288,6 +288,8 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_FILLCOLOR
   HOTKEY_ZOOM100
   HOTKEY_FITLAYER
+  HOTKEY_MOUSETOGRID
+  ImGui::Text("You can press <CTRL> on sliders to enter a value");
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
     ImGui::CloseCurrentPopup();
@@ -2127,15 +2129,17 @@ void dialogGetLayersFromPicture(bool openIt) {
   ImGui::Text("Insert layers from this picture");
   ImGui::BeginChild("CHILDDIALOGGETLAYERSFROMPICTURE",ImVec2(main_window_xres/2,main_window_yres/3));
   for (int i = 0; i < canvas.size(); i++) {
-    int count = 0;
-    for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) {
-      if (currentCanvas->layers[i2]->state.selected||currentCanvas->layers[i2]->state.active) {
-        count++;
+    if (canvas[i] != currentCanvas) {
+      int count = 0;
+      for (int i2 = 0; i2 < canvas[i]->layers.size(); i2++) {
+        if (canvas[i]->layers[i2]->state.selected||canvas[i]->layers[i2]->state.active) {
+          count++;
+        }
       }
-    }
-
-    if (ImGui::Button(combined(String(selected == i ? ">" : " ")+String("\"")+String(canvas[i]->pictureName) + String("\"  selected layers:") + String::fromInt(count) + String("##DIALOGGETLAYERSFROMPICTURELINE")).c_str())) {
-      selected = i;
+  
+      if (ImGui::Button(combined(String(selected == i ? ">" : " ")+String("\"")+String(canvas[i]->pictureName) + String("\"  selected layers:") + String::fromInt(count) + String("##DIALOGGETLAYERSFROMPICTURELINE")).c_str())) {
+        selected = i;
+      }
     }
   }
   ImGui::EndChild();
