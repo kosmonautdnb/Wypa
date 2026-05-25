@@ -733,7 +733,16 @@ void useToolMove() {
       static double centerX=0,centerY=0;
       static double lastAngle = -1;
       double lx, ly; currentCanvas->getLayerPos(l, mouseX, mouseY, lx, ly);
-      if (!lastRight) {centerX = (double)l->width/2.0; centerY = (double)l->height/2.0; lastAngle = -1;}
+      if (!lastRight) {
+        centerX = (double)l->width/2.0; centerY = (double)l->height/2.0; lastAngle = -1;
+        if (l->type == LAYERTYPE_TILEMAP) {
+          Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId);
+          if (l2 != NULL) {
+            centerX *= l2->toolInfo.tilingWidth;
+            centerY *= l2->toolInfo.tilingHeight;
+          }
+        }
+      }
       double deltaX = lx - centerX; double deltaY = ly - centerY;
       if (deltaX != 0 && deltaY != 0) {
         double angle = fmod((atan2(deltaY,deltaX)*180.0/PI+360-90),360.0);
@@ -789,12 +798,32 @@ void useToolFill() {
 
   mouseClickUndo();
 
-  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; 
+  bool useThis = !l->state.locked; if (l->type == LAYERTYPE_TILEMAP) useThis = true;
+  if (!useThis) return;
+  int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
+
+  bool tiling = false;
+  if (l->type == LAYERTYPE_TILEMAP) {
+    Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId);
+    if (l2 != NULL && l2->toolInfo.tilingWidth > 0 && l2->toolInfo.tilingHeight > 0) {
+      lx /= l2->toolInfo.tilingWidth;
+      ly /= l2->toolInfo.tilingHeight;
+      tiling = true;
+    }
+  }
+
+  if ((unsigned int)lx>=l->width||(unsigned int)ly>=l->height) return;
+
+  unsigned int clickBack = currentCanvas->getLayerColor(mouseX, mouseY,false);
+  if (ImGui::IsMouseClicked(1)) {
+    if (!tiling) {
+      foregroundColor = getImVec4Color(clickBack); addUsedColor(foregroundColor);
+    } else l->toolInfo.tileMapSelectedTile = clickBack;
+  }
 
   if (!ImGui::IsMouseClicked(0)) return;
-  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; if (l->state.locked) return;
-  int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
-  if ((unsigned int)lx>=l->width||(unsigned int)ly>=l->height) return;
+
   int colorHere = l->pixels[lx+ly*l->width];
   
   fillAcceptedHasSelection = l->hasSelection();
@@ -819,10 +848,17 @@ void useToolFill() {
     }
     counter++; if ((counter % 100)==0) updateStatusBar();
   }
-  for (int i = 0; i < l->width*l->height; i++) if (l->pixelStates[i] & PIXELSTATE_TEMP) {
-    l->pixels[i] = getUIntColor(foregroundColor);
+
+  if (!tiling) {
+    for (int i = 0; i < l->width*l->height; i++) if (l->pixelStates[i] & PIXELSTATE_TEMP) {
+      l->pixels[i] = getUIntColor(foregroundColor);
+    }
+    addUsedColor(foregroundColor);
+  } else {
+    for (int i = 0; i < l->width*l->height; i++) if (l->pixelStates[i] & PIXELSTATE_TEMP) {
+      l->pixels[i] = l->toolInfo.tileMapSelectedTile;
+    }
   }
-  addUsedColor(foregroundColor);
 
   repaintLayer(l,true);
   updatedPixels(l);
@@ -2040,6 +2076,35 @@ void drawOpenGLSimpleLine(double sx0, double sy0, double sx1, double sy1, unsign
   }
 }
 
+void drawOpenGLRect(double sx0, double sy0, double sx1, double sy1, unsigned int color) {
+  sx0 = floor(sx0);
+  sy0 = floor(sy0);
+  sx1 = floor(sx1);
+  sy1 = floor(sy1);
+
+  for (int x = sx0; x <= sx1; x++) {
+    int y = sy0;
+    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+      glFrameBuffer[x+y*glFrameBufferWidth] = color;
+    }
+    y = sy1;
+    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+      glFrameBuffer[x+y*glFrameBufferWidth] = color;
+    }
+  }
+
+  for (int y = sy0; y <= sy1; y++) {
+    int x = sx0;
+    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+      glFrameBuffer[x+y*glFrameBufferWidth] = color;
+    }
+    x = sx1;
+    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+      glFrameBuffer[x+y*glFrameBufferWidth] = color;
+    }
+  }
+}
+
 void toolCanvasStuff() {
   switch(tool) {
   case TOOL_TILING: {
@@ -2176,6 +2241,26 @@ void toolCanvasStuff() {
         unsigned int col = 0xff0000ff;
         if (i == selectedModifyPoint) col = 0xffffffff;
         drawOpenGLMarkerCircle(sx,sy,4,col);
+      }
+    } break;
+    case TOOL_TILEMAP: {
+      Layer *l = currentCanvas->getActiveLayer();
+      if (l == NULL) return;
+      if (l->type != LAYERTYPE_TILEMAP) return;
+      Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId);
+      if (l2 == NULL || l2->width <= 0 || l2->height <= 0 || l2->toolInfo.tilingWidth < 1 || l2->toolInfo.tilingHeight < 1) return;
+      double lx = mouseX, ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
+      int lxi = (int)floor(lx); int lyi = (int)floor(ly);
+      int txi = (int)floor((double)lxi/l2->toolInfo.tilingWidth);
+      int tyi = (int)floor((double)lyi/l2->toolInfo.tilingHeight);
+      if ((unsigned int)txi < l->width && (unsigned int)tyi < l->height) {
+        double sx0 = txi*l2->toolInfo.tilingWidth;
+        double sy0 = tyi*l2->toolInfo.tilingHeight;
+        double sx1 = (txi+1)*l2->toolInfo.tilingWidth;
+        double sy1 = (tyi+1)*l2->toolInfo.tilingHeight;
+        currentCanvas->getScreenPos(l,sx0,sy0,sx0,sy0);
+        currentCanvas->getScreenPos(l,sx1,sy1,sx1,sy1);
+        drawOpenGLRect(sx0,sy0,sx1+1,sy1+1,0xff0000ff); // actually sx0-1???
       }
     } break;
   }
@@ -2725,6 +2810,70 @@ void useToolModify() {
   }
 }
 
+void useToolTileMap() {
+  if (!isPaintAreaActive()) return;
+
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->type != LAYERTYPE_TILEMAP) return;
+  Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId);
+  if (l2 == NULL || l2->width <= 0 || l2->height <= 0 || l2->toolInfo.tilingWidth < 1 || l2->toolInfo.tilingHeight < 1) return;
+  double lx = mouseX, ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
+  int lxi = (int)floor(lx); int lyi = (int)floor(ly);
+  int txi = (int)floor((double)lxi/l2->toolInfo.tilingWidth);
+  int tyi = (int)floor((double)lyi/l2->toolInfo.tilingHeight);
+  if ((unsigned int)txi < l->width && (unsigned int)tyi < l->height) {
+    static bool wasDown = false;
+    static int lastTxi = -1;
+    static int lastTyi = -1;
+    static bool first = false;
+    if (ImGui::IsMouseClicked(0)) {
+      beforeUndoPoint();
+      wasDown = false;
+      lastTxi = txi;
+      lastTyi = tyi;
+      first = true;
+    }
+    if (ImGui::IsMouseDown(1)) {l->toolInfo.tileMapSelectedTile = l->pixels[txi+tyi*l->width]; scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile; return;}
+    if (ImGui::IsMouseDown(0)) {
+      wasDown = true;
+      double px = lastTxi;
+      double py = lastTyi;
+      int dx = txi-lastTxi;
+      int dy = tyi-lastTyi;
+      lastTxi = txi;
+      lastTyi = tyi;
+      int d = abs(dx);
+      if (abs(dy)>d) d = abs(dy);
+      if (d != 0 || first) {
+        first = false;
+        double xa = d == 0 ? 0 : (double)dx / d;
+        double ya = d == 0 ? 0 : (double)dy / d;
+        for (int i = 0; i < d+1; i++) {
+          txi = (int)floor(px);
+          tyi = (int)floor(py);
+          if ((unsigned int)txi < l->width && (unsigned int)tyi < l->height) {
+            l->pixels[txi+tyi*l->width] = l->toolInfo.tileMapSelectedTile;
+            double cx0 = txi, cy0 = tyi; currentCanvas->getCanvasPosFromLayerPos(l,cx0,cy0,cx0,cy0);
+            double cx1 = txi+1, cy1 = tyi+1; currentCanvas->getCanvasPosFromLayerPos(l,cx1,cy1,cx1,cy1);
+            for (int y = (int)cy0; y < (int)cy1; y++) {
+              for (int x = (int)cx0; x < (int)cx1; x++) {
+                if ((unsigned int)x < currentCanvas->width && (unsigned int)y < currentCanvas->height) {
+                  currentCanvas->pixelStates[x+y*currentCanvas->width] |= PIXELSTATE_UPDATED;
+                }
+              }
+            }
+          }
+          px += xa;
+          py += ya;
+        }
+        updatedPixels(l);
+        repaintLayer(l, false);
+      }
+    } else {if (wasDown) {repaintLayer(l, false); afterUndoPoint();} wasDown = false;}
+  }
+}
+
 void useTool() {
   double mouseXBefore = mouseX;
   double mouseYBefore = mouseY;
@@ -2775,6 +2924,9 @@ void useTool() {
     } break;
   case TOOL_MODIFY: {
     useToolModify();
+    } break;
+  case TOOL_TILEMAP: {
+    useToolTileMap();
     } break;
   }
   mouseX = mouseXBefore;

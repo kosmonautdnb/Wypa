@@ -1277,6 +1277,57 @@ void saveTilingAnim(const char *shortPath, const char *longFileName) {
   img.free();
 }
 
+void loadTileMap(const char *shortPath, const char *longFileName) {
+  Array<unsigned char> arr; getFileArray(&arr,String(shortPath)+String(longFileName));
+  if (arr.empty()) return;
+  Array<String> lines = getLines((const char *)&arr[0]);
+  if (lines.size()<4) return;
+  int tileCountX, tileCountY;
+  sscanf(lines[1].c_str(),"%d,%d",&tileCountX,&tileCountY);
+  if (tileCountX <= 0 || tileCountY <=0) return;
+  if (tileCountY + 2 != lines.size()) return;
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->type != LAYERTYPE_TILEMAP) return;
+  beforeUndoPoint();
+  l->setContentSize(tileCountX, tileCountY);
+  for (int y = 0; y < tileCountY; y++) {
+    String k = lines[3+y];
+    int i = 0;
+    for (int x = 0; x < tileCountX; x++) {
+      String h = "";
+      for (; i < k.size(); i++) {
+        if (k[i] == ',') {i++;break;}
+        h += String::fromChar(k[i]);
+      }
+      int v = h.toInt();
+      l->pixels[x+y*l->width] = (unsigned int)v;
+    }
+  }
+  afterUndoPoint();
+  shouldUpdateAll = true;
+}
+
+void saveTileMap(const char *shortPath, const char *longFileName) {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->type != LAYERTYPE_TILEMAP) return;
+  Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId);
+  if (l2 != NULL && l2->width > 0 && l2->height > 0 && l2->toolInfo.tilingWidth > 0 && l2->toolInfo.tilingHeight > 0) {
+    FILE *out = createTempFile(shortPath,"w");
+    fprintf(out,"\"%s\"\n",l2->name);
+    fprintf(out,"%d,%d\n",l->width,l->height);
+    for (int y = 0; y < l->height; y++) {
+      fprintf(out,"\n");
+      for (int x = 0; x < l->width; x++) {
+        fprintf(out,"%d,",l->pixels[x+y*l->width]);
+      }
+    }
+    fclose(out);
+    renameTempFile(shortPath, longFileName);
+  }
+}
+
 Layer *loadImage(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAIMAGEFROMFILE(img,filePath,fileName);

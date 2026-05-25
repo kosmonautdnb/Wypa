@@ -61,6 +61,7 @@ public:
       if (undoCanvas->layers[i]->state.active || undoCanvas->layers[i]->state.selected) {
         bool useThis = !undoCanvas->layers[i]->state.permanentlyLocked;
         if (undoCanvas->layers[i]->type == LAYERTYPE_TEXT) useThis = true;
+        if (undoCanvas->layers[i]->type == LAYERTYPE_TILEMAP) useThis = true;
         if (useThis) {
           Layer *l2 = undoCanvas->layers[i]; int id = l2->id; 
           Layer *l = l2->clone(); reverseLastLayerIdCountUp(); l->id = id;

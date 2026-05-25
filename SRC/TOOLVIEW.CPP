@@ -60,6 +60,8 @@ const int tilingTextureHeight = 100;
 Array<unsigned int> tilingTextureContent; // because of PModeW with WatcomC++11
 Array<unsigned int> tilingTextureContentAnim; // because of PModeW with WatcomC++11
 
+GLuint tileMapTexture = 0;
+
 void initToolView() {
   gradientTextureContent.resize(gradientTextureWidth*gradientTextureHeight);
   tilingTextureContent.resize(tilingTextureWidth*tilingTextureHeight);
@@ -85,11 +87,20 @@ void initToolView() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_2D,0);
+
+  glGenTextures(1,&tileMapTexture);
+  glBindTexture(GL_TEXTURE_2D,tileMapTexture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D,0);
 }
 
 void freeToolView() {
   glDeleteTextures(1,&gradientTexture);
   glDeleteTextures(1,&tilingTexture);
+  glDeleteTextures(1,&tileMapTexture);
 }
 
 void repaintGradientTexture(Gradient *gradient) {
@@ -1268,6 +1279,92 @@ void drawToolModifyView() {
   } else toolTip("Erase the current warp setting");
 }
 
+int scrollToTileMapIndex = -1;
+
+void drawToolTileMapView() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (l->type != LAYERTYPE_TILEMAP) return;
+  Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId);
+  if (l2 != NULL && l2->width > 0 && l2->height > 0 && l2->toolInfo.tilingWidth > 0 && l2->toolInfo.tilingHeight > 0) {
+    static unsigned int lastTextureUpdateCount = (unsigned int)((int)-1);
+    if (lastTextureUpdateCount != l2->undoData.updatePixelsCount) {
+      lastTextureUpdateCount = l2->undoData.updatePixelsCount;
+      glBindTexture(GL_TEXTURE_2D,tileMapTexture);
+      glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, l2->width, l2->height, 0, GL_RGBA, GL_BYTE, l2->pixels);
+      glBindTexture(GL_TEXTURE_2D,0);
+    }
+    if (roundButton("Scroll to",true)) {
+      scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile;
+    }
+    if (roundButton("Save tilemap",true)) {
+      dialogLoadSave(true, DIALOG_SAVETILEMAP);
+    }
+    if (roundButton("Load tilemap",true)) {
+      dialogLoadSave(true, DIALOG_LOADTILEMAP);
+    }
+    int tileWidth = l2->toolInfo.tilingWidth;
+    int tileHeight = l2->toolInfo.tilingHeight;
+    int tileOffsetX = l2->toolInfo.tilingOffsetX;
+    int tileOffsetY = l2->toolInfo.tilingOffsetY;
+    int width = toolview_width; int height = 600;
+    ImVec2 cursor0 = ImGui::GetCursorScreenPos();
+    ImGui::BeginChild("DRAWTOOLTILEMAPVIEWCHILD", ImVec2(width,height));
+    int index = 0;
+    int border = 2;
+    int tw = 16 + border;
+    double ratio = (double)tileHeight/tileWidth;
+    if (ratio < 0.5) ratio = 0.5;
+    if (ratio > 3) ratio = 3;
+    int th = 16*aspectRatio*main_window_yres/main_window_xres*ratio + border;
+
+    int k = (width - 16)/tw;
+    if (k != 0) {
+      if (scrollToTileMapIndex >= 0) ImGui::SetScrollY((scrollToTileMapIndex / k-5)*th);
+      int row = ImGui::GetScrollY() / th;
+      index = row * k;
+      ImVec2 c = ImGui::GetCursorScreenPos(); c.y += row * th; ImGui::SetCursorScreenPos(c);
+    }
+    scrollToTileMapIndex = -1;
+
+    ImVec2 cursor1 = ImGui::GetCursorScreenPos(); cursor1.x += 1; cursor1.y += 3; int posX = cursor1.x; int posY = cursor1.y;
+
+    while(true) {
+      int outaX = 0;
+      int outaY = 0;
+      int tileX = 0;
+      int tileY = 0;
+      if (!getTilingAnimationFrameLayerCell(l2, index, tileX, tileY, outaX, outaY)) break;
+      ImVec2 tx0,tx1;
+      tx0.x = (double)(tileX*tileWidth+outaX)/l2->width; tx0.y = (double)(tileY*tileHeight+outaY)/l2->height;
+      if (tx0.y >= 1) break;
+
+      if (posY < cursor0.y + height) {
+        tx1.x = (double)(tileX*tileWidth+tileWidth+outaX)/l2->width; tx1.y = (double)(tileY*tileHeight+tileHeight+outaY)/l2->height;
+        ImGui::SetCursorScreenPos(ImVec2(posX,posY)); ImGui::Image((ImTextureID)tileMapTexture,ImVec2(tw-border,th-border),tx0,tx1); posX += tw;
+        ImVec2 v0 = ImGui::GetItemRectMin();
+        ImVec2 v1 = ImGui::GetItemRectMax();
+        if (ImGui::IsMouseHoveringRect(v0,v1) && ImGui::IsMouseClicked(0)) l->toolInfo.tileMapSelectedTile = index;
+        v0.x -= 1;
+        v0.y -= 1;
+        if (index == l->toolInfo.tileMapSelectedTile) {
+          ImGui::GetWindowDrawList()->AddRect(v0,v1,0xff0000ff);
+        }
+  
+        if (posX + tw > cursor0.x + width - 16) {
+          posX = cursor1.x;
+          posY += th;
+        }
+      }
+      index++;
+    }
+    posY = index / k * th - ImGui::GetScrollY();
+    ImGui::SetCursorScreenPos(ImVec2(posX,posY));
+    ImGui::Text(""); // ScrollBar
+    ImGui::EndChild();
+  }
+}
+
 void drawToolView() {
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
@@ -1325,6 +1422,9 @@ void drawToolView() {
     } break;
   case TOOL_MODIFY: {
       drawToolModifyView();
+    } break;
+  case TOOL_TILEMAP: {
+      drawToolTileMapView();
     } break;
   }
   ImGui::End();

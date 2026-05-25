@@ -59,6 +59,7 @@
 #define HOTKEY_ZOOM100 HOTKEY('j',false,false,"<j> Zoom to 100% of canvas size")
 #define HOTKEY_FITLAYER HOTKEY('k',false,false,"<k> Fit layer coordinates")
 #define HOTKEY_MOUSETOGRID HOTKEY('n',false,false,"<n> Mouse to grid")
+#define HOTKEY_SAVEIMAGE HOTKEY(GL_VK_S_CTRL,true,false,"CTRL<s> Save image")
 
 void initHotkeys();
 void freeHotkeys();

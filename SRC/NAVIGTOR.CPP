@@ -169,6 +169,8 @@ void drawNavigator() {
   }
   if (ImGui::ImageButton((ImTextureID)navigatorTexture,ImVec2(navigatorWidth,navigatorHeight),ImVec2(0,0),ImVec2(1,1),0)) {
   } else toolTip("Pixel view");
+#define IMGUIGLFAST
+#ifndef IMGUIGLFAST
   ImVec2 c0 = ImVec2((double)navigatorWidth*(navigatorX/2)/navigatorX,(double)navigatorHeight*(navigatorY/2)/navigatorY);
   ImVec2 c1 = ImVec2((double)navigatorWidth*(navigatorX/2+1)/navigatorX,(double)navigatorHeight*(navigatorY/2+1)/navigatorY);
   c0.x += cursor2.x - 1;
@@ -176,6 +178,19 @@ void drawNavigator() {
   c1.x += cursor2.x + 1;
   c1.y += cursor2.y + 1;
   c0.x = floor(c0.x); c0.y = floor(c0.y); c1.x = floor(c1.x); c1.y = floor(c1.y);
+#else
+  int txaX = navigatorX * 4096 / navigatorWidth;
+  int txaY = navigatorY * 4096 / navigatorHeight;
+  int tx0 = txaX * (navigatorX/2) / navigatorX;
+  int ty0 = txaY * (navigatorY/2) / navigatorY;
+  int tx1 = txaX * (navigatorX/2+1) / navigatorX;
+  int ty1 = txaY * (navigatorY/2+1) / navigatorY;
+  int px0 = tx0 * navigatorWidth / txaX; int py0 = ty0 * navigatorHeight / txaY;
+  int px1 = tx1 * navigatorWidth / txaX; int py1 = ty1 * navigatorHeight / txaY;
+  ImVec2 c0 = ImVec2(px0,py0); c0.x += cursor2.x; c0.y += cursor2.y;
+  ImVec2 c1 = ImVec2(px1,py1); c1.x += cursor2.x; c1.y += cursor2.y;
+  c0.x = floor(c0.x); c0.y = floor(c0.y); c1.x = floor(c1.x)+1; c1.y = floor(c1.y)+1; // no clue why c0 is one left+above
+#endif
   ImGui::GetWindowDrawList()->AddRect(c0,c1,0xff0000ff);
 
   c0.x = cursor3.x + sidebar_width - navigatorWidth - 10 - layerTextureSizeX;

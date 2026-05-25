@@ -32,6 +32,7 @@
 #include "LAYERS.HPP"
 #include "LAYERV.HPP"
 #include "UNDO.HPP"
+#include "DIALOGS.HPP"
 #include <math.h>
 
 #define HOTKEY(__char__,__ctrl__,__alt__,__text__) ((__char__) | (((__ctrl__?CONTROLKEY_CTRL:0)|(__alt__?CONTROLKEY_ALT:0))<<16))
@@ -110,5 +111,6 @@ void applyHotKeys() {
     case HOTKEY_ZOOM100: {currentCanvas->control.zoomTo(currentCanvas,mouseX,mouseY,100);} break;
     case HOTKEY_FITLAYER: {if (currentCanvas->getActiveLayer() != NULL) {beforeUndoPoint(); currentCanvas->getActiveLayer()->quantizeBoundingBox(); afterUndoPoint();}} break;
     case HOTKEY_MOUSETOGRID: {mouseToGrid();} break;
+    case HOTKEY_SAVEIMAGE: {dialogLoadSave(true,DIALOG_SAVEIMAGE);} break;
   }
 }

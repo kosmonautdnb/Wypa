@@ -67,7 +67,8 @@ extern const char *layerModeNames[LAYERMODE_COUNT];
 enum LAYERTYPES {
   LAYERTYPE_BASIC = 0,
   LAYERTYPE_TEXT = 1,
-  LAYERTYPE_ADJUSTMENT = 2
+  LAYERTYPE_ADJUSTMENT = 2,
+  LAYERTYPE_TILEMAP = 3
 };
 
 enum ALIGNMENTS {
@@ -357,6 +358,8 @@ public:
     tilingAnimTime = 0;
     tilingAnimFrame = 0;
 
+    tileMapSelectedTile = 0;
+
     showTilingGrid = true;
     showTilingGridIndices = true;
 
@@ -386,6 +389,8 @@ public:
   bool tilingAnimDoubleSided;
   float tilingAnimTime;
 
+  int tileMapSelectedTile;
+
   bool showTilingGrid;
   bool showTilingGridIndices;
 
@@ -414,6 +419,7 @@ public:
   S_BOOL("tilingAnimPlaying",(__o__)->tilingAnimPlaying);\
   S_BOOL("tilingAnimReverse",(__o__)->tilingAnimReverse);\
   S_BOOL("tilingAnimDoubleSided",(__o__)->tilingAnimDoubleSided);\
+  S_INT("tileMapSelectedTile",(__o__)->tileMapSelectedTile);\
   S_BOOL("showTilingGrid",(__o__)->showTilingGrid);\
   S_BOOL("showTilingGridIndices",(__o__)->showTilingGridIndices);\
   S_BASE64("textEditText",(__o__)->textEditText,MAXTEXTEDITTEXT);\
@@ -453,6 +459,7 @@ public:
   bool showColorTransformOnlyInSelection;
 
   unsigned int sourceLayerId;
+  unsigned int tileSourceLayerId;
 
   Layer() {
     mode = LAYERMODE_DEFAULT;
@@ -462,6 +469,7 @@ public:
     pixels = NULL;
     pixelStates = NULL;
     sourceLayerId = 0;
+    tileSourceLayerId = 0;
     repaintState = REPAINTSTATE_NONE;
     justSelection = false;
     hasOutline = false;
@@ -552,6 +560,7 @@ public:
   S_INT("type",(__o__)->type);\
   S_ID("id",(__o__)->id);\
   S_IDREFERENCE("sourceLayerId",(__o__)->sourceLayerId);\
+  S_IDREFERENCE("tileSourceLayerId",(__o__)->tileSourceLayerId);\
   S_LAYERSTATE("state",&(__o__)->state);\
   S_TRANSFORMATIONSTATE("transform",&(__o__)->transform);\
   S_COLORTRANSFORM("colorTransform",&(__o__)->colorTransform);\
@@ -840,6 +849,8 @@ public:
 
   void lockLayers(bool lockOrUnlock);
   void getContentFromOtherLayer(Layer *dest, unsigned int sourceId);
+
+  Layer *getLayerById(unsigned int id);
 };
 
 #define S_CANVAS(__name__,__o__)\

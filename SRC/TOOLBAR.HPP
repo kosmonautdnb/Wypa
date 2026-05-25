@@ -45,7 +45,8 @@ enum TOOL {
   TOOL_BLUR = 15,
   TOOL_OVERLAYS = 16,
   TOOL_MODIFY = 17,
-  TOOL_COUNT = 18
+  TOOL_TILEMAP = 18,
+  TOOL_COUNT = 19
 };
 extern const char *toolNames[TOOL_COUNT];
 

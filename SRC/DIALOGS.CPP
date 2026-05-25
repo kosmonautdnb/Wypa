@@ -33,6 +33,7 @@
 #include "UNDO.HPP"
 #include "FILTER.HPP"
 #include "COLORFLD.HPP"
+#include "TOOLBAR.HPP"
 #include <math.h>
 
 bool reOpen = false;
@@ -140,6 +141,7 @@ void drawDialogs() {
   dialogKeying(false);
   dialogNewHere(false);
   dialogMonitorGamma(false);
+  dialogInsertTileMapLayer(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -238,7 +240,7 @@ void dialogMonitorGamma(bool openIt) {
   DIALOGSTART("Monitor gamma")
   ImGui::PushItemWidth(7*9);
   bool updateIt = false;
-  ImGui::Text("Monitor gamma"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAGAMMA",&monitorGamma)) {updateIt = true;} if (monitorGamma<0.0001) monitorGamma = 0.0001; if (monitorGamma>400) monitorGamma = 400;
+  ImGui::Text("Monitor gamma"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAGAMMA",&monitorGamma)) {updateIt = true;} else toolTip("The monitors luminance curve"); if (monitorGamma<0.0001) monitorGamma = 0.0001; if (monitorGamma>400) monitorGamma = 400;
   if (updateIt) {
     updateIt = false;
     reGenMonitorGamma();
@@ -247,6 +249,50 @@ void dialogMonitorGamma(bool openIt) {
   if (ImGui::Button("Close##DIALOGMONITORGAMMACLOSE")) {
     ImGui::CloseCurrentPopup();
   }
+  DIALOGEND()
+}
+
+void dialogInsertTileMapLayer(bool openIt) {
+
+  static char layerName[LAYERNAMEMAX];
+  static int w = 128, h = 128;
+  if (openIt) {
+    static int counter = 0; counter++;
+    sprintf(layerName,"Tilemap %d",counter);
+  }
+
+  DIALOGSTART("Insert tilemap layer")
+  noUndoMessage();
+  ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGINSERTTILEMAPLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The name of the tilemap layer");
+  ImGui::PushItemWidth(64+16*2);
+  ImGui::Text("Tilemap width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGINSERTTILEMAPWIDTH",&w); toolTip("The width in tiles of the tilemap layer");
+  ImGui::Text("Tilemap height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGINSERTTILEMAPHEIGHT",&h); toolTip("The height in tiles of the tilemap layer");
+  ImGui::PopItemWidth();
+  if (w < 1) w = 1;
+  if (h < 1) h = 1;
+  if (ImGui::Button("Add tilemap##DIALOGINSERTTILEMAPADD")) {
+    int pos = 0;
+    for (int i = 0; i < currentCanvas->layers.size(); i++) {
+      if (currentCanvas->layers[i]->state.active || currentCanvas->layers[i]->state.selected) {pos = i; break;}
+    }
+    Layer *l = new Layer();
+    l->init(w,h);
+    l->setLayerPos(currentCanvas->canvasX0, currentCanvas->canvasY0);
+    l->state.locked = true;
+    l->state.permanentlyLocked = true;
+    l->type = LAYERTYPE_TILEMAP;
+    l->tileSourceLayerId = currentCanvas->getActiveLayer() != NULL ? currentCanvas->getActiveLayer()->id : 0;
+    sprintf(l->name,layerName);
+    currentCanvas->insertLayer(l,pos);
+    currentCanvas->setActiveLayer(pos);
+    shouldUpdateAll = true;
+    switchTool(TOOL_TILEMAP);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Create the tilemap and insert it above the first selected layer");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGINSERTTILEMAPLAYERCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't create a tilemap here");
   DIALOGEND()
 }
 
@@ -289,6 +335,7 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_ZOOM100
   HOTKEY_FITLAYER
   HOTKEY_MOUSETOGRID
+  HOTKEY_SAVEIMAGE
   ImGui::Text("You can press <CTRL> on sliders to enter a value");
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
@@ -325,32 +372,32 @@ void dialogCanvas(bool openIt) {
   DIALOGSTART("Configure canvas")
   int k;
   ImGui::PushItemWidth(64+16*2);
-  k = (int)(currentCanvas->canvasX1-currentCanvas->canvasX0);ImGui::Text("Canvas width");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASWIDTH",&k)) {currentCanvas->canvasX1 = currentCanvas->canvasX0 + k;}
-  k = (int)(currentCanvas->canvasY1-currentCanvas->canvasY0);ImGui::Text("Canvas height");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASHEIGHT",&k)) {currentCanvas->canvasY1 = currentCanvas->canvasY0 + k;}
-  k = (int)(currentCanvas->canvasX0);ImGui::Text("Canvas x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASX",&k)) {int v = currentCanvas->canvasX1-currentCanvas->canvasX0;currentCanvas->canvasX0 = k;currentCanvas->canvasX1 = currentCanvas->canvasX0+v;}
-  k = (int)(currentCanvas->canvasY0);ImGui::Text("Canvas y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASY",&k)) {int v = currentCanvas->canvasY1-currentCanvas->canvasY0;currentCanvas->canvasY0 = k;currentCanvas->canvasY1 = currentCanvas->canvasY0+v;}
+  k = (int)(currentCanvas->canvasX1-currentCanvas->canvasX0);ImGui::Text("Canvas width");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASWIDTH",&k)) {currentCanvas->canvasX1 = currentCanvas->canvasX0 + k;} else toolTip("The width of the picture in pixels");
+  k = (int)(currentCanvas->canvasY1-currentCanvas->canvasY0);ImGui::Text("Canvas height");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASHEIGHT",&k)) {currentCanvas->canvasY1 = currentCanvas->canvasY0 + k;} else toolTip("The height of the picture in pixels");
+  k = (int)(currentCanvas->canvasX0);ImGui::Text("Canvas x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASX",&k)) {int v = currentCanvas->canvasX1-currentCanvas->canvasX0;currentCanvas->canvasX0 = k;currentCanvas->canvasX1 = currentCanvas->canvasX0+v;} else toolTip("The x position of the picture in pixels");
+  k = (int)(currentCanvas->canvasY0);ImGui::Text("Canvas y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASVANVASY",&k)) {int v = currentCanvas->canvasY1-currentCanvas->canvasY0;currentCanvas->canvasY0 = k;currentCanvas->canvasY1 = currentCanvas->canvasY0+v;} else toolTip("The y position of the picture in pixels");
   ImGui::PopItemWidth();
   double w = currentCanvas->canvasX1-currentCanvas->canvasX0;
   double h = currentCanvas->canvasY1-currentCanvas->canvasY0;
   if (w < 1) w = 1;
   if (h < 1) h = 1;
-  if (ImGui::Button("tl##DIALOGCANVASTL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = y0;}
+  if (ImGui::Button("tl##DIALOGCANVASTL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = y0;} else toolTip("Canvas is at the upper left of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("tc##DIALOGCANVASTC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = y0;}
+  if (ImGui::Button("tc##DIALOGCANVASTC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = y0;} else toolTip("Canvas is at the upper center of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("tr##DIALOGCANVASTR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = y0;}
+  if (ImGui::Button("tr##DIALOGCANVASTR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = y0;} else toolTip("Canvas is at the upper right of the current canvas");
 
-  if (ImGui::Button("cl##DIALOGCANVASCL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = (y0+y1)/2-h/2;}
+  if (ImGui::Button("cl##DIALOGCANVASCL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = (y0+y1)/2-h/2;} else toolTip("Canvas is at the mid left of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("cc##DIALOGCANVASCC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = (y0+y1)/2-h/2;}
+  if (ImGui::Button("cc##DIALOGCANVASCC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = (y0+y1)/2-h/2;} else toolTip("Canvas is at the center of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("cr##DIALOGCANVASCR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = (y0+y1)/2-h/2;}
+  if (ImGui::Button("cr##DIALOGCANVASCR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = (y0+y1)/2-h/2;} else toolTip("Canvas is at the mid right of the current canvas");
 
-  if (ImGui::Button("bl##DIALOGCANVASBL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = y1-h;}
+  if (ImGui::Button("bl##DIALOGCANVASBL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = y1-h;} else toolTip("Canvas is at the bottom left of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("bc##DIALOGCANVASBC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = y1-h;}
+  if (ImGui::Button("bc##DIALOGCANVASBC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = y1-h;} else toolTip("Canvas is at the bottom center of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("br##DIALOGCANVASBR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = y1-h;}
+  if (ImGui::Button("br##DIALOGCANVASBR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = y1-h;} else toolTip("Canvas is at the bottom right of the current canvas");
 
   currentCanvas->canvasX1 = currentCanvas->canvasX0+w;
   currentCanvas->canvasY1 = currentCanvas->canvasY0+h;
@@ -365,10 +412,10 @@ void dialogCanvas(bool openIt) {
   k2 = (float)currentCanvas->control.pixelSizeY; ImGui::Text("Pixel size y");ImGui::SameLine();if (ImGui::InputFloat("##DIALOGCANVASPIXELSIZEY",&k2,0,0,2)) {currentCanvas->control.pixelSizeY = k2; shouldUpdateAll = true;}
 
   ImGui::Text("");
-  k = currentCanvas->gridStepX; ImGui::Text("Grid step x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDSTEPX",&k)) {currentCanvas->gridStepX = k;}
-  k = currentCanvas->gridStepY; ImGui::Text("Grid step y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDSTEPY",&k)) {currentCanvas->gridStepY = k;}
-  k = currentCanvas->gridOffsetX; ImGui::Text("Grid offset x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDOFFSETX",&k)) {currentCanvas->gridOffsetX = k;}
-  k = currentCanvas->gridOffsetY; ImGui::Text("Grid offset y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDOFFSETY",&k)) {currentCanvas->gridOffsetY = k;}
+  k = currentCanvas->gridStepX; ImGui::Text("Grid step x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDSTEPX",&k)) {currentCanvas->gridStepX = k;} else toolTip("The size in x pixels of one grid cell");
+  k = currentCanvas->gridStepY; ImGui::Text("Grid step y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDSTEPY",&k)) {currentCanvas->gridStepY = k;} else toolTip("The size in y pixels of one grid cell");
+  k = currentCanvas->gridOffsetX; ImGui::Text("Grid offset x");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDOFFSETX",&k)) {currentCanvas->gridOffsetX = k;} else toolTip("The position of the grid in pixels in x");
+  k = currentCanvas->gridOffsetY; ImGui::Text("Grid offset y");ImGui::SameLine();if (ImGui::InputInt("##DIALOGCANVASGRIDOFFSETY",&k)) {currentCanvas->gridOffsetY = k;} else toolTip("The position of the grid in pixels in y");
   if (currentCanvas->gridStepX < 2) currentCanvas->gridStepX = 2;
   if (currentCanvas->gridStepY < 2) currentCanvas->gridStepY = 2;
   if (currentCanvas->gridStepX > 16384) currentCanvas->gridStepX = 16384;
@@ -382,7 +429,7 @@ void dialogCanvas(bool openIt) {
 
   if (ImGui::Button("Close##DIALOGCANVASCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Close with using the changes");
   DIALOGEND()
 }
 
@@ -412,25 +459,26 @@ void dialogImageResize(bool openIt) {
   ImGui::Text("and the layers may be rotated/resized when saving the layers!");
   ImGui::Text("");
   ImGui::PushItemWidth(64+16*2);
-  k = (int)w;ImGui::Text("New image width");ImGui::SameLine();if (ImGui::InputInt("##DIALOGIMAGERESIZEWIDTH",&k)) {w = k; if (keepAspect) h = w/aspect;}
-  k = (int)h;ImGui::Text("New image height");ImGui::SameLine();if (ImGui::InputInt("##DIALOGIMAGERESIZEHEIGHT",&k)) {h = k; if (keepAspect) w = h*aspect;}
+  k = (int)w;ImGui::Text("New image width");ImGui::SameLine();if (ImGui::InputInt("##DIALOGIMAGERESIZEWIDTH",&k)) {w = k; if (keepAspect) h = w/aspect;} else toolTip("Scale the image to this width in pixels");
+  k = (int)h;ImGui::Text("New image height");ImGui::SameLine();if (ImGui::InputInt("##DIALOGIMAGERESIZEHEIGHT",&k)) {h = k; if (keepAspect) w = h*aspect;} else toolTip("Scale the image to this height in pixels");
   if (w < 1) w = 1;
   if (h < 1) h = 1;
   ImGui::PopItemWidth();
-  ImGui::Text("Preserve proportions");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEKEEPASPECT",&keepAspect);
-  ImGui::Text("Quantize/bake all");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEQUANTIZE",&quantize);
+  ImGui::Text("Preserve proportions");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEKEEPASPECT",&keepAspect); toolTip("Keep the images x vs y ratio the same when entering new width or height");
+  ImGui::Separator();
+  ImGui::Text("Quantize/bake all");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEQUANTIZE",&quantize); toolTip("All layers loose their rotations and so on");
   ImGui::PushItemWidth(7*12);
-  ImGui::Text("Interpolation");ImGui::SameLine();ImGui::Combo("##DIALOGIMAGERESIZEINTERPOLATION",&interpolation, interpolationNames, INTERPOLATION_COUNT);
+  ImGui::Text("Interpolation");ImGui::SameLine();ImGui::Combo("##DIALOGIMAGERESIZEINTERPOLATION",&interpolation, interpolationNames, INTERPOLATION_COUNT); toolTip("The smoothing mode used at rescaling");
   ImGui::PopItemWidth();
 
   if (ImGui::Button("Resize##DIALOGIMAGERESIZEESIZE")) {
     currentCanvas->resizeCanvas(w,h,quantize,interpolation);
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Apply the resizing");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGIMAGERESIZECLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't resize the image");
   DIALOGEND()
 }
 
@@ -445,8 +493,8 @@ void dialogExpandShrinkSelection(bool openIt) {
 
   ImGui::PushItemWidth(64+16*2);
   int k;
-  k = value; ImGui::Text("Expand or shrink selection by pixels");ImGui::SameLine();if (ImGui::InputInt("##DIALOGSELECTIONEXPANDORSHRINKVALUE",&k)) {value = k;}
-  ImGui::Text("Shrink?");ImGui::SameLine();if (ImGui::Checkbox("##DIALOGSELECTIONEXPANDORSHRINKSHRINK",&shrink)) {}
+  k = value; ImGui::Text("Expand or shrink selection by pixels");ImGui::SameLine();if (ImGui::InputInt("##DIALOGSELECTIONEXPANDORSHRINKVALUE",&k)) {value = k;} else toolTip("Increase or shrink of the selection area in pixels");
+  ImGui::Text("Shrink?");ImGui::SameLine();if (ImGui::Checkbox("##DIALOGSELECTIONEXPANDORSHRINKSHRINK",&shrink)) {} else toolTip("Shrinks instead of expands the area");
   if (value > 100) value = 100;
   if (value < -100) value = -100;
 
@@ -455,11 +503,11 @@ void dialogExpandShrinkSelection(bool openIt) {
     currentCanvas->expandSelection(value * (shrink ? -1 : 1));
     afterUndoPoint();
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Apply the shrink/expand");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGCANVASCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't do any expanding/shrinking");
   DIALOGEND()
 }
 
@@ -484,11 +532,11 @@ void dialogDeletePicture(bool openIt) {
     }
     shouldUpdateAll = true;
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Delete this whole picture from the program");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGDELETEPICTURECLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't delete this picture");
   DIALOGEND()
 }
 
@@ -503,10 +551,10 @@ void dialogAddLayer(bool openIt) {
   }
   DIALOGSTART("Add layer");
   noUndoMessage();
-  ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGADDLAYERNAME",layerName,LAYERNAMEMAX);
+  ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGADDLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The new layers name");
   ImGui::PushItemWidth(64+16*2);
-  ImGui::Text("Layer width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERWIDTH",&w);
-  ImGui::Text("Layer height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERHEIGHT",&h);
+  ImGui::Text("Layer width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERWIDTH",&w); toolTip("The new layers width in pixels");
+  ImGui::Text("Layer height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERHEIGHT",&h); toolTip("The new layers height in pixels");
   ImGui::PopItemWidth();
   if (w < 1) w = 1;
   if (h < 1) h = 1;
@@ -523,11 +571,11 @@ void dialogAddLayer(bool openIt) {
     currentCanvas->setActiveLayer(pos);
     shouldUpdateAll = true;
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Add a new layer on top of the current selected ones");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGADDLAYERCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't add a new layer");
   DIALOGEND()
 }
 
@@ -572,10 +620,10 @@ void dialogDeleteLayers(bool openIt) {
       ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
-  }
+  } else toolTip("Delete these selected layers from the image");
   if (ImGui::Button("Close##DIALOGDELETELAYERSCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't delete these layers");
   DIALOGEND()
 }
 
@@ -604,12 +652,12 @@ void dialogMergeDown(bool openIt) {
       currentCanvas->mergeDownLayers();
       afterUndoPoint();
       ImGui::CloseCurrentPopup();
-    }
+    } else toolTip("Insert one layer out of all the selected ones and delete the selected layers");
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGMERGEDOWNLAYERSCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Leave the layers as they are");
   DIALOGEND()
 }
 
@@ -625,18 +673,18 @@ void dialogInsertSVG(bool openIt, int width, int height) {
   ImGui::PushItemWidth(64+16*2);
   ImGui::Text("Layer width %d",(int)ceil(w*scale));
   ImGui::Text("Layer height %d",(int)ceil(h*scale));
-  ImGui::Text("Scale"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGINSERTSVGSCALE",&scale,0,0,2); if (scale < 0) scale = 0;
+  ImGui::Text("Scale"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGINSERTSVGSCALE",&scale,0,0,2); toolTip("Scale the vector graphic by this factor"); if (scale < 0) scale = 0;
   ImGui::PopItemWidth();
   if ((int)ceil(w*scale) > 0 && (int)ceil(h*scale) > 0) {
     if (ImGui::Button("Insert##DIALOGINSERTSVGINSERT")) {
       insertSVGResized(w, h, scale);
       ImGui::CloseCurrentPopup();
-    }
+    } else toolTip("Insert the vector graphic as pixel layer");
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGINSERTSVGCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't insert the vector graphic");
   DIALOGEND()
 }
 
@@ -646,15 +694,15 @@ void dialogExportLayersRaw(bool openIt) {
     colorTransformOn = true;
   }
   DIALOGSTART("Export layers raw");
-  ImGui::Text("Apply postprocessing?"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGEXPORTLAYERSRAWCOLORGRADINGON",&colorTransformOn);
+  ImGui::Text("Apply postprocessing?"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGEXPORTLAYERSRAWCOLORGRADINGON",&colorTransformOn); toolTip("Apply color transformations before exporting");
   if (ImGui::Button("Save##DIALOGEXPORTLAYERSRAWEXPORT")) {
     exportLayersRaw(dialogShortPath.c_str(),dialogLongFileName.c_str(),colorTransformOn);
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Export all the layers as single files");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGEXPORTLAYERSRAWCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't export any of these layers");
   DIALOGEND()
 }
 
@@ -669,19 +717,19 @@ void dialogPictureInfo(bool openIt) {
   int nameSize = 7*(PICTURENAMEMAX);
   ImGui::PushItemWidth(nameSize);
   ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9,0.9,0.9,1));
-  ImGui::Text("Name"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX);
-  ImGui::Text("Author"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOAUTHOR",currentCanvas->author, PICTURENAMEMAX);
+  ImGui::Text("Name"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX); toolTip("The name of the picture");
+  ImGui::Text("Author"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOAUTHOR",currentCanvas->author, PICTURENAMEMAX); toolTip("The author of that picture");
   ImGui::PopStyleColor();
   ImGui::PopItemWidth();
-  ImGui::Text("Date %s",currentCanvas->timeStamp.c_str());
-  ImGui::Text("Width %d", currentCanvas->canvasX1-currentCanvas->canvasX0);
-  ImGui::Text("Height %d", currentCanvas->canvasY1-currentCanvas->canvasY0);
+  ImGui::Text("Date %s",currentCanvas->timeStamp.c_str()); toolTip("Time of the creation of this image");
+  ImGui::Text("Width %d", currentCanvas->canvasX1-currentCanvas->canvasX0); toolTip("The width in pixels of the image");
+  ImGui::Text("Height %d", currentCanvas->canvasY1-currentCanvas->canvasY0); toolTip("The height in pixels of the image");
   ImGui::Text("Comment");
-  ImGui::InputTextMultiline("##DIALOGPICTUREINFOCOMMENT", tempCommentBuffer, PICTURECOMMENTMAX);
+  ImGui::InputTextMultiline("##DIALOGPICTUREINFOCOMMENT", tempCommentBuffer, PICTURECOMMENTMAX); toolTip("A user comment about this picture");
   if (ImGui::Button("Close##DIALOGPICTUREINFOCLOSE")) {
     currentCanvas->comment = String(tempCommentBuffer);
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Close and use this info");
   DIALOGEND()
 }
 
@@ -1096,15 +1144,15 @@ void dialogGradiationCurves(bool openIt) {
       curves[i].points.push_back(CurvePoint(255,255));
     }
     updateGradientCurvesPreview = true;
-  }
+  } else toolTip("Clear the settings to the normal state");
   ImGui::SameLine(); 
   if (roundButton("Load##DIALOGGRADIATIONLOAD",true)) {
     dialogLoadSave(true,DIALOG_LOADGRADIENTCURVES);
-  }
+  } else toolTip("Load a curve");
   ImGui::SameLine(); 
   if (roundButton("Save##DIALOGGRADIATIONLOAD",true)) {
     dialogLoadSave(true,DIALOG_SAVEGRADIENTCURVES);
-  }
+  } else toolTip("Save this curve");
   ImGui::BeginChild("DIALOGGRADIENTCURVESCHILD",ImVec2(gradiationTextureWidth,gradiationTextureHeight));
   ImGui::Image((ImTextureID)gradiationTexture,ImVec2(gradiationTextureWidth,gradiationTextureHeight));
   ImVec2 minB = ImGui::GetItemRectMin();
@@ -1134,8 +1182,8 @@ void dialogGradiationCurves(bool openIt) {
     colorValue2 = p.y;
   }
   bool pointUpdated = false;
-  ImGui::Text("Index"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGGRADIATIONINDEX",&colorIndex2,1,1)) {colorIndex = colorIndex2; colorValue = colorValue2; pointUpdated = true;}
-  ImGui::SameLine(); ImGui::Text("Value"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGGRADIATIONVALUE",&colorValue2,1,1)) {colorIndex = colorIndex2; colorValue = colorValue2; pointUpdated = true;}
+  ImGui::Text("Index"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGGRADIATIONINDEX",&colorIndex2,1,1)) {colorIndex = colorIndex2; colorValue = colorValue2; pointUpdated = true;} else toolTip("The selected curve point");
+  ImGui::SameLine(); ImGui::Text("Value"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGGRADIATIONVALUE",&colorValue2,1,1)) {colorIndex = colorIndex2; colorValue = colorValue2; pointUpdated = true;} else toolTip("The selected points height");
   if (colorIndex < 0) colorIndex = 0;
   if (colorValue < 0) colorValue = 0;
   if (colorIndex > 255) colorIndex = 255;
@@ -1182,10 +1230,10 @@ void dialogGradiationCurves(bool openIt) {
 
   dialogNoMove = false;
   for (int i = 0; i < 5; i++) if (curves[i].dragPoint>=0) dialogNoMove = true;
-  ImGui::Text("CVs"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGGRADIATIONCVS",&showCurveCVs);
-  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel);}
+  ImGui::Text("CVs"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGGRADIATIONCVS",&showCurveCVs); toolTip("Show bezier curve handles");
+  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel);} else toolTip("Show the curve for a color channel");
   ImGui::PopItemWidth();
-  ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;}
+  ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;} else toolTip("Delete this curve point");
 
   if (updateGradientCurvesPreview) {
     if (gradientCurvesToColorTransform == NULL) {
@@ -1211,7 +1259,7 @@ void dialogGradiationCurves(bool openIt) {
     updatedPixels(l);
     afterUndoPoint();
     gradientCurvesToColorTransform = NULL;
-  }
+  } else toolTip("Update the graphics with the curves");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGGRADIATIONCURVESCLOSE")) {
     if (gradientCurvesToColorTransform == NULL) {
@@ -1225,7 +1273,7 @@ void dialogGradiationCurves(bool openIt) {
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
     gradientCurvesToColorTransform = NULL;
-  }
+  } else toolTip("Don't update the graphics");
 
   DIALOGEND()
 }
@@ -1257,14 +1305,14 @@ void dialogColorBalance(bool openIt) {
 
   float *k;
   ImGui::PushItemWidth(200);
-  k = &colorBalanceR[channel]; ImGui::Text("purple - red - yellow"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCEPRY",k,-1,1)) {updateImage = true;} if (*k<-1) *k = -1; if (*k>1) *k = 1;
-  k = &colorBalanceG[channel]; ImGui::Text("yellow - green - cyan"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCEGYC",k,-1,1)) {updateImage = true;} if (*k<-1) *k = -1; if (*k>1) *k = 1;
-  k = &colorBalanceB[channel]; ImGui::Text("cyan - blue - purple"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCECBP",k,-1,1)) {updateImage = true;} if (*k<-1) *k = -1; if (*k>1) *k = 1;
+  k = &colorBalanceR[channel]; ImGui::Text("purple - red - yellow"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCEPRY",k,-1,1)) {updateImage = true;} else toolTip("Shift the colors in that direction"); if (*k<-1) *k = -1; if (*k>1) *k = 1;
+  k = &colorBalanceG[channel]; ImGui::Text("yellow - green - cyan"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCEGYC",k,-1,1)) {updateImage = true;} else toolTip("Shift the colors in that direction"); if (*k<-1) *k = -1; if (*k>1) *k = 1;
+  k = &colorBalanceB[channel]; ImGui::Text("cyan - blue - purple"); if (ImGui::SliderFloat("##DIALOGCOLORBALANCECBP",k,-1,1)) {updateImage = true;} else toolTip("Shift the colors in that direction"); if (*k<-1) *k = -1; if (*k>1) *k = 1;
   ImGui::Text("");   
-  ImGui::Text("Shadows"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL0", &channel, 0);
-  ImGui::Text("Mids"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL1", &channel, 1);
-  ImGui::Text("Lights"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL2", &channel, 2);
-  ImGui::Text("Keep luminance"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCOLORBALANCEKEEPLUMINANCE", &keepLuminance)) {updateImage = true;}
+  ImGui::Text("Shadows"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL0", &channel, 0); toolTip("Update the lower part of the colors by that");
+  ImGui::Text("Mids"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL1", &channel, 1); toolTip("Update the middle part of the colors by that");
+  ImGui::Text("Lights"); ImGui::SameLine(); ImGui::RadioButton("##DIALOGCOLORBALANCECHANNEL2", &channel, 2); toolTip("Update the upper part of the colors by that");
+  ImGui::Text("Keep luminance"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCOLORBALANCEKEEPLUMINANCE", &keepLuminance)) {updateImage = true;} else toolTip("Keep the luminance of the source color");
   ImGui::PopItemWidth();
 
   if (updateImage && (!ImGui::IsAnyItemActive())) {
@@ -1328,14 +1376,14 @@ void dialogColorBalance(bool openIt) {
     shouldUpdateAll = true;
     updatedPixels(l);
     afterUndoPoint();
-  }
+  } else toolTip("Update the colors of the graphics");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGCOLORBALANCECLOSE")) {
     if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
-  }
+  } else toolTip("Don't update the graphics");
   DIALOGEND()
 }
 
@@ -1373,7 +1421,7 @@ void dialogBlur(bool openIt) {
   DIALOGSTART("Blur");
 
   ImGui::PushItemWidth(7*15);
-  ImGui::Text("Type");ImGui::SameLine(); if (ImGui::Combo("##DIALOGBLURTYPE",&blurType, blurTypes, BLURTYPE_COUNT)) updateBlur = true;
+  ImGui::Text("Type");ImGui::SameLine(); if (ImGui::Combo("##DIALOGBLURTYPE",&blurType, blurTypes, BLURTYPE_COUNT)) {updateBlur = true;} else toolTip("The type of blur to apply");
   ImGui::PopItemWidth();
 
   ImGui::PushItemWidth(64);
@@ -1381,24 +1429,24 @@ void dialogBlur(bool openIt) {
   switch(blurType) {
     case BLURTYPE_BOX: {
       ImGui::Text("Box blur settings");
-      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXWIDTH",&boxWidth,0,0)) {updateBlur = true;} if (boxWidth<0) boxWidth = 0; if (boxWidth>maxBlurPixels) boxWidth = maxBlurPixels;
-      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXHEIGHT",&boxHeight,0,0)) {updateBlur = true;} if (boxHeight<0) boxHeight = 0; if (boxHeight>maxBlurPixels) boxHeight = maxBlurPixels;
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXWIDTH",&boxWidth,0,0)) {updateBlur = true;} else toolTip("The rectangular blur width/2"); if (boxWidth<0) boxWidth = 0; if (boxWidth>maxBlurPixels) boxWidth = maxBlurPixels;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXHEIGHT",&boxHeight,0,0)) {updateBlur = true;} else toolTip("The rectangular blur height/2"); if (boxHeight<0) boxHeight = 0; if (boxHeight>maxBlurPixels) boxHeight = maxBlurPixels;
     } break;
     case BLURTYPE_RADIAL: {
       ImGui::Text("Radial blur settings");
       ImGui::PushItemWidth(360);
-      ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGBLURRADIALANGLE",&radialAngle,0,360)) {updateBlur = true;} if (radialAngle<0) radialAngle = 0; if (radialAngle>360) radialAngle = 360;
+      ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGBLURRADIALANGLE",&radialAngle,0,360)) {updateBlur = true;} else toolTip("The direction in which to blur"); if (radialAngle<0) radialAngle = 0; if (radialAngle>360) radialAngle = 360;
       ImGui::PopItemWidth();
-      ImGui::Text("Radius"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURRADIALRADIUS",&radialSize,0,0,0)) {updateBlur = true;} if (radialSize<0) radialSize = 0; if (radialSize>maxBlurPixels) radialSize = maxBlurPixels;
+      ImGui::Text("Radius"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURRADIALRADIUS",&radialSize,0,0,0)) {updateBlur = true;} else toolTip("The length of one streak of the blur"); if (radialSize<0) radialSize = 0; if (radialSize>maxBlurPixels) radialSize = maxBlurPixels;
     } break;
     case BLURTYPE_GAUSS: {
       ImGui::Text("Gauss blur settings");
-      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSX",&gaussX,0,0,2)) {updateBlur = true;} if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
-      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSY",&gaussY,0,0,2)) {updateBlur = true;} if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSX",&gaussX,0,0,2)) {updateBlur = true;} else toolTip("The width of the gaussian blur cell"); if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSY",&gaussY,0,0,2)) {updateBlur = true;} else toolTip("The height of the gaussian blur cell"); if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
     } break;
     case BLURTYPE_ITERATIVE: {
       ImGui::Text("Iterative blur settings");
-      ImGui::Text("Steps"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURITERATIVE",&iterativeSteps,0,0)) {updateBlur = true;} if (iterativeSteps<0) iterativeSteps = 0; if (iterativeSteps>32) iterativeSteps = 32;
+      ImGui::Text("Steps"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURITERATIVE",&iterativeSteps,0,0)) {updateBlur = true;} else toolTip("How many steps of pixel merging"); if (iterativeSteps<0) iterativeSteps = 0; if (iterativeSteps>32) iterativeSteps = 32;
     } break;
   }
   
@@ -1408,7 +1456,7 @@ void dialogBlur(bool openIt) {
   if (ImGui::Button("Apply##DIALOGBLURAPPLY")) {
     updateBlur = true;
     apply = true;
-  }
+  } else toolTip("Apply this blur to the layer");
 
   if (updateBlur) {
     if (!ImGui::IsAnyItemActive()) {
@@ -1438,7 +1486,7 @@ void dialogBlur(bool openIt) {
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
-  }
+  } else toolTip("Don't apply a blur here");
   DIALOGEND()
 }
 
@@ -1460,8 +1508,8 @@ void dialogGlow(bool openIt) {
   DIALOGSTART("Turn to glow");
 
   ImGui::PushItemWidth(64);
-  ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSX",&gaussX,0,0,2)) {updateBlur = true;} if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
-  ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSY",&gaussY,0,0,2)) {updateBlur = true;} if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
+  ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSX",&gaussX,0,0,2)) {updateBlur = true;} else toolTip("The gauss cell width of the smoothing"); if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
+  ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSY",&gaussY,0,0,2)) {updateBlur = true;} else toolTip("The gauss cell height of the smoothing"); if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
   ImGui::PopItemWidth();
 
   if (updateBlur) {
@@ -1480,14 +1528,14 @@ void dialogGlow(bool openIt) {
     shouldUpdateAll = true;
     updatedPixels(l);
     afterUndoPoint();
-  }
+  } else toolTip("Make this layer into a greyscale glow layer");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGGLOWCLOSE")) {
     if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
-  }
+  } else toolTip("Don't change this layer");
   DIALOGEND()
 }
 
@@ -1508,7 +1556,7 @@ void dialogEmboss(bool openIt) {
   DIALOGSTART("Emboss");
 
   ImGui::PushItemWidth(360);
-  ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGEMBOSSANGLE",&angle,0,360)) {updateEmboss = true;} if (angle<0) angle = 0; if (angle>360) angle = 360;
+  ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGEMBOSSANGLE",&angle,0,360)) {updateEmboss = true;} else toolTip("The direction of light onto this relief"); if (angle<0) angle = 0; if (angle>360) angle = 360;
   ImGui::PopItemWidth();
   
   if (updateEmboss) {
@@ -1527,14 +1575,14 @@ void dialogEmboss(bool openIt) {
     shouldUpdateAll = true;
     updatedPixels(l);
     afterUndoPoint();
-  }
+  } else toolTip("Make this layer into a relief");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGEMBOSSCLOSE")) {
     if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
-  }
+  } else toolTip("Don't update this layer");
   DIALOGEND()
 }
 
@@ -1554,10 +1602,10 @@ void dialogColorMatrix(bool openIt) {
     l->colorTransform.colorMatrix[0*4+0] = k.x;
     l->colorTransform.colorMatrix[0*4+1] = k.y;
     l->colorTransform.colorMatrix[0*4+2] = k.z;
-  }
-  v = &l->colorTransform.colorMatrix[0*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRR",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[0*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRG",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[0*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRB",v,0,0,2)) {update = true;}
+  } else toolTip("Final red of red,green,blue should sum up to one");
+  v = &l->colorTransform.colorMatrix[0*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into red");
+  v = &l->colorTransform.colorMatrix[0*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into green");
+  v = &l->colorTransform.colorMatrix[0*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into blue");
 
   ImGui::Text("");
   ImGui::Text("Channel green");
@@ -1569,10 +1617,10 @@ void dialogColorMatrix(bool openIt) {
     l->colorTransform.colorMatrix[1*4+0] = k.x;
     l->colorTransform.colorMatrix[1*4+1] = k.y;
     l->colorTransform.colorMatrix[1*4+2] = k.z;
-  }
-  v = &l->colorTransform.colorMatrix[1*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGR",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[1*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGG",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[1*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGB",v,0,0,2)) {update = true;}
+  } else toolTip("Final green of red,green,blue should sum up to one");
+  v = &l->colorTransform.colorMatrix[1*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into red");
+  v = &l->colorTransform.colorMatrix[1*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into green");
+  v = &l->colorTransform.colorMatrix[1*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into blue");
 
   ImGui::Text("");
   ImGui::Text("Channel blue");
@@ -1584,20 +1632,20 @@ void dialogColorMatrix(bool openIt) {
     l->colorTransform.colorMatrix[2*4+0] = k.x;
     l->colorTransform.colorMatrix[2*4+1] = k.y;
     l->colorTransform.colorMatrix[2*4+2] = k.z;
-  }
-  v = &l->colorTransform.colorMatrix[2*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBR",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[2*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBG",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[2*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBB",v,0,0,2)) {update = true;}
+  } else toolTip("Final blue of red,green,blue should sum up to one");
+  v = &l->colorTransform.colorMatrix[2*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into red");
+  v = &l->colorTransform.colorMatrix[2*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into green");
+  v = &l->colorTransform.colorMatrix[2*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into blue");
 
   ImGui::Text("");
   ImGui::Text("Channel alpha");
-  v = &l->colorTransform.colorMatrix[3*4+3]; ImGui::Text("Scale alpha"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXA",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[3*4+3]; ImGui::Text("Scale alpha"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXA",v,0,0,2)) {update = true;} else toolTip("Update alpha by this scaling");
 
   ImGui::Text("");
-  v = &l->colorTransform.colorMatrix[4*4+0]; ImGui::Text("Add to red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDR",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[4*4+1]; ImGui::Text("Add to green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDG",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[4*4+2]; ImGui::Text("Add to blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDB",v,0,0,2)) {update = true;}
-  v = &l->colorTransform.colorMatrix[4*4+3]; ImGui::Text("Add to alpha"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDA",v,0,0,2)) {update = true;}
+  v = &l->colorTransform.colorMatrix[4*4+0]; ImGui::Text("Add to red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDR",v,0,0,2)) {update = true;} else toolTip("Add this amount to red (-256..256)");
+  v = &l->colorTransform.colorMatrix[4*4+1]; ImGui::Text("Add to green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDG",v,0,0,2)) {update = true;} else toolTip("Add this amount to green (-256..256)");
+  v = &l->colorTransform.colorMatrix[4*4+2]; ImGui::Text("Add to blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDB",v,0,0,2)) {update = true;} else toolTip("Add this amount to blue (-256..256)");
+  v = &l->colorTransform.colorMatrix[4*4+3]; ImGui::Text("Add to alpha"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDA",v,0,0,2)) {update = true;} else toolTip("Add this amount to alpha (-256..256)");
 
   ImGui::PopItemWidth();
 
@@ -1608,7 +1656,7 @@ void dialogColorMatrix(bool openIt) {
   
   if (ImGui::Button("Close##DIALOGCOLORMATRIXCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Apply this color transformation");
   DIALOGEND()
 }
 
@@ -1758,8 +1806,8 @@ void dialogQuantizePalette(bool openIt) {
 
   ImGui::PushItemWidth(64);
   ImGui::Text("Quantization using KMeans (not precise)");
-  ImGui::Text("Number of colors"); ImGui::SameLine(); ImGui::InputInt("##DIALOGQUANTIZEPALETTECOLORCOUNT",&colorCount,0,0); if (colorCount < 1) colorCount = 1; if (colorCount > 256) colorCount = 256;
-  ImGui::Text("Use luminance"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGQUANTIZEPALETTELUMINANCE",&useLuminance);
+  ImGui::Text("Number of colors"); ImGui::SameLine(); ImGui::InputInt("##DIALOGQUANTIZEPALETTECOLORCOUNT",&colorCount,0,0); toolTip("The color count of the resulting image(1..256)"); if (colorCount < 1) colorCount = 1; if (colorCount > 256) colorCount = 256;
+  ImGui::Text("Use luminance"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGQUANTIZEPALETTELUMINANCE",&useLuminance); toolTip("Not just simple greyscale for comparisons");
   ImGui::PopItemWidth();
 
   if (roundButton("Preview",true)) {
@@ -1770,7 +1818,7 @@ void dialogQuantizePalette(bool openIt) {
       l->quantize(palette);
       repaintLayer(l,true);
     }
-  }
+  } else toolTip("Generate a palette and show a preview in the layer");
 
   if (ImGui::Button("Save palette##DIALOGQUANTIZEPALETTESAVE")) {
     Array<unsigned int> palette;
@@ -1785,13 +1833,13 @@ void dialogQuantizePalette(bool openIt) {
     ImGui::CloseCurrentPopup();
     sortPalette(quantizedPalette);
     paletteToSave = &quantizedPalette; dialogLoadSave(true,DIALOG_SAVEPALETTE);
-  }
+  } else toolTip("Generate the palette and save it for later use");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGQUANTIZEPALETTECLOSE")) {
     memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't do anything");
   DIALOGEND()
 }
 
@@ -1818,12 +1866,12 @@ void dialogDuplicate(bool openIt) {
     if (ImGui::Button("Duplicate these layers##DIALOGDUPLICATELAYERSDUPLICATE")) {
       currentCanvas->duplicateLayers();
       ImGui::CloseCurrentPopup();
-    }
+    } else toolTip("Place duplicates of these layers directly above the selected layers");
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGDUPLICATELAYERSCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't do anything");
   DIALOGEND()
 }
 
@@ -1847,10 +1895,10 @@ void dialogExtrudeSelection(bool openIt) {
     ImGui::Text("Nothing selected on this layer.");
   } else {
     ImGui::PushItemWidth(360);
-    ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGEXTRUDESELECTIONANGLE",&angle,0,360)) {updateIt = true;} if (angle<0) angle = 0; if (angle>360) angle = 360;
+    ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGEXTRUDESELECTIONANGLE",&angle,0,360)) {updateIt = true;} else toolTip("A direction in which to expand the selection by"); if (angle<0) angle = 0; if (angle>360) angle = 360;
     ImGui::PopItemWidth();
     ImGui::PushItemWidth(7*8);
-    ImGui::Text("Length"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGEXTRUDESELECTIONLENGTH",&size,0,0,0)) {updateIt = true;} if (size<0) size = 0; if (size>maxLength) size = maxLength;
+    ImGui::Text("Length"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGEXTRUDESELECTIONLENGTH",&size,0,0,0)) {updateIt = true;} else toolTip("The length in pixels of the expansion"); if (size<0) size = 0; if (size>maxLength) size = maxLength;
     ImGui::PopItemWidth();
 
     if (updateIt) {
@@ -1890,7 +1938,7 @@ void dialogExtrudeSelection(bool openIt) {
       shouldUpdateAll = true;
       updatedPixelStates(l);
       afterUndoPoint();
-    }
+    } else toolTip("Expand the selection");
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGEXTRUDESELECTIONCLOSE")) {
@@ -1898,7 +1946,7 @@ void dialogExtrudeSelection(bool openIt) {
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
-  }
+  } else toolTip("Don't expand the selection");
   DIALOGEND()
 }
 
@@ -1933,28 +1981,28 @@ void dialogKeying(bool openIt) {
   }
   DIALOGSTART("Keying");
   ImGui::PushItemWidth(7*12);
-  ImGui::Text("Type");ImGui::SameLine();if (ImGui::Combo("##DIALOGKEYINGTYPE",&type, keyingTypeNames, KEYINGTYPE_COUNT)) {updateIt = true;}
+  ImGui::Text("Type");ImGui::SameLine();if (ImGui::Combo("##DIALOGKEYINGTYPE",&type, keyingTypeNames, KEYINGTYPE_COUNT)) {updateIt = true;} else toolTip("The type of keying that should be applied");
   ImGui::PopItemWidth();
   switch(type) {
     case KEYINGTYPE_SIMPLE: {
       ImGui::Text("Simple channel keying");
-      ImGui::Text("Red"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL0", &channel, 0)) {updateIt = true;}
-      ImGui::Text("Green"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL1", &channel, 1)) {updateIt = true;}
-      ImGui::Text("Blue"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL2", &channel, 2)) {updateIt = true;}
+      ImGui::Text("Red"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL0", &channel, 0)) {updateIt = true;} else toolTip("Just filter out the red parts");
+      ImGui::Text("Green"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL1", &channel, 1)) {updateIt = true;} else toolTip("Just filter out the green parts");
+      ImGui::Text("Blue"); ImGui::SameLine(); if (ImGui::RadioButton("##DIALOGKEYINGCHANNEL2", &channel, 2)) {updateIt = true;} else toolTip("Just filter out the blue parts");
       ImGui::PushItemWidth(300);
-      ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR",&factor,0,8)) {updateIt = true;} if (factor<0) factor = 0;
+      ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR",&factor,0,8)) {updateIt = true;} else toolTip("Intensity of the keying"); if (factor<0) factor = 0;
       ImGui::PopItemWidth();
     } break;
     case KEYINGTYPE_COLOR: {
       ImGui::Text("Color keying");
       colorItem("","##DIALOGKEYINGCOLOR0",&foregroundColor);
       ImGui::PushItemWidth(300);
-      ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR2",&factor2,0,8)) {updateIt = true;} if (factor2<0) factor2 = 0;
+      ImGui::Text("Factor"); if (ImGui::SliderFloat("##DIALOGKEYINGFACTOR2",&factor2,0,8)) {updateIt = true;} else toolTip("Intensity of the keying"); if (factor2<0) factor2 = 0;
       ImGui::PopItemWidth();
     } break;
   }
-  ImGui::Text("Binary");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGBINARY",&binary)) {updateIt = true;}
-  ImGui::SameLine();ImGui::Text("Invert");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGINVERT",&invert)) {updateIt = true;}
+  ImGui::Text("Binary");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGBINARY",&binary)) {updateIt = true;} else toolTip("The keying should only be on/off (alpha = 0 or alpha = 255)");
+  ImGui::SameLine();ImGui::Text("Invert");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGKEYINGINVERT",&invert)) {updateIt = true;} else toolTip("The keying should be inverted (1=0 and 0=1)");
 
   if (updateIt) {
     if (!ImGui::IsAnyItemActive()) {
@@ -1975,14 +2023,14 @@ void dialogKeying(bool openIt) {
     shouldUpdateAll = true;
     updatedPixels(l);
     afterUndoPoint();
-  }
+  } else toolTip("Apply the current keying settings to the layer");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGKEYINGCLOSE")) {
     if (clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
-  }
+  } else toolTip("Don't apply any keying");
   DIALOGEND()
 }
 
@@ -1991,8 +2039,8 @@ void dialogSelectByAlpha(bool openIt) {
   static int alphaThresholdMax = 128;
   DIALOGSTART("Select by alpha");
   ImGui::PushItemWidth(64+16*2);
-  ImGui::Text("Alpha >= min"); ImGui::SameLine(); ImGui::InputInt("##DIALOGSELECTBYALPHAMIN",&alphaThresholdMin);
-  ImGui::Text("Alpha <= max"); ImGui::SameLine(); ImGui::InputInt("##DIALOGSELECTBYALPHAMAX",&alphaThresholdMax);
+  ImGui::Text("Alpha >= min"); ImGui::SameLine(); ImGui::InputInt("##DIALOGSELECTBYALPHAMIN",&alphaThresholdMin); toolTip("The selection will no be made with alpha values below this");
+  ImGui::Text("Alpha <= max"); ImGui::SameLine(); ImGui::InputInt("##DIALOGSELECTBYALPHAMAX",&alphaThresholdMax); toolTip("The selection will no be made with alpha values above this");
   if (alphaThresholdMin<0) alphaThresholdMin = 0;
   if (alphaThresholdMin>255) alphaThresholdMin = 255;
   if (alphaThresholdMax<0) alphaThresholdMax = 0;
@@ -2003,11 +2051,11 @@ void dialogSelectByAlpha(bool openIt) {
     currentCanvas->selectByAlpha(alphaThresholdMin,alphaThresholdMax);
     afterUndoPoint();
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Create a selection with this setting");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGSELECTBYALPHACLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't create a selection here");
   DIALOGEND();
 }
 
@@ -2050,12 +2098,12 @@ void dialogBakeLayers(bool openIt) {
       afterUndoPoint();
       shouldUpdateAll = true;
       ImGui::CloseCurrentPopup();
-    }
+    } else toolTip("Create new layers without transformations and place it instead of the layers");
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGBAKELAYERSCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't bake any layers");
   DIALOGEND()
 }
 
@@ -2080,28 +2128,28 @@ void dialogNewImage(bool openIt) {
     sprintf(imageName,"New image %d",counter % 1023);
   }
   DIALOGSTART("New picture");
-  ImGui::Text("Picture name"); ImGui::SameLine(); ImGui::InputText("##DIALOGNEWIMAGENAME",imageName,PICTURENAMEMAX);
+  ImGui::Text("Picture name"); ImGui::SameLine(); ImGui::InputText("##DIALOGNEWIMAGENAME",imageName,PICTURENAMEMAX); toolTip("The name of the picture");
   ImGui::PushItemWidth(7*14);
-  ImGui::Text("Type"); ImGui::SameLine(); ImGui::Combo("##DIALOGNEWIMAGETYPE",&type, imageMeasureNames, IMAGEMEASURE_COUNT);
+  ImGui::Text("Type"); ImGui::SameLine(); ImGui::Combo("##DIALOGNEWIMAGETYPE",&type, imageMeasureNames, IMAGEMEASURE_COUNT); toolTip("The measure type for the image creation");
   ImGui::PopItemWidth();
   ImGui::PushItemWidth(64+16*2);
   switch(type) {
     case IMAGEMEASURE_PIXELS: {
-      ImGui::Text("Picture width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w);
-      ImGui::Text("Picture height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h);
+      ImGui::Text("Picture width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w); toolTip("The picture width in pixels");
+      ImGui::Text("Picture height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h); toolTip("The picture height in pixels");
     } break;
     case IMAGEMEASURE_CM: {
-      ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi);
-      ImGui::Text("Picture width in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHCM",&wcm,0,0,2);
-      ImGui::Text("Picture height in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTCM",&hcm,0,0,2);
+      ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi); toolTip("The dots per inch (dpi) of the picture");
+      ImGui::Text("Picture width in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHCM",&wcm,0,0,2); toolTip("The width of the picture in centimeters");
+      ImGui::Text("Picture height in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTCM",&hcm,0,0,2); toolTip("The height of the picture in centimeters");
       w = wcm / oneInch * dpi;
       h = hcm / oneInch * dpi;
       ImGui::Text("Pixels width %d height %d",w,h);
     } break;
     case IMAGEMEASURE_INCHES: {
-      ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi);
-      ImGui::Text("Picture width in inches"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHINCHES",&winches,0,0,2);
-      ImGui::Text("Picture height in inches"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTINCHES",&hinches,0,0,2);
+      ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi); toolTip("The dots per inch (dpi) of the picture");
+      ImGui::Text("Picture width in inches"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHINCHES",&winches,0,0,2); toolTip("The width of the picture in inch");
+      ImGui::Text("Picture height in inches"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTINCHES",&hinches,0,0,2); toolTip("The height of the picture in inch");
       w = winches * dpi;
       h = hinches * dpi;
       ImGui::Text("Pixels width %d height %d",w,h);
@@ -2112,11 +2160,11 @@ void dialogNewImage(bool openIt) {
   if (ImGui::Button("Create##DIALOGNEWIMAGECREATE")) {
     newPicture(w,h,String(imageName));
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Create a new picture");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGNEWIMAGECLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't create a new picture");
   DIALOGEND()
 }
 
@@ -2163,12 +2211,12 @@ void dialogGetLayersFromPicture(bool openIt) {
       }
       shouldUpdateAll = true;
       ImGui::CloseCurrentPopup();
-    }
+    } else toolTip("Get the layers from the other picture and place them above the current selection");
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGGETLAYERSFROMPICTURECLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't get any layers");
   DIALOGEND()
 }
 
@@ -2188,21 +2236,21 @@ void dialogUpdateLayer(bool openIt) {
     ImGui::Text("New layer pixel data height %d\n", newHeight);
     ImGui::Text("");
     ImGui::PushItemWidth(64+16*2);
-    ImGui::Text("Expand top"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDTOP",&expandTop);
-    ImGui::Text("Expand left"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDLEFT",&expandLeft);
-    ImGui::Text("Expand bottom"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDBOTTOM",&expandBottom);
-    ImGui::Text("Expand right"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDRIGHT",&expandRight);
+    ImGui::Text("Expand top"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDTOP",&expandTop); toolTip("Expand the layer by this pixel count on the top");
+    ImGui::Text("Expand left"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDLEFT",&expandLeft); toolTip("Expand the layer by this pixel count on the left");
+    ImGui::Text("Expand bottom"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDBOTTOM",&expandBottom); toolTip("Expand the layer by this pixel count on the bottom");
+    ImGui::Text("Expand right"); ImGui::SameLine(); ImGui::InputInt("##DIALOGUPDATELAYEREXPANDRIGHT",&expandRight); toolTip("Expand the layer by this pixel count on the right");
     ImGui::PopItemWidth();
     ImGui::Text("");
     if (ImGui::Button("Apply##DIALOGUPDATELAYERAPPLY")) {
       l->enlargenLayerBy(expandLeft,expandTop,expandRight,expandBottom);
       ImGui::CloseCurrentPopup();
-    }
+    } else toolTip("Update the layer");
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGUPDATELAYERCLOSE")) {
     ImGui::CloseCurrentPopup();
-  }
+  } else toolTip("Don't update the layer");
   DIALOGEND()
 }
 
@@ -2223,12 +2271,13 @@ const char *brush = "*.br2";
 const char *svg = "*.svg";
 const char *img = "*.wyp";
 const char *fnt = "*.ttf";
+const char *tilemap = "*.tm2";
 const char *gradientCrv = "*.cr2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {

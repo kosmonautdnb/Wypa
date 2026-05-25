@@ -155,6 +155,9 @@ void drawLayerView() {
     if (l->type == LAYERTYPE_ADJUSTMENT) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ff00ff);
     }
+    if (l->type == LAYERTYPE_TILEMAP) {
+      ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x4000ffff);
+    }
     if (l->state.active) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40000000);
     }

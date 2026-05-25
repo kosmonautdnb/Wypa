@@ -58,7 +58,9 @@ enum DIALOGMODE {
   DIALOG_SAVEGRADIENTCURVES = 22,
   DIALOG_LOADTILINGANIM = 23,
   DIALOG_SAVETILINGANIM = 24,
-  DIALOG_COUNT = 25
+  DIALOG_LOADTILEMAP = 25,
+  DIALOG_SAVETILEMAP = 26,
+  DIALOG_COUNT = 27
 };
 
 void dialogCanvas(bool openIt);
@@ -91,6 +93,7 @@ void dialogExtrudeSelection(bool openIt);
 void dialogKeying(bool openIt);
 void dialogNewHere(bool openIt);
 void dialogMonitorGamma(bool openIt);
+void dialogInsertTileMapLayer(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);

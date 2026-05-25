@@ -43,6 +43,8 @@ bool getTilingAnimationFrameLayerCell(class Layer *l,int frame, int &cx, int &cy
 
 bool notInt(double v);
 
+extern int scrollToTileMapIndex;
+
 #define S_TOOLVIEW_CPP()
 
 #endif // __TOOLVIEW_HPP__

@@ -37,7 +37,7 @@ int tool = TOOL_NONE;
 int lastTool = TOOL_NONE;
 bool fullScreen = false;
 
-const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tiling","Blur","Overlays","Modify"};
+const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tiling","Blur","Overlays","Modify","Tilemap"};
 
 void initToolBar() {
 }
@@ -72,24 +72,32 @@ bool toolBarButton(const char *svgName, int toolIndex) {
   bool disabled = false;
   bool selected = toolIndex == tool;
   Layer *l = currentCanvas->getActiveLayer();
-  if (toolIndex == TOOL_MAGIC) {
-    if (l != NULL) {
+  if (l != NULL) {
+
+    if (toolIndex == TOOL_MAGIC) {
       if (l->colorTransform.useColorTransform) highlighted = true;
       if (l->colorTransform.usePosterize) highlighted = true;
       if (l->colorTransform.useQuantization) highlighted = true;
     }
-  }
-  if (toolIndex == TOOL_TEXT) {
-    Layer *l = currentCanvas->getActiveLayer();
-    if (l != NULL) {
+
+    if (toolIndex == TOOL_TEXT) {
       disabled = l->type != LAYERTYPE_TEXT;
     }
-  }
-  if (l != NULL && l->type == LAYERTYPE_ADJUSTMENT) {
-    if (toolIndex == TOOL_MOVE || toolIndex == TOOL_MAGIC) {
-    } else {
-      disabled = true;
+
+    if (l->type == LAYERTYPE_TILEMAP) {
+      if (toolIndex == TOOL_TILEMAP || toolIndex == TOOL_MOVE || toolIndex == TOOL_MAGIC || toolIndex == TOOL_FILL) {
+      } else {
+        disabled = true;
+      }
+    } else if (toolIndex == TOOL_TILEMAP) disabled = true;
+
+    if (l->type == LAYERTYPE_ADJUSTMENT) {
+      if (toolIndex == TOOL_MOVE || toolIndex == TOOL_MAGIC) {
+      } else {
+        disabled = true;
+      }
     }
+
   }
   if (selected && disabled) {switchTool(TOOL_NONE);}
   bool ret = imageButton(svgName, combined(String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), selected, highlighted, disabled);
@@ -119,6 +127,7 @@ void drawToolBar() {
     toolBarButton("tilingTool",TOOL_TILING); toolTip("Tiling tool");
     toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
     toolBarButton("modifyTool",TOOL_MODIFY); toolTip("Modify tool");
+    toolBarButton("tilemapTool",TOOL_TILEMAP); toolTip("Tilemap tool");
     ImGui::End();
   }
   if (lastTool != tool) {toolChangeMessage(lastTool,tool); lastTool = tool;}

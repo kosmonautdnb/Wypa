@@ -844,7 +844,8 @@ void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned ch
 }
 
 void Layer::mirrorHorizontally() {
-  Matrix center; center.translate(Vector((double)width/2,0,0));
+  int w = width; if (type == LAYERTYPE_TILEMAP) {Layer *l2 = currentCanvas->getLayerById(tileSourceLayerId); if (l2 != NULL) w *= l2->toolInfo.tilingWidth;}  
+  Matrix center; center.translate(Vector((double)w/2,0,0));
   Matrix modify; modify.scale3(Vector(-1,1,1));
   transform.transformation = center * modify * inverse2(center) * transform.transformation;
   transform.update();
@@ -852,7 +853,8 @@ void Layer::mirrorHorizontally() {
 }
 
 void Layer::mirrorVertically() {
-  Matrix center; center.translate(Vector(0,(double)height/2,0));
+  int h = height; if (type == LAYERTYPE_TILEMAP) {Layer *l2 = currentCanvas->getLayerById(tileSourceLayerId); if (l2 != NULL) h *= l2->toolInfo.tilingHeight;}  
+  Matrix center; center.translate(Vector(0,(double)h/2,0));
   Matrix modify; modify.scale3(Vector(1,-1,1));
   transform.transformation = center * modify * inverse2(center) * transform.transformation;
   transform.update();
@@ -872,7 +874,8 @@ Matrix straighten(const Matrix &m) {
 }
 
 void Layer::rotate90DegreesForward() {
-  Vector c((double)width/2.0,(double)height/2.0,0);
+  int w = width; int h = height; if (type == LAYERTYPE_TILEMAP) {Layer *l2 = currentCanvas->getLayerById(tileSourceLayerId); if (l2 != NULL) {w *= l2->toolInfo.tilingWidth; h *= l2->toolInfo.tilingHeight;}}  
+  Vector c((double)w/2.0,(double)h/2.0,0);
   c = inverse2(transform.transformation)*c;
   Matrix center; center.translate(Vector(c.x,c.y,0));
   Matrix modify; modify = rotationMatrixAngleAxis(PI*-0.5,0,0,1);
@@ -883,7 +886,8 @@ void Layer::rotate90DegreesForward() {
 }
 
 void Layer::rotate90DegreesBackward() {
-  Vector c((double)width/2.0,(double)height/2.0,0);
+  int w = width; int h = height; if (type == LAYERTYPE_TILEMAP) {Layer *l2 = currentCanvas->getLayerById(tileSourceLayerId); if (l2 != NULL) {w *= l2->toolInfo.tilingWidth; h *= l2->toolInfo.tilingHeight;}}  
+  Vector c((double)w/2.0,(double)h/2.0,0);
   c = inverse2(transform.transformation)*c;
   Matrix center; center.translate(Vector(c.x,c.y,0));
   Matrix modify; modify = rotationMatrixAngleAxis(PI*0.5,0,0,1);
@@ -894,7 +898,8 @@ void Layer::rotate90DegreesBackward() {
 }
 
 void Layer::rotateByDegrees(double degrees) {
-  Vector c((double)width/2.0,(double)height/2.0,0);
+  int w = width; int h = height; if (type == LAYERTYPE_TILEMAP) {Layer *l2 = currentCanvas->getLayerById(tileSourceLayerId); if (l2 != NULL) {w *= l2->toolInfo.tilingWidth; h *= l2->toolInfo.tilingHeight;}}  
+  Vector c((double)w/2.0,(double)h/2.0,0);
   c = inverse2(transform.transformation)*c;
   Matrix center; center.translate(Vector(c.x,c.y,0));
   Matrix modify; modify = rotationMatrixAngleAxis(-degrees*PI/180.0,0,0,1);
@@ -1069,8 +1074,19 @@ bool Layer::hasSelection() {
 Vector Layer::boundingBox() {
   Vector ret;
   Matrix invM = inverse2(transform.transformation);
+  int w = width;
+  int h = height;
+
+  if (type == LAYERTYPE_TILEMAP) {
+    Layer *l = currentCanvas->getLayerById(tileSourceLayerId); // it's ok here to just reference the current canvas
+    if (l != NULL) {
+      w *= l->toolInfo.tilingWidth;
+      h *= l->toolInfo.tilingHeight;
+    }
+  }
+
   for (int i = 0; i < 4; i++) {
-    Vector k(i & 1 ? 0 : width, i & 2 ? 0 : height, 0);
+    Vector k(i & 1 ? 0 : w, i & 2 ? 0 : h, 0);
     k = invM * k;
     if (i == 0 || k.x < ret.x) ret.x = k.x;
     if (i == 0 || k.y < ret.y) ret.y = k.y;
@@ -1381,8 +1397,9 @@ void Layer::setLayerSize(double width, double height) {
 }
 
 double Layer::getAngleDegrees() {
-  Vector c((double)width/2.0,(double)height/2.0,0);
-  Vector n((double)width/2.0,(double)height/2.0*0,0);
+  int w = width; int h = height; if (type == LAYERTYPE_TILEMAP) {Layer *l2 = currentCanvas->getLayerById(tileSourceLayerId); if (l2 != NULL) {w *= l2->toolInfo.tilingWidth; h *= l2->toolInfo.tilingHeight;}}  
+  Vector c((double)w/2.0,(double)h/2.0,0);
+  Vector n((double)w/2.0,(double)h/2.0*0,0);
   c = inverse2(transform.transformation)*c;
   n = inverse2(transform.transformation)*n;
   c -= n;
@@ -1865,7 +1882,7 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColor
       double lx, ly; getLayerPos(l,screenX,screenY,lx,ly);
       int x = floor(lx), y = floor(ly);
       if ((unsigned int)x < l->width && (unsigned int)y < l->height) {
-        unsigned int col = l->pixels[x+y*l->width];
+        unsigned int col = l->getPixel(x,y);
         if (useColorTransform) {
           if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
           if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
@@ -1907,7 +1924,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   bool darken = !(layer->state.selected || layer->state.active);
   if (!canvas->hilightSelection) darken = false;
 
-  if (layer->sourceLayerId != 0) {
+  if (layer->sourceLayerId != 0) { // referencing layer
     canvas->getContentFromOtherLayer(layer,layer->sourceLayerId);
   }
 
@@ -1968,16 +1985,71 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
     showSelection = layer->state.selected || layer->state.active;
   }
 
+  // tilemap layer
+  bool tiles = layer->type == LAYERTYPE_TILEMAP;
+  unsigned int *tileSource = NULL;
+  int tileSourceWidth = 0;
+  int tileSourceHeight = 0;
+  int tileOffsetX = 0;
+  int tileOffsetY = 0;
+  int tileWidth = 1;
+  int tileHeight = 1;
+  int tileSourceTileCountX = 1;
+  int tileSourceTileCountY = 1;
+  if (tiles) {
+    for (int i = 0; i < canvas->layers.size(); i++) {
+      if (canvas->layers[i]->id == layer->tileSourceLayerId) {
+        tileSource = canvas->layers[i]->pixels;
+        tileSourceWidth = canvas->layers[i]->width;
+        tileSourceHeight = canvas->layers[i]->height;
+        tileWidth = canvas->layers[i]->toolInfo.tilingWidth;
+        tileHeight = canvas->layers[i]->toolInfo.tilingHeight;
+        tileOffsetX = canvas->layers[i]->toolInfo.tilingOffsetX;
+        tileOffsetY = canvas->layers[i]->toolInfo.tilingOffsetY;
+        break;
+      }
+    }
+    if (tileSource == NULL) return;
+    if (tileSourceWidth < 1) return;
+    if (tileSourceHeight < 1) return;
+    if (tileWidth < 1) return;
+    if (tileHeight < 1) return;
+    tileSourceTileCountX = tileSourceWidth / tileWidth;
+    tileSourceTileCountY = tileSourceHeight / tileHeight;
+    int outaX = (tileOffsetX+tileWidth*100000) % tileWidth;
+    int outaY = (tileOffsetY+tileHeight*100000) % tileHeight;
+    if (outaX != 0) tileSourceTileCountX--;
+    if (outaY != 0) tileSourceTileCountY--;
+    if (tileSourceTileCountX < 1) return;
+    if (tileSourceTileCountY < 1) return;
+  }
+
+  int lxBefore = 0;
+  int lyBefore = 0;
+
   for (int y = y0; y < y1; y++) {
     for (int x = x0; x < x1; x++) {
+
+      unsigned char a = canvas->pixelStates[x+y*canvas->width];
+      if (!(a & PIXELSTATE_UPDATED)) continue;
+
       int lx = (int)(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
       int ly = (int)(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
       if (lx == 0) lx = (int)floor(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
       if (ly == 0) ly = (int)floor(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
+
+      if (tiles)  {
+        // tilemap
+        lxBefore = lx;
+        lyBefore = ly;
+        lx /= tileWidth;
+        ly /= tileHeight;
+        if (lx == 0) lx = (int)floor((double)lxBefore/tileWidth);
+        if (ly == 0) ly = (int)floor((double)lyBefore/tileHeight);
+      }
+
       if ((unsigned int)lx >= layer->width || (unsigned int)ly >= layer->height) continue;
 
-      unsigned char a = canvas->pixelStates[x+y*canvas->width];
-      if (!(a & PIXELSTATE_UPDATED)) continue;
       unsigned char sl = layer->pixelStates[lx+ly*layer->width];
       if (layer->justSelection && (!(sl & PIXELSTATE_SELECTED))) continue;
       unsigned char sl2 = sl;
@@ -1989,7 +2061,23 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       unsigned int rgb1 = layer->pixels[lx+ly*layer->width];
 
       if (layer->type == LAYERTYPE_ADJUSTMENT) {
+        // adjustment layer
         rgb1 = rgb0;
+      }
+
+      if (tiles) {
+        // tilemap
+        if (lxBefore<0) lxBefore = 0;
+        if (lyBefore<0) lyBefore = 0;
+        unsigned int tile = rgb1;
+        int tx = tile % tileSourceTileCountX;
+        int ty = tile / tileSourceTileCountX;
+        tx = tx * tileWidth + (lxBefore % tileWidth) + tileOffsetX;
+        ty = ty * tileHeight + (lyBefore % tileHeight) + tileOffsetY;
+        rgb1 = 0xffff00ff;
+        if ((unsigned int)tx < tileSourceWidth && (unsigned int)ty < tileSourceHeight) {
+          rgb1 = tileSource[tx+ty*tileSourceWidth];
+        }
       }
 
       if (useColorTransform) {
@@ -2555,13 +2643,7 @@ void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1
     for (int i2 = overlays.size()-1; i2 >= 0; i2--) {
       Overlay *o = overlays[i2];
       if (o->visible) {
-        Layer *l = NULL;
-        for (int i3 = 0; i3 < layers.size(); i3++) {
-          if (layers[i3]->id == o->layerId) {
-            l = layers[i3];
-            break;
-          }
-        }
+        Layer *l = getLayerById(o->layerId);
         if (l != NULL) {
           drawOverlay(x0,y0,x1,y1,this,l,o);
         }
@@ -2781,7 +2863,6 @@ void Canvas::mergeDownLayers() {
   Layer *l = getSelectionAsLayer(false,false,false);
   if (l == NULL) return;
   layerGetContent(layers[lastPos],l); layers[lastPos]->transform = l->transform; layers[lastPos]->colorTransform = l->colorTransform;
-  setActiveLayer(lastPos);
   delete l;
   for (int i2 = 0; i2 < layers.size(); i2++) {
     if (layers[i2]->state.selected || layers[i2]->state.active) {
@@ -2793,6 +2874,8 @@ void Canvas::mergeDownLayers() {
       }
     }
   }
+  noSelectedLayers();
+  setActiveLayer(lastPos);
   shouldUpdateAll = true;
 }
 
@@ -3384,7 +3467,8 @@ void Canvas::paste() {
   int layerPos = 0;
   for (int i2 = 0; i2 < layers.size(); i2++) {Layer *l = layers[i2]; if ((l->state.selected && one)||(l->state.active && (!one))) {layerPos = i2; break;}}
   insertLayer(copyLayer,layerPos); copyLayer = NULL;
-  //insertLayer(copyLayer->clone(),layerPos); //copyLayer = NULL;
+  selectNone(true);
+  noSelectedLayers();
   setActiveLayer(layerPos);
   updatedPixels(getActiveLayer());
   updatedPixelStates(getActiveLayer());
@@ -3703,6 +3787,17 @@ void Canvas::getContentFromOtherLayer(Layer *dest, unsigned int sourceId) {
       break;
     }
   }
+}
+
+Layer *Canvas::getLayerById(unsigned int id) {
+  Layer *ret = NULL;
+  for (int i = 0; i < layers.size(); i++) {
+    if (layers[i]->id == id) {
+      ret = layers[i];
+      break;
+    }
+  }
+  return ret;
 }
 
 void repaintLayer(Layer *layer, bool fullUpdate) {

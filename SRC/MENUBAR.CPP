@@ -201,6 +201,8 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); switchTool(TOOL_TEXT);}
       if (ImGui::MenuItem("Insert adjustment layer")) {currentCanvas->insertAdjustmentLayer(); }
+      bool tileMapPossible = currentCanvas->getActiveLayer() != NULL && currentCanvas->getActiveLayer()->type == LAYERTYPE_BASIC;
+      if (ImGui::MenuItem("Insert tilemap layer with this layers tiles",NULL,false,tileMapPossible)) {dialogInsertTileMapLayer(true); }
       ImGui::Separator();
       if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
       if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
