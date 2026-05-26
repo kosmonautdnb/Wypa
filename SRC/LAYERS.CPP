@@ -109,6 +109,57 @@ void LayerState::clear() {
   visible = true;
 }
 
+bool locked(const Layer *l, unsigned int lockFlags) {
+  if (l == NULL) return false;
+  unsigned int k = l->state.lockBits;
+  if (lockFlags == LOCK_USER) return k & LOCK_USER ? true : false;
+  if (k & LOCK_USER) return false;
+  k &= ~(LOCK_USER);
+  bool _LOCK_ANY = false;
+  bool _LOCK_PERMANENT = false;
+  bool _LOCK_PIXELS = false;
+  bool _LOCK_PIXELS_AND_TILEMAP = false;
+  bool _LOCK_SELECTION = false;
+  bool _LOCK_UNDO = false;
+
+  switch(k) {
+  case LOCK_TILEMAP : {
+    _LOCK_ANY = true;
+    _LOCK_PERMANENT = true;
+    _LOCK_PIXELS = true;
+    _LOCK_PIXELS_AND_TILEMAP = false;
+    _LOCK_SELECTION = false;
+    _LOCK_UNDO = false;
+  } break;
+  case LOCK_TEXT : {
+    _LOCK_ANY = true;
+    _LOCK_PERMANENT = true;
+    _LOCK_PIXELS = true;
+    _LOCK_PIXELS_AND_TILEMAP = true;
+    _LOCK_SELECTION = true;
+    _LOCK_UNDO = false;
+  } break;
+  case LOCK_REFERENCE : {
+    _LOCK_ANY = true;
+    _LOCK_PERMANENT = true;
+    _LOCK_PIXELS = true;
+    _LOCK_PIXELS_AND_TILEMAP = true;
+    _LOCK_SELECTION = true;
+    _LOCK_UNDO = true;
+  } break;
+  }
+
+  switch(lockFlags) {
+  case LOCK_ANY : return _LOCK_ANY;
+  case LOCK_PERMANENT : return _LOCK_PERMANENT;
+  case LOCK_PIXELS : return _LOCK_PIXELS;
+  case LOCK_PIXELS_AND_TILEMAP : return _LOCK_PIXELS_AND_TILEMAP;
+  case LOCK_SELECTION : return _LOCK_SELECTION;
+  case LOCK_UNDO : return _LOCK_UNDO;
+  }
+  return false;
+}
+
 void TransformationState::transformForward(double x, double y, double &rx, double &ry) {
   rx = x*transformation.m[0+0*4]+y*transformation.m[0+1*4]+transformation.m[0+3*4];
   ry = x*transformation.m[1+0*4]+y*transformation.m[1+1*4]+transformation.m[1+3*4];
@@ -667,18 +718,18 @@ void reverseLastLayerIdCountUp() {
 }
 
 unsigned int Layer::getPixel(int x, int y) {
-  if (state.locked) return 0x00000000;
+  if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return 0x00000000;
   if ((unsigned int)x<width&&(unsigned int)y<height) return pixels[x+y*width];
   return 0x00000000;
 }
 
 void Layer::setPixel(int x, int y, unsigned int rgba) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return;
   if ((unsigned int)x<width&&(unsigned int)y<height) pixels[x+y*width] = rgba;
 }
 
 void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return;
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -697,7 +748,7 @@ void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
 }
 
 void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool clampOnLayer) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return;
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -722,7 +773,7 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool c
 
 void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer) {
   UNUSED(clampOnLayer);
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return;
   int deltaX = x1 - x0;
   int deltaY = y1 - y0;
   int delta = abs(deltaX);
@@ -746,8 +797,7 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool
 }
 
 void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool clampOnLayer) {
-  if (state.locked) return;
-  if (y1 == y0) return;
+  if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return;
   if (y1 < y0) {
     int t;
     t = x0; x0 = x1; x1 = t;
@@ -776,6 +826,7 @@ void Layer::init(int width, int height) {
   transform.clear();
   state.clear();
   mode = LAYERMODE_DEFAULT;
+  type = LAYERTYPE_BASIC;
   sourceLayerId = 0;
   setContentSize(width, height);
 }
@@ -827,7 +878,7 @@ void Layer::clear() {
 }
 
 void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   unsigned int and2 = _and|(_and<<8)|(_and<<16)|(_and<<24);
   unsigned int or2 = _or|(_or<<8)|(_or<<16)|(_or<<24);
   unsigned int eor2 = _eor|(_eor<<8)|(_eor<<16)|(_eor<<24);
@@ -909,14 +960,14 @@ void Layer::rotateByDegrees(double degrees) {
 }
 
 void Layer::selectAll() {
-  if (state.locked) return;
+  if (locked(this,LOCK_SELECTION)) return;
   for (int i = 0; i < width * height; i++) pixelStates[i] |= PIXELSTATE_SELECTED;
   shouldUpdateAll = true;
   updatedPixelStates(this);
 }
 
 void Layer::selectNone() {
-  if (state.locked) return;
+  if (locked(this,LOCK_SELECTION)) return;
   unsigned char f = ~PIXELSTATE_SELECTED; unsigned int f2 = (f)|(f<<8)|(f<<16)|(f<<24);
   unsigned int *pixelStates2 = (unsigned int*)pixelStates;
   for (int i = 0; i < width * height/4; i++) pixelStates2[i] &= f2;
@@ -926,14 +977,14 @@ void Layer::selectNone() {
 }
 
 void Layer::invertSelection() {
-  if (state.locked) return;
+  if (locked(this,LOCK_SELECTION)) return;
   for (int i = 0; i < width * height; i++) pixelStates[i] ^= PIXELSTATE_SELECTED;
   shouldUpdateAll = true;
   updatedPixelStates(this);
 }
 
 void Layer::fillSelectionWithColor(unsigned int color) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = color;
   shouldUpdateAll = true;
   updatedPixels(this);
@@ -941,7 +992,7 @@ void Layer::fillSelectionWithColor(unsigned int color) {
 }
 
 void Layer::fillSelectionWithAlpha(unsigned char alpha) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) {
       pixels[i] = (pixels[i] & 0x00ffffff) | (alpha << 24);
   }
@@ -962,7 +1013,7 @@ unsigned int invertAlpha2(unsigned int col) {
 }
 
 void Layer::invertColor() {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   bool hasSel = hasSelection();
   for (int i = 0; i < width * height; i++) if ((!hasSel)||(pixelStates[i] & PIXELSTATE_SELECTED)) pixels[i] = invertColor2(pixels[i]);
   updatedPixels(this);
@@ -970,7 +1021,7 @@ void Layer::invertColor() {
 }
 
 void Layer::invertAlpha() {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   bool hasSel = hasSelection();
   for (int i = 0; i < width * height; i++) if ((!hasSel)||(pixelStates[i] & PIXELSTATE_SELECTED)) pixels[i] = invertAlpha2(pixels[i]);
   updatedPixels(this);
@@ -978,7 +1029,7 @@ void Layer::invertAlpha() {
 }
 
 void Layer::expandSelection(int pixels) {
-  if (state.locked) return;
+  if (locked(this,LOCK_SELECTION)) return;
   if (pixels == 0) return;
   unsigned char *before = new unsigned char[width*height];
   bool forward = pixels > 0;
@@ -1013,7 +1064,8 @@ void Layer::expandSelection(int pixels) {
 }
 
 void Layer::selectByAlpha(int alphaThresholdMin, int alphaThresholdMax) {
-  if (state.locked) return;
+  if (locked(this,LOCK_SELECTION)) return;
+  if (locked(this,LOCK_PIXELS)) return;
   for (int i = 0; i < width * height; i++) {
     pixelStates[i] = (unsigned char)(pixelStates[i] & (~PIXELSTATE_SELECTED));
     int a = (pixels[i]>>24) & 255;
@@ -1024,7 +1076,7 @@ void Layer::selectByAlpha(int alphaThresholdMin, int alphaThresholdMax) {
 }
 
 void Layer::selectionAsOutline() {
-  if (state.locked) return;
+  if (locked(this,LOCK_SELECTION)) return;
   int addX[4] = {-1,1,0,0};
   int addY[4] = {0,0,-1,1};
   for (int y = 0; y < height; y++) {
@@ -1051,7 +1103,7 @@ void Layer::selectionAsOutline() {
 }
 
 void Layer::addSelectionRectangle(int lx0, int ly0, int lx1, int ly1) {
-  if (state.locked) return;
+  if (locked(this,LOCK_SELECTION)) return;
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if (x >= lx0 && x < lx1 && y >= ly0 && y < ly1) {
@@ -1101,11 +1153,23 @@ Vector Layer::selectionBounding() {
   Vector ret;
   bool first = true;
   Matrix invM = inverse2(transform.transformation);
+
+  bool tiling = false; int tw = 1, th = 1;
+  if (type == LAYERTYPE_TILEMAP) {
+    Layer *l = currentCanvas->getLayerById(tileSourceLayerId); // it's ok here to just reference the current canvas
+    if (l != NULL) {
+      tw = l->toolInfo.tilingWidth;
+      th = l->toolInfo.tilingHeight;
+      tiling = true;
+    }
+  }
+
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if (pixelStates[x+y*width] && PIXELSTATE_SELECTED) {
         for (int i = 0; i < 4; i++) {
           Vector k(x+(i & 1 ? 1 : 0),y+(i & 2 ? 1 : 0),0);
+          if (tiling) {k.x*=tw; k.y*=th;}
           k = invM * k;
           if (first || k.x < ret.x) ret.x = k.x;
           if (first || k.y < ret.y) ret.y = k.y;
@@ -1155,7 +1219,7 @@ void Layer::quantizeBoundingBox() {
 }
 
 void layerNewContent(Layer *l, int w, int h) {
-  if (l->state.locked) return;
+  if (locked(l,LOCK_ANY)) return;
   if (w < 1) return;
   if (h < 1) return;
   if (l->pixels != NULL) {delete[] l->pixels; l->pixels = NULL;}
@@ -1171,7 +1235,7 @@ void layerNewContent(Layer *l, int w, int h) {
 }
 
 void layerGetContent(Layer *to, Layer *from) {
-  if (to->state.locked) return;
+  if (locked(to,LOCK_ANY)) return;
   int w = from->width;
   int h = from->height;
   layerNewContent(to,w,h);
@@ -1180,7 +1244,7 @@ void layerGetContent(Layer *to, Layer *from) {
 }
 
 void Layer::resizeLayerContent(int interpolation, int newWidth, int newHeight) {
-  if (state.locked) return;
+  if (locked(this,LOCK_ANY)) return;
   if (newWidth <= 0) return;
   if (newHeight <= 0) return;
   TransformationState before = transform;
@@ -1191,8 +1255,7 @@ void Layer::resizeLayerContent(int interpolation, int newWidth, int newHeight) {
 }
 
 void Layer::bakeLayer(int interpolation) {
-  if (state.locked) return;
-
+  if (locked(this,LOCK_ANY)) return;
   Vector b = boundingBox();
   int x0 = (int)floor(b.x);
   int y0 = (int)floor(b.y);
@@ -1440,7 +1503,7 @@ void Layer::snapToGrid(class Canvas *canvas) {
 }
 
 void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
-  if (state.locked) return;
+  if (locked(this,LOCK_ANY)) return;
 
   int newWidth = width + left + right;
   int newHeight = height + top + bottom;
@@ -1478,7 +1541,7 @@ void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
 }
 
 void Layer::cropByAlpha(double alphaThreshold) {
-  if (state.locked) return;
+  if (locked(this,LOCK_ANY)) return;
   bool first = true;
   int minX = 0, minY = 0, maxX = 0, maxY = 0;
   for (int y = 0; y < height; y++) {
@@ -1500,13 +1563,13 @@ void Layer::cropByAlpha(double alphaThreshold) {
 }
 
 void Layer::antialiasSelected() {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   doFXAA(pixels,width,height,pixelStates,PIXELSTATE_SELECTED);
   updatedPixels(this);
 }
 
 void Layer::greyScale() {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   bool hasSel = hasSelection();
   for (int i = 0; i < width*height; i++) {
     if ((!hasSel)||(pixelStates[i] & PIXELSTATE_SELECTED)) {
@@ -1526,7 +1589,7 @@ void Layer::greyScale() {
 }
 
 void Layer::colorFromAlpha() {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   for (int i = 0; i < width*height; i++) {
     unsigned int col = pixels[i];
     int a = col>>24;
@@ -1537,7 +1600,7 @@ void Layer::colorFromAlpha() {
 }
 
 void Layer::applyAlphaMask(Layer *source) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   Matrix m = source->transform.transformation * inverse2(transform.transformation);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
@@ -1562,7 +1625,7 @@ void Layer::applyAlphaMask(Layer *source) {
 }
 
 void Layer::quantize(const Array<unsigned int> &colors) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   if (colors.empty()) return;
   initStatusBar();
   for (int i = 0; i < width * height; i++) {
@@ -1667,7 +1730,7 @@ unsigned int quantizeFast(unsigned int col, float ditherStrength, int x, int y) 
 }
 
 void Layer::bakeMagic(bool onlyInSelection) {
-  if (state.locked) return;
+  if (locked(this,LOCK_PIXELS)) return;
   bool quantize = colorTransform.useQuantization && (quantization.size() == 64*64*64);
   for (int i = 0; i < width*height; i++) {
     if (onlyInSelection && (!(pixelStates[i] & PIXELSTATE_SELECTED))) continue;
@@ -1684,7 +1747,7 @@ void Layer::bakeMagic(bool onlyInSelection) {
 
 
 void Layer::addSelectionFromLayer(Layer *source) {
-  if (state.locked) return;
+  if (locked(this,LOCK_SELECTION)) return;
   if (source == NULL || (!source->hasSelection())) return;
   Layer *s = source;
   Layer *d = this;
@@ -1713,7 +1776,7 @@ unsigned int Layer::byteCount() {
 }
 
 bool Layer::hasUpdates() {
-  if (state.locked) return false;
+  if (locked(this,LOCK_UNDO)) return false;
   return undoData.updatePixelsCount != undoData.updatePixelsCountOfLastSave;
 }
 
@@ -1780,7 +1843,7 @@ Canvas *Canvas::clone() {
   ret->layers.data = new Layer*[2]; ret->layers.allocatedSize = 2; ret->layers.usedSize = 0;
   ret->overlays.data = new Overlay*[2]; ret->overlays.allocatedSize = 2; ret->overlays.usedSize = 0;
   for (int i = 0; i < layers.size(); i++) {
-    ret->layers.push_back(layers[i]->clone());
+    unsigned int id = layers[i]->id; Layer *l = layers[i]->clone(); reverseLastLayerIdCountUp(); l->id = id; ret->layers.push_back(l);
   }
   for (int i2 = 0; i2 < overlays.size(); i2++) {
     Overlay *zwo = new Overlay(); *zwo = *overlays[i2]; ret->overlays.push_back(zwo);
@@ -2735,8 +2798,7 @@ void Canvas::insertTextLayer() {
   l->invalidateContent();
   l->mode = LAYERMODE_ALPHA;
   l->type = LAYERTYPE_TEXT;
-  l->state.locked = true;
-  l->state.permanentlyLocked = true;
+  l->state.lockBits = LOCK_TEXT;
   sprintf(l->name,"text");
   insertLayer(l,pos);
   setActiveLayer(pos);
@@ -3128,7 +3190,7 @@ void Canvas::copyActiveSelectionToLayer(int layerIndexSource,int layerIndexDest)
   if ((unsigned int)layerIndexDest>=layers.size()) return;
   Layer *s = layers[layerIndexSource];
   Layer *d = layers[layerIndexDest];
-  if (d->state.locked) return;
+  if (locked(d,LOCK_SELECTION)) return;
   Matrix m = s->transform.transformation * inverse2(d->transform.transformation);
   for (int y = 0; y < d->height; y++) {
     for (int x = 0; x < d->width; x++) {
@@ -3424,8 +3486,7 @@ void Canvas::duplicateLayerAsReference(Layer *l) {
       layers[i]->state.selected = false;
       Layer *l = layers[i]->clone();
       l->sourceLayerId = layers[i]->id;
-      l->state.locked = true;
-      l->state.permanentlyLocked = true;
+      l->state.lockBits = LOCK_REFERENCE;
       sprintf(l->name,"reference");
       insertLayer(l,i);
       i++;
@@ -3555,11 +3616,16 @@ Vector Canvas::boundingBox() {
 }
 
 Vector Canvas::getLayerPixelBounding(Layer *l, double canvasX0, double canvasY0, double canvasX1, double canvasY1) {
-  Vector ret;
+  Vector ret; if (l == NULL) return ret;
+  bool tiling = false; int tw = 1, th = 1; if (l->type == LAYERTYPE_TILEMAP) {Layer *l2 = getLayerById(l->tileSourceLayerId); if (l2 != NULL && l2->toolInfo.tilingWidth>=1 && l2->toolInfo.tilingHeight>=1) {tw = l2->toolInfo.tilingWidth; th = l2->toolInfo.tilingHeight; tiling = true;}}
   bool first = true;
   for (int i = 0; i < 4; i++) {
     Vector k(i & 1 ? canvasX1 : canvasX0, i & 2 ? canvasY1 : canvasY0,0);
     k = l->transform.transformation * k;
+    if (tiling) {
+      k.x /= tw;
+      k.y /= th;
+    }
     if (first || k.x < ret.x) ret.x = k.x;
     if (first || k.y < ret.y) ret.y = k.y;
     if (first || k.x > ret.z) ret.z = k.x;
@@ -3757,9 +3823,7 @@ void Canvas::signSave() {
 void Canvas::lockLayers(bool lockOrUnlock) {
   for (int i = 0; i < layers.size(); i++) {
     if (layers[i]->state.selected||layers[i]->state.active) {
-      if (!layers[i]->state.permanentlyLocked) {
-        layers[i]->state.locked = lockOrUnlock;
-      }
+      layers[i]->state.lockBits = layers[i]->state.lockBits ^ LOCK_USER;
     }
   }
 }
@@ -3859,6 +3923,18 @@ void blitCanvas() {
   int selectionY0 = -1;
   int selectionX1 = -1;
   int selectionY1 = -1;
+
+  bool tiling = false;
+  int tw = 1, th = 1;
+  if (selectionPlane->type == LAYERTYPE_TILEMAP) {
+    Layer *l2 = currentCanvas->getLayerById(selectionPlane->tileSourceLayerId);
+    if (l2 != 0) {
+      tw = l2->toolInfo.tilingWidth;
+      th = l2->toolInfo.tilingHeight;
+      if (tw>0&&th>0) tiling = true;
+    }
+  }
+
   for (int y = 0; y < currentCanvas->height; y++) {
     int dy = y + currentCanvas->screenPosY;
     if ((unsigned int)dy >= glFrameBufferHeight) continue;
@@ -3940,6 +4016,10 @@ void blitCanvas() {
       if (showSelectionPlane) {
         double lxs = lx3*sp.m[0+0*4]+ly3*sp.m[0+1*4]+sp.m[0+3*4];
         double lys = lx3*sp.m[1+0*4]+ly3*sp.m[1+1*4]+sp.m[1+3*4];
+        if (tiling) {
+          lxs /= tw;
+          lys /= th;
+        }
         int lx = (int)lxs;
         int ly = (int)lys;
         if (lx == 0) lx = (int)floor(lxs);

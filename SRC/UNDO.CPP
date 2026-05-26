@@ -59,10 +59,7 @@ public:
     undoCanvas = currentCanvas;
     for (int i = 0; i < undoCanvas->layers.size(); i++) {
       if (undoCanvas->layers[i]->state.active || undoCanvas->layers[i]->state.selected) {
-        bool useThis = !undoCanvas->layers[i]->state.permanentlyLocked;
-        if (undoCanvas->layers[i]->type == LAYERTYPE_TEXT) useThis = true;
-        if (undoCanvas->layers[i]->type == LAYERTYPE_TILEMAP) useThis = true;
-        if (useThis) {
+        if (!locked(undoCanvas->layers[i],LOCK_UNDO)) {
           Layer *l2 = undoCanvas->layers[i]; int id = l2->id; 
           Layer *l = l2->clone(); reverseLastLayerIdCountUp(); l->id = id;
           memcpy(l->pixelStates,l2->pixelStates,l->width*l->height*sizeof(unsigned char)); // sorry (not cloned before)

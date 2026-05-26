@@ -138,7 +138,7 @@ void drawToolWandView() {
 }
 
 void drawToolFillView() {
-  Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && l->type == LAYERTYPE_TILEMAP) return;
+  Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && locked(l,LOCK_PIXELS_AND_TILEMAP)) return;
   float k;
   k = fillColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLFILLCOLORDISTANCE",&k,0,256)) {fillColorDistance = k;} else toolTip("Sameness value for fill area color");
   ImGui::Text("Use valleys"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFILLVALLEYS",&fillUseValleys)) {} else toolTip("Flow up and down the filling points");
@@ -719,7 +719,7 @@ void drawToolMeasureView() {
 
 void updateTilingGrid(Layer *l, bool visible) {
   if (l == NULL) return;
-  if (l->state.locked) return;
+  if (locked(l,LOCK_PIXELS)) return;
   l->updatePixelStates(~(PIXELSTATE_GRID|PIXELSTATE_TEMP),0,0);
   for (int y = 0; y < l->height; y++) {
     for (int x = 0; x < l->width; x++) {

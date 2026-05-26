@@ -541,7 +541,7 @@ void useToolWand() {
   if (!isPaintAreaActive()) return;
   if (!ImGui::IsMouseClicked(0)) return;
 
-  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; if (l->state.locked) return;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; if (locked(l,LOCK_SELECTION)) return;
 
   beforeUndoPoint();
 
@@ -802,9 +802,7 @@ void useToolFill() {
 
   mouseClickUndo();
 
-  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; 
-  bool useThis = !l->state.locked; if (l->type == LAYERTYPE_TILEMAP) useThis = true;
-  if (!useThis) return;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; if (locked(l,LOCK_PIXELS_AND_TILEMAP)) return;
   int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
 
   bool tiling = false;
@@ -947,6 +945,8 @@ bool useToolSelectionMove(Layer *activeLayer) {
       startControlKeyId = controlKeyId;
       selectionPlane->init(activeLayer->width, activeLayer->height);
       selectionPlane->transform = activeLayer->transform;
+      selectionPlane->type = activeLayer->type;
+      selectionPlane->tileSourceLayerId = activeLayer->tileSourceLayerId;
       selectionToolMoveActive  = true;
       selectionToolMoveStartX = lx;
       selectionToolMoveStartY = ly;
@@ -958,11 +958,25 @@ bool useToolSelectionMove(Layer *activeLayer) {
     ly += y;
   }
 
+  bool tiling = false; int tw = 1, th = 1;
+  if (selectionPlane->type == LAYERTYPE_TILEMAP) {
+    Layer *l2 = currentCanvas->getLayerById(selectionPlane->tileSourceLayerId);
+    if (l2 != NULL) {
+      tw = l2->toolInfo.tilingWidth;
+      th = l2->toolInfo.tilingHeight;
+      if (tw>0&&th>0) tiling = true;
+    }
+  }
+
   if (selectionToolMoveActive || moveByKey) {
     showSelectionPlane = true;
     if (activeLayer->width == selectionPlane->width && activeLayer->height == selectionPlane->height) {
       int deltaX = selectionToolMoveStartX-lx;
       int deltaY = selectionToolMoveStartY-ly;
+      if (tiling) {
+        deltaX /= tw;
+        deltaY /= th;
+      }
       for (int y = 0; y < activeLayer->height; y++) {
         for (int x = 0; x < activeLayer->width; x++) {
           bool selected = false;
@@ -986,7 +1000,9 @@ void useToolSelection() {
 
   if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
 
-  Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
+  Layer *activeLayer = currentCanvas->getActiveLayer(); 
+  if (activeLayer == NULL) return; if (locked(activeLayer,LOCK_SELECTION)) return;
+
   static Layer *selectionToolLayer = activeLayer;
   selectionToolLayer = activeLayer;
   if (selectionToolLayer != NULL && selectionToolLayer->width * selectionToolLayer->height==0) return;
@@ -994,6 +1010,16 @@ void useToolSelection() {
   mouseClickUndo();
 
   if ((!selectionToolActive) && useToolSelectionMove(activeLayer)) return; // move the selection
+
+  bool tiling = false; int tw = 1, th = 1;
+  if (selectionPlane->type == LAYERTYPE_TILEMAP) {
+    Layer *l2 = currentCanvas->getLayerById(selectionPlane->tileSourceLayerId);
+    if (l2 != NULL) {
+      tw = l2->toolInfo.tilingWidth;
+      th = l2->toolInfo.tilingHeight;
+      if (tw>0&&th>0) tiling = true;
+    }
+  }
 
   int selectionTool2 = tool == TOOL_OVERLAYS ? SELECTIONTOOL_RECTANGLE : selectionTool;
 
@@ -1027,13 +1053,18 @@ void useToolSelection() {
             double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX0,selectionY0,lx0,ly0);
             double lx1,ly1; 
             currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
+            if (tiling) {
+              lx0 = lx0/tw; ly0 = ly0/th;
+              lx1 = lx1/tw; ly1 = ly1/th;
+            }
             if (selectionTool2 == SELECTIONTOOL_LASSO) selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true);
             for (int y = 0; y < selectionPlane->height; y++) {
               bool isInSelection = false;
               for (int x = 0; x < selectionPlane->width; x++) {
                 bool edge = selectionPlane->pixels[x+y*selectionPlane->width] & XEORLINE ? true : false;
+                bool edge2 = selectionPlane->pixels[x+y*selectionPlane->width] & EORLINE ? true : false;
                 if (x == 0) {isInSelection = edge;edge = false;}
-                if (isInSelection) selectionPlane->pixels[x+y*selectionPlane->width] = SELECTEDLINE;
+                if (isInSelection||edge||edge2) selectionPlane->pixels[x+y*selectionPlane->width] = SELECTEDLINE;
                 if (edge) {isInSelection = !isInSelection;}
               }
             }
@@ -1063,6 +1094,8 @@ void useToolSelection() {
       startControlKeyId = controlKeyId;
       selectionPlane->init(activeLayer->width, activeLayer->height);
       selectionPlane->transform = activeLayer->transform;
+      selectionPlane->type = activeLayer->type;
+      selectionPlane->tileSourceLayerId = activeLayer->tileSourceLayerId;
       selectionX0 = lx;
       selectionY0 = ly;
       selectionX1 = lx;
@@ -1093,6 +1126,7 @@ void useToolSelection() {
     selectionToolActive = true;
     showSelectionPlane = true;
     showSelectionPlaneBounding = selectionTool2 == SELECTIONTOOL_ELLIPSE;
+
     switch(selectionTool2) {
       case SELECTIONTOOL_ELLIPSE:
       case SELECTIONTOOL_RECTANGLE: {
@@ -1101,6 +1135,12 @@ void useToolSelection() {
         selectionPlane->clear();
         Matrix m = inverse2(selectionPlane->transform.transformation);
         Vector b = currentCanvas->getLayerPixelBounding(selectionPlane,x0,y0,x1,y1);
+        if (tiling) {
+          x0 = floor(x0/tw);
+          y0 = floor(y0/th);
+          x1 = floor((x1-1)/tw)+1;
+          y1 = floor((y1-1)/th)+1;
+        }
         for (int yl = b.y; yl < b.w; yl++) {
           for (int xl = b.x; xl < b.z; xl++) {
             double x2 = xl * m.m[0*4+0]+yl * m.m[1*4+0]+m.m[3*4+0];
@@ -1125,14 +1165,24 @@ void useToolSelection() {
       case SELECTIONTOOL_LASSO: {
         double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionX1,lastSelectionY1,lx0,ly0);
         double lx1,ly1; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
-        selectionPlane->pixelLineOr(lx0,ly0,lx1,ly1,2,true);
-        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true);
+        if (tiling) {
+          lx0 = lx0/tw; ly0 = ly0/th;
+          lx1 = lx1/tw; ly1 = ly1/th;
+        }
+        selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,EORLINE,true);
+        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,XEORLINE,true);
       } break;
       case SELECTIONTOOL_POLYGON: {
         double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionPolygonX1,lastSelectionPolygonY1,lx0,ly0);
         double lx1,ly1; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
         double lx2,ly2; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionX1,lastSelectionY1,lx2,ly2);
         double lx3,ly3; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX0,selectionY0,lx3,ly3);
+        if (tiling) {
+          lx0 = lx0/tw; ly0 = ly0/th;
+          lx1 = lx1/tw; ly1 = ly1/th;
+          lx2 = lx2/tw; ly2 = ly2/th;
+          lx3 = lx3/tw; ly3 = ly3/th;
+        }
         if (ImGui::IsMouseDown(1)) {
           if (pointCount == 0) {selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,XEORLINE,true); selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,EORLINE,true);}
           lastSelectionPolygonX1 = lx;
@@ -1200,7 +1250,7 @@ void useToolGradient() {
 
   toolAspectX = currentCanvas->control.pixelSizeX != 0 ? 1.0 / currentCanvas->control.pixelSizeX : 1;
   toolAspectY = currentCanvas->control.pixelSizeY != 0 ? 1.0 / currentCanvas->control.pixelSizeY : 1;
-  Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
+  Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && locked(activeLayer,LOCK_PIXELS)) return;
   static Layer *selectionToolLayer = activeLayer;
   selectionToolLayer = activeLayer;
   if (selectionToolLayer != NULL && selectionToolLayer->width * selectionToolLayer->height==0) return;
@@ -1282,7 +1332,7 @@ int lockedMousePosX = 0;
 int lockedMousePosY = 0;
 
 void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double angle, bool justSelection, bool paintJustIntoOutline, bool pencil) {
-   if (layer->state.locked) return;
+  if (locked(layer,LOCK_PIXELS)) return;
 
   double xs = (rand() & 1023)/1023.0*2.0-1.0;
   double ys = (rand() & 1023)/1023.0*2.0-1.0;
@@ -1376,7 +1426,7 @@ bool lineAntialiasing = true;
 
 
 void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, double canvasY1, bool justSelection) {
-  if (layer->state.locked) return;
+  if (locked(layer,LOCK_PIXELS)) return;
 
   if (lineWidth == 0) return;
   Vector layerBoundings;
@@ -1472,7 +1522,7 @@ void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, d
 }
 
 void updateUpdateFlagByBrushLine(Layer *l,double cx0,double cy0, double cx1, double cy1, double toolWidth, double toolHeight) {
-  if (l->state.locked) return;
+  if (locked(l,LOCK_PIXELS)) return;
   double paintingPointX0 = cx0;
   double paintingPointY0 = cy0;
   double paintingPointX1 = cx1;
@@ -1559,7 +1609,7 @@ void useToolPainting() {
     if (ImGui::IsMouseDown(0)) return;
     waitForMouse0 = false;
   }
-  Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
+  Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && locked(activeLayer,LOCK_PIXELS)) return;
   static Layer *paintToolLayer = activeLayer;
   bool layerSwitched = paintToolLayer != activeLayer;
   paintToolLayer = activeLayer;
@@ -1957,7 +2007,7 @@ double measureLY1 = 0;
 RGBAImage getImageFromLayer(Layer *l, int sx,int sy, int width, int height) {
   RGBAImage ret;
   if (l == NULL) return ret;
-  if (l->state.locked) return ret;
+  if (locked(l,LOCK_PIXELS)) return ret;
   if (sx < 0) {width += sx; sx = 0;}
   if (sy < 0) {height += sy; sy = 0;}
   if (width + sx > l->width) width = l->width - sx;
@@ -1977,7 +2027,7 @@ RGBAImage getImageFromLayer(Layer *l, int sx,int sy, int width, int height) {
 void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy, bool useAlpha) {
   if (c.data == NULL || c.width <= 0 || c.height <= 0) return;
   if (l == NULL) return;
-  if (l->state.locked) return;
+  if (locked(l,LOCK_PIXELS)) return;
   for (int y = 0; y < c.height; y++) {
     for (int x = 0; x < c.width; x++) {
       int dx = sx + x;
@@ -1994,7 +2044,7 @@ void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy, bool useAlpha)
 
 void useToolTiling() {
   if (!isPaintAreaActive()) return;
-  Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && l->state.locked) return;
+  Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && locked(l,LOCK_PIXELS)) return;
   if (l == NULL) return;
   mouseClickUndo();
   double lx = mouseX, ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
@@ -2127,7 +2177,7 @@ void drawOpenGLRect(double sx0, double sy0, double sx1, double sy1, unsigned int
 void toolCanvasStuff() {
   switch(tool) {
   case TOOL_TILING: {
-      Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) break; if (l->state.locked) return;
+      Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) break; if (locked(l,LOCK_PIXELS)) return;
       if (l->toolInfo.tilingWidth <= 0) break;
       if (l->toolInfo.tilingHeight <= 0) break;
       double lx = mouseX, ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
@@ -2169,7 +2219,6 @@ void toolCanvasStuff() {
           drawText(scale, lx+1, ly+1, String::fromInt(index).c_str(), 0xff0000ff, 0.5, 0.5);
           drawText(scale, lx, ly, String::fromInt(index).c_str(), 0xff000000, 0.5, 0.5);
         }
-
       }
 
     } break;
@@ -2306,7 +2355,7 @@ int blurCircleSize = 64;
 
 void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection, bool paintJustIntoOutline) {
   if (layer == NULL) return;
-  if (layer->state.locked) return;
+  if (locked(layer,LOCK_PIXELS)) return;
 
   double toolWidth = blurCircleSize*0.5*toolAspectX;
   double toolHeight = blurCircleSize*0.5*toolAspectY;
@@ -2435,7 +2484,7 @@ void useToolBlur() {
 
   mouseClickUndo();
 
-  Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && activeLayer->state.locked) return;
+  Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && locked(activeLayer,LOCK_PIXELS)) return;
   static Layer *blurToolLayer = activeLayer;
   blurToolLayer = activeLayer;
   if (blurToolLayer != NULL && blurToolLayer->width * blurToolLayer->height == 0) return;

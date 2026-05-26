@@ -142,7 +142,7 @@ void drawLayerView() {
     //ImGui::SameLine();
     bool a = ImGui::GetIO().MouseClicked[0];
     ImGui::GetIO().MouseClicked[0] = (ImGui::GetIO().MouseClicked[0] && (l->state.imGuiActive))||(ImGui::GetIO().MouseDoubleClicked[0] && (!l->state.imGuiActive));
-    if (l->state.permanentlyLocked) {ImGui::Text(">"); ImGui::SameLine();}
+    if (locked(l,LOCK_PERMANENT)) {ImGui::Text(">"); ImGui::SameLine();}
     ImGui::InputText(combined(String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX); toolTip("Layer name");
     l->state.imGuiActive = ImGui::IsItemActive();
     ImGui::GetIO().MouseClicked[0] = a;
@@ -164,7 +164,7 @@ void drawLayerView() {
     if (l->state.selected) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x200000ff);
     }
-    if (l->state.locked && (!l->state.permanentlyLocked)) {
+    if (locked(l,LOCK_USER)) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x80000000);
     }
     if (ImGui::IsItemHovered() && controlKeyId == CONTROLKEY_CTRL) {

@@ -48,7 +48,7 @@ void freeFilter() {
 void filterDifferenceClouds() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
-  if (l->state.locked) return;
+  if (locked(l,LOCK_ANY)) return;
   beforeUndoPoint();
   Array<float> values;
   values.resize(l->width*l->height);
@@ -133,7 +133,7 @@ void filterDifferenceClouds() {
 void filterSobelEdgeDetect() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
-  if (l->state.locked) return;
+  if (locked(l,LOCK_ANY)) return;
   beforeUndoPoint();
   Array<float> values;
   values.resize(l->width*l->height*3);
@@ -228,7 +228,7 @@ void filterSobelEdgeDetect() {
 void filterMorphologicalEdgeDetect() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
-  if (l->state.locked) return;
+  if (locked(l,LOCK_ANY)) return;
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   float maxv2 = 0;
@@ -288,7 +288,7 @@ void filterMorphologicalEdgeDetect() {
 void filterAlphaSoften() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
-  if (l->state.locked) return;
+  if (locked(l,LOCK_ANY)) return;
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   Array<unsigned int> source;
@@ -878,7 +878,7 @@ void filterDenoise() {
   int posY[5] = {0,0,0,1,-1};
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
-  if (l->state.locked) return;
+  if (locked(l,LOCK_ANY)) return;
   Array<unsigned int> copy;
   copy.resize(l->width*l->height);
   memcpy(&copy[0],l->pixels,l->width*l->height*sizeof(unsigned int));
@@ -929,7 +929,7 @@ void filterDenoise() {
 void filterSharpen() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
-  if (l->state.locked) return;
+  if (locked(l,LOCK_ANY)) return;
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   Array<unsigned int> source;

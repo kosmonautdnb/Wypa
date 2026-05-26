@@ -77,14 +77,30 @@ enum ALIGNMENTS {
   ALIGN_CENTER = 2,
 };
 
+enum LOCKS {
+  LOCK_NONE = 0,
+  // querying
+  LOCK_ANY = 1,
+  LOCK_PERMANENT = 2,
+  LOCK_PIXELS = 3,
+  LOCK_PIXELS_AND_TILEMAP = 4,
+  LOCK_SELECTION = 5,
+  LOCK_UNDO = 6,
+  // initializing
+  LOCK_TILEMAP = 1000,
+  LOCK_TEXT = 1001,
+  LOCK_REFERENCE = 1002,
+  // user defined
+  LOCK_USER = 0x40000000
+};
+
 class LayerState {
 public:
 
   bool active;
   bool selected;
   bool visible;
-  bool locked;
-  bool permanentlyLocked;
+  unsigned int lockBits;
   float alpha;
   bool imGuiActive;
 
@@ -92,8 +108,7 @@ public:
     active = false;
     selected = false;
     visible = true;
-    locked = false;
-    permanentlyLocked = false;
+    lockBits = LOCK_NONE;
     alpha = 1;
     imGuiActive = false;
   }
@@ -105,10 +120,11 @@ public:
   S_BOOL("active",(__o__)->active);\
   S_BOOL("selected",(__o__)->selected);\
   S_BOOL("visible",(__o__)->visible);\
-  S_BOOL("locked",(__o__)->locked);\
-  S_BOOL("permanentlyLocked",(__o__)->permanentlyLocked);\
+  S_UINT("lockBits",(__o__)->lockBits);\
   S_FLOAT("alpha",(__o__)->alpha);\
   S_OBJECT_CLOSE();
+
+bool locked(const class Layer *l, unsigned int lockFlags);
 
 class TransformationState {
 public:

@@ -278,8 +278,7 @@ void dialogInsertTileMapLayer(bool openIt) {
     Layer *l = new Layer();
     l->init(w,h);
     l->setLayerPos(currentCanvas->canvasX0, currentCanvas->canvasY0);
-    l->state.locked = true;
-    l->state.permanentlyLocked = true;
+    l->state.lockBits = LOCK_TILEMAP;
     l->type = LAYERTYPE_TILEMAP;
     l->tileSourceLayerId = currentCanvas->getActiveLayer() != NULL ? currentCanvas->getActiveLayer()->id : 0;
     sprintf(l->name,layerName);
@@ -1027,7 +1026,7 @@ String stringFromCurves() {
 }
 
 void applyColorGradingCurves(Layer *dest, Layer *source) {
-  if (dest->state.locked) return;
+  if (locked(dest,LOCK_ANY)) return;
   if (dest->width != source->width || dest->height != source->height) return;
   Array<unsigned char> vals; vals.resize(5*256); getGradingArrayFromCurves(&vals[0]);
   bool hasSelection = dest->hasSelection();
@@ -1263,7 +1262,7 @@ void dialogGradiationCurves(bool openIt) {
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGGRADIATIONCURVESCLOSE")) {
     if (gradientCurvesToColorTransform == NULL) {
-      if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+      if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
       if (clone != NULL) {delete clone; clone = NULL;}
     } else {
       curveBefore = gradientCurvesToColorTransform->gradientCurves;
@@ -1316,7 +1315,7 @@ void dialogColorBalance(bool openIt) {
   ImGui::PopItemWidth();
 
   if (updateImage && (!ImGui::IsAnyItemActive())) {
-    if ((!l->state.locked) && l->height == clone->height && l->width == clone->width) {
+    if ((!locked(l,LOCK_ANY)) && l->height == clone->height && l->width == clone->width) {
       bool hasSelection = l->hasSelection();
       for (int i = 0; i < l->width * l->height; i++) {
         if ((!hasSelection) || (l->pixelStates[i] & PIXELSTATE_SELECTED)) {
@@ -1379,7 +1378,7 @@ void dialogColorBalance(bool openIt) {
   } else toolTip("Update the colors of the graphics");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGCOLORBALANCECLOSE")) {
-    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
@@ -1461,7 +1460,7 @@ void dialogBlur(bool openIt) {
   if (updateBlur) {
     if (!ImGui::IsAnyItemActive()) {
       updateBlur = false;
-      if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
+      if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
         switch(blurType) {
           case BLURTYPE_BOX: {filterBoxBlur(l->pixels,clone->pixels, l->width, l->height, boxWidth, boxHeight,l->pixelStates,l->hasSelection());} break;
           case BLURTYPE_RADIAL: {filterRadialBlur(l->pixels,clone->pixels, l->width, l->height, radialAngle, radialSize,l->pixelStates,l->hasSelection());} break;
@@ -1482,7 +1481,7 @@ void dialogBlur(bool openIt) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGBLURCLOSE")) {
-    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
@@ -1515,7 +1514,7 @@ void dialogGlow(bool openIt) {
   if (updateBlur) {
     if (!ImGui::IsAnyItemActive()) {
       updateBlur = false;
-      if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
+      if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
         filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());
         l->greyScale();
         repaintLayer(l,true);
@@ -1531,7 +1530,7 @@ void dialogGlow(bool openIt) {
   } else toolTip("Make this layer into a greyscale glow layer");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGGLOWCLOSE")) {
-    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
@@ -1562,7 +1561,7 @@ void dialogEmboss(bool openIt) {
   if (updateEmboss) {
     if (!ImGui::IsAnyItemActive()) {
       updateEmboss = false;
-      if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
+      if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
         filterEmboss(l->pixels,clone->pixels, l->width, l->height, angle, l->pixelStates,l->hasSelection());
         repaintLayer(l,true);
       }
@@ -1578,7 +1577,7 @@ void dialogEmboss(bool openIt) {
   } else toolTip("Make this layer into a relief");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGEMBOSSCLOSE")) {
-    if ((!l->state.locked) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
@@ -2007,7 +2006,7 @@ void dialogKeying(bool openIt) {
   if (updateIt) {
     if (!ImGui::IsAnyItemActive()) {
       updateIt = false;
-      if (clone->width == l->width && clone->height == l->height && (!l->state.locked)) {
+      if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
         switch(type) {
           case KEYINGTYPE_SIMPLE: {filterSimpleKeying(l->pixels,clone->pixels, l->width, l->height, channel, factor, l->pixelStates,l->hasSelection(),l->mode,binary,invert);} break;
           case KEYINGTYPE_COLOR: {filterColorKeying(l->pixels,clone->pixels, l->width, l->height, getUIntColor(foregroundColor), factor2, l->pixelStates,l->hasSelection(),l->mode,binary,invert);} break;
@@ -2090,8 +2089,7 @@ void dialogBakeLayers(bool openIt) {
         Layer *l = layers[i];
         if (l->type == LAYERTYPE_TEXT) {
           l->type = LAYERTYPE_BASIC;
-          l->state.locked = false;
-          l->state.permanentlyLocked = false;
+          l->state.lockBits = LOCK_NONE;
         }
         l->bakeLayer(interpolation);
       }
