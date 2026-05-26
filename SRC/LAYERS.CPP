@@ -1235,7 +1235,8 @@ void layerNewContent(Layer *l, int w, int h) {
 }
 
 void layerGetContent(Layer *to, Layer *from) {
-  if (locked(to,LOCK_ANY)) return;
+  if (locked(to,LOCK_PIXELS_AND_TILEMAP)) return;
+  if (locked(to,LOCK_SELECTION)) return;
   int w = from->width;
   int h = from->height;
   layerNewContent(to,w,h);
@@ -2133,6 +2134,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
         if (lxBefore<0) lxBefore = 0;
         if (lyBefore<0) lyBefore = 0;
         unsigned int tile = rgb1;
+        if (tile == NOTILEMAPPIXEL) continue;
         int tx = tile % tileSourceTileCountX;
         int ty = tile / tileSourceTileCountX;
         tx = tx * tileWidth + (lxBefore % tileWidth) + tileOffsetX;
@@ -2925,6 +2927,8 @@ void Canvas::mergeDownLayers() {
   Layer *l = getSelectionAsLayer(false,false,false);
   if (l == NULL) return;
   layerGetContent(layers[lastPos],l); layers[lastPos]->transform = l->transform; layers[lastPos]->colorTransform = l->colorTransform;
+  updatedPixels(layers[lastPos]);
+  updatedPixelStates(layers[lastPos]);
   delete l;
   for (int i2 = 0; i2 < layers.size(); i2++) {
     if (layers[i2]->state.selected || layers[i2]->state.active) {
@@ -3381,10 +3385,46 @@ Layer *layerFromCanvas(Canvas *canvas) {
   return ret;
 }
 
+Layer *getMergedTileMapLayer(Canvas *canvas, const Array<Layer*> &tileMaps) {
+  Layer *ret = NULL;
+  if (tileMaps.empty()) return ret;
+  Layer *l = tileMaps[tileMaps.size()-1]; Layer *m = canvas->getLayerById(l->tileSourceLayerId);
+  int tw = 1, th = 1;
+  if (m != NULL) {
+    tw = m->toolInfo.tilingWidth;
+    th = m->toolInfo.tilingHeight;
+    // !! the destination layers should have the same tiling resolutions here
+    if (tw<1) tw = 1;
+    if (th<1) th = 1;
+  }
+  // currently just a merge down
+  ret = l->clone();
+  for (int i = (int)tileMaps.size() - 2; i >= 0; i--) {
+    Layer *l2 = tileMaps[i]; Matrix m = l2->transform.transformation * inverse2(ret->transform.transformation);
+    for (int y = 0; y < ret->height; y++) {
+      for (int x = 0; x < ret->width; x++) {
+        int x2 = x * tw + tw - 1; int y2 = y * th + th - 1; // I don't understand this + tw/th-1
+        int lx = (int)((x2*m.m[0+0*4]+y2*m.m[0+1*4]+m.m[0+3*4])/tw);
+        int ly = (int)((x2*m.m[1+0*4]+y2*m.m[1+1*4]+m.m[1+3*4])/th);
+        if (lx == 0) lx = (int)floor((x2*m.m[0+0*4]+y2*m.m[0+1*4]+m.m[0+3*4])/tw);
+        if (ly == 0) ly = (int)floor((x2*m.m[1+0*4]+y2*m.m[1+1*4]+m.m[1+3*4])/th);
+        if ((unsigned int)lx < l2->width && (unsigned int)ly < l2->height) {
+          unsigned int tile = l2->pixels[lx+ly*l2->width]; if (tile != NOTILEMAPPIXEL) ret->pixels[x+y*ret->width] = tile;
+        }
+      }
+    }
+  }
+  updatedPixels(ret);
+  updatedPixelStates(ret);
+  return ret;
+}
+
 Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, bool keepCanvasSize) {
   Layer *ret = NULL;
   Vector boundingBox;
+  bool oneIsTileMap = false; bool allIsTileMap = true;
   for (int i3 = 0; i3 < layers.size(); i3++) {
+    if (layers[i3]->type == LAYERTYPE_TILEMAP) oneIsTileMap = true; else allIsTileMap = false;
     layers[i3]->justSelection = pixelSelection && layers[i3]->hasSelection();
     Vector here = pixelSelection ? layers[i3]->selectionBounding() : layers[i3]->boundingBox();
     if (i3 == 0 || here.x < boundingBox.x) boundingBox.x = here.x;
@@ -3392,6 +3432,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     if (i3 == 0 || here.z > boundingBox.z) boundingBox.z = here.z;
     if (i3 == 0 || here.w > boundingBox.w) boundingBox.w = here.w;
   }
+  if (oneIsTileMap && (!allIsTileMap)) return NULL; if (oneIsTileMap) return getMergedTileMapLayer(this,layers);
   int x0 = (int)floor(boundingBox.x);
   int y0 = (int)floor(boundingBox.y);
   int x1 = (int)floor(boundingBox.z);
@@ -3400,7 +3441,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   if (!keepCanvasSize) {
     int w = x1-x0;
     int h = y1-y0;
-    if (w<1||h<1) return NULL;
+    if (w<1||h<1) {delete copyCanvas; return NULL;}
     copyCanvas->init(w,h);
     copyCanvas->canvasX0 = 0;
     copyCanvas->canvasY0 = 0;
@@ -3411,7 +3452,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   } else {
     int w = canvasX1-canvasX0;
     int h = canvasY1-canvasY0;
-    if (w<1||h<1) return NULL;
+    if (w<1||h<1) {delete copyCanvas; return NULL;}
     copyCanvas->init(w,h);
     copyCanvas->canvasX0 = 0;
     copyCanvas->canvasY0 = 0;
@@ -3516,9 +3557,17 @@ void Canvas::insertLayerLikeThisLayer() {
 
 void Canvas::copy() {
   if (copyLayer != NULL) {delete copyLayer; copyLayer = NULL;}
-  copyLayer = getSelectionAsLayer(true,false,false);
-  //selectNone(true);
-  //noSelectedLayers();
+  Layer *l = getActiveLayer();
+  if (l != NULL && l->type == LAYERTYPE_TILEMAP) {
+    copyLayer = l->clone();
+    bool hasSelection = l->hasSelection();
+    for (int i = 0; i < copyLayer->width*copyLayer->height; i++) {
+      if (hasSelection && (l->pixelStates[i] & PIXELSTATE_SELECTED)==0) copyLayer->pixels[i] = NOTILEMAPPIXEL;
+    }
+    sprintf(copyLayer->name,"paste");
+  } else {
+    copyLayer = getSelectionAsLayer(true,false,false);
+  }
   selectionBlink++;
 }
 

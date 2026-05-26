@@ -130,6 +130,24 @@ void filterDifferenceClouds() {
   afterUndoPoint();
 }
 
+void filterNoise() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  beforeUndoPoint();
+  bool hasSelection = l->hasSelection();
+  srand(0);
+  for (int i3 = 0; i3 < l->width*l->height; i3++) {
+    if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
+      int grey = rand() & 255;
+      l->pixels[i3] = grey|(grey<<8)|(grey<<16)|(255<<24);
+    }
+  }
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
 void filterSobelEdgeDetect() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;

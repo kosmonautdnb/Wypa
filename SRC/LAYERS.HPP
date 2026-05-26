@@ -94,6 +94,8 @@ enum LOCKS {
   LOCK_USER = 0x40000000
 };
 
+#define NOTILEMAPPIXEL 0x77777777
+
 class LayerState {
 public:
 

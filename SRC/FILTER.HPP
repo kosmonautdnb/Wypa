@@ -28,6 +28,7 @@ void initFilter();
 void freeFilter();
 
 void filterDifferenceClouds();
+void filterNoise();
 void filterSobelEdgeDetect();
 void filterMorphologicalEdgeDetect();
 void filterAlphaSoften();
