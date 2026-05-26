@@ -138,6 +138,7 @@ void drawToolWandView() {
 }
 
 void drawToolFillView() {
+  Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && l->type == LAYERTYPE_TILEMAP) return;
   float k;
   k = fillColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLFILLCOLORDISTANCE",&k,0,256)) {fillColorDistance = k;} else toolTip("Sameness value for fill area color");
   ImGui::Text("Use valleys"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFILLVALLEYS",&fillUseValleys)) {} else toolTip("Flow up and down the filling points");

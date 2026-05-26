@@ -793,6 +793,10 @@ bool isFillAccepted(unsigned int here, unsigned int destColor, unsigned int chec
   return colorDist<fillColorDistance;
 }
 
+bool isFillAccepted1(unsigned int here, unsigned int destColor, unsigned int checkColor, unsigned char destPixelState) {
+  return destColor == checkColor;
+}
+
 void useToolFill() {
   if (!isPaintAreaActive()) return;
 
@@ -833,28 +837,43 @@ void useToolFill() {
   l->pixelStates[lx+ly*l->width] |= PIXELSTATE_TEMP;
   bool somethingFound = true;
   int counter = 0;
-  while(somethingFound) {
-    somethingFound = false;
-    for (int y = 0; y < l->height; y++) {
-      for (int x = 0; x < l->width; x++) {
-        if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
-          unsigned int c0 = l->pixels[x+y*l->width];
-          if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x-1+y*l->width],colorHere,l->pixelStates[x-1+y*l->width])) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
-          if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+1+y*l->width],colorHere,l->pixelStates[x+1+y*l->width])) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
-          if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+(y-1)*l->width],colorHere,l->pixelStates[x+(y-1)*l->width])) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
-          if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+(y+1)*l->width],colorHere,l->pixelStates[x+(y+1)*l->width])) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
-        }
-      }
-    }
-    counter++; if ((counter % 100)==0) updateStatusBar();
-  }
 
   if (!tiling) {
+    while(somethingFound) {
+      somethingFound = false;
+      for (int y = 0; y < l->height; y++) {
+        for (int x = 0; x < l->width; x++) {
+          if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
+            unsigned int c0 = l->pixels[x+y*l->width];
+            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x-1+y*l->width],colorHere,l->pixelStates[x-1+y*l->width])) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
+            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+1+y*l->width],colorHere,l->pixelStates[x+1+y*l->width])) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
+            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+(y-1)*l->width],colorHere,l->pixelStates[x+(y-1)*l->width])) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
+            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+(y+1)*l->width],colorHere,l->pixelStates[x+(y+1)*l->width])) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
+          }
+        }
+      }
+      counter++; if ((counter % 100)==0) updateStatusBar();
+    }
     for (int i = 0; i < l->width*l->height; i++) if (l->pixelStates[i] & PIXELSTATE_TEMP) {
       l->pixels[i] = getUIntColor(foregroundColor);
     }
     addUsedColor(foregroundColor);
   } else {
+    while(somethingFound) {
+      somethingFound = false;
+      for (int y = 0; y < l->height; y++) {
+        for (int x = 0; x < l->width; x++) {
+          if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
+            unsigned int c0 = l->pixels[x+y*l->width];
+            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted1(c0,l->pixels[x-1+y*l->width],colorHere,l->pixelStates[x-1+y*l->width])) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
+            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted1(c0,l->pixels[x+1+y*l->width],colorHere,l->pixelStates[x+1+y*l->width])) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
+            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted1(c0,l->pixels[x+(y-1)*l->width],colorHere,l->pixelStates[x+(y-1)*l->width])) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
+            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted1(c0,l->pixels[x+(y+1)*l->width],colorHere,l->pixelStates[x+(y+1)*l->width])) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
+          }
+        }
+      }
+      counter++; if ((counter % 100)==0) updateStatusBar();
+    }
     for (int i = 0; i < l->width*l->height; i++) if (l->pixelStates[i] & PIXELSTATE_TEMP) {
       l->pixels[i] = l->toolInfo.tileMapSelectedTile;
     }
