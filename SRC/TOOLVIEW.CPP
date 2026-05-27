@@ -39,6 +39,7 @@
 #include "TEXT.HPP"
 #include "STL/DOS.HPP"
 #include "SERIALZE.HPP"
+#include "GALLERY.HPP"
 #include <math.h>
 
 int toolview_width = 120;
@@ -1370,63 +1371,69 @@ void drawToolView() {
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
   ImGui::Begin("TOOLVIEW", NULL, ImVec2(toolview_width,main_window_yres-menuBar_height),1.0,FROZENWINDOW);
-  ImGui::Text("%s",toolNames[tool]);
-  ImGui::Separator();
-  switch(tool) {
-  case TOOL_WAND: {
-      drawToolWandView();
-    } break;
-  case TOOL_MOVE: {
-      drawToolMoveView();
-    } break;
-  case TOOL_PENCIL: {
-      drawToolPencilView();
-    } break;
-  case TOOL_PAINTBRUSH: {
-      drawToolBrushView();
-    } break;
-  case TOOL_ERASER: {
-      drawToolEraserView();
-    } break;
-  case TOOL_PIPETTE: {
-      drawToolPipetteView();
-    } break;
-  case TOOL_FILL: {
-      drawToolFillView();
-    } break;
-  case TOOL_SELECTION: {
-      drawToolSelectionView();
-    } break;
-  case TOOL_LINE: {
-      drawToolLineView();
-    } break;
-  case TOOL_GRADIENT: {
-      drawToolGradientView();
-    } break;
-  case TOOL_MAGIC: {
-      drawToolMagicView();
-    } break;
-  case TOOL_MEASURE: {
-      drawToolMeasureView();
-    } break;
-  case TOOL_TILING: {
-      drawToolTilingView();
-    } break;
-  case TOOL_BLUR: {
-      drawToolBlurView();
-    } break;
-  case TOOL_TEXT: {
-      drawToolTextView();
-    } break;
-  case TOOL_OVERLAYS: {
-      drawToolOverlaysView();
-    } break;
-  case TOOL_MODIFY: {
-      drawToolModifyView();
-    } break;
-  case TOOL_TILEMAP: {
-      drawToolTileMapView();
-    } break;
+  if (galleryVisible) {
+    ImGui::Text("Wypa gallery");
+    ImGui::Separator();
+    drawGalleryView();
+  } else {
+    ImGui::Text("%s",toolNames[tool]);
+    ImGui::Separator();
+    switch(tool) {
+    case TOOL_WAND: {
+        drawToolWandView();
+      } break;
+    case TOOL_MOVE: {
+        drawToolMoveView();
+      } break;
+    case TOOL_PENCIL: {
+        drawToolPencilView();
+      } break;
+    case TOOL_PAINTBRUSH: {
+        drawToolBrushView();
+      } break;
+    case TOOL_ERASER: {
+        drawToolEraserView();
+      } break;
+    case TOOL_PIPETTE: {
+        drawToolPipetteView();
+      } break;
+    case TOOL_FILL: {
+        drawToolFillView();
+      } break;
+    case TOOL_SELECTION: {
+        drawToolSelectionView();
+      } break;
+    case TOOL_LINE: {
+        drawToolLineView();
+      } break;
+    case TOOL_GRADIENT: {
+        drawToolGradientView();
+      } break;
+    case TOOL_MAGIC: {
+        drawToolMagicView();
+      } break;
+    case TOOL_MEASURE: {
+        drawToolMeasureView();
+      } break;
+    case TOOL_TILING: {
+        drawToolTilingView();
+      } break;
+    case TOOL_BLUR: {
+        drawToolBlurView();
+      } break;
+    case TOOL_TEXT: {
+        drawToolTextView();
+      } break;
+    case TOOL_OVERLAYS: {
+        drawToolOverlaysView();
+      } break;
+    case TOOL_MODIFY: {
+        drawToolModifyView();
+      } break;
+    case TOOL_TILEMAP: {
+        drawToolTileMapView();
+      } break;
+    }
   }
   ImGui::End();
 }

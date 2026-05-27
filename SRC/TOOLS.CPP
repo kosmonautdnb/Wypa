@@ -794,6 +794,8 @@ bool isFillAccepted(unsigned int here, unsigned int destColor, unsigned int chec
 }
 
 bool isFillAccepted1(unsigned int here, unsigned int destColor, unsigned int checkColor, unsigned char destPixelState) {
+  UNUSED(here);
+  if (fillAcceptedHasSelection && (!(destPixelState & PIXELSTATE_SELECTED))) return false;
   return destColor == checkColor;
 }
 

@@ -37,6 +37,7 @@
 #include "FILTER.HPP"
 #include "HOTKEYS.HPP"
 #include "STL/IMAGE.HPP"
+#include "GALLERY.HPP"
 #include <math.h>
 
 int menuBar_height = 17;
@@ -266,8 +267,10 @@ void drawMenuBar() {
     if (ImGui::BeginMenu("View")) {
       on = true;
       bool selected;
-      if (ImGui::MenuItem("Monitor gamma","",monitorGamma != 1.0)) {dialogMonitorGamma(true);}
-      selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9","",&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
+      if (ImGui::MenuItem("Gallery",NULL,galleryVisible)) {galleryVisible = !galleryVisible;}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Monitor gamma",NULL,monitorGamma != 1.0)) {dialogMonitorGamma(true);}
+      selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9",NULL,&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
       ImGui::Separator();
       if (ImGui::MenuItem("Zoom 100%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,100.f);}
       if (ImGui::MenuItem("Zoom 200%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,200.f);}

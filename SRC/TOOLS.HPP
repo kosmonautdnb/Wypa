@@ -30,6 +30,8 @@
 #include <string.h>
 #include <stdio.h>
 
+void drawText(float scale, int xp, int yp, const char *text, uint32_t color, float anchorX, float anchorY);
+
 enum BRUSHINSTANCE {
   BRUSHINSTANCE_PAINT = 0,
   BRUSHINSTANCE_SELECT = 1,

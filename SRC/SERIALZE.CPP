@@ -49,6 +49,7 @@
 #include "TEXT.HPP"
 #include "HOTKEYS.HPP"
 #include "FILTER.HPP"
+#include "GALLERY.HPP"
 #include <math.h>
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
@@ -426,7 +427,8 @@ Matrix inverse2(const Matrix &a);
   S_UNDO_CPP();\
   S_TEXT_CPP();\
   S_HOTKEYS_CPP();\
-  S_FILTER_CPP();
+  S_FILTER_CPP();\
+  S_GALLERY_CPP();
 
 bool serializeCanvas(Array<Canvas*> &canvas, bool save, String *string) {
   STARTSERIALIZATION(save);

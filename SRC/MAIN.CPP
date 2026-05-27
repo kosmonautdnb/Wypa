@@ -42,6 +42,7 @@
 #include "TEXT.HPP"
 #include "HOTKEYS.HPP"
 #include "FILTER.HPP"
+#include "GALLERY.HPP"
 #include <math.h>
 
 bool roundButton(const char *name, bool enabled) {
@@ -211,7 +212,8 @@ extern Array<Canvas *> canvas;
   __prefix__##Undo();\
   __prefix__##Text();\
   __prefix__##Hotkeys();\
-  __prefix__##Filter();
+  __prefix__##Filter();\
+  __prefix__##Gallery();
 
 void deleteAll() {
   SETUPENTITIES(free);
@@ -375,9 +377,12 @@ int main(int argc, const char *argv[]) {
 
     if (fullScreen) glClear(GL_COLOR_BUFFER_BIT);
 
-
-    blitCanvas();
-    toolCanvasStuff();
+    if (!galleryVisible) {
+      blitCanvas();
+      toolCanvasStuff();
+    } else {
+      blitGallery();
+    }
     
     ImGuiNewFrame();
     drawMenuBar();

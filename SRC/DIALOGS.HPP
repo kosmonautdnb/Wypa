@@ -25,6 +25,7 @@
 #define __DIALOGS_HPP__
 
 #include "STL/STRING.HPP"
+#include "STL/DOS.HPP"
 
 extern bool reOpen;
 
@@ -60,7 +61,8 @@ enum DIALOGMODE {
   DIALOG_SAVETILINGANIM = 24,
   DIALOG_LOADTILEMAP = 25,
   DIALOG_SAVETILEMAP = 26,
-  DIALOG_COUNT = 27
+  DIALOG_SELECTGALLERYFOLDER = 27,
+  DIALOG_COUNT = 28
 };
 
 void dialogCanvas(bool openIt);
@@ -102,6 +104,8 @@ extern class ColorTransform *gradientCurvesToColorTransform;
 void stringToCurves(const String &string);
 String stringFromCurves();
 void getGradingArrayFromCurves(unsigned char *dest);
+
+void sortFileNames(Array<File> &files, int column, bool sortOrder);
 
 #define S_DIALOGS_CPP()
 

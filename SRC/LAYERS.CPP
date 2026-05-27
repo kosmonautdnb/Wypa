@@ -37,6 +37,7 @@
 #include "UNDO.HPP"
 #include "STL/CHARSET.HPP"
 #include "DIALOGS.HPP" // for gradiation curves
+#include "GALLERY.HPP"
 #include <math.h>
 
 unsigned int pixelsUpdateCounter = 0;
@@ -110,6 +111,7 @@ void LayerState::clear() {
 }
 
 bool locked(const Layer *l, unsigned int lockFlags) {
+  if (galleryVisible) return true;
   if (l == NULL) return false;
   unsigned int k = l->state.lockBits;
   if (lockFlags == LOCK_USER) return k & LOCK_USER ? true : false;
@@ -3872,7 +3874,7 @@ void Canvas::signSave() {
 void Canvas::lockLayers(bool lockOrUnlock) {
   for (int i = 0; i < layers.size(); i++) {
     if (layers[i]->state.selected||layers[i]->state.active) {
-      layers[i]->state.lockBits = layers[i]->state.lockBits ^ LOCK_USER;
+      if (lockOrUnlock) layers[i]->state.lockBits |= LOCK_USER; else layers[i]->state.lockBits &= ~LOCK_USER;
     }
   }
 }
