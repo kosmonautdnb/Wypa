@@ -82,4 +82,6 @@ class Layer *loadImage(const String &filePath, const String &fileName);
 void insertSVGResized(int layerWidth, int layerHeight, float scale);
 Array<String> getLines(const char *string);
 
+void getFileArray(Array<unsigned char> *arr,const String &maybeExtendedFileName);
+
 #endif //__SERIALZE_HPP__

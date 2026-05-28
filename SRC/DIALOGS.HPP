@@ -77,6 +77,8 @@ void dialogNewImage(bool openIt);
 void dialogGetLayersFromPicture(bool openIt);
 void dialogUpdateLayer(bool openIt);
 void dialogAbout(bool openIt);
+void dialogDocumentation(bool openIt);
+void dialogNewHere(bool openIt);
 void dialogExit(bool openIt);
 void dialogDuplicate(bool openIt);
 void dialogMergeDown(bool openIt);
@@ -93,11 +95,11 @@ void dialogColorMatrix(bool openIt);
 void dialogQuantizePalette(bool openIt);
 void dialogExtrudeSelection(bool openIt);
 void dialogKeying(bool openIt);
-void dialogNewHere(bool openIt);
 void dialogMonitorGamma(bool openIt);
 void dialogInsertTileMapLayer(bool openIt);
 
 void dialogOverwrite(bool openIt);
+void dialogCreateFolder(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);
 
 extern class ColorTransform *gradientCurvesToColorTransform;

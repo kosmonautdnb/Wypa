@@ -34,6 +34,7 @@
 #include "STL/DOS.HPP"
 #include "TOOLS.HPP"
 #include "DIALOGS.HPP"
+#include "COLORFLD.HPP"
 #include <math.h>
 
 bool roundButton(const char *name, bool enabled);
@@ -268,6 +269,16 @@ void blitGallery() {
       int mapIndex = (k + GALLERYTEXTURECOUNT) % GALLERYTEXTURECOUNT;
       gallery[mapIndex]->update(galleryFiles[k]); if (gallery[mapIndex]->isInvalid()) {galleryFiles.erase(k,1); continue;}
       gallery[mapIndex]->blit(i-(currentIndex-floor(currentIndex)));
+    }
+  }
+
+  if (monitorGamma != 1) {
+    for (int y = top; y < bottom; y++) {
+      for (int x = left; x < right; x++) {
+        unsigned int col = glFrameBuffer[x+y*glFrameBufferWidth];
+        col = gammaTable[col & 255]|(gammaTable[((col>>8) & 255)+256*1]<<8)|(gammaTable[((col>>16) & 255)+256*2]<<16)|(col & 0xff000000);
+        glFrameBuffer[x+y*glFrameBufferWidth] = col;
+      }
     }
   }
 

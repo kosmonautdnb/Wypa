@@ -39,7 +39,7 @@
 unsigned int colorField_height = 380;
 
 
-unsigned char gammaTable[256];
+unsigned char gammaTable[256*3];
 float monitorGamma = 1.f;
 
 bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv);
@@ -55,6 +55,8 @@ void reGenMonitorGamma() {
     if (v < 0) v = 0;
     if (v > 255) v = 255;
     gammaTable[i] = (unsigned char)v;
+    gammaTable[i+256*1] = (unsigned char)v;
+    gammaTable[i+256*2] = (unsigned char)v;
   }
   float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);
   updateColorSlidersTexture();
@@ -63,7 +65,7 @@ void reGenMonitorGamma() {
 
 unsigned int gammaCorrect(unsigned int col) {
   if (monitorGamma == 1.f) return col;
-  return gammaTable[col & 255]|(gammaTable[(col>>8) & 255]<<8)|(gammaTable[(col>>16) & 255]<<16)|(col & 0xff000000);
+  return gammaTable[col & 255]|(gammaTable[((col>>8) & 255)+256*1]<<8)|(gammaTable[((col>>16) & 255)+256*2]<<16)|(col & 0xff000000);
 }
 
 ImVec4 gammaCorrect4(const ImVec4 &col) {

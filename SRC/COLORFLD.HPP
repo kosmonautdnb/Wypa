@@ -36,7 +36,7 @@ extern Array<ImVec4> palette;
 extern Array<ImVec4> *paletteToSave;
 extern bool showPalette;
 
-extern unsigned char gammaTable[256];
+extern unsigned char gammaTable[256*3];
 void reGenMonitorGamma();
 unsigned int gammaCorrect(unsigned int col);
 ImVec4 gammaCorrect4(const ImVec4 &col);

@@ -123,6 +123,8 @@ void drawDialogs() {
   dialogGetLayersFromPicture(false);
   dialogUpdateLayer(false);
   dialogAbout(false);
+  dialogDocumentation(false);
+  dialogNewHere(false);
   dialogExit(false);
   dialogDuplicate(false);
   dialogMergeDown(false);
@@ -139,12 +141,18 @@ void drawDialogs() {
   dialogQuantizePalette(false);
   dialogExtrudeSelection(false);
   dialogKeying(false);
-  dialogNewHere(false);
   dialogMonitorGamma(false);
   dialogInsertTileMapLayer(false);
 }
 
 void dialogAbout(bool openIt) {
+  String buildType = "Unknown";
+#ifdef __WATCOMC__
+  buildType = "WATCOMC"+String::fromInt(__WATCOMC__);
+#endif
+#ifdef __DJGPP__
+  buildType = "DJGPP"+String::fromInt(__DJGPP__);
+#endif
   DIALOGSTART("About")
   ImGui::Text(
     "WYPA - A SIMPLE PAINT PAINT PROGRAM FOR DOS\n"
@@ -157,6 +165,7 @@ void dialogAbout(bool openIt) {
     "------------------------------------\n"
     "Build date: " __DATE__ "\n"
     "Build time: " __TIME__ "\n"
+    "Build type: %s\n"
     "Version: %d.%02d\n"
     "------------------------------------\n"
     "Wypa is not coded very \"good\".\n"
@@ -165,10 +174,136 @@ void dialogAbout(bool openIt) {
     "to paint in high resolutions with true color.\n"
     "------------------------------------\n"
     "This program is freeware.\n"
-  ,version / 100, version % 100
+  , buildType.c_str(), version / 100, version % 100
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogDocumentation(bool openIt) {
+#define FILTERNAMEMAX2 16
+  static Array<unsigned char> docu;
+  static char filter[FILTERNAMEMAX2];
+  static Array<bool> lineIsOpen;
+  if (openIt) {
+    sprintf(filter,"");
+    lineIsOpen.clear();
+    if (docu.empty()) {
+      getFileArray(&docu,fromLocalFileName("./DATA/DOCU.DC2"));
+    }
+    char lc = 0;
+    bool inLine = false;
+    for (int i = 0; i < docu.size(); i++) {
+      char c = (char)docu[i];
+      if (c == '"' && lc != '\\') {
+        inLine = !inLine;
+        docu.erase(i,1);
+        i--;
+      } else {
+        if (c == '"' && lc == '\\') {
+          if (i > 0) {i--; docu.erase(i,1);}
+        } else {
+          if (c == '_' && lc == 'N') {
+          } else {
+            if (!inLine) {
+              docu.erase(i,1);
+              i--;
+            }
+          }
+        }
+      }
+      lc = c;
+    }
+  }
+  if (docu.empty()) return;
+  const char *docuString = (char*)(&(docu[0]));
+
+  DIALOGSTART("Tiny documentation")
+  bool toFirst = false;
+  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();if (ImGui::InputText("##DIALOGDOCUMENTATIONFILTER",filter,FILTERNAMEMAX2)) {toFirst = true;}
+
+  ImGui::SameLine();
+  if (ImGui::Button("Collapse all##DIALOGDOCUMENTATIONCOLLAPSEALL")) {
+    for (int i = 0; i < lineIsOpen.size(); i++) lineIsOpen[i] = false;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Open all##DIALOGDOCUMENTATIONOPENALL") || strlen(filter) != 0) {
+    for (int i = 0; i < lineIsOpen.size(); i++) lineIsOpen[i] = true;
+  }
+
+  int width = main_window_xres/2;
+  int height = main_window_yres/3;
+  ImGui::BeginChild("DIALOGDOCUMENTATIONCHILD",ImVec2(width,height));
+  if (currentKey == GL_VK_PAGEDOWN) ImGui::SetScrollY(ImGui::GetScrollY()+height*0.75);
+  if (currentKey == GL_VK_PAGEUP) ImGui::SetScrollY(ImGui::GetScrollY()-height*0.75);
+  const char *s = docuString;
+  String currentLine = "";
+  int indent = 0;
+  int line = 0;
+  Array<bool> openStack; 
+  openStack.push_back(true);
+  String filterLook = toLower(filter);
+  while(*s != 0) {
+    char c = *s;
+    s++;
+    if (c == '_') {
+      if (line+1>lineIsOpen.size()) {lineIsOpen.resize(line+1); lineIsOpen[line] = false;}
+      bool thisIsOpen = openStack.back();
+      if (currentLine.empty()) currentLine = " "; // for cursor
+      if (!currentLine.empty()) {
+        bool found = false; if ((!filterLook.empty()) && toLower(currentLine).find(filterLook)>=0) found = true;
+        char d = currentLine.last(1)[0];
+        bool isExpanding = false;
+        ImVec2 cursor0 = ImGui::GetCursorScreenPos(); ImVec2 cursor = cursor0;
+        ImGui::Text(""); ImGui::SetCursorScreenPos(cursor0); // for scrolling;
+        cursor.x += indent * 10;
+        if (d == '{') {
+          currentLine = currentLine.substr(0,currentLine.length()-1);
+          indent++; openStack.push_back(lineIsOpen[line]);
+          isExpanding = true;
+        }
+        if (d == '}') {
+          currentLine = currentLine.substr(0,currentLine.length()-1);
+          indent--; openStack.pop_back();
+          if (currentLine.empty()) continue;
+        }
+        float expandSize = 1;
+        int siz = ImGui::GetWindowFontSize()*(isExpanding?expandSize:1);
+        ImVec2 a = ImGui::CalcTextSize(currentLine.c_str());
+        a.x *= expandSize; a.y *= expandSize; a.x += cursor.x; a.y += cursor.y;
+
+        if (thisIsOpen) {
+          if (isExpanding) {
+            ImGui::GetWindowDrawList()->AddRectFilled(cursor,a,0xff808080);
+          }
+          if (found) {
+            ImGui::GetWindowDrawList()->AddRectFilled(cursor,a,0xff8080ff);
+          }
+          ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),siz,ImVec2(cursor.x,cursor.y),0xff000000, currentLine.c_str());
+          if (isExpanding) {
+            if (ImGui::IsMouseHoveringRect(cursor,a)) {
+              ImGui::GetWindowDrawList()->AddRectFilled(cursor,a,0x20ffffff);
+              if (ImGui::IsMouseClicked(0)) {
+                lineIsOpen[line] = !lineIsOpen[line];
+              }
+            }
+          }
+          cursor.x = cursor0.x; cursor.y = cursor0.y + siz; ImGui::SetCursorScreenPos(cursor);
+        }
+        if (found && toFirst) {toFirst = false; ImGui::SetScrollPosHere();}
+      }
+      currentLine = "";
+      line++;
+    } else {
+      currentLine += String::fromChar(c);
+    }
+  }
+  ImGui::EndChild();
+  ImGui::Separator();
+  if (ImGui::Button("Close##DIALOGDOCUMENTATIONCLOSE")) {
     ImGui::CloseCurrentPopup();
   }
   DIALOGEND()
@@ -2360,6 +2495,39 @@ void dialogOverwrite(bool openIt) {
   DIALOGEND()
 }
 
+bool fileSystemUpdatedHere = false;
+void dialogCreateFolder(bool openIt) {
+  static char folderName[MAX_LFN_PATH];
+  if (openIt) {
+    sprintf(folderName,"");
+  }
+  DIALOGSTART("Create a new folder")
+  ImGui::BeginChild("##DIALOGCREATEFOLDERCHILD",ImVec2(main_window_xres/2,64));
+  String k = String(folderName);
+  String f = loadSaveShortPath + k + String(k.empty() ? "" : "/");
+  ImGui::TextWrapped("Short path:%s",shortFileName(f).c_str()); toolTip("The short DOS path");
+  ImGui::Separator();
+  ImGui::TextWrapped("Long path:%s",longFileName(f).c_str()); toolTip("The long (doslfn.com) DOS path");
+  ImGui::EndChild();
+  ImGui::Separator();
+  ImGui::Text("Folder name"); ImGui::SameLine(); ImGui::InputText("##DIALOGCREATEFOLDERCHILD",folderName,MAX_LFN_PATH); toolTip("How the new folder to create should be named here");
+  ImGui::Separator();
+  if (!k.empty()) {
+    if (ImGui::Button("Create folder##DIALOGCREATEFOLDERCREATE")) {
+      if (!doslfnCreateDirectory(folderName)) {
+        dosCreateFolder(String(folderName));
+      }
+      fileSystemUpdatedHere = true;
+      ImGui::CloseCurrentPopup();
+    } else toolTip("Create this folder");
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGCREATEFOLDERCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't create any new folder");
+  DIALOGEND()
+}
+
 void resize2(String &s, int len) {
   int a = s.length();
   s.resize(len);
@@ -2390,29 +2558,32 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   static int scrollToHelper = 0;
   const int NAMEMAXHERE = 513;
   if (openIt) {
-    initColumns = true;
-    previewOn = false;
-    memset(filter,0,sizeof(filter));
-    needsRescanFiles = true;
-    driveLetters.clear();
-    for (int i = 'A'; i <= 'Z'; i++) {
-      if (dosHasDrive((char)i)) driveLetters.push_back((char)i);
+    if (!reOpen) {
+      initColumns = true;
+      previewOn = false;
+      memset(filter,0,sizeof(filter));
+      needsRescanFiles = true;
+      driveLetters.clear();
+      for (int i = 'A'; i <= 'Z'; i++) {
+        if (dosHasDrive((char)i)) driveLetters.push_back((char)i);
+      }
+      for (int j = 0; j < DIALOG_COUNT; j++) {
+        fileNames[j] = ""; // little bug
+        resize2(fileNames[j],NAMEMAXHERE);
+      }
+      scrollToHelper=0;
+      if (!dialogLoadSaveSetFileNameAndPath.empty()) {
+        String zwo = dialogLoadSaveSetFileNameAndPath;
+        dialogLoadSaveSetFileNameAndPath = unixFileName(SHORTFILENAME(zwo));
+        fileNames[mode] = getName(zwo) + getExtension(zwo);
+        scrollToFileName = toLower(fileNames[mode]);
+        scrollToHelper = 2;
+        resize2(fileNames[mode],NAMEMAXHERE);
+        paths[mode] = getPath(dialogLoadSaveSetFileNameAndPath);
+        dialogLoadSaveSetFileNameAndPath = "";
+      }
     }
-    for (int j = 0; j < DIALOG_COUNT; j++) {
-      fileNames[j] = ""; // little bug
-      resize2(fileNames[j],NAMEMAXHERE);
-    }
-    scrollToHelper=0;
-    if (!dialogLoadSaveSetFileNameAndPath.empty()) {
-      String zwo = dialogLoadSaveSetFileNameAndPath;
-      dialogLoadSaveSetFileNameAndPath = unixFileName(SHORTFILENAME(zwo));
-      fileNames[mode] = getName(zwo) + getExtension(zwo);
-      scrollToFileName = toLower(fileNames[mode]);
-      scrollToHelper = 2;
-      resize2(fileNames[mode],NAMEMAXHERE);
-      paths[mode] = getPath(dialogLoadSaveSetFileNameAndPath);
-      dialogLoadSaveSetFileNameAndPath = "";
-    }
+    reOpen = false;
   }
   bool result = false;
   DIALOGSTART(dialogCaption[mode])
@@ -2458,6 +2629,12 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::Text("%s",dialogFileTypes[mode]);
   ImGui::Separator();
   SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();ImGui::InputText("##DIALOGLOADSAVEFILTER",filter,FILTERNAMEMAX);
+  ImGui::SameLine();
+  if (ImGui::Button("Create folder##DIALOGLOADSAVECREATEFOLDER")) {
+      loadSaveShortPath = paths[mode]; 
+      dialogCreateFolder(true);
+  }
+  ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogCreateFolder(false); ImGui::PopStyleColor(); if (fileSystemUpdatedHere) {fileSystemUpdatedHere = false;needsRescanFiles=true;}
   ImGui::SameLine();
   ImGui::Text("Preview"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGLOADSAVEPREVIEW",&previewOn)) {if (previewOn) clearPreview();}
   if (previewOn && previewAspect != 0) {
