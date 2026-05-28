@@ -1,700 +1,1007 @@
-"FreeDOS{"_N_
-  "If you use FreeDOS/DOS from an USB then keep in mind,"_N_
-  "that USB sticks may (relatively fast) wear out and get"_N_
-  "slow when using them too much (write cycles)."_N_
-  ""_N_
-  "Please use a good DPMI host like hdpmi from the newest SBEMU"_N_
-  "The program is very memory hungry. HDPMI32I.EXE provides"_N_
-  "more than 1GB I think, maybe even 4GB."_N_
-  ""_N_
-  "The program is designed for DOS computers but for very fast"_N_
-  "DOS computers. Maybe it is not a good idea to use it on e.g."_N_
-  "a Pentium 200. The main reason is the resolution of"_N_
-  "1024x768 used."_N_
-  ""_N_
-  "The program maybe used with old CRT monitors or even 16:9"_N_
-  "monitors which are currently a standard as of 2026. There is"_N_
-  "a setting in the menubar for it."_N_
-"}"_N_
-"Menubar{"_N_
-  "The menubar is at the top of the screen."_N_
-  "You can choose between different categories there."_N_
-  "And do some settings, too."_N_
-  "It also displays the current date and time."_N_
-  "File{"_N_
-    "In this menupoint there are file related operations."_N_
-    "New image{"_N_
-      "Let's you create a new image"_N_
-      "The image gets inserted into pictures (in the menubar)"_N_
-      "as last element and made as the current picture to edit."_N_
-      "You can specify the width and the height"_N_
-      "for the picture in pixels,centimeters or inch."_N_
-      "For centimeters and inches there is a dpi"_N_
-      "(dots per inch (or pixels per inch)) setting."_N_
-    "}"_N_
-    "Load wyp image{"_N_
-      "Let's you load a Wypa .wyp image. You can use the preview"_N_
-      "function to see what you will be loading."_N_
-      "The image is load with all it's layers."_N_
-      "If you specify a non .wyp image, it get's also load but as"_N_
-      "single layer."_N_
-      "The image gets inserted into pictures (in the menubar)"_N_
-      "as last element and made as the current picture to edit."_N_
-    "}"_N_
-    "Save wyp image{"_N_
-      "Let's you save the Wypa .wyp image you are currently"_N_
-      "editing."_N_
-    "}"_N_
-    "Import image{"_N_
-      "If you load a Wypa .wyp image with this it gets 'reduced'"_N_
-      "to a single layer."_N_
-      "This option is for loading other formats than .wyp"_N_
-      "and use them only as a (pseudo) single layer image at loading."_N_
-    "}"_N_
-    "Insert image layers{"_N_
-      "Inserts all the layers from another Wypa .wyp file"_N_
-      "on top of the upperst currently selected layer."_N_
-    "}"_N_
-    "Insert psd layers{"_N_
-      "This option tries to import a Photoshop .psd file"_N_
-      "with all it's layers on top of the upperst currently selected"_N_
-      "layer."_N_
-      "It is a very simple implementation and e.g. doesn't convert"_N_
-      "the transparency modes of the layers."_N_
-      "Maybe you should not rely on the 100% correctness of the"_N_
-      "functionality of this feature."_N_
-    "}"_N_
-    "Insert svg layer{"_N_
-      "You can insert a vector graphic .svg file into the image here."_N_
-      "It is imported as pixel graphic and not as vector graphic."_N_
-      "But you may specify an alternative scaling for this pixel"_N_
-      "graphic. E.g. a scale of 2 makes it double the size/resolution."_N_
-    "}"_N_
-    "Export png{"_N_
-      "Saves the complete image as single png file. It merges the layers"_N_
-      "into this exported format."_N_
-    "}"_N_
-    "Export layer(s) as single png {"_N_
-      "Saves the selected layers as single png file. It merges the layers"_N_
-      "into this exported format."_N_
-    "}"_N_    
-    "Export layer(s) as multiple pngs {"_N_
-      "Saves the selected layers as multiple png files. With the layer"_N_
-      "number inserted into the filename. You can specify if you want to"_N_
-      "apply the post processing or save them in their raw format as png."_N_
-    "}"_N_
-  "}"_N_
-  "Edit{"_N_
-    "Undo{"_N_
-      "Does a undo of the last operations."_N_
-      "This function is not working for all/any of the changes"_N_
-      "It actually should just help if you paint in the image"_N_
-      "but many many other operations also feature an undo."_N_
-      "You can see the number of available undos as [x] in"_N_
-      "the undo options menu point."_N_
-      "Maybe it is a good idea to save more often."_N_
-    "}"_N_
-    "Redo{"_N_
-      "Reverses the last made undos again."_N_
-    "}"_N_
-    "Fill selection with color{"_N_
-      "Fills the entire selected area of a layer(s) with the current"_N_
-      "paint color."_N_
-    "}"_N_
-    "Fill selection with alpha{"_N_
-      "Fills the entire selected area of a layer(s) with the current"_N_
-      "paint colors alpha(transparency)."_N_
-    "}"_N_
-    "Erase selection{"_N_
-      "Deletes the selected area of an layer."_N_
-    "}"_N_
-    "Antialias selected{"_N_
-      "Uses the called FXAA onto the selected area."_N_
-      "FXAA is a anti aliasing and thus makes the structures"_N_
-      "more smooth. FXAA is also called \"screen space antialiasing\"."_N_
-    "}"_N_
-    "Greyscale{"_N_
-      "Makes the selected area (or the whole area if nothing is"_N_
-      "selected) from colored to grey. There is no luminance conversion"_N_
-      "involved. This means you just get (red+green+blue)/3.\n"_N_
-    "}"_N_
-    "Gradiation curves{"_N_
-      "This is for advanced users."_N_
-      "It is possible to assign every color channel intensity"_N_
-      "a new intensity by drawing curves."_N_
-      "There is also a grey channel to adjust all the curves"_N_
-      "at once. However if you use the grey channel in connection"_N_
-      "with the red,green and blue updates it may introduce"_N_
-      "problems when the colors are clipped from 0..255."_N_
-      "So to say it doesn't stay just brighter/darker (visibly) in this"_N_
-      "case it may get a color then. But it's at least already visible."_N_
-      "This doesn't happen when you just use red/green/blue."_N_
-      "You can save and load curves here."_N_
-      "The CV option let's you edit Bezier handles. So you have real"_N_
-      "curves instead of just linear changes."_N_
-      "You may also enter the x and y position of the handles"_N_
-      "directly."_N_
-      "Every x position gets remapped to a y position (intensity)."_N_
-    "}"_N_
-    "Color balance{"_N_
-      "You can change the colorings of the image here."_N_
-      "There is a option for the dark,middle and light part."_N_
-      "Use the three sliders to adjust the colors of these."_N_
-    "}"_N_
-    "Invert color{"_N_
-      "Inverts the selected area (or the whole area if nothing is"_N_
-      "selected) by using red = 255-red, green = 255-green,"_N_
-      "blue = 255-blue."_N_
-    "}"_N_
-    "Invert alpha{"_N_
-      "Inverts the selected area (or the whole area if nothing is"_N_
-      " selected) by using alpha(transparency) = 255-alpha."_N_
-    "}"_N_
-    "Undo enabled{"_N_
-      "You may disable undo. Undo uses rather much memory and is"_N_
-      "not available for any operation in Wypa."_N_
-    "}"_N_
-  "}"_N_
-  "Image{"_N_
-    "Mirror horizontally{"_N_
-      "Mirrors the entire image on it's x axis."_N_
-      "No undo."_N_
-    "}"_N_
-    "Mirror vertically{"_N_
-      "Mirrors the entire image on it's y axis."_N_
-      "No undo."_N_
-    "}"_N_
-    "Rotate +90 degrees{"_N_
-      "Rotates the entire image by 90degrees forward."_N_
-      "No undo."_N_
-    "}"_N_
-    "Rotate -90 degrees{"_N_
-      "Rotates the entire image by 90degrees backward."_N_
-      "No undo."_N_
-    "}"_N_
-    "Fit canvas to layers{"_N_
-      "Takes all the layers and makes the canvas/picture"_N_
-      "as a picture that encompasses all (width/height)."_N_
-      "No undo."_N_
-    "}"_N_
-    "Crop canvas by alpha {"_N_
-      "Takes all the active layers and makes the canvas/picture"_N_
-      "as a picture that encompasses all (width/height). But"_N_
-      "uses the alpha channel to determine whats visible (alpha!=0)."_N_
-      "No undo."_N_
-    "}"_N_
-    "Image properties{"_N_
-      "You can specify the canvas width,height,x and y position."_N_
-      "The canvas width and height is the size of the final picture"_N_
-      "when exported."_N_
-      "If you change the width or height you can use a 9x9 button"_N_
-      "matrix to specify from which old canvas position changes apply"_N_
-      "there is an instant preview for this visible in the background."_N_
-      "Also you can change the grid cell width/height and x/y position."_N_
-      "The grid is visible if you turn on the grid via the menu point"_N_
-      "\"View\"->\"Show grid\""_N_
-    "}"_N_
-    "Resize image{"_N_
-      "Maybe it's a good idea to save before resizing."_N_
-      "Scales the current image to a new width/height."_N_
-      "When quantization/baking is enabled all layers get"_N_
-      "baked, thus you may loose pixel information, but the layers"_N_
-      "get interpolated."_N_
-      "You may specify \"Keep proportions\" to have the width/height"_N_
-      "setting updated as you modify the other (width/height)setting."_N_
-      "Interpolation modes:"_N_
-      "Nearest pixel - just pixelated, keeps the color values the same."_N_
-      "Linear - Modifies the color values but is smoother when zooming."_N_
-      "Inter area - Modifies the color values on minification (smoothing)."_N_
-      "No undo."_N_
-    "}"_N_
-    "Fit canvas to selection{"_N_
-      "Takes all the selections and fits the canvas to it."_N_
-      "You get a picture that fits your selection (width/height)."_N_
-      "No undo."_N_
-    "}"_N_
-    "Duplicate picture{"_N_
-      "Copies the picture with all its layers."_N_
-      "The copied picture can be accessed with the menu point"_N_
-      "\"Pictures\"."_N_
-      "No undo."_N_
-    "}"_N_
-    "Duplicate picture (merged){"_N_
-      "Copies the picture merged down to a single layer."_N_
-      "The copied picture can be accessed with the menu point"_N_
-      "\"Pictures\"."_N_
-      "No undo."_N_
-    "}"_N_
-  "}"_N_
-  "Layer{"_N_
-    "Add layer{"_N_
-      "Inserts a bitmap layer above the first selected one."_N_
-      "You can specify a width and height in pixels."_N_
-      "It get's initially placed on the current pictures origin."_N_
-      "No undo."_N_
-    "}"_N_
-    "Insert layer like this layer{"_N_
-      "Inserts a bitmap layer above the first selected one."_N_
-      "It get's position and size and so on from the current layer."_N_
-      "No undo."_N_
-    "}"_N_
-    "Delete layer(s){"_N_
-      "Deletes the selected layers."_N_
-      "No undo."_N_
-    "}"_N_
-    "Insert text layer{"_N_
-      "Inserts an empty text layer above the first selected layer."_N_
-      "No undo."_N_
-    "}"_N_
-    "Insert adjustment layer{"_N_
-      "Inserts an adjustment layer above the first selected layer."_N_
-      "It has the size and position of the current canvas/image."_N_
-      "Adjustment layers may be used to correct the colors of"_N_
-      "underlying layers."_N_
-      "No undo."_N_
-    "}"_N_
-    "Insert tilemap layer with this layers tiles{"_N_
-      "Inserts a tilemap layer above the first selected layer."_N_
-      "It uses the current selected layer as tileset."_N_
-      "Tilmaps can be used to draw levels for games."_N_
-      "You can specify a x and y resolution of the tilemap."_N_
-      "The tilemap is placed at the picture/canvas origin."_N_
-      "No undo."_N_
-    "}"_N_
-    "Hide all layers{"_N_
-      "Turns off the visibility of all layers."_N_
-      "You may turn then on individually then."_N_
-    "}"_N_
-    "Show all layers{"_N_
-      "Turns on the visibility of all layers."_N_
-    "}"_N_
-    "Select all layers{"_N_
-      "Selects all layers (but not their contents)."_N_
-    "}"_N_
-    "Duplicate layer(s){"_N_
-      "Duplicates of the selected layer(s) are placed above the layer(s)."_N_
-    "}"_N_
-    "Copy layer(s){"_N_
-      "Creates a merge of the current selected stuff/layer(s)."_N_
-    "}"_N_
-    "Paste{"_N_
-      "Pastes the merge of the current copied stuff/layer(s)."_N_
-    "}"_N_
-    "Bake layer(s){"_N_
-      "Layers are baked into a rectified form."_N_
-      "Meaning: you get layer(s) without rotation or scaling."_N_
-      "the pixels just are the pixels that you see in the final"_N_
-      "image. Be careful here, since you lose information by that."_N_
-    "}"_N_
-    "Merge down layer(s){"_N_
-      "Layers are baked+merged to the bottom layer in a rectified form."_N_
-      "Meaning: you get a layer without rotation or scaling."_N_
-      "the pixels just are the pixels that you see in the final"_N_
-      "image. Be careful here, since you lose information by that."_N_
-      "All source layers are deleted by this."_N_
-      "No undo."_N_
-    "}"_N_
-    "Insert merge of layer(s){"_N_
-      "Layers are baked+merged to the bottom layer in a rectified form."_N_
-      "Meaning: you get a layer without rotation or scaling."_N_
-      "the pixels just are the pixels that you see in the final"_N_
-      "image. Be careful here, since you lose information by that."_N_
-      "The source layers are kept but the merged layer is"_N_
-      "placed above the first selected layer."_N_
-      "No undo."_N_
-    "}"_N_
-    "Insert alpha mask above layer(s){"_N_
-      "All the selected layers are converted into an alphamask."_N_
-      "Meaning: They get a grey value corresponding to their"_N_
-      "transparency level."_N_
-      "The converted layer(s) are inserted above the original layer(s)."_N_
-      "The old layer(s) are kept."_N_
-      "No undo."_N_
-    "}"_N_
-    "Apply alpha mask to below{"_N_
-      "The selected layers are combined (and deleted) with the layer(s)"_N_
-      "below. The layer(s) below receive the grey (red+green+blue)/3"_N_
-      "value as their new alpha channel (transparency) value."_N_
-    "}"_N_
-    "Convert layer(s) from alpha to premul{"_N_
-      "Most pictures you may find are not premultiplied alpha."_N_
-      "So when you load them, there are colors visible in transparent"_N_
-      "areas where they shouldn't. With this option you can convert"_N_
-      "a normal alpha blending (normal) picture into the premul"_N_
-      "mode."_N_
-    "}"_N_
-    "Quantized palette from layer{"_N_
-    "}"_N_
-    "Quantize layer(s) to palette {"_N_
-    "}"_N_
-    "Mirror horizontally{"_N_
-      "Mirrors layer(s) on the x axis."_N_
-    "}"_N_
-    "Mirror vertically{"_N_
-      "Mirror the layer(s) on the y axis."_N_
-      "No undo."_N_
-    "}"_N_
-    "Rotate +90 degrees{"_N_
-      "Rotate the layer(s) by 90degrees forward."_N_
-    "}"_N_
-    "Rotate -90 degrees{"_N_
-      "Rotate the layer(s) by 90degrees backward."_N_
-    "}"_N_
-    "Layer properties{"_N_
-    "}"_N_
-    "Crop layer(s) by alpha{"_N_
-    "}"_N_
-    "Lock layer(s){"_N_
-    "}"_N_
-    "Unlock layer(s){"_N_
-    "}"_N_
-    "Duplicate layer as reference{"_N_
-    "}"_N_
-  "}"_N_
-  "Selection{"_N_
-    "Selections are per layer. So to say if you select something on a"_N_
-    "layer the selections stays only on that layer if you switch the"_N_
-    "layer. You can press CTRL whilst switching the layer to copy"_N_
-    "the selection."_N_
-    "Select all{"_N_
-      "Selects the entire layer region of the selected layer(s)."_N_
-    "}"_N_
-    "Select none{"_N_
-      "Removes the selection from all the layer(s)."_N_
-    "}"_N_
-    "Invert selection{"_N_
-      "Makes the selected pixels unselected and the non selected pixels"_N_
-      "selected. On all selected layers."_N_
-    "}"_N_
-    "Expand/shrink selection{"_N_
-      "Expand or shrink the selection by an amount of pixels."_N_
-      "This operation is slow if a big value is specified here."_N_
-      "There is a button to switch from the default mode (expanding) to"_N_
-      "shrinking."_N_
-      "Thus the selection gets bigger or smaller by that."_N_
-      "This operation works on all the selected layers."_N_
-    "}"_N_
-    "Select by alpha{"_N_
-      "The selection is created by all pixels >= a value and <= a value."_N_
-      "This operation works on all the selected layers."_N_
-    "}"_N_
-    "Selection as outline{"_N_
-      "This converts the selection of an area into the one pixel"_N_
-      "wide selection of just it's border. You may expand or shrink"_N_
-      "the selection later."_N_
-      "This operation works on all the selected layers."_N_
-    "}"_N_
-    "Extrude selection{"_N_
-      "You can enter an angel and a pixel distance to make the selection"_N_
-      "\"3D\" thus having a feature to simply create shadows or similar."_N_
-      "Maybe a good setting is 45 degrees."_N_
-      "This operation works on all the selected layers."_N_
-    "}"_N_
-    "Apply selections to layer{"_N_
-      "Combine all selections from the selected layers and put them onto"_N_
-      "the currently active layer."_N_
-    "}"_N_
-    "Clear all other layer selections{"_N_
-      "Invalidate all selections on the layers that aren't the current"_N_
-      "active layer."_N_
-    "}"_N_
-  "}"_N_
-  "View{"_N_
-    "Gallery{"_N_
-      "You can view a folders image contents as closeups with this."_N_
-      "There is an option to select the folder and to skip through"_N_
-      "the images. You may also use keys or the mouse to skip."_N_
-      "You may also directly select the picture you mean from the"_N_
-      "list."_N_
-      "There is a scaling option to even view very tall pictures."_N_
-      "The loading of big pictures take a while, so maybe just"_N_
-      "stay patient at loading."_N_
-      "You can also directly load the middle picture."_N_
-      "It gets add to the pictures list and can directly be edited after"_N_
-      "loading it."_N_
-      "The gallery shows just the single layer/preview for a picture."_N_
-    "}"_N_
-    "Monitor gamma{"_N_
-      "Let's you enter a gamma value for the monitor."_N_
-      "Gamma is actually the color value raised to the power of"_N_
-      "the specified gamma value. This may help with editing non"_N_
-      "linear assets. However since it's not a 1:1 mapping anymore"_N_
-      "maybe the visibility of the colors is hard to distinguish for"_N_
-      "certain colors."_N_
-    "}"_N_
-    "Aspect ratio 16:9{"_N_
-      "FreeDOS runs with resolution like 1024x768 (Vesa/Bios). But"_N_
-      "current monitors (as of 2026) mostly use resolutions"_N_
-      "like 1280x720. This option makes it possible to use the 1024x768"_N_
-      "option on 1280x720 monitors."_N_
-    "}"_N_
-    "Zoom 100%{"_N_
-      "Sets the zoom factor to 1:1 mapping."_N_
-      "The zooming gets applied from the center of the \"screen\""_N_
-    "}"_N_
-    "Zoom 200%{"_N_
-      "Sets the zoom factor to 1:2 mapping."_N_
-      "The zooming gets applied from the center of the \"screen\""_N_
-    "}"_N_
-    "Zoom in{"_N_
-      "Zooms in by a small value, you can also use keys to do that"_N_
-      "The zooming gets applied from the center of the \"screen\""_N_
-    "}"_N_
-    "Zoom out{"_N_
-      "Zooms out by a small value, you can also use keys to do that"_N_
-      "The zooming gets applied from the center of the \"screen\""_N_
-    "}"_N_
-    "Show layer shapes{"_N_
-      "The layer size and position is painted as yellow rectangles also"_N_
-      "to the screen."_N_
-    "}"_N_
-    "Show grid{"_N_
-      "Shows a grid. You may use some keys to snap the mouse to the grid."_N_
-      "The grid can be configured in image properties (menu point)\"Image\"."_N_
-    "}"_N_
-    "Center to view{"_N_
-      "Places the current image onto the center of the \"screen\"."_N_
-    "}"_N_
-    "Fit to view{"_N_
-      "Places the current image onto the center of the \"screen\" and"_N_
-      "zooms it to fit the \"screen\"."_N_
-    "}"_N_
-    "Clear mouse lock{"_N_
-      "You can lock x or y axis of the mouse in order to paint straight"_N_
-      "lines. With this option here you can also remove the lock besides"_N_
-      "the keys for that."_N_
-    "}"_N_
-    "Show only selected layers selection{"_N_
-      "If you disable this option the selections of all layers bleed"_N_
-      "through. So to say you see all layer selections at once/combined."_N_
-    "}"_N_
-  "}"_N_
-  "Filter{"_N_
-    "Difference clouds{"_N_
-      "Creates a pseudo fractal mountain scape like thing."_N_
-      "You may use it several times to bring variation."_N_
-      "It just modifies/changes a bit the current pictures pixels."_N_
-      "The algorithm looks a bit linear so maybe some smoothing"_N_
-      "or similar need to be used between difference cloud filter steps."_N_
-      "The operation gets directly started after clicking the menu point."_N_
-    "}"_N_
-    "Noise{"_N_
-      "Puts values from 0..255 as grey values into the current layer."_N_
-      "Maybe you can use threshholding of postprocessing or"_N_
-      "gradient curves or binarysation to make the noise more your way."_N_
-      "The operation gets directly started after clicking the menu point."_N_
-    "}"_N_
-    "Edge detect{"_N_
-      "Use the morphological gradient to detect edges."_N_
-      "The layer is turned into some outlines."_N_
-      "The operation gets directly started after clicking the menu point."_N_
-    "}"_N_
-    "Blur{"_N_
-      "Here several image blur techniques are available."_N_
-      "Most notably the Gauss blur which turns the picture into a very"_N_
-      "soft version of it self. For every blur type you can specify"_N_
-      "the radius/size for the softening."_N_
-      "Some blurs are extremely imperformant here. The Gauss blur"_N_
-      "is ok from the performance perspective."_N_
-      "These are the available blur types:"_N_
-      "Gauss - a gaussian blur."_N_
-      "Box - a \"rectangle\" blur."_N_
-      "Iterative - a stepwise pixel blur."_N_
-      "Radial - a directional blur with an angle and a size."_N_
-    "}"_N_
-    "Alpha soften{"_N_
-      "This blurs the alpha channel in a \"1pixel\" radius."_N_
-      "So to say it makes the edges of hard shapes more soft."_N_
-    "}"_N_
-    "Turn to glow{"_N_
-      "Uses a gaussian blur to have a soft greyscale picture."_N_
-      "You can specify the radius/size of the softening."_N_
-      "It is a good idea to use another transparency mode like"_N_
-      "\"Add\" for the layer then."_N_
-      "You may use postprocessing or gradient curves to colorize"_N_
-      "the glow. A good idea is to use \"Remove green\" and recolor"_N_
-      "the glow via \"Hue\" in postprocessing."_N_
-    "}"_N_
-    "Emboss{"_N_
-      "This takes the luminance of each pixel and it's surrounding"_N_
-      "to calculate a direction of the \"heightmap\"."_N_
-      "You can use an angle to specify the 2D direction of the light."_N_
-      "Maybe some blurring should be added before or after."_N_
-    "}"_N_
-    "Color keying{"_N_
-      "This maybe used to make a certain color transparent."_N_
-      "There is a simple version for red,green or blue."_N_
-      "And a version where the paint color is removed."_N_
-      "You can specify a strength of the removal and even"_N_
-      "make it binary (0 or 255) by a setting."_N_
-      "It's also possible to invert the keying (0->255,255->0)."_N_
-    "}"_N_
-    "Denoise{"_N_
-      "A median filter is applied. It makes 1 or even 2 pixel sparkles"_N_
-      "disappear. However the whole picture loses somehow crispiness."_N_
-      "The operation gets directly started after clicking the menu point."_N_
-    "}"_N_
-    "Sharpen{"_N_
-      "The picture gets a bit more crispy by this."_N_
-      "The operation gets directly started after clicking the menu point."_N_
-    "}"_N_
-  "}"_N_
-  "Pictures{"_N_
-    "Here all the currently loaded pictures are visible."_N_
-    "The menupoint shows the number of loaded pictures[count]."_N_
-    "You can switch the picture here and can see the active"_N_
-    "picture by a checked sign."_N_
-    "Delete picture{"_N_
-      "Deletes the currently active picture and frees it's memory again."_N_
-    "}"_N_
-    "Picture info{"_N_
-      "This menu point only applies to pictures saved as .wyp images."_N_
-      "You can enter the author of the image and add a larger"_N_
-      "comment here. You can also see the timestamp of the image"_N_
-      "creation which may not be the actual files timestamp."_N_
-    "}"_N_
-    "Insert layers from other picture{"_N_
-      "You can select another picture here in a dialog."_N_
-      "There will be it's selected layers taken and copied to the"_N_
-      "current image. The layers get inserted above the first selected"_N_
-      "layer in the current image."_N_
-    "}"_N_
-  "}"_N_
-  "Help{"_N_
-    "About{"_N_
-      "Just a small note on the version of the program."_N_
-    "}"_N_
-    "Hotkeys{"_N_
-      "A list of special keys to use whilst using Wypa."_N_
-    "}"_N_
-    "If you are new{"_N_
-      "Some explanations on what's different to other paint programs."_N_
-    "}"_N_
-    "Show tooltips{"_N_
-      "If you hover a user interface item with the mouse a tiny text"_N_
-      "is displayed, if this option is enabled."_N_
-    "}"_N_
-    "Show debug window{"_N_
-      "Just some stats for debugging"_N_
-      "FPS = the current frames per second of the program."_N_
-      "since nothing is done via specialized graphic card instruction."_N_
-      "the program may perform bad. Actually the DJGPP build"_N_
-      "is much faster than a WatcomC build."_N_
-      "The free memory shown is not reliable in any way. But should"_N_
-      "go down, if not enough memory is available."_N_
-    "}"_N_
-  "}"_N_
-  "Zoom{"_N_
-    "Here you can update the current pictures zoom level."_N_
-    "When you update this value the image get's zoomed"_N_
-    "from the center of the \"screen\"."_N_
-  "}"_N_
-  "Mouse rate{"_N_
-    "This is to control the speed of the mouse."_N_
-    "Maybe you need a slower or faster pace regarding"_N_
-    "your mouse movements."_N_
-  "}"_N_
-"}"_N_
-"Tools{"_N_
-  "Selection tool{"_N_
-  "}"_N_
-  "Move tool{"_N_
-  "}"_N_
-  "Magic wand tool{"_N_
-  "}"_N_
-  "Pipette tool{"_N_
-  "}"_N_
-  "Pencil tool{"_N_
-  "}"_N_
-  "Paintbrush tool{"_N_
-  "}"_N_
-  "Eraser tool{"_N_
-  "}"_N_
-  "Fill tool{"_N_
-  "}"_N_
-  "Line tool{"_N_
-  "}"_N_
-  "Gradient tool{"_N_
-  "}"_N_
-  "Text tool{"_N_
-  "}"_N_
-  "Postprocessing tool{"_N_
-  "}"_N_
-  "Blur tool{"_N_
-  "}"_N_
-  "Measure tool{"_N_
-  "}"_N_
-  "Tiling tool{"_N_
-  "}"_N_
-  "Overlay tool{"_N_
-  "}"_N_
-  "Modify tool{"_N_
-  "}"_N_
-  "Tilemap tool{"_N_
-  "}"_N_
-"}"_N_
-"Navigator{"_N_
-  "Up there there is changeable the currently edited pictures name."_N_
-  "You can see the x and y position on the current layer."_N_
-  "If you have the grid turned on, you also see the grid positions [x][y]."_N_
-  "Some tools display a with and a height here. (e.g. selections)."_N_
-  "You can also see a red notification when you run low on memory."_N_
-  "The program most likely will crash if the memory is at 0byte free."_N_
-  ""_N_
-  "There is a zoomed perspective of the current edited pixels."_N_
-  "And there is the current layers content shown as very small symbol."_N_
-"}"_N_
-"Colors{"_N_
-  "Color wheel{"_N_
-  "}"_N_
-  "Color palette{"_N_
-  "}"_N_
-"}"_N_
-"Layers{"_N_
-  "Each layer is painted from the last one to the first one"_N_
-  "onto the complete picture."_N_
-  "You can select a layer with the mouse."_N_
-  "If you press SHIFT you can select/unselect multiple layers."_N_
-  "The current active layer is highlighted red."_N_
-  "If you press CTRL whilst selecting the selection mask of the"_N_
-  "previous layer is copied to the newly selected layer."_N_
-  "You can change the visibility of a layer with the \"eye\" symbol."_N_
-  "Specialized layers are painted with colors in the selection pane."_N_
-  "A layer that has a \">\" in the name is not modificable."_N_
-  "With a mouse double click you may change the layer name."_N_
-  "You can use cursor keys when hovering the layer pane to scroll."_N_
-  ""_N_
-  "There is \"!\" symbol to align the layer position/size to the"_N_
-  "canvasd if it blinks red, the layer dosen't fit to the canvas, yet,"_N_
-  " and merging mayfail. "_N_
-  ""_N_
-  "Bake layer - The layer is stripped of its position/size is rectified."_N_
-  "      it is a good idea to use the \"!\" symbol before baking."_N_
-  "Single on/off - just the current selected layer is visible."_N_
-  "Highlite layers - all other layers are darkened."_N_
-  ""_N_
-  "Layer modes{"_N_
-    "ALPHA = normal alpha blending."_N_
-    "PREMULTIPLIEDALPHA = with this you don't have smears when combining."_N_
-    "SCREEN = maybe like the \"screen\" blendmode in Photoshop."_N_
-    "ADD = Just adds the current layers RGB."_N_
-    "SUB = Just subtracts the current layers RGB."_N_
-    "MUL = Multiplicates the color with the background layer."_N_
-    "MUL2X = Double Multiplicates the color with the background layer."_N_
-    "MAX = Takes the maximum color of both layers (lighten)."_N_
-    "MIN = Takes the minimum color of both layers (darken)."_N_
-    "COLOR = Changes the color of the background by the layer."_N_
-    "LUMINANCE = Changes the lightness of the background by the layer."_N_
-    "SOFTLIGHT = Soft light maybe like in Photoshop."_N_
-    "HARDLIGHT = Hard light maybe like in Photoshop."_N_
-    "LINEARLIGHT = Linear light maybe like in Photoshop."_N_
-    "PINLIGHT =  Pin light maybe like in Photoshop."_N_
-    "DIFFERENCE = The difference of layer and background."_N_
-  "}"_N_
-  ""_N_
-  "The layer opacity specifies how much influence the layer should have"_N_
-  "in the final picture."_N_
-  "Move up - moves the selected layers up in the hierarchy."_N_
-  "Move down - moves the selected layers down in the hierarchy."_N_
-  "Merge - merges the layers onto the lowest and remove (NO UNDO)"_N_
-"}"_N_
+"Wypa is intended to produce rather oldschool videogames." _N_
+"But it is a good replacement for many tasks besides doing" _N_
+"graphics for videogames." _N_
+"" _N_
+"Remember sliders can be changed by value with CTRL." _N_
+"" _N_
+"FreeDOS{" _N_
+  "If you use FreeDOS/DOS from an USB then keep in mind," _N_
+  "that USB sticks may (relatively fast) wear out and get" _N_
+  "slow when using them too much (write cycles)." _N_
+  "" _N_
+  "Please use a good DPMI host like hdpmi from the newest SBEMU" _N_
+  "The program is very memory hungry. HDPMI32I.EXE provides" _N_
+  "more than 1GB I think, maybe even 4GB." _N_
+  "" _N_
+  "The program is designed for DOS computers but for very fast" _N_
+  "DOS computers. Maybe it is not a good idea to use it on e.g." _N_
+  "a Pentium 200. The main reason is the resolution of" _N_
+  "1024x768 used." _N_
+  "" _N_
+  "The program maybe used with old CRT monitors or even 16:9" _N_
+  "monitors which are currently a standard as of 2026. There is" _N_
+  "a setting in the menubar for it." _N_
+"}" _N_
+"Menubar{" _N_
+  "The menubar is at the top of the screen." _N_
+  "You can choose between different categories there." _N_
+  "And do some settings, too." _N_
+  "It also displays the current date and time." _N_
+  "File{" _N_
+    "In this menupoint there are file related operations." _N_
+    "New image{" _N_
+      "Let's you create a new image" _N_
+      "The image gets inserted into pictures (in the menubar)" _N_
+      "as last element and made as the current picture to edit." _N_
+      "You can specify the width and the height" _N_
+      "for the picture in pixels,centimeters or inch." _N_
+      "For centimeters and inches there is a dpi" _N_
+      "(dots per inch (or pixels per inch)) setting." _N_
+    "}" _N_
+    "Load wyp image{" _N_
+      "Let's you load a Wypa .wyp image. You can use the preview" _N_
+      "function to see what you will be loading." _N_
+      "The image is load with all it's layers." _N_
+      "If you specify a non .wyp image, it get's also load but as" _N_
+      "single layer." _N_
+      "The image gets inserted into pictures (in the menubar)" _N_
+      "as last element and made as the current picture to edit." _N_
+    "}" _N_
+    "Save wyp image{" _N_
+      "Let's you save the Wypa .wyp image you are currently" _N_
+      "editing." _N_
+    "}" _N_
+    "Import image{" _N_
+      "If you load a Wypa .wyp image with this it gets 'reduced'" _N_
+      "to a single layer." _N_
+      "This option is for loading other formats than .wyp" _N_
+      "and use them only as a (pseudo) single layer image at loading." _N_
+    "}" _N_
+    "Insert image layers{" _N_
+      "Inserts all the layers from another Wypa .wyp file" _N_
+      "on top of the upperst currently selected layer." _N_
+    "}" _N_
+    "Insert psd layers{" _N_
+      "This option tries to import a Photoshop .psd file" _N_
+      "with all it's layers on top of the upperst currently selected" _N_
+      "layer." _N_
+      "It is a very simple implementation and e.g. doesn't convert" _N_
+      "the transparency modes of the layers." _N_
+      "Maybe you should not rely on the 100% correctness of the" _N_
+      "functionality of this feature." _N_
+    "}" _N_
+    "Insert svg layer{" _N_
+      "You can insert a vector graphic .svg file into the image here." _N_
+      "It is imported as pixel graphic and not as vector graphic." _N_
+      "But you may specify an alternative scaling for this pixel" _N_
+      "graphic. E.g. a scale of 2 makes it double the size/resolution." _N_
+    "}" _N_
+    "Export png{" _N_
+      "Saves the complete image as single png file. It merges the layers" _N_
+      "into this exported format." _N_
+    "}" _N_
+    "Export layer(s) as single png {" _N_
+      "Saves the selected layers as single png file. It merges the layers" _N_
+      "into this exported format." _N_
+    "}" _N_
+    "Export layer(s) as multiple pngs {" _N_
+      "Saves the selected layers as multiple png files. With the layer" _N_
+      "number inserted into the filename. You can specify if you want to" _N_
+      "apply the post processing or save them in their raw format as png." _N_
+    "}" _N_
+  "}" _N_
+  "Edit{" _N_
+    "Undo{" _N_
+      "Does a undo of the last operations." _N_
+      "This function is not working for all/any of the changes" _N_
+      "It actually should just help if you paint in the image" _N_
+      "but many many other operations also feature an undo." _N_
+      "You can see the number of available undos as [x] in" _N_
+      "the undo options menu point." _N_
+      "Maybe it is a good idea to save more often." _N_
+    "}" _N_
+    "Redo{" _N_
+      "Reverses the last made undos again." _N_
+    "}" _N_
+    "Fill selection with color{" _N_
+      "Fills the entire selected area of a layer(s) with the current" _N_
+      "paint color." _N_
+    "}" _N_
+    "Fill selection with alpha{" _N_
+      "Fills the entire selected area of a layer(s) with the current" _N_
+      "paint colors alpha(transparency)." _N_
+    "}" _N_
+    "Erase selection{" _N_
+      "Deletes the selected area of an layer." _N_
+    "}" _N_
+    "Antialias selected{" _N_
+      "Uses the called FXAA onto the selected area." _N_
+      "FXAA is a anti aliasing and thus makes the structures" _N_
+      "more smooth. FXAA is also called \"screen space antialiasing\"." _N_
+    "}" _N_
+    "Greyscale{" _N_
+      "Makes the selected area (or the whole area if nothing is" _N_
+      "selected) from colored to grey. There is no luminance conversion" _N_
+      "involved. This means you just get (red+green+blue)/3.\n" _N_
+    "}" _N_
+    "Gradiation curves{" _N_
+      "This is for advanced users." _N_
+      "It is possible to assign every color channel intensity" _N_
+      "a new intensity by drawing curves." _N_
+      "There is also a grey channel to adjust all the curves" _N_
+      "at once. However if you use the grey channel in connection" _N_
+      "with the red,green and blue updates it may introduce" _N_
+      "problems when the colors are clipped from 0..255." _N_
+      "So to say it doesn't stay just brighter/darker (visibly) in this" _N_
+      "case it may get a color then. But it's at least already visible." _N_
+      "This doesn't happen when you just use red/green/blue." _N_
+      "You can save and load curves here." _N_
+      "The CV option let's you edit Bezier handles. So you have real" _N_
+      "curves instead of just linear changes." _N_
+      "You may also enter the x and y position of the handles" _N_
+      "directly." _N_
+      "Every x position gets remapped to a y position (intensity)." _N_
+    "}" _N_
+    "Color balance{" _N_
+      "You can change the colorings of the image here." _N_
+      "There is a option for the dark,middle and light part." _N_
+      "Use the three sliders to adjust the colors of these." _N_
+    "}" _N_
+    "Invert color{" _N_
+      "Inverts the selected area (or the whole area if nothing is" _N_
+      "selected) by using red = 255-red, green = 255-green," _N_
+      "blue = 255-blue." _N_
+    "}" _N_
+    "Invert alpha{" _N_
+      "Inverts the selected area (or the whole area if nothing is" _N_
+      " selected) by using alpha(transparency) = 255-alpha." _N_
+    "}" _N_
+    "Undo enabled{" _N_
+      "You may disable undo. Undo uses rather much memory and is" _N_
+      "not available for any operation in Wypa." _N_
+    "}" _N_
+  "}" _N_
+  "Image{" _N_
+    "Mirror horizontally{" _N_
+      "Mirrors the entire image on it's x axis." _N_
+      "No undo." _N_
+    "}" _N_
+    "Mirror vertically{" _N_
+      "Mirrors the entire image on it's y axis." _N_
+      "No undo." _N_
+    "}" _N_
+    "Rotate +90 degrees{" _N_
+      "Rotates the entire image by 90degrees forward." _N_
+      "No undo." _N_
+    "}" _N_
+    "Rotate -90 degrees{" _N_
+      "Rotates the entire image by 90degrees backward." _N_
+      "No undo." _N_
+    "}" _N_
+    "Fit canvas to layers{" _N_
+      "Takes all the layers and makes the canvas/picture" _N_
+      "as a picture that encompasses all (width/height)." _N_
+      "No undo." _N_
+    "}" _N_
+    "Crop canvas by alpha {" _N_
+      "Takes all the active layers and makes the canvas/picture" _N_
+      "as a picture that encompasses all (width/height). But" _N_
+      "uses the alpha channel to determine whats visible (alpha!=0)." _N_
+      "No undo." _N_
+    "}" _N_
+    "Image properties{" _N_
+      "You can specify the canvas width,height,x and y position." _N_
+      "The canvas width and height is the size of the final picture" _N_
+      "when exported." _N_
+      "If you change the width or height you can use a 9x9 button" _N_
+      "matrix to specify from which old canvas position changes apply" _N_
+      "there is an instant preview for this visible in the background." _N_
+      "Also you can change the grid cell width/height and x/y position." _N_
+      "The grid is visible if you turn on the grid via the menu point" _N_
+      "\"View\"->\"Show grid\"" _N_
+    "}" _N_
+    "Resize image{" _N_
+      "Maybe it's a good idea to save before resizing." _N_
+      "Scales the current image to a new width/height." _N_
+      "When quantization/baking is enabled all layers get" _N_
+      "baked, thus you may loose pixel information, but the layers" _N_
+      "get interpolated." _N_
+      "You may specify \"Keep proportions\" to have the width/height" _N_
+      "setting updated as you modify the other (width/height)setting." _N_
+      "Interpolation modes:" _N_
+      "Nearest pixel - just pixelated, keeps the color values the same." _N_
+      "Linear - Modifies the color values but is smoother when zooming." _N_
+      "Inter area - Modifies the color values on minification (smoothing)." _N_
+      "No undo." _N_
+    "}" _N_
+    "Fit canvas to selection{" _N_
+      "Takes all the selections and fits the canvas to it." _N_
+      "You get a picture that fits your selection (width/height)." _N_
+      "No undo." _N_
+    "}" _N_
+    "Duplicate picture{" _N_
+      "Copies the picture with all its layers." _N_
+      "The copied picture can be accessed with the menu point" _N_
+      "\"Pictures\"." _N_
+      "No undo." _N_
+    "}" _N_
+    "Duplicate picture (merged){" _N_
+      "Copies the picture merged down to a single layer." _N_
+      "The copied picture can be accessed with the menu point" _N_
+      "\"Pictures\"." _N_
+      "No undo." _N_
+    "}" _N_
+  "}" _N_
+  "Layer{" _N_
+    "Add layer{" _N_
+      "Inserts a bitmap layer above the first selected one." _N_
+      "You can specify a width and height in pixels." _N_
+      "It get's initially placed on the current pictures origin." _N_
+      "No undo." _N_
+    "}" _N_
+    "Insert layer like this layer{" _N_
+      "Inserts a bitmap layer above the first selected one." _N_
+      "It get's position and size and so on from the current layer." _N_
+      "No undo." _N_
+    "}" _N_
+    "Delete layer(s){" _N_
+      "Deletes the selected layers." _N_
+      "No undo." _N_
+    "}" _N_
+    "Insert text layer{" _N_
+      "Inserts an empty text layer above the first selected layer." _N_
+      "You cannot modify an adjustment layer, just its position." _N_
+      "It's locked." _N_
+      "No undo." _N_
+    "}" _N_
+    "Insert adjustment layer{" _N_
+      "Inserts an adjustment layer above the first selected layer." _N_
+      "It has the size and position of the current canvas/image." _N_
+      "Adjustment layers may be used to correct the colors of" _N_
+      "underlying layers." _N_
+      "You cannot modify an adjustment layer, just its position" _N_
+      "and size. It's locked." _N_
+      "No undo." _N_
+    "}" _N_
+    "Insert tilemap layer with this layers tiles{" _N_
+      "Inserts a tilemap layer above the first selected layer." _N_
+      "It uses the current selected layer as tileset." _N_
+      "Tilmaps can be used to draw levels for games." _N_
+      "You can specify a x and y resolution of the tilemap." _N_
+      "The tilemap is placed at the picture/canvas origin." _N_
+      "No undo." _N_
+    "}" _N_
+    "Hide all layers{" _N_
+      "Turns off the visibility of all layers." _N_
+      "You may turn then on individually then." _N_
+    "}" _N_
+    "Show all layers{" _N_
+      "Turns on the visibility of all layers." _N_
+    "}" _N_
+    "Select all layers{" _N_
+      "Selects all layers (but not their contents)." _N_
+    "}" _N_
+    "Duplicate layer(s){" _N_
+      "Duplicates of the selected layer(s) are placed above the layer(s)." _N_
+    "}" _N_
+    "Copy layer(s){" _N_
+      "Creates a merge of the current selected stuff/layer(s)." _N_
+    "}" _N_
+    "Paste{" _N_
+      "Pastes the merge of the current copied stuff/layer(s)." _N_
+    "}" _N_
+    "Bake layer(s){" _N_
+      "Layers are baked into a rectified form." _N_
+      "Meaning: you get layer(s) without rotation or scaling." _N_
+      "the pixels just are the pixels that you see in the final" _N_
+      "image. Be careful here, since you lose information by that." _N_
+    "}" _N_
+    "Merge down layer(s){" _N_
+      "Layers are baked+merged to the bottom layer in a rectified form." _N_
+      "Meaning: you get a layer without rotation or scaling." _N_
+      "the pixels just are the pixels that you see in the final" _N_
+      "image. Be careful here, since you lose information by that." _N_
+      "All source layers are deleted by this." _N_
+      "No undo." _N_
+    "}" _N_
+    "Insert merge of layer(s){" _N_
+      "Layers are baked+merged to the bottom layer in a rectified form." _N_
+      "Meaning: you get a layer without rotation or scaling." _N_
+      "the pixels just are the pixels that you see in the final" _N_
+      "image. Be careful here, since you lose information by that." _N_
+      "The source layers are kept but the merged layer is" _N_
+      "placed above the first selected layer." _N_
+      "No undo." _N_
+    "}" _N_
+    "Insert alpha mask above layer(s){" _N_
+      "All the selected layers are converted into an alphamask." _N_
+      "Meaning: They get a grey value corresponding to their" _N_
+      "transparency level." _N_
+      "The converted layer(s) are inserted above the original layer(s)." _N_
+      "The old layer(s) are kept." _N_
+      "No undo." _N_
+    "}" _N_
+    "Apply alpha mask to below{" _N_
+      "The selected layers are combined (and deleted) with the layer(s)" _N_
+      "below. The layer(s) below receive the grey (red+green+blue)/3" _N_
+      "value as their new alpha channel (transparency) value." _N_
+    "}" _N_
+    "Convert layer(s) from alpha to premul{" _N_
+      "Most pictures you may find are not premultiplied alpha." _N_
+      "So when you load them, there are colors visible in transparent" _N_
+      "areas where they shouldn't. With this option you can convert" _N_
+      "a normal alpha blending (normal) picture into the premul" _N_
+      "mode." _N_
+    "}" _N_
+    "Quantized palette from layer{" _N_
+      "You can enter a color count and reduce the current layer" _N_
+      "to this color count. With the preview button you can see the" _N_
+      "result. So to say you can reduce a very colorful picture" _N_
+      "to just e.g. 10 colors." _N_
+      "The algorithm (kMeans) may not be exact in any case and" _N_
+      "produce some colors too few (or too much?). But in the" _N_
+      "test cases all worked well." _N_
+      "You can save the generated n color palette to a .pa2 file." _N_
+      "For the final step you have to use Quantize layer(s) to" _N_
+      "palette (the option here below). Or you can use the palette" _N_
+      "in the postprocessing tool." _N_
+    "}" _N_
+    "Quantize layer(s) to palette{" _N_
+      "The current palette (loaded in the palette view" _N_
+      "besides the colorwheel.) is used to remap the layers" _N_
+      "to just use the palette colors. It's pretty exact, the" _N_
+      "post processing tool can introduce false colors, which this" _N_
+      "option here does not. But this algorithm here also takes" _N_
+      "some time." _N_
+    "}" _N_
+    "Mirror horizontally{" _N_
+      "Mirrors layer(s) on the x axis." _N_
+    "}" _N_
+    "Mirror vertically{" _N_
+      "Mirror the layer(s) on the y axis." _N_
+      "No undo." _N_
+    "}" _N_
+    "Rotate +90 degrees{" _N_
+      "Rotate the layer(s) by 90degrees forward." _N_
+    "}" _N_
+    "Rotate -90 degrees{" _N_
+      "Rotate the layer(s) by 90degrees backward." _N_
+    "}" _N_
+    "Layer properties{" _N_
+      "With layer properties you can watch and edit the" _N_
+      "current layers pixel data size." _N_
+      "You can add (or remove (with negative values)) pixels" _N_
+      "to the left, right, top or bottom." _N_
+      "The layer gets resized and repostioned accordingly." _N_
+    "}" _N_
+    "Crop layer(s) by alpha{" _N_
+      "The layer(s) get cut on the borders where the alpha" _N_
+      "value/transparency is 0. The layer data is smaller and" _N_
+      "the position and size of the layer is updated." _N_
+    "}" _N_
+    "Lock layer(s){" _N_
+      "The current selected layer(s) get locked. Thus aren't" _N_
+      "modificable anymore. Be aware that some layers are locked" _N_
+      "by default due to their type." _N_
+    "}" _N_
+    "Unlock layer(s){" _N_
+      "The current selected layer(s) get unlocked. Thus aren't" _N_
+      "modificable anymore. Be aware that some layers are locked" _N_
+      "by default due to their type." _N_
+    "}" _N_
+    "Duplicate layer as reference{" _N_
+      "The current selected layer is duplicated as a reference" _N_
+      "Thus all changes made to the original layer are copied" _N_
+      "instantly to the reference layer." _N_
+      "You cannot modify a reference layer directly. It's locked." _N_
+    "}" _N_
+  "}" _N_
+  "Selection{" _N_
+    "Selections are per layer. So to say if you select something on a" _N_
+    "layer the selections stays only on that layer if you switch the" _N_
+    "layer. You can press CTRL whilst switching the layer to copy" _N_
+    "the selection." _N_
+    "Select all{" _N_
+      "Selects the entire layer region of the selected layer(s)." _N_
+    "}" _N_
+    "Select none{" _N_
+      "Removes the selection from all the layer(s)." _N_
+    "}" _N_
+    "Invert selection{" _N_
+      "Makes the selected pixels unselected and the non selected pixels" _N_
+      "selected. On all selected layers." _N_
+    "}" _N_
+    "Expand/shrink selection{" _N_
+      "Expand or shrink the selection by an amount of pixels." _N_
+      "This operation is slow if a big value is specified here." _N_
+      "There is a button to switch from the default mode (expanding) to" _N_
+      "shrinking." _N_
+      "Thus the selection gets bigger or smaller by that." _N_
+      "This operation works on all the selected layers." _N_
+    "}" _N_
+    "Select by alpha{" _N_
+      "The selection is created by all pixels >= a value and <= a value." _N_
+      "This operation works on all the selected layers." _N_
+    "}" _N_
+    "Selection as outline{" _N_
+      "This converts the selection of an area into the one pixel" _N_
+      "wide selection of just it's border. You may expand or shrink" _N_
+      "the selection later." _N_
+      "This operation works on all the selected layers." _N_
+    "}" _N_
+    "Extrude selection{" _N_
+      "You can enter an angel and a pixel distance to make the selection" _N_
+      "\"3D\" thus having a feature to simply create shadows or similar." _N_
+      "Maybe a good setting is 45 degrees." _N_
+      "This operation works on all the selected layers." _N_
+    "}" _N_
+    "Apply selections to layer{" _N_
+      "Combine all selections from the selected layers and put them onto" _N_
+      "the currently active layer." _N_
+    "}" _N_
+    "Clear all other layer selections{" _N_
+      "Invalidate all selections on the layers that aren't the current" _N_
+      "active layer." _N_
+    "}" _N_
+  "}" _N_
+  "View{" _N_
+    "Gallery{" _N_
+      "You can view a folders image contents as closeups with this." _N_
+      "There is an option to select the folder and to skip through" _N_
+      "the images. You may also use keys or the mouse to skip." _N_
+      "You may also directly select the picture you mean from the" _N_
+      "list." _N_
+      "There is a scaling option to even view very tall pictures." _N_
+      "The loading of big pictures take a while, so maybe just" _N_
+      "stay patient at loading." _N_
+      "You can also directly load the middle picture." _N_
+      "It gets add to the pictures list and can directly be edited after" _N_
+      "loading it." _N_
+      "The gallery shows just the single layer/preview for a picture." _N_
+    "}" _N_
+    "Monitor gamma{" _N_
+      "Let's you enter a gamma value for the monitor." _N_
+      "Gamma is actually the color value raised to the power of" _N_
+      "the specified gamma value. This may help with editing non" _N_
+      "linear assets. However since it's not a 1:1 mapping anymore" _N_
+      "maybe the visibility of the colors is hard to distinguish for" _N_
+      "certain colors." _N_
+    "}" _N_
+    "Aspect ratio 16:9{" _N_
+      "FreeDOS runs with resolution like 1024x768 (Vesa/Bios). But" _N_
+      "current monitors (as of 2026) mostly use resolutions" _N_
+      "like 1280x720. This option makes it possible to use the 1024x768" _N_
+      "option on 1280x720 monitors." _N_
+    "}" _N_
+    "Zoom 100%{" _N_
+      "Sets the zoom factor to 1:1 mapping." _N_
+      "The zooming gets applied from the center of the \"screen\"" _N_
+    "}" _N_
+    "Zoom 200%{" _N_
+      "Sets the zoom factor to 1:2 mapping." _N_
+      "The zooming gets applied from the center of the \"screen\"" _N_
+    "}" _N_
+    "Zoom in{" _N_
+      "Zooms in by a small value, you can also use keys to do that" _N_
+      "The zooming gets applied from the center of the \"screen\"" _N_
+    "}" _N_
+    "Zoom out{" _N_
+      "Zooms out by a small value, you can also use keys to do that" _N_
+      "The zooming gets applied from the center of the \"screen\"" _N_
+    "}" _N_
+    "Show layer shapes{" _N_
+      "The layer size and position is painted as yellow rectangles also" _N_
+      "to the screen." _N_
+    "}" _N_
+    "Show grid{" _N_
+      "Shows a grid. You may use some keys to snap the mouse to the grid." _N_
+      "The grid can be configured in image properties (menu point)\"Image\"." _N_
+    "}" _N_
+    "Center to view{" _N_
+      "Places the current image onto the center of the \"screen\"." _N_
+    "}" _N_
+    "Fit to view{" _N_
+      "Places the current image onto the center of the \"screen\" and" _N_
+      "zooms it to fit the \"screen\"." _N_
+    "}" _N_
+    "Clear mouse lock{" _N_
+      "You can lock x or y axis of the mouse in order to paint straight" _N_
+      "lines. With this option here you can also remove the lock besides" _N_
+      "the keys for that." _N_
+    "}" _N_
+    "Show only selected layers selection{" _N_
+      "If you disable this option the selections of all layers bleed" _N_
+      "through. So to say you see all layer selections at once/combined." _N_
+    "}" _N_
+  "}" _N_
+  "Filter{" _N_
+    "Difference clouds{" _N_
+      "Creates a pseudo fractal mountain scape like thing." _N_
+      "You may use it several times to bring variation." _N_
+      "It just modifies/changes a bit the current pictures pixels." _N_
+      "The algorithm looks a bit linear so maybe some smoothing" _N_
+      "or similar need to be used between difference cloud filter steps." _N_
+      "The operation gets directly started after clicking the menu point." _N_
+    "}" _N_
+    "Noise{" _N_
+      "Puts values from 0..255 as grey values into the current layer." _N_
+      "Maybe you can use threshholding of postprocessing or" _N_
+      "gradient curves or binarysation to make the noise more your way." _N_
+      "The operation gets directly started after clicking the menu point." _N_
+    "}" _N_
+    "Edge detect{" _N_
+      "Use the morphological gradient to detect edges." _N_
+      "The layer is turned into some outlines." _N_
+      "The operation gets directly started after clicking the menu point." _N_
+    "}" _N_
+    "Blur{" _N_
+      "Here several image blur techniques are available." _N_
+      "Most notably the Gauss blur which turns the picture into a very" _N_
+      "soft version of it self. For every blur type you can specify" _N_
+      "the radius/size for the softening." _N_
+      "Some blurs are extremely imperformant here. The Gauss blur" _N_
+      "is ok from the performance perspective." _N_
+      "These are the available blur types:" _N_
+      "Gauss - a gaussian blur." _N_
+      "Box - a \"rectangle\" blur." _N_
+      "Iterative - a stepwise pixel blur." _N_
+      "Radial - a directional blur with an angle and a size." _N_
+    "}" _N_
+    "Alpha soften{" _N_
+      "This blurs the alpha channel in a \"1pixel\" radius." _N_
+      "So to say it makes the edges of hard shapes more soft." _N_
+    "}" _N_
+    "Turn to glow{" _N_
+      "Uses a gaussian blur to have a soft greyscale picture." _N_
+      "You can specify the radius/size of the softening." _N_
+      "It is a good idea to use another transparency mode like" _N_
+      "\"Add\" for the layer then." _N_
+      "You may use postprocessing or gradient curves to colorize" _N_
+      "the glow. A good idea is to use \"Remove green\" and recolor" _N_
+      "the glow via \"Hue\" in postprocessing." _N_
+    "}" _N_
+    "Emboss{" _N_
+      "This takes the luminance of each pixel and it's surrounding" _N_
+      "to calculate a direction of the \"heightmap\"." _N_
+      "You can use an angle to specify the 2D direction of the light." _N_
+      "Maybe some blurring should be added before or after." _N_
+    "}" _N_
+    "Color keying{" _N_
+      "This maybe used to make a certain color transparent." _N_
+      "There is a simple version for red,green or blue." _N_
+      "And a version where the paint color is removed." _N_
+      "You can specify a strength of the removal and even" _N_
+      "make it binary (0 or 255) by a setting." _N_
+      "It's also possible to invert the keying (0->255,255->0)." _N_
+    "}" _N_
+    "Denoise{" _N_
+      "A median filter is applied. It makes 1 or even 2 pixel sparkles" _N_
+      "disappear. However the whole picture loses somehow crispiness." _N_
+      "The operation gets directly started after clicking the menu point." _N_
+    "}" _N_
+    "Sharpen{" _N_
+      "The picture gets a bit more crispy by this." _N_
+      "The operation gets directly started after clicking the menu point." _N_
+    "}" _N_
+  "}" _N_
+  "Pictures{" _N_
+    "Here all the currently loaded pictures are visible." _N_
+    "The menupoint shows the number of loaded pictures[count]." _N_
+    "You can switch the picture here and can see the active" _N_
+    "picture by a checked sign." _N_
+    "Delete picture{" _N_
+      "Deletes the currently active picture and frees it's memory again." _N_
+    "}" _N_
+    "Picture info{" _N_
+      "This menu point only applies to pictures saved as .wyp images." _N_
+      "You can enter the author of the image and add a larger" _N_
+      "comment here. You can also see the timestamp of the image" _N_
+      "creation which may not be the actual files timestamp." _N_
+    "}" _N_
+    "Insert layers from other picture{" _N_
+      "You can select another picture here in a dialog." _N_
+      "There will be it's selected layers taken and copied to the" _N_
+      "current image. The layers get inserted above the first selected" _N_
+      "layer in the current image." _N_
+    "}" _N_
+  "}" _N_
+  "Help{" _N_
+    "About{" _N_
+      "Just a small note on the version of the program." _N_
+    "}" _N_
+    "Hotkeys{" _N_
+      "A list of special keys to use whilst using Wypa." _N_
+    "}" _N_
+    "If you are new{" _N_
+      "Some explanations on what's different to other paint programs." _N_
+    "}" _N_
+    "Show tooltips{" _N_
+      "If you hover a user interface item with the mouse a tiny text" _N_
+      "is displayed, if this option is enabled." _N_
+    "}" _N_
+    "Show debug window{" _N_
+      "Just some stats for debugging" _N_
+      "FPS = the current frames per second of the program." _N_
+      "since nothing is done via specialized graphic card instruction." _N_
+      "the program may perform bad. Actually the DJGPP build" _N_
+      "is much faster than a WatcomC build." _N_
+      "The free memory shown is not reliable in any way. But should" _N_
+      "go down, if not enough memory is available." _N_
+    "}" _N_
+  "}" _N_
+  "Zoom{" _N_
+    "Here you can update the current pictures zoom level." _N_
+    "When you update this value the image get's zoomed" _N_
+    "from the center of the \"screen\"." _N_
+  "}" _N_
+  "Mouse rate{" _N_
+    "This is to control the speed of the mouse." _N_
+    "Maybe you need a slower or faster pace regarding" _N_
+    "your mouse movements." _N_
+  "}" _N_
+"}" _N_
+"Tools{" _N_
+  "Selection tool{" _N_
+    "With SHIFT you add the selection." _N_
+    "With CTRL you subtract the selection." _N_
+    "With CTRL+SHIFT you have only the overlap." _N_
+    "" _N_
+    "With NumPad 1..9 you can move the selection pixel wise." _N_
+    "" _N_
+    "You can select with the following options:" _N_
+    "Rectangle - use the mouse (+left mouse button) for a rectangle." _N_
+    "Ellipse - use the mouse (+left mouse button) for a ellipse/circle." _N_
+    "Lasso - use the mouse (+left mouse button) for rope around." _N_
+    "Polygon - left mouse for a polygon. Right mouse you add points." _N_
+  "}" _N_
+  "Move tool{" _N_
+    "The move tool just moves (the selected) layers." _N_
+    "With the right mouse you can rotate the layers freely." _N_
+    "With the left mouse you move the layers freely." _N_
+    "With control and left mouse you can rescale the image by" _N_
+    "positioning the nearest of the 4 corners to the mouse position." _N_
+    "" _N_
+    "With NumPad 1..9 you can move the layers pixel wise." _N_
+    "" _N_
+    "Also you can use the input fields to position, rotate and scale" _N_
+    "the selected layers." _N_
+  "}" _N_
+  "Magic wand tool{" _N_
+    "This tool makes a selection by alpha and color" _N_
+    "With SHIFT you add the selection." _N_
+    "With CTRL you subtract the selection." _N_
+    "With CTRL+SHIFT you have only the overlap." _N_
+    "" _N_
+    "Color distance is the difference in red,green and blue to accept." _N_
+    "Alpha distance is the difference in transparency(alpha) to accept." _N_
+    "" _N_
+    "If surrounding is enabled the selection only uses nearby pixels." _N_
+    "If surrounding is disabled just the whole picture is checked." _N_
+  "}" _N_
+  "Pipette tool{" _N_
+    "This gets the color from the picture into the paint color." _N_
+    "If you select \"From layer\" only the current layer is" _N_
+    "taken into account." _N_
+    "The option in layer mode to use postprocessing means" _N_
+    "that you get the color after the postprocessing tool" _N_
+    "was already applied. Else you get the raw layer color" _N_
+  "}" _N_
+  "Pencil tool{" _N_
+    "Pencil is a on or off pixel setter. You can define the shape" _N_
+    "and have a brush library available." _N_
+    "You can load and save the selected brush." _N_
+    "You can load and save the entire brush library." _N_
+    "The brush library is shared over several tools." _N_
+    "You can use NumPad 1..9 to move single pixels and set pixels." _N_
+    "With CTRL you clear a point." _N_
+    "With a right mouse click you get the color from the layer." _N_
+    "This tool also works with selections on layers." _N_
+  "}" _N_
+  "Paintbrush tool{" _N_
+    "Paintbrush is a smooth pixel setter. You can define the shape" _N_
+    "and have a brush library available." _N_
+    "You can load and save the selected brush." _N_
+    "You can load and save the entire brush library." _N_
+    "The brush library is shared over several tools." _N_
+    "You can use NumPad 1..9 to move single pixels and set pixels." _N_
+    "With CTRL you clear a point." _N_
+    "With a right mouse click you get the color from the layer." _N_
+    "This tool also works with selections on layers." _N_
+  "}" _N_
+  "Eraser tool{" _N_
+    "The eraser paints 0 into the alpha channel(transparency)." _N_
+    "You can define the shape and have a brush library available." _N_
+    "You can load and save the selected brush." _N_
+    "You can load and save the entire brush library." _N_
+    "The brush library is shared over several tools." _N_
+    "You can use NumPad 1..9 to move single pixels and set pixels." _N_
+    "With CTRL you clear a point." _N_
+    "With a right mouse click you get the color from the layer." _N_
+    "This tool also works with selections on layers." _N_
+  "}" _N_
+  "Fill tool{" _N_
+    "Color distance is the difference in red,green and blue to accept." _N_
+    "The fill tool flows just by the accepted pixels." _N_
+    "If you enable \"Use valleys\" the tool reevaluates at every" _N_
+    "step the color distance. The valley option maybe is not useful." _N_
+    "This tool also works with selections on layers." _N_
+  "}" _N_
+  "Line tool{" _N_
+    "You can draw lines with this." _N_
+    "You can specify a line width in pixels." _N_
+    "Pressing the left mouse starts the line and releasing ends it." _N_
+    "If antialiasing is disabled the lines are not smooth and maybe" _N_
+    "not correct due to the linewidth." _N_
+    "If you enable \"Line caps\" you get a round covering of the" _N_
+    "line on both ends with the same length as the line width." _N_
+    "This tool also works with selections on layers." _N_
+  "}" _N_
+  "Gradient tool{" _N_
+    "Here you can paint gradients." _N_
+    "" _N_
+    "To do that paint a line by pressing and later releasing" _N_
+    "the mouse in the layer." _N_
+    "" _N_
+    "A gradient is defined by several colors." _N_
+    "The colors are every on a certain height of a \"ladder\"." _N_
+    "You can define the color and the \"height\"." _N_
+    "If you enter a new \"height\" the color element is reordered." _N_
+    "So the \"ladder\" keeps being intact." _N_
+    "You can also say that the color should behave not smooth" _N_
+    "to the next \"stair\" on the ladder." _N_
+    "" _N_
+    "A complete gradient can be reversed/mirrored." _N_
+    "And a complete gradient can be painted two sided." _N_
+    "On the top you see a preview." _N_
+    "" _N_
+    "You can load and save gradients as .gr2 file." _N_
+    ".gr2 files have a simple text format." _N_
+    "" _N_
+    "This tool also works with selections on layers." _N_
+  "}" _N_
+  "Text tool{" _N_
+    "The text tool only works with text layers." _N_
+    "You can load a truetype font \".ttf\"." _N_
+    "You must bake the text so it gets visible." _N_
+    "Several options for text formating are available." _N_
+    "You can choose a text color here." _N_
+  "}" _N_
+  "Postprocessing tool{" _N_
+    "Postprocessing does layer color transformations on the fly." _N_
+    "" _N_
+    "You can say, that only want the selection to be affected by this." _N_
+    "" _N_
+    "If you bake it, the updates you did are hardcoded into the pixels." _N_
+    "" _N_
+    "You can copy/paste the transform from one layer to another." _N_
+    "" _N_
+    "If you reset it, it gets a zero influence setting set." _N_
+    "" _N_
+    "You can do:" _N_
+    "Color grading - The modification of the colors." _N_
+    "Posterize - Quantize colors into bigger steps." _N_
+    "Binarize - Make the color transparent(\"0\") or \"1\" if it fits." _N_
+    "Fast quant - Quantize the color to a palette on the fly." _N_
+    "" _N_
+    "Color grading has also gradient curves and color matrix options." _N_
+    "You can apply an input gamma to be applied before the grading." _N_
+    "You can apply an output gamma to be applied after the grading." _N_
+    "The gamma settings have an \"inverse\" button for ease." _N_
+    "" _N_
+    "Fast quant is not 100% correct. The \"Quantize\" menu point is better." _N_
+    "The current palette is used for quantization/color reduction." _N_
+    "You have a \"dither\" option which actually only increases the" _N_
+    "luminance in a checkerboard. You can define a factor e.g. how much." _N_
+    "" _N_
+    "For posterize you can define the step size per channel or for" _N_
+    "just the luminance value. There also an offset definable, so" _N_
+    "that the stairs don't start on the bottom of the luminance." _N_
+    "" _N_
+    "For binarize you have a lot of options / which channels" _N_
+    "should be taken into account for binarization." _N_
+    "(grey/red/green/blue/alpha).." _N_
+  "}" _N_
+  "Blur tool{" _N_
+    "The blur tool just smoothes the pixels under the mouse in" _N_
+    "a definable circular area. Maybe not the best tool to use." _N_
+    "There is an antialiasing menu point as alternative to this." _N_
+  "}" _N_
+  "Measure tool{" _N_
+    "Here you can see distances in pixels between two points." _N_
+    "Mouse down selects the first point and consecutive mouse up" _N_
+    "selects the second point." _N_
+  "}" _N_
+  "Tiling tool{" _N_
+    "You can organize tilesets with this." _N_
+    "You need a grid size (width and height per cell)." _N_
+    "With the left mouse button you get a cells bitmap content." _N_
+    "With the right mouse button you put into a cells bitmap content." _N_
+    "" _N_
+    "You can display all cells which exceed a certain amount of colors." _N_
+    "This may be useful for 8bit graphics." _N_
+    "" _N_
+    "You can also play simple tile animation with this." _N_
+    "There is a first animation frame selector." _N_
+    "There is a last animation frame selector." _N_
+    "There is a FPS (frames per second) setting." _N_
+    "And a direction for the animation." _N_
+    "Forward or backwards." _N_
+    "And double sided for circling back and forth." _N_
+    "" _N_
+    "You can load/save the anim to a png." _N_
+    "The first line in the png holds the width of a cell" _N_
+    "(a 100% red pixel)." _N_
+  "}" _N_
+  "Overlay tool{" _N_
+    "Overlays are painted over the complete image." _N_
+    "There are:" _N_
+    "Overlays - Screen space cutouts of other layers." _N_
+    "Annotations - Annotating texts on other layers." _N_
+    "Seperating lines - Straight lines for more order whilst painting." _N_
+    "Sprites - Overlays behaving the same as there origin layer." _N_
+    "" _N_
+    "E.g. sprites or overlays can be used to paint seemless tiles." _N_
+    "" _N_
+    "You can enable the visibility of these kinds with a single checkbox." _N_
+    "" _N_
+    "You can edit each element individually including it's visibility." _N_
+    "" _N_
+    "You can move each element up or down in the paint hierarchy." _N_
+    "The paint is done from bottom to top." _N_
+  "}" _N_
+  "Modify tool{" _N_
+    "This is for geometrical distorting the layers bitmap." _N_
+    "You can set points with the left mouse." _N_
+    "You need atleast 3 points for a mesh." _N_
+    "" _N_
+    "Then you switch to modify mode and adjust the points." _N_
+    "Then you bake this into the layer." _N_
+    "Be aware the if you switch back from modify mode" _N_
+    "the modify modes point adjustments are lost." _N_
+    "The option \"Pop out\" clears the background behind." _N_
+    "" _N_
+    "You can edit all the points on a individual basis." _N_
+    "" _N_
+    "\"Filtered\" modifies the colors for a smoother look." _N_
+    "" _N_
+    "\"Outline mode\" is a bit tricky. Inner points have no influence, but" _N_
+    "the result has no warping artifacts." _N_
+    "This is achieved by a technique called \"mean value coordinates\"." _N_
+    "" _N_
+    "You can store/load a modification for later use (on other layers)." _N_
+  "}" _N_
+  "Tilemap tool{" _N_
+    "This tool is available only for tilemap layers" _N_
+    "" _N_
+    "You can get a tile with the right mouse." _N_
+    "You can set a tile with the left mouse." _N_
+    "" _N_
+    "You can scroll to the current tile in the tileset." _N_
+    "You can save a tilemap to a very simple .tm2 text format." _N_
+    "You can load a tilemap from the very simple .tm2 text format." _N_
+    "" _N_
+    "From the tileset you can choose a tile with" _N_
+    "a left click" _N_
+    "" _N_
+    "This tool also works with selections on layers." _N_
+  "}" _N_
+"}" _N_
+"Navigator{" _N_
+  "Up there there is changeable the currently edited pictures name." _N_
+  "You can see the x and y position on the current layer." _N_
+  "If you have the grid turned on, you also see the grid positions [x][y]." _N_
+  "Some tools display a with and a height here. (e.g. selections)." _N_
+  "You can also see a red notification when you run low on memory." _N_
+  "The program most likely will crash if the memory is at 0byte free." _N_
+  "" _N_
+  "There is a zoomed perspective of the current edited pixels." _N_
+  "And there is the current layers content shown as very small symbol." _N_
+"}" _N_
+"Colors{" _N_
+  "Color wheel{" _N_
+    "There is a palette switch, to switch to palette mode" _N_
+    "You can enter a color hex code, but this code also has a alpha" _N_
+    "component. #eebbcc gets #ffeebbcc." _N_
+    "There is the current color shown in a quad. And if you use" _N_
+    "post processing there is also the postprocessed color shown." _N_
+    "You have a slider for Alpha(Transparency), the less alpha" _N_
+    "the less influence of the pixel at painting." _N_
+    "There are also sliders for red,green and blue." _N_
+    "They show in the back how the color would be modified" _N_
+    "if you slide the sliders to left/right." _N_
+    "Sliders can also be changed by value with CTRL and a mouse click." _N_
+    "There is a slider for hue, Which changes the color accrodingly." _N_
+    "There is a slider for saturation which controls how saturated (or" _N_
+    "grey) the color appears." _N_
+    "There is a slider for lightnessn which controls how much lighted" _N_
+    "the color should appear." _N_
+    "With the color wheel itself you can click on the outer circle to" _N_
+    "change the hue and click into the inner triangle to pick a color." _N_
+    "" _N_
+    "There are the last used n colors also clickable to reuse them" _N_
+    "if you want to go back to a older used color." _N_
+  "}" _N_
+  "Color palette{" _N_
+    "There is a color wheel switch, to switch to color wheel mode" _N_
+    "You can enter a color hex code, but this code also has a alpha" _N_
+    "component. #eebbcc gets #ffeebbcc." _N_
+    "There is the current color shown in a quad. And if you use" _N_
+    "post processing there is also the postprocessed color shown." _N_
+    "" _N_
+    "You can load or save a palette to .pa2 file." _N_
+    ".pa2 files are extremely simple text files." _N_
+    "The first entry is colors per row, which is just for palette" _N_
+    "displaying. All following entries/lines are red,green,blue,alpha" _N_
+    "each from 0..255." _N_
+    "" _N_
+    "You can specify the number of color in this palette." _N_
+    "maybe 256 is a good maximum, e.g. the postprocessings fast" _N_
+    "quant can't handle more than 256 colors." _N_
+    "" _N_
+    "You can specify the number of color displayed per row." _N_
+    "It's just a setting for more orderlyness." _N_
+    "" _N_
+    "With \"Insert color\" you can insert a random color at the current" _N_
+    "position. You may want to update this color with a right mouse" _N_
+    "click to a chosen paint color then." _N_
+    "" _N_
+    "With \"Remove color\" you erase the current color at the" _N_
+    "current position." _N_
+    "" _N_
+    "If the current painting color matches a color cell it gets a border." _N_
+    "" _N_
+    "With a left mouse click you get the current color from the palette," _N_
+    "it's the painting color then." _N_
+    "" _N_
+    "With a right mouse click you put the current painting color into" _N_
+    "the palette." _N_
+  "}" _N_
+"}" _N_
+"Layers{" _N_
+  "Each layer is painted from the last one to the first one" _N_
+  "onto the complete picture." _N_
+  "You can select a layer with the mouse." _N_
+  "If you press SHIFT you can select/unselect multiple layers." _N_
+  "The current active layer is highlighted red." _N_
+  "If you press CTRL whilst selecting the selection mask of the" _N_
+  "previous layer is copied to the newly selected layer." _N_
+  "You can change the visibility of a layer with the \"eye\" symbol." _N_
+  "Specialized layers are painted with colors in the selection pane." _N_
+  "A layer that has a \">\" in the name is not modificable." _N_
+  "With a mouse double click you may change the layer name." _N_
+  "You can use cursor keys when hovering the layer pane to scroll." _N_
+  "" _N_
+  "There is \"!\" symbol to align the layer position/size to the" _N_
+  "canvasd if it blinks red, the layer dosen't fit to the canvas, yet," _N_
+  " and merging mayfail. " _N_
+  "" _N_
+  "Bake layer - The layer is stripped of its position/size is rectified." _N_
+  "      it is a good idea to use the \"!\" symbol before baking." _N_
+  "Single on/off - just the current selected layer is visible." _N_
+  "Highlite layers - all other layers are darkened." _N_
+  "" _N_
+  "Layer modes{" _N_
+    "ALPHA = normal alpha blending." _N_
+    "PREMULTIPLIEDALPHA = with this you don't have smears when combining." _N_
+    "SCREEN = maybe like the \"screen\" blendmode in Photoshop." _N_
+    "ADD = Just adds the current layers RGB." _N_
+    "SUB = Just subtracts the current layers RGB." _N_
+    "MUL = Multiplicates the color with the background layer." _N_
+    "MUL2X = Double Multiplicates the color with the background layer." _N_
+    "MAX = Takes the maximum color of both layers (lighten)." _N_
+    "MIN = Takes the minimum color of both layers (darken)." _N_
+    "COLOR = Changes the color of the background by the layer." _N_
+    "LUMINANCE = Changes the lightness of the background by the layer." _N_
+    "SOFTLIGHT = Soft light maybe like in Photoshop." _N_
+    "HARDLIGHT = Hard light maybe like in Photoshop." _N_
+    "LINEARLIGHT = Linear light maybe like in Photoshop." _N_
+    "PINLIGHT =  Pin light maybe like in Photoshop." _N_
+    "DIFFERENCE = The difference of layer and background." _N_
+  "}" _N_
+  "" _N_
+  "The layer opacity specifies how much influence the layer should have" _N_
+  "in the final picture." _N_
+  "Move up - moves the selected layers up in the hierarchy." _N_
+  "Move down - moves the selected layers down in the hierarchy." _N_
+  "Merge - merges the layers onto the lowest and remove (NO UNDO)" _N_
+"}" _N_

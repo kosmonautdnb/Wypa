@@ -183,14 +183,23 @@ void dialogAbout(bool openIt) {
   DIALOGEND()
 }
 
+#ifdef INTERNALDOCU
+#define _N_ "_"
+const char *docuString = 
+#include "../DATA/DOCU.DC2"
+;
+#endif
+
 void dialogDocumentation(bool openIt) {
 #define FILTERNAMEMAX2 16
   static Array<unsigned char> docu;
   static char filter[FILTERNAMEMAX2];
+  static int index = 0;
   static Array<bool> lineIsOpen;
   if (openIt) {
     sprintf(filter,"");
     lineIsOpen.clear();
+#ifndef INTERNALDOCU
     if (docu.empty()) {
       getFileArray(&docu,fromLocalFileName("./DATA/DOCU.DC2"));
     }
@@ -217,13 +226,23 @@ void dialogDocumentation(bool openIt) {
       }
       lc = c;
     }
+#endif
+    index = 0;
   }
-  if (docu.empty()) return;
+#ifndef INTERNALDOCU
+  if (docu.empty()) {
+    DIALOGSTART("Tiny documentation not found")
+    ImGui::TextColored(ImVec4(1,0,0,1),"The documentation was not found in path");
+    ImGui::TextColored(ImVec4(1,0,0,1),"%s",fromLocalFileName("./DATA/DOCU.DC2").c_str());
+    DIALOGEND()
+    return;
+  }
   const char *docuString = (char*)(&(docu[0]));
+#endif
 
   DIALOGSTART("Tiny documentation")
   bool toFirst = false;
-  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();if (ImGui::InputText("##DIALOGDOCUMENTATIONFILTER",filter,FILTERNAMEMAX2)) {toFirst = true;}
+  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();if (ImGui::InputText("##DIALOGDOCUMENTATIONFILTER",filter,FILTERNAMEMAX2)) {toFirst = true; index = 0;}
 
   ImGui::SameLine();
   if (ImGui::Button("Collapse all##DIALOGDOCUMENTATIONCOLLAPSEALL")) {
@@ -236,9 +255,13 @@ void dialogDocumentation(bool openIt) {
 
   int width = main_window_xres/2;
   int height = main_window_yres/3;
+  ImGui::Text("The documentation maybe, or is more or less incorrect, but wth.");
+  ImGui::Text("This docu is done by a german, so don't be too angry about the style/content.");
+  ImGui::Separator();
   ImGui::BeginChild("DIALOGDOCUMENTATIONCHILD",ImVec2(width,height));
   if (currentKey == GL_VK_PAGEDOWN) ImGui::SetScrollY(ImGui::GetScrollY()+height*0.75);
   if (currentKey == GL_VK_PAGEUP) ImGui::SetScrollY(ImGui::GetScrollY()-height*0.75);
+  if (currentKey == GL_VK_F3) {index++; toFirst = true;}
   const char *s = docuString;
   String currentLine = "";
   int indent = 0;
@@ -246,6 +269,7 @@ void dialogDocumentation(bool openIt) {
   Array<bool> openStack; 
   openStack.push_back(true);
   String filterLook = toLower(filter);
+  int index2 = 0;
   while(*s != 0) {
     char c = *s;
     s++;
@@ -260,6 +284,7 @@ void dialogDocumentation(bool openIt) {
         ImVec2 cursor0 = ImGui::GetCursorScreenPos(); ImVec2 cursor = cursor0;
         ImGui::Text(""); ImGui::SetCursorScreenPos(cursor0); // for scrolling;
         cursor.x += indent * 10;
+        ImVec2 cursor1 = cursor;
         if (d == '{') {
           currentLine = currentLine.substr(0,currentLine.length()-1);
           indent++; openStack.push_back(lineIsOpen[line]);
@@ -280,7 +305,7 @@ void dialogDocumentation(bool openIt) {
             ImGui::GetWindowDrawList()->AddRectFilled(cursor,a,0xff808080);
           }
           if (found) {
-            ImGui::GetWindowDrawList()->AddRectFilled(cursor,a,0xff8080ff);
+            ImGui::GetWindowDrawList()->AddRectFilled(cursor,a,index2==index?0xff8080ff:0xff0000ff);
           }
           ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),siz,ImVec2(cursor.x,cursor.y),0xff000000, currentLine.c_str());
           if (isExpanding) {
@@ -293,7 +318,12 @@ void dialogDocumentation(bool openIt) {
           }
           cursor.x = cursor0.x; cursor.y = cursor0.y + siz; ImGui::SetCursorScreenPos(cursor);
         }
-        if (found && toFirst) {toFirst = false; ImGui::SetScrollPosHere();}
+        if (found) {
+          if (index2==index) {
+            if (toFirst) {toFirst = false; ImGui::SetScrollPosHere();} 
+          } 
+          index2++;
+        }
       }
       currentLine = "";
       line++;

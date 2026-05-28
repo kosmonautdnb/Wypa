@@ -42,6 +42,16 @@
 #define CONTROLKEY_CTRL 2
 #define CONTROLKEY_ALT 4
 
+#ifdef __DJGPP__
+#define INTERNALDOCU
+#endif
+
+#ifdef __WATCOMC__
+#if __WATCOMC__>1100 // WatcomC11 and PModeW together does have a problem with big data in code
+#define INTERNALDOCU
+#endif
+#endif
+
 #define MEMWARNINGMB 16
 
 extern double fps;
