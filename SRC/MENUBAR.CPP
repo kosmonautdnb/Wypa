@@ -123,6 +123,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Save wyp image")) {dialogLoadSave(true,DIALOG_SAVEIMAGE);}
       ImGui::Separator();
       if (ImGui::MenuItem("Import image")) {dialogLoadSave(true,DIALOG_IMPORTIMAGE);}
+      if (ImGui::MenuItem("Import folder into single layer")) {dialogImportFolder(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
       if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}

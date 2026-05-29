@@ -96,6 +96,12 @@
       "This option is for loading other formats than .wyp" _N_
       "and use them only as a (pseudo) single layer image at loading." _N_
     "}" _N_
+    "Import folder into single layer{" _N_
+      "You can specify the width and the height of the new layer." _N_
+      "Into the layer are placed all the images into a certain folder." _N_
+      "One after another in x and if x is full on the next row in y." _N_
+      "The new layer is placed above the first selected layer." _N_
+    "}" _N_
     "Insert image layers{" _N_
       "Inserts all the layers from another Wypa .wyp file" _N_
       "on top of the upperst currently selected layer." _N_

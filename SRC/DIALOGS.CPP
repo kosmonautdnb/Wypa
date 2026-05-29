@@ -143,6 +143,7 @@ void drawDialogs() {
   dialogKeying(false);
   dialogMonitorGamma(false);
   dialogInsertTileMapLayer(false);
+  dialogImportFolder(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -458,6 +459,42 @@ void dialogInsertTileMapLayer(bool openIt) {
   if (ImGui::Button("Close##DIALOGINSERTTILEMAPLAYERCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't create a tilemap here");
+  DIALOGEND()
+}
+
+int newWidth = -1;
+int newHeight = -1;
+char newLayerName[LAYERNAMEMAX];
+
+void dialogImportFolder(bool openIt) {
+
+  static char layerName[LAYERNAMEMAX];
+  static int w = 512, h = 512;
+  if (openIt) {
+    static int counter = 0; counter++;
+    newWidth = -1;
+    newHeight = -1;
+    sprintf(layerName,"Folder %d",counter);
+  }
+
+  DIALOGSTART("Insert folder layer")
+  noUndoMessage();
+  ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGIMPORTFOLDERLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The name of the layer");
+  ImGui::PushItemWidth(64+16*2);
+  ImGui::Text("Layer width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGIMPORTFOLDERWIDTH",&w); toolTip("The width of the layer where the imported pictures are on");
+  ImGui::Text("Layer height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGIMPORTFOLDERHEIGHT",&h); toolTip("The height of the layer where the imported pictures are on");
+  ImGui::PopItemWidth();
+  if (w < 1) w = 1;
+  if (h < 1) h = 1;
+  if (ImGui::Button("Insert folder layer##DIALOGIMPORTFOLDERINSERT")) {
+    newWidth = w; newHeight = h; sprintf(newLayerName,"%s",layerName);
+    ImGui::CloseCurrentPopup();
+    dialogLoadSave(true,DIALOG_IMPORTFOLDER);
+  } else toolTip("Next select a folder for importing.");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGIMPORTFOLDERCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't create a new layer here");
   DIALOGEND()
 }
 
@@ -2473,11 +2510,11 @@ const char *img = "*.wyp";
 const char *fnt = "*.ttf";
 const char *tilemap = "*.tm2";
 const char *gradientCrv = "*.cr2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,""};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2",""};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"",""};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","",""};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {

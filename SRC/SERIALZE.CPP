@@ -1330,6 +1330,70 @@ void saveTileMap(const char *shortPath, const char *longFileName) {
   }
 }
 
+void getFilesOfFolder(Array<File> &ret, const String &folder) {
+  ret.clear(); String f = dosFileName(fromLocalFileName(folder)); ret = dosGetFiles(f);
+  for (int i = 0; i < ret.size(); i++) {
+    File &k = ret[i];
+    bool invalid = (k.attributes & (DOS_ATTR_VOLID|DOS_ATTR_SUBDIR))!=0;
+    if (k.name.name == "." || k.name.name == "..") invalid = true;
+    if (invalid) {
+      ret.erase(i,1);
+      i--;
+    }
+  }
+  sortFileNames(ret,0,false); // sort by filename (mostly there are numbers in the filenames included here)
+}
+
+extern int newWidth;
+extern int newHeight;
+extern char newLayerName[LAYERNAMEMAX];
+void importFolder(const char *shortPath, const char *longFileName) {
+  Array<File> folder; getFilesOfFolder(folder,shortPath);
+  if (!folder.empty()) {
+    int pos = 0;
+    for (int i = 0; i < currentCanvas->layers.size(); i++) {
+      if (currentCanvas->layers[i]->state.active || currentCanvas->layers[i]->state.selected) {pos = i; break;}
+    }
+    Layer *l = new Layer();
+    l->init(newWidth,newHeight);
+    l->setLayerPos(currentCanvas->canvasX0, currentCanvas->canvasY0);
+    sprintf(l->name,newLayerName);
+    currentCanvas->insertLayer(l,pos);
+    currentCanvas->setActiveLayer(pos);
+    shouldUpdateAll = true;
+    int posX0 = 0;
+    int posY0 = 0;
+    int posX = posX0;
+    int posY = posY0;
+    int posMaxY = posY;
+    for (int i2 = 0; i2 < folder.size(); i2++) {
+      Layer *l2 = loadImage(String(""),String(folder[i2].name.full));
+      if (l2 != NULL) {
+        if (posX + l2->width > l->width) {
+          posX = posX0;
+          posY = posMaxY;
+        }
+        if (posY + l2->height > l->height) {
+          delete l2;
+          break; // maybe put a message here
+        }
+        for (int y = 0; y < l2->height; y++) {
+          for (int x = 0; x < l2->width; x++) {
+            int dx = x + posX;
+            int dy = y + posY;
+            if ((unsigned int)dx < l->width && (unsigned int)dy < l->height) {
+              l->pixels[dx+dy*l->width] = l2->pixels[x+y*l2->width];
+            }
+          }
+        }
+        posX += l2->width;
+        if (posY + l2->height > posMaxY) posMaxY = posY + l2->height;
+        delete l2;
+      }
+    }
+  }
+}
+
 Layer *loadImage(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAIMAGEFROMFILE(img,filePath,fileName);

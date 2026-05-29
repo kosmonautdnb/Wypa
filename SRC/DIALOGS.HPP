@@ -62,7 +62,8 @@ enum DIALOGMODE {
   DIALOG_LOADTILEMAP = 25,
   DIALOG_SAVETILEMAP = 26,
   DIALOG_SELECTGALLERYFOLDER = 27,
-  DIALOG_COUNT = 28
+  DIALOG_IMPORTFOLDER = 28,
+  DIALOG_COUNT = 29
 };
 
 void dialogCanvas(bool openIt);
@@ -97,6 +98,7 @@ void dialogExtrudeSelection(bool openIt);
 void dialogKeying(bool openIt);
 void dialogMonitorGamma(bool openIt);
 void dialogInsertTileMapLayer(bool openIt);
+void dialogImportFolder(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);
