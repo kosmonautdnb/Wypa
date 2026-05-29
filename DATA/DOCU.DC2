@@ -963,6 +963,9 @@
     "From the tileset you can choose a tile with" _N_
     "a left click" _N_
     "" _N_
+    "If you specify exclude empty all tiles with alpha = 0 will be" _N_
+    "excluded from the displayed list." _N_
+    "" _N_
     "This tool also works with selections on layers." _N_
   "}" _N_
   "The fullscreen checkbox{" _N_

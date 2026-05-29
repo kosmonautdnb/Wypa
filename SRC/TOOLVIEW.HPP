@@ -44,7 +44,9 @@ bool getTilingAnimationFrameLayerCell(class Layer *l,int frame, int &cx, int &cy
 bool notInt(double v);
 
 extern int scrollToTileMapIndex;
+extern bool excludeEmptyTiles;
 
-#define S_TOOLVIEW_CPP()
+#define S_TOOLVIEW_CPP()\
+  S_BOOL("excludeEmptyTiles",excludeEmptyTiles);
 
 #endif // __TOOLVIEW_HPP__

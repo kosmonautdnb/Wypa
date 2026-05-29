@@ -1282,6 +1282,7 @@ void drawToolModifyView() {
 }
 
 int scrollToTileMapIndex = -1;
+bool excludeEmptyTiles = false;
 
 void drawToolTileMapView() {
   Layer *l = currentCanvas->getActiveLayer();
@@ -1296,15 +1297,17 @@ void drawToolTileMapView() {
       glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, l2->width, l2->height, 0, GL_RGBA, GL_BYTE, l2->pixels);
       glBindTexture(GL_TEXTURE_2D,0);
     }
-    if (roundButton("Scroll to",true)) {
+    if (roundButton("Scroll to##DRAWTOOLTILEMAPVIEWSCROLLTO",true)) {
       scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile;
     }
-    if (roundButton("Save tilemap",true)) {
+    if (roundButton("Save tilemap##DRAWTOOLTILEMAPVIEWSAVETILEMAP",true)) {
       dialogLoadSave(true, DIALOG_SAVETILEMAP);
     }
-    if (roundButton("Load tilemap",true)) {
+    if (roundButton("Load tilemap##DRAWTOOLTILEMAPVIEWLOADTILEMAP",true)) {
       dialogLoadSave(true, DIALOG_LOADTILEMAP);
     }
+    static Array<bool> tileIsEmpty; ImGui::Text("Exclude empty"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWEXCLUDEEMPTY",&excludeEmptyTiles)) {scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile;}
+
     int tileWidth = l2->toolInfo.tilingWidth;
     int tileHeight = l2->toolInfo.tilingHeight;
     int tileOffsetX = l2->toolInfo.tilingOffsetX;
@@ -1312,7 +1315,6 @@ void drawToolTileMapView() {
     int width = toolview_width; int height = 600;
     ImVec2 cursor0 = ImGui::GetCursorScreenPos();
     ImGui::BeginChild("DRAWTOOLTILEMAPVIEWCHILD", ImVec2(width,height));
-    int index = 0;
     int border = 2;
     int tw = 16 + border;
     double ratio = (double)tileHeight/tileWidth;
@@ -1320,9 +1322,55 @@ void drawToolTileMapView() {
     if (ratio > 3) ratio = 3;
     int th = 16*aspectRatio*main_window_yres/main_window_xres*ratio + border;
 
+    static Array<int> tileIndices; tileIndices.clear(); // a first loop to collect all tiles
+    int index = 0;
+    while(true) {
+      int outaX = 0;
+      int outaY = 0;
+      int tileX = 0;
+      int tileY = 0;
+      if (!getTilingAnimationFrameLayerCell(l2, index, tileX, tileY, outaX, outaY)) break;
+      ImVec2 tx0,tx1; tx0.x = (double)(tileX*tileWidth+outaX)/l2->width; tx0.y = (double)(tileY*tileHeight+outaY)/l2->height;
+      if (tx0.y >= 1) break;
+      bool excluded = false;
+      if (excludeEmptyTiles) {
+        if (index >= tileIsEmpty.size()) tileIsEmpty.resize(index+1);
+        int sx = tileX*tileWidth+outaX;
+        int sy = tileY*tileHeight+outaY;
+        bool found = false;
+        for (int y = 0; y < tileHeight; y++) {
+          for (int x = 0; x < tileWidth; x++) {
+            int tx = x + sx;
+            int ty = y + sy;
+            if ((unsigned int)tx<l2->width && (unsigned int)ty<l2->height) {
+              unsigned int col = l2->pixels[tx+ty*l2->width];
+              int a = (col >> 24) & 255;
+              if (a != 0) {
+                found = true;
+                break;
+              }
+            }
+          }
+          if (found) break;
+        }
+        tileIsEmpty[index] = !found;
+        excluded = tileIsEmpty[index];
+      }
+      if (!excluded) tileIndices.push_back(index);
+      index++;
+    }
+
+    index = 0;
     int k = (width - 16)/tw;
     if (k != 0) {
-      if (scrollToTileMapIndex >= 0) ImGui::SetScrollY((scrollToTileMapIndex / k-5)*th);
+      if (scrollToTileMapIndex >= 0) {
+        for (int i = 0; i < tileIndices.size(); i++) {
+          if (tileIndices[i] == scrollToTileMapIndex) {
+            ImGui::SetScrollY((i / k-5)*th);
+            break;
+          }
+        }
+      }
       int row = ImGui::GetScrollY() / th;
       index = row * k;
       ImVec2 c = ImGui::GetCursorScreenPos(); c.y += row * th; ImGui::SetCursorScreenPos(c);
@@ -1331,12 +1379,14 @@ void drawToolTileMapView() {
 
     ImVec2 cursor1 = ImGui::GetCursorScreenPos(); cursor1.x += 1; cursor1.y += 3; int posX = cursor1.x; int posY = cursor1.y;
 
-    while(true) {
+    while(index < tileIndices.size()) {
+
       int outaX = 0;
       int outaY = 0;
       int tileX = 0;
       int tileY = 0;
-      if (!getTilingAnimationFrameLayerCell(l2, index, tileX, tileY, outaX, outaY)) break;
+      if (!getTilingAnimationFrameLayerCell(l2, tileIndices[index], tileX, tileY, outaX, outaY)) break;
+
       ImVec2 tx0,tx1;
       tx0.x = (double)(tileX*tileWidth+outaX)/l2->width; tx0.y = (double)(tileY*tileHeight+outaY)/l2->height;
       if (tx0.y >= 1) break;
@@ -1346,10 +1396,10 @@ void drawToolTileMapView() {
         ImGui::SetCursorScreenPos(ImVec2(posX,posY)); ImGui::Image((ImTextureID)tileMapTexture,ImVec2(tw-border,th-border),tx0,tx1); posX += tw;
         ImVec2 v0 = ImGui::GetItemRectMin();
         ImVec2 v1 = ImGui::GetItemRectMax();
-        if (ImGui::IsMouseHoveringRect(v0,v1) && ImGui::IsMouseClicked(0)) l->toolInfo.tileMapSelectedTile = index;
+        if (ImGui::IsMouseHoveringRect(v0,v1) && ImGui::IsMouseClicked(0)) l->toolInfo.tileMapSelectedTile = tileIndices[index];
         v0.x -= 1;
         v0.y -= 1;
-        if (index == l->toolInfo.tileMapSelectedTile) {
+        if (tileIndices[index] == l->toolInfo.tileMapSelectedTile) {
           ImGui::GetWindowDrawList()->AddRect(v0,v1,0xff0000ff);
         }
   
