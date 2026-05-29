@@ -1297,6 +1297,7 @@ void drawToolTileMapView() {
       glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, l2->width, l2->height, 0, GL_RGBA, GL_BYTE, l2->pixels);
       glBindTexture(GL_TEXTURE_2D,0);
     }
+    ImGui::Text("\"%s\"",l2->name);
     if (roundButton("Scroll to##DRAWTOOLTILEMAPVIEWSCROLLTO",true)) {
       scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile;
     }
@@ -1306,7 +1307,7 @@ void drawToolTileMapView() {
     if (roundButton("Load tilemap##DRAWTOOLTILEMAPVIEWLOADTILEMAP",true)) {
       dialogLoadSave(true, DIALOG_LOADTILEMAP);
     }
-    static Array<bool> tileIsEmpty; ImGui::Text("Exclude empty"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWEXCLUDEEMPTY",&excludeEmptyTiles)) {scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile;}
+    ImGui::Text("Exclude empty"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWEXCLUDEEMPTY",&excludeEmptyTiles)) {scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile;}
 
     int tileWidth = l2->toolInfo.tilingWidth;
     int tileHeight = l2->toolInfo.tilingHeight;
@@ -1334,7 +1335,6 @@ void drawToolTileMapView() {
       if (tx0.y >= 1) break;
       bool excluded = false;
       if (excludeEmptyTiles) {
-        if (index >= tileIsEmpty.size()) tileIsEmpty.resize(index+1);
         int sx = tileX*tileWidth+outaX;
         int sy = tileY*tileHeight+outaY;
         bool found = false;
@@ -1353,8 +1353,7 @@ void drawToolTileMapView() {
           }
           if (found) break;
         }
-        tileIsEmpty[index] = !found;
-        excluded = tileIsEmpty[index];
+        excluded = !found;
       }
       if (!excluded) tileIndices.push_back(index);
       index++;

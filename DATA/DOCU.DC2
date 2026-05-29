@@ -953,6 +953,8 @@
   "Tilemap tool{" _N_
     "This tool is available only for tilemap layers" _N_
     "" _N_
+    "On the top you see the tileset layers name." _N_
+    "" _N_
     "You can get a tile with the right mouse." _N_
     "You can set a tile with the left mouse." _N_
     "" _N_
