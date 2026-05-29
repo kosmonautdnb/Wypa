@@ -202,29 +202,29 @@ void dialogDocumentation(bool openIt) {
 #ifndef INTERNALDOCU
     if (docu.empty()) {
       getFileArray(&docu,fromLocalFileName("./DATA/DOCU.DC2"));
-    }
-    char lc = 0;
-    bool inLine = false;
-    for (int i = 0; i < docu.size(); i++) {
-      char c = (char)docu[i];
-      if (c == '"' && lc != '\\') {
-        inLine = !inLine;
-        docu.erase(i,1);
-        i--;
-      } else {
-        if (c == '"' && lc == '\\') {
-          if (i > 0) {i--; docu.erase(i,1);}
+      char lc = 0;
+      bool inLine = false;
+      for (int i = 0; i < docu.size(); i++) {
+        char c = (char)docu[i];
+        if (c == '"' && lc != '\\') {
+          inLine = !inLine;
+          docu.erase(i,1);
+          i--;
         } else {
-          if (c == '_' && lc == 'N') {
+          if (c == '"' && lc == '\\') {
+            if (i > 0) {i--; docu.erase(i,1);}
           } else {
-            if (!inLine) {
-              docu.erase(i,1);
-              i--;
+            if (c == '_' && lc == 'N') {
+            } else {
+              if (!inLine) {
+                docu.erase(i,1);
+                i--;
+              }
             }
           }
         }
+        lc = c;
       }
-      lc = c;
     }
 #endif
     index = 0;
@@ -256,7 +256,8 @@ void dialogDocumentation(bool openIt) {
   int width = main_window_xres/2;
   int height = main_window_yres/3;
   ImGui::Text("The documentation maybe, or is more or less incorrect, but wth.");
-  ImGui::Text("This docu is done by a german, so don't be too angry about the style/content.");
+  ImGui::Text("This docu is done by a german, so don't be too angry");
+  ImGui::Text("about the style/content.");
   ImGui::Separator();
   ImGui::BeginChild("DIALOGDOCUMENTATIONCHILD",ImVec2(width,height));
   if (currentKey == GL_VK_PAGEDOWN) ImGui::SetScrollY(ImGui::GetScrollY()+height*0.75);
@@ -1056,6 +1057,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
   UNUSED(maxB);
   static bool lastMouseLeft = ImGui::IsMouseDown(0);
   bool mouseLeft = ImGui::IsMouseDown(0);
+  bool toolTipShown = false;
   for (int i = 0; i < c.points.size()-1; i++) {
     ImVec2 p0 = ImVec2(c.points[i].x,255-c.points[i].y);
     ImVec2 p1 = ImVec2(c.points[i+1].x,255-c.points[i+1].y);
@@ -1065,6 +1067,15 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
     p1.y += minB.y;
     if (c.points[i].dx[1]==0&&c.points[i].dy[1]==0&&c.points[i+1].dx[0]==0&&c.points[i+1].dy[0]==0) {
       ImGui::GetWindowDrawList()->AddLine(p0,p1,0xffffffff);
+      if (mouseX >= p0.x && mouseX <= p1.x && ImGui::IsMouseHoveringRect(minB,maxB)) {
+        if (!toolTipShown) {
+          float dx = p1.x - p0.x;
+          float py = p0.y;
+          if (dx != 0) py = (p1.y-p0.y)*(mouseX-p0.x)/dx+p0.y;
+          py -= minB.y; py = 255 - py;
+          toolTip("%d,%d", (int)(mouseX-minB.x),(int)py); toolTipShown = true;
+        }
+      }
     } else {
       ImVec2 last = p0;
       for (int x = c.points[i].x; x < c.points[i+1].x; x++) {
@@ -1072,6 +1083,13 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
         p.x += minB.x;
         p.y += minB.y;
         ImGui::GetWindowDrawList()->AddLine(last,p,0xffffffff);
+        if ((int)mouseX == (int)p.x && ImGui::IsMouseHoveringRect(minB,maxB)) {
+          if (!toolTipShown) {
+            float py = p.y;
+            py -= minB.y; py = 255 - py;
+            toolTip("%d,%d", (int)(mouseX-minB.x),(int)py); toolTipShown = true;
+          }
+        }
         last = p;
       }
       ImGui::GetWindowDrawList()->AddLine(last,p1,0xffffffff);
@@ -2279,6 +2297,7 @@ enum IMAGEMEASURES {
 const char *imageMeasureNames[IMAGEMEASURE_COUNT] = {"Pixels","Centimeters","Inches"};
 
 void dialogNewImage(bool openIt) {
+  static bool keepAspect = true;
   static int w = 1920,h = 1080;
   static int type = IMAGEMEASURE_PIXELS;
   static int dpi = 72;
@@ -2286,9 +2305,15 @@ void dialogNewImage(bool openIt) {
   static float winches = 11; static float hinches = 8.5;
   static float oneInch = 2.54;
   static char imageName[PICTURENAMEMAX];
+  static double aspectPixels = 1;
+  static double aspectCm = 1;
+  static double aspectInches = 1;
   if (openIt) {
     static int counter = 0; counter++;
     sprintf(imageName,"New image %d",counter % 1023);
+    aspectPixels = h != 0 ? (double)w / h : 1;
+    aspectCm = hcm != 0 ? (double)wcm / hcm : 1;
+    aspectInches = hinches != 0 ? (double)winches / hinches : 1;
   }
   DIALOGSTART("New picture");
   ImGui::Text("Picture name"); ImGui::SameLine(); ImGui::InputText("##DIALOGNEWIMAGENAME",imageName,PICTURENAMEMAX); toolTip("The name of the picture");
@@ -2298,27 +2323,35 @@ void dialogNewImage(bool openIt) {
   ImGui::PushItemWidth(64+16*2);
   switch(type) {
     case IMAGEMEASURE_PIXELS: {
-      ImGui::Text("Picture width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w); toolTip("The picture width in pixels");
-      ImGui::Text("Picture height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h); toolTip("The picture height in pixels");
+      ImGui::Text("Picture width"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w)) {if (keepAspect) h = w/aspectPixels;} else toolTip("The picture width in pixels");
+      ImGui::Text("Picture height"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h)) {if (keepAspect) w = h*aspectPixels;} else toolTip("The picture height in pixels");
     } break;
     case IMAGEMEASURE_CM: {
       ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi); toolTip("The dots per inch (dpi) of the picture");
-      ImGui::Text("Picture width in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHCM",&wcm,0,0,2); toolTip("The width of the picture in centimeters");
-      ImGui::Text("Picture height in cm"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTCM",&hcm,0,0,2); toolTip("The height of the picture in centimeters");
+      ImGui::Text("Picture width in cm"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHCM",&wcm,0,0,2)) {if (keepAspect) hcm = wcm/aspectCm;} toolTip("The width of the picture in centimeters");
+      ImGui::Text("Picture height in cm"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTCM",&hcm,0,0,2)) {if (keepAspect) wcm = hcm*aspectCm;} toolTip("The height of the picture in centimeters");
       w = wcm / oneInch * dpi;
       h = hcm / oneInch * dpi;
       ImGui::Text("Pixels width %d height %d",w,h);
     } break;
     case IMAGEMEASURE_INCHES: {
       ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi); toolTip("The dots per inch (dpi) of the picture");
-      ImGui::Text("Picture width in inches"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHINCHES",&winches,0,0,2); toolTip("The width of the picture in inch");
-      ImGui::Text("Picture height in inches"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTINCHES",&hinches,0,0,2); toolTip("The height of the picture in inch");
+      ImGui::Text("Picture width in inches"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHINCHES",&winches,0,0,2)) {if (keepAspect) hinches = winches/aspectInches;} toolTip("The width of the picture in inch");
+      ImGui::Text("Picture height in inches"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTINCHES",&hinches,0,0,2)) {if (keepAspect) winches = hinches*aspectInches;} toolTip("The height of the picture in inch");
       w = winches * dpi;
       h = hinches * dpi;
       ImGui::Text("Pixels width %d height %d",w,h);
     } break;
   }
   ImGui::PopItemWidth();
+
+  ImGui::Text("Preserve proportions");ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGNEWIMAGEKEEPASPECT",&keepAspect)) {
+    if (keepAspect) {
+      aspectPixels = h != 0 ? (double)w / h : 1;
+      aspectCm = hcm != 0 ? (double)wcm / hcm : 1;
+      aspectInches = hinches != 0 ? (double)winches / hinches : 1;
+    }
+  } else toolTip("Keep the images x vs y ratio the same when entering new width or height");
 
   if (ImGui::Button("Create##DIALOGNEWIMAGECREATE")) {
     newPicture(w,h,String(imageName));
@@ -2337,7 +2370,11 @@ void dialogGetLayersFromPicture(bool openIt) {
     selected = -1;
   }
   DIALOGSTART("Get selected layers from other picture");
-  ImGui::Text("Insert layers from this picture");
+  if (canvas.size()>1) {
+    ImGui::Text("Insert layers from this picture");
+  } else {
+    ImGui::Text("No other picture available.");
+  }
   ImGui::BeginChild("CHILDDIALOGGETLAYERSFROMPICTURE",ImVec2(main_window_xres/2,main_window_yres/3));
   for (int i = 0; i < canvas.size(); i++) {
     if (canvas[i] != currentCanvas) {

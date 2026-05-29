@@ -4190,6 +4190,11 @@ void addTempPicture() {
   sprintf(currentCanvas->pictureName,"empty");
   canvas.push_back(currentCanvas);
   canvasDefault(currentCanvas);
+  currentCanvas->canvasX0 = 0;
+  currentCanvas->canvasY0 = 0;
+  currentCanvas->canvasX1 = glFrameBufferWidth;
+  currentCanvas->canvasY1 = glFrameBufferHeight;
+  currentCanvas->fitCanvas();
   shouldUpdateAll = true;
 }
 

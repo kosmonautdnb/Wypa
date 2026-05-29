@@ -1,9 +1,37 @@
+"" _N_
+"" _N_
 "Wypa is intended to produce rather oldschool videogames." _N_
 "But it is a good replacement for many tasks besides doing" _N_
 "graphics for videogames." _N_
 "" _N_
 "Remember sliders can be changed by value with CTRL." _N_
 "" _N_
+"Source code{" _N_
+  "Wypa is intended as an easy and very small program." _N_
+  "So to say, the source code may not be understandable." _N_
+  "" _N_
+  "You can find the newest Wypa version at:" _N_
+  "www.github.com/kosmonautdnb/Wypa" _N_
+  "" _N_
+  "The program is intended to be used as a tool for" _N_
+  "game development. Maybe the people using it" _N_
+  "can run into problems because of its simplicity." _N_
+  "E.g. batch processing (from Photoshop) is not added." _N_
+  "" _N_
+  "I didn't count the lines of code, yet. But it may be far" _N_
+  "below the count of lines (without comments) of" _N_
+  "e.g. Photoshop which is said to have around 4.5 million" _N_
+  "lines of source code as of the year 2012." _N_
+  "" _N_
+  "There are almost no comments in the source code." _N_
+  "For me comments are more of a problem for understanding" _N_
+  "the raw source code. So, sorry for that." _N_
+  "And sorry for many relatively long lines. These are better" _N_
+  "viewable with VCODE.EXE, the editor I for myself use for coding." _N_
+  "" _N_
+  "For instance the IMGUI.CPP source code is just good readable" _N_
+  "even without many comments that would bloat the source." _N_
+"}" _N_
 "FreeDOS{" _N_
   "If you use FreeDOS/DOS from an USB then keep in mind," _N_
   "that USB sticks may (relatively fast) wear out and get" _N_
@@ -15,8 +43,15 @@
   "" _N_
   "The program is designed for DOS computers but for very fast" _N_
   "DOS computers. Maybe it is not a good idea to use it on e.g." _N_
-  "a Pentium 200. The main reason is the resolution of" _N_
+  "a Pentium 200mHz. The main reason is the resolution of" _N_
   "1024x768 used." _N_
+  "" _N_
+  "There is no code running on the graphics card here and no" _N_
+  "specialized processor instructions used like the common" _N_
+  "SIMD (single instruction multiple data). Thus the program is" _N_
+  "slow, yet usable (atleast here)." _N_
+  "" _N_
+  "The DJGPP build is massively faster here (than Watcom)." _N_
   "" _N_
   "The program maybe used with old CRT monitors or even 16:9" _N_
   "monitors which are currently a standard as of 2026. There is" _N_
@@ -37,6 +72,10 @@
       "for the picture in pixels,centimeters or inch." _N_
       "For centimeters and inches there is a dpi" _N_
       "(dots per inch (or pixels per inch)) setting." _N_
+      "" _N_
+      "You may use the keep proportions option to have" _N_
+      "the width or height proportionally updated when you" _N_
+      "enter a new value." _N_
     "}" _N_
     "Load wyp image{" _N_
       "Let's you load a Wypa .wyp image. You can use the preview" _N_
@@ -80,14 +119,25 @@
       "Saves the complete image as single png file. It merges the layers" _N_
       "into this exported format." _N_
     "}" _N_
-    "Export layer(s) as single png {" _N_
+    "Export layer(s) as single png{" _N_
       "Saves the selected layers as single png file. It merges the layers" _N_
       "into this exported format." _N_
     "}" _N_
-    "Export layer(s) as multiple pngs {" _N_
+    "Export layer(s) as multiple pngs{" _N_
       "Saves the selected layers as multiple png files. With the layer" _N_
       "number inserted into the filename. You can specify if you want to" _N_
       "apply the post processing or save them in their raw format as png." _N_
+    "}" _N_
+    "Save user interface screenshot{" _N_
+      "This saves the current screen (without the open menubar)" _N_
+      "there is an aspect ratio correction applied to have the png" _N_
+      "look like you see it on the screen." _N_
+      "" _N_
+      "The screenshot is saved as SCN0.PNG to the current folder." _N_
+      "If you take several screenshots after another the number" _N_
+      "counts up. So to say you get a SCN1.PNG etc." _N_
+      "Be aware that the counter is reset to 0 at every program" _N_
+      "start." _N_
     "}" _N_
   "}" _N_
   "Edit{" _N_
@@ -159,6 +209,9 @@
     "Undo enabled{" _N_
       "You may disable undo. Undo uses rather much memory and is" _N_
       "not available for any operation in Wypa." _N_
+      "" _N_
+      "If you turn off undo, some operations may get faster and" _N_
+      "more fluid, too." _N_
     "}" _N_
   "}" _N_
   "Image{" _N_
@@ -522,17 +575,23 @@
       "The algorithm looks a bit linear so maybe some smoothing" _N_
       "or similar need to be used between difference cloud filter steps." _N_
       "The operation gets directly started after clicking the menu point." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Noise{" _N_
       "Puts values from 0..255 as grey values into the current layer." _N_
       "Maybe you can use threshholding of postprocessing or" _N_
       "gradient curves or binarysation to make the noise more your way." _N_
       "The operation gets directly started after clicking the menu point." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Edge detect{" _N_
       "Use the morphological gradient to detect edges." _N_
       "The layer is turned into some outlines." _N_
       "The operation gets directly started after clicking the menu point." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Blur{" _N_
       "Here several image blur techniques are available." _N_
@@ -546,10 +605,14 @@
       "Box - a \"rectangle\" blur." _N_
       "Iterative - a stepwise pixel blur." _N_
       "Radial - a directional blur with an angle and a size." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Alpha soften{" _N_
       "This blurs the alpha channel in a \"1pixel\" radius." _N_
       "So to say it makes the edges of hard shapes more soft." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Turn to glow{" _N_
       "Uses a gaussian blur to have a soft greyscale picture." _N_
@@ -559,12 +622,16 @@
       "You may use postprocessing or gradient curves to colorize" _N_
       "the glow. A good idea is to use \"Remove green\" and recolor" _N_
       "the glow via \"Hue\" in postprocessing." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Emboss{" _N_
       "This takes the luminance of each pixel and it's surrounding" _N_
       "to calculate a direction of the \"heightmap\"." _N_
       "You can use an angle to specify the 2D direction of the light." _N_
       "Maybe some blurring should be added before or after." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Color keying{" _N_
       "This maybe used to make a certain color transparent." _N_
@@ -573,15 +640,22 @@
       "You can specify a strength of the removal and even" _N_
       "make it binary (0 or 255) by a setting." _N_
       "It's also possible to invert the keying (0->255,255->0)." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Denoise{" _N_
       "A median filter is applied. It makes 1 or even 2 pixel sparkles" _N_
       "disappear. However the whole picture loses somehow crispiness." _N_
       "The operation gets directly started after clicking the menu point." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
     "Sharpen{" _N_
       "The picture gets a bit more crispy by this." _N_
       "The operation gets directly started after clicking the menu point." _N_
+      "Maybe it's similar to the sharpen in Photoshop and others." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
     "}" _N_
   "}" _N_
   "Pictures{" _N_
@@ -885,6 +959,15 @@
     "" _N_
     "This tool also works with selections on layers." _N_
   "}" _N_
+  "The fullscreen checkbox{" _N_
+    "The fullscreen mode is rather not a real fullscreen mode." _N_
+    "The decission of keeping the window the same size is rooted" _N_
+    "in the need for performance. A smaller area is faster to edit/paint." _N_
+    "" _N_
+    "The reason why it is there, is that you may need a neutral" _N_
+    "environment, e.g. not a white surrounding of the image," _N_
+    "to better judge your painting within other environments." _N_
+  "}" _N_
 "}" _N_
 "Navigator{" _N_
   "Up there there is changeable the currently edited pictures name." _N_
@@ -1000,7 +1083,9 @@
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_
-  "in the final picture." _N_
+  "in the final picture. It can be controlled by a slider next to the" _N_
+  "layer type." _N_
+  "" _N_
   "Move up - moves the selected layers up in the hierarchy." _N_
   "Move down - moves the selected layers down in the hierarchy." _N_
   "Merge - merges the layers onto the lowest and remove (NO UNDO)" _N_
