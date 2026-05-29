@@ -1506,7 +1506,7 @@ void Layer::snapToGrid(class Canvas *canvas) {
 }
 
 void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
-  if (locked(this,LOCK_ANY)) return;
+  if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return;
 
   int newWidth = width + left + right;
   int newHeight = height + top + bottom;
@@ -1535,6 +1535,14 @@ void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
   pixelStates = pixelStates2;
   width = newWidth;
   height = newHeight;
+  if (type == LAYERTYPE_TILEMAP) {
+    // it should be ok to use currentCanvas here
+    Layer *l = currentCanvas->getLayerById(tileSourceLayerId);
+    if (l != NULL) {
+      left *= l->toolInfo.tilingWidth;
+      top *= l->toolInfo.tilingHeight;
+    }
+  }
   Matrix modify; modify.translate(Vector(left,top,0));
   transform.transformation = modify * transform.transformation;
   transform.update();
