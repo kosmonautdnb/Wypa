@@ -1,8 +1,9 @@
 # Wypa
 A tiny and fastcoded swift and DOS based Photoshop like picture edit program. (in development). 
 
-Tiny usage video here:
-https://www.youtube.com/watch?v=420j0mS6s1w&pp
+Tiny usage video here:  
+https://www.youtube.com/watch?v=420j0mS6s1w&pp  
+(you can do tilemaps and isometric tilemaps with Wypa)  
 
 ![ScreenShot](https://raw.github.com/kosmonautdnb/Wypa/main/GITHUB.PNG)
 
