@@ -3,7 +3,7 @@ A tiny and fastcoded swift and DOS based Photoshop like picture edit program. (i
 
 Tiny usage video here:  
 https://www.youtube.com/watch?v=420j0mS6s1w&pp  
-You can do tilemaps with Wypa. Even isometric tilemaps (with nonisometric tiles, yet).  
+You can do tilemaps with Wypa.  
 
 ![ScreenShot](https://raw.github.com/kosmonautdnb/Wypa/main/GITHUB.PNG)
 
