@@ -1,4 +1,4 @@
-2# Wypa
+# Wypa
 A tiny and fastcoded swift and DOS based Photoshop like picture edit program. (in development). 
 
 Tiny usage video here:  
