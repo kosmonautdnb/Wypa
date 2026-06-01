@@ -1,6 +1,10 @@
 # Wypa
 A tiny and fastcoded swift and DOS based Photoshop like picture edit program. (in development). 
 
+Tiny usage video here:  
+https://www.youtube.com/watch?v=420j0mS6s1w&pp  
+
+
 ![ScreenShot](https://raw.github.com/kosmonautdnb/Wypa/main/GITHUB.PNG)
 
 ## "WYPA" is an easy-to-use graphics program.. if you know how.  
