@@ -103,7 +103,10 @@ void drawLayerView() {
     ImGui::SameLine();
     if (blinkingRoundButton("!##LAYERVIEWFITLAYERS",somethingToFit)) {
       beforeUndoPoint();
-      currentLayer->quantizeBoundingBox();
+      if (shift)
+        currentLayer->quantizeBoundingBox();
+      else
+        currentLayer->quantizePosition();
       afterUndoPoint();
     } else toolTip("Fit layer coordinates");
   }

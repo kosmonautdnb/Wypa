@@ -59,8 +59,9 @@ enum LAYERMODES {
   LAYERMODE_LINEARLIGHT = 14,
   LAYERMODE_PINLIGHT = 15,
   LAYERMODE_DIFFERENCE = 16,
+  LAYERMODE_COPY = 17,
   LAYERMODE_DEFAULT = LAYERMODE_PREMULTIPLIEDALPHA,
-  LAYERMODE_COUNT = 17
+  LAYERMODE_COUNT = 18
 };
 extern const char *layerModeNames[LAYERMODE_COUNT];
 
@@ -538,6 +539,7 @@ public:
   Vector selectionBounding();
   Vector boundingByAlpha(double alphaThreshold);
   void quantizeBoundingBox();
+  void quantizePosition();
 
   void resizeLayerContent(int interpolation, int newWidth, int newHeight);
   void bakeLayer(int interpolation);

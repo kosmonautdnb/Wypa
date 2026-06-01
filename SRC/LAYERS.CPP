@@ -102,7 +102,7 @@ Matrix inverse2(const Matrix &a) {
   return inverse(a); // maybe this inverse is too simple
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear"};
 void LayerState::clear() {
   active = false;
@@ -1218,6 +1218,13 @@ void Layer::quantizeBoundingBox() {
     setLayerPos(b.x,b.y);
     setLayerSize(b.z-b.x,b.w-b.y);
   }
+}
+
+void Layer::quantizePosition() {
+  Vector b = boundingBox();
+  b.x = floor(b.x);
+  b.y = floor(b.y);
+  setLayerPos(b.x,b.y);
 }
 
 void layerNewContent(Layer *l, int w, int h) {
@@ -2526,6 +2533,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
+      case LAYERMODE_COPY: {
+          col = rgb1;
+        } break;
       }
       if (darken) {col = ((col>>3) & 0x001f1f1f)|(col & 0xff000000);}
       canvas->pixels[x+y*canvas->width] = col;
@@ -3478,14 +3488,16 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   }
   dontUsePostProcessing = layers.size() == 1;
 
-  double eps = 0.001;
+  double eps = 0.0025;
   copyCanvas->transform.translate(eps,eps);
   copyCanvas->transform.update();
 
   copyCanvas->layers = layers;
   hilightSelection = false;
   overlaysOn = false;
+  unsigned int modeBefore = LAYERMODE_UNDEFINED; if (!copyCanvas->layers.empty()) {modeBefore = copyCanvas->layers.back()->mode; copyCanvas->layers.back()->mode = LAYERMODE_COPY;}
   copyCanvas->update(true);
+  if (!copyCanvas->layers.empty()) {copyCanvas->layers.back()->mode = modeBefore;}
   overlaysOn = true;
   copyCanvas->layers.clear();
 

@@ -1067,7 +1067,9 @@
   "" _N_
   "There is \"!\" symbol to align the layer position/size to the" _N_
   "canvasd if it blinks red, the layer dosen't fit to the canvas, yet," _N_
-  " and merging mayfail. " _N_
+  " and merging mayfail. If it stays blinking red after clicking," _N_
+  " try to use shift, too. Shift also quantizes the layer size not just" _N_
+  " its position." _N_
   "" _N_
   "Bake layer - The layer is stripped of its position/size is rectified." _N_
   "      it is a good idea to use the \"!\" symbol before baking." _N_
@@ -1091,6 +1093,7 @@
     "LINEARLIGHT = Linear light maybe like in Photoshop." _N_
     "PINLIGHT =  Pin light maybe like in Photoshop." _N_
     "DIFFERENCE = The difference of layer and background." _N_
+    "COPY = Does a one on one copy. (No alpha etc.)" _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_
