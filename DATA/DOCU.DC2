@@ -656,7 +656,7 @@
       "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_
-    "Sharpen{" _N_
+    "Sharpen and grain{" _N_
       "The picture gets a bit more crispy by this." _N_
       "The operation gets directly started after clicking the menu point." _N_
       "Maybe it's similar to the sharpen in Photoshop and others." _N_
@@ -844,7 +844,8 @@
     "You can load a truetype font \".ttf\"." _N_
     "You must bake the text so it gets visible." _N_
     "Several options for text formating are available." _N_
-    "You can choose a text color here." _N_
+    "You can choose a text color here. You do that" _N_
+    "by clicking on the colored box. It sets the text color." _N_
   "}" _N_
   "Postprocessing tool{" _N_
     "Postprocessing does layer color transformations on the fly." _N_

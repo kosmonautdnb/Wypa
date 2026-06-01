@@ -115,7 +115,7 @@ bool locked(const Layer *l, unsigned int lockFlags) {
   if (l == NULL) return false;
   unsigned int k = l->state.lockBits;
   if (lockFlags == LOCK_USER) return k & LOCK_USER ? true : false;
-  if (k & LOCK_USER) return false;
+  if (k & LOCK_USER) return true;
   k &= ~(LOCK_USER);
   bool _LOCK_ANY = false;
   bool _LOCK_PERMANENT = false;
@@ -2857,7 +2857,7 @@ extern double canvasScrollY;
 
 void applyFlip(Layer *l, const Matrix &scale, const Matrix &center, const Matrix &screenToCanvas) {
   //l->transform.transformation = l->transform.transformation * center * scale * inverse2(center) * inverse2(l->transform.transformation) * l->transform.transformation;
-  l->transform.transformation = l->transform.transformation * screenToCanvas * center * scale * inverse2(center) * inverse2(screenToCanvas) * inverse2(l->transform.transformation) * l->transform.transformation;
+  l->transform.transformation = l->transform.transformation * screenToCanvas * center * scale * inverse2(center) * inverse2(screenToCanvas);// * inverse2(l->transform.transformation) * l->transform.transformation;
   l->transform.update();
 }
 
@@ -2890,53 +2890,44 @@ void Canvas::mirrorVertically() {
 }
 
 void Canvas::rotate90DegreesForward() {
-  Matrix screenToCanvas = transform.transformation; // from screen coordinates to canvas space
-  Vector ltCanvas = inverse2(screenToCanvas) * Vector(canvasX0,canvasY0,0);
-  Vector rbCanvas = inverse2(screenToCanvas) * Vector(canvasX1,canvasY1,0);
-  Matrix center; center.translate(Vector((ltCanvas.x+rbCanvas.x)*0.5,(ltCanvas.y+rbCanvas.y)*0.5,0));
-  Matrix rotate = rotationMatrixAngleAxis(PI*-0.5,0,0,1);
-  rotate = straighten(rotate);
+  Matrix m;
+  m.m[0+0*4] = 0;
+  m.m[0+1*4] = 1;
+  m.m[1+0*4] = -1;
+  m.m[1+1*4] = 0;
   for (int i = 0; i < layers.size(); i++) {
     Layer *l = layers[i];
-    Matrix centerInLayerSpace; centerInLayerSpace.translate(screenToCanvas * center * Vector(0,0,0));
-    l->transform.transformation = l->transform.transformation * centerInLayerSpace * rotate * inverse2(centerInLayerSpace);
-    l->transform.update();
+    l->transform.transformation = l->transform.transformation * m;
   }
-
-  double cWidth = canvasX1 - canvasX0;
-  double cHeight = canvasY1 - canvasY0;
-  double cMX = (canvasX1 + canvasX0) * 0.5;
-  double cMY = (canvasY1 + canvasY0) * 0.5;
-  canvasX0 = cMX - cHeight * 0.5;
-  canvasX1 = cMX + cHeight * 0.5;
-  canvasY0 = cMY - cWidth * 0.5;
-  canvasY1 = cMY + cWidth * 0.5;
-
+  Vector c0(Vector((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5)); c0 = inverse2(transform.transformation) * c0;
+  int cx0 = canvasX0, cy0 = canvasY0, cx1 = canvasX1, cy1 = canvasY1;
+  canvasX0 = -cy1;
+  canvasX1 = -cy0;
+  canvasY0 = cx0;
+  canvasY1 = cx1;
+  Vector c1(Vector((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5)); c1 = inverse2(transform.transformation) * c1;
+  control.moveByPixels(this,-(c1.x-c0.x),-(c1.y-c0.y));  
   shouldUpdateAll = true;
 }
 
 void Canvas::rotate90DegreesBackward() {
-  Matrix screenToCanvas = transform.transformation; // from screen coordinates to canvas space
-  Vector ltCanvas = inverse2(screenToCanvas) * Vector(canvasX0,canvasY0,0);
-  Vector rbCanvas = inverse2(screenToCanvas) * Vector(canvasX1,canvasY1,0);
-  Matrix center; center.translate(Vector((ltCanvas.x+rbCanvas.x)*0.5,(ltCanvas.y+rbCanvas.y)*0.5,0));
-  Matrix rotate = rotationMatrixAngleAxis(PI*0.5,0,0,1);
-  rotate = straighten(rotate);
+  Matrix m;
+  m.m[0+0*4] = 0;
+  m.m[0+1*4] = -1;
+  m.m[1+0*4] = 1;
+  m.m[1+1*4] = 0;
   for (int i = 0; i < layers.size(); i++) {
     Layer *l = layers[i];
-    Matrix centerInLayerSpace; centerInLayerSpace.translate(screenToCanvas * center * Vector(0,0,0));
-    l->transform.transformation = l->transform.transformation * centerInLayerSpace * rotate * inverse2(centerInLayerSpace);
-    l->transform.update();
+    l->transform.transformation = l->transform.transformation * m;
   }
-
-  double cWidth = canvasX1 - canvasX0;
-  double cHeight = canvasY1 - canvasY0;
-  double cMX = (canvasX1 + canvasX0) * 0.5;
-  double cMY = (canvasY1 + canvasY0) * 0.5;
-  canvasX0 = cMX - cHeight * 0.5;
-  canvasX1 = cMX + cHeight * 0.5;
-  canvasY0 = cMY - cWidth * 0.5;
-  canvasY1 = cMY + cWidth * 0.5;
+  Vector c0(Vector((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5)); c0 = inverse2(transform.transformation) * c0;
+  int cx0 = canvasX0, cy0 = canvasY0, cx1 = canvasX1, cy1 = canvasY1;
+  canvasX0 = cy0;
+  canvasX1 = cy1;
+  canvasY0 = -cx1;
+  canvasY1 = -cx0;
+  Vector c1(Vector((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5)); c1 = inverse2(transform.transformation) * c1;
+  control.moveByPixels(this,-(c1.x-c0.x),-(c1.y-c0.y));  
 
   shouldUpdateAll = true;
 }
