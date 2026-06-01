@@ -1851,6 +1851,7 @@ void Canvas::init(int width, int height) {
 Canvas *Canvas::clone() {
   Canvas *ret = new Canvas();
   *ret = *this;
+
   ret->layers.data = new Layer*[2]; ret->layers.allocatedSize = 2; ret->layers.usedSize = 0;
   ret->overlays.data = new Overlay*[2]; ret->overlays.allocatedSize = 2; ret->overlays.usedSize = 0;
   for (int i = 0; i < layers.size(); i++) {
@@ -1859,6 +1860,10 @@ Canvas *Canvas::clone() {
   for (int i2 = 0; i2 < overlays.size(); i2++) {
     Overlay *zwo = new Overlay(); *zwo = *overlays[i2]; ret->overlays.push_back(zwo);
   }
+
+  ret->pixels = new unsigned int[ret->width*ret->height]; if (ret->pixels==NULL) {ret->width = 0; ret->height = 0; return ret;} memcpy(ret->pixels,this->pixels,ret->width*ret->height*sizeof(unsigned int));
+  ret->pixelStates = new unsigned char[ret->width*ret->height]; if (ret->pixelStates==NULL) {ret->width = 0; ret->height = 0; return ret;} memcpy(ret->pixelStates,this->pixelStates,ret->width*ret->height*sizeof(unsigned char));
+
   return ret;
 }
 
@@ -4238,6 +4243,7 @@ void duplicatePicture(bool mergeLayers) {
       sprintf(zwo->getActiveLayer()->name,"merged");
     }
   }
+  zwo->signSave();
   canvas.push_back(zwo);
   shouldUpdateAll = true;
 }
