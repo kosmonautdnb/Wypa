@@ -1062,8 +1062,9 @@
   "You can change the visibility of a layer with the \"eye\" symbol." _N_
   "Specialized layers are painted with colors in the selection pane." _N_
   "A layer that has a \">\" in the name is not modificable." _N_
-  "With a mouse double click you may change the layer name." _N_
-  "You can use cursor keys when hovering the layer pane to scroll." _N_
+  "With a mouse double click (or by pressing F2) you may change the" _N_
+  "layer name. You can use cursor keys when hovering the layer" _N_
+  "pane to scroll." _N_
   "" _N_
   "There is \"!\" symbol to align the layer position/size to the" _N_
   "canvasd if it blinks red, the layer dosen't fit to the canvas, yet," _N_

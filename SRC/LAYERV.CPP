@@ -145,6 +145,7 @@ void drawLayerView() {
     //ImGui::SameLine();
     bool a = ImGui::GetIO().MouseClicked[0];
     ImGui::GetIO().MouseClicked[0] = (ImGui::GetIO().MouseClicked[0] && (l->state.imGuiActive))||(ImGui::GetIO().MouseDoubleClicked[0] && (!l->state.imGuiActive));
+    if (ImGui::IsWindowHovered() && currentKey == GL_VK_F2) ImGui::GetIO().MouseClicked[0] = true;
     if (locked(l,LOCK_PERMANENT)) {ImGui::Text(">"); ImGui::SameLine();}
     ImGui::InputText(combined(String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX); toolTip("Layer name");
     l->state.imGuiActive = ImGui::IsItemActive();

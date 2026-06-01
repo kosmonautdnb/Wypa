@@ -3488,7 +3488,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   }
   dontUsePostProcessing = layers.size() == 1;
 
-  double eps = 0.0025;
+  double eps = 1.0/(2<<9); // 0.0025
   copyCanvas->transform.translate(eps,eps);
   copyCanvas->transform.update();
 
