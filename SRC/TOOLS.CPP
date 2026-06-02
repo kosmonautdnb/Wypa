@@ -1618,9 +1618,12 @@ void useToolPainting() {
   if (paintToolLayer != NULL && paintToolLayer->width * paintToolLayer->height==0) return;
 
   if (paintToolLayer != NULL && (!paintingOn) && toolOutline && isPaintAreaActive()) {
-    double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
-    cx = floor(cx);
-    cy = floor(cy);
+    Matrix m2 = inverse2(paintToolLayer->transform.transformation);
+    double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+    double px = cx, py = cy; currentCanvas->getLayerPosFromCanvasPos(paintToolLayer,px,py,px,py);
+    px = floor(px); py = floor(py);
+    cx = px*m2.m[4*0+0]+py*m2.m[4*1+0]+m2.m[4*3+0];
+    cy = px*m2.m[4*0+1]+py*m2.m[4*1+1]+m2.m[4*3+1];
     paintToolLayer->updatePixelStates(~PIXELSTATE_OUTLINE,0,0); reverseLastUpdatedPixelStates(paintToolLayer);
     drawTool(paintToolLayer,brush,cx,cy,0,false,true,pencil);
 
