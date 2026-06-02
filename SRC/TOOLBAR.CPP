@@ -140,7 +140,7 @@ void drawToolBar() {
   ImGui::PopStyleColor();
   drawDialogs();
   ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.7,0.7,0.7,1));
-  if (ImGui::Checkbox("##TOOLBARBOTTOMFULLSCREEN",&fullScreen)) {} else toolTip("\"Fullscreen\"");
+  if (ImGui::Checkbox("##TOOLBARBOTTOMFULLSCREEN",&fullScreen)) {} else toolTip("Black surrounding");
   ImGui::End();
   ImGui::PopStyleColor();
 }

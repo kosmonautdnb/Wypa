@@ -721,6 +721,10 @@
   "}" _N_
 "}" _N_
 "Tools{" _N_
+  "In the toolbar on the left you see all the tools available." _N_
+  "Some tools may be greyed out, you need special layers" _N_
+  "for them to operate/work. E.g. a tilemap layer is needed" _N_
+  "for the tilemap tool. And a text layer for the text tool." _N_
   "Selection tool{" _N_
     "With SHIFT you add the selection." _N_
     "With CTRL you subtract the selection." _N_
@@ -849,6 +853,8 @@
   "}" _N_
   "Postprocessing tool{" _N_
     "Postprocessing does layer color transformations on the fly." _N_
+    "If you applied post processing to a layer you see the button with" _N_
+    "an outline, if you selected the layer." _N_
     "" _N_
     "You can say, that only want the selection to be affected by this." _N_
     "" _N_

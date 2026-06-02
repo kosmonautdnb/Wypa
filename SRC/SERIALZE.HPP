@@ -70,6 +70,9 @@ void saveFont(const char *shortPath, const char *longFileName);
 void loadGradientCurve(const char *shortPath, const char *longFileName);
 void saveGradientCurve(const char *shortPath, const char *longFileName);
 
+void loadColorMatrix(const char *shortPath, const char *longFileName);
+void saveColorMatrix(const char *shortPath, const char *longFileName);
+
 void loadTilingAnim(const char *shortPath, const char *longFileName);
 void saveTilingAnim(const char *shortPath, const char *longFileName);
 

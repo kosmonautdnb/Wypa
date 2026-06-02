@@ -823,6 +823,53 @@ void saveGradient(const char *shortPath, const char *longFileName) {
   savedSomething();
 }
 
+void loadColorMatrix(const char *shortPath, const char *longFileName) {
+  Layer *l = currentCanvas->getActiveLayer(); 
+  if (l != NULL) {
+    Array<unsigned char> arr;
+    getFileArray(&arr,String(shortPath)+String(longFileName));
+    if (!arr.empty()) {
+      const char *str = (char*)&arr[0];
+      Array<String> lines = getLines(str);
+      if (lines.size() == 4) {
+        for (int i = 0; i < 4; i++) {
+          float a[4];
+          if (sscanf(lines[i].c_str(),"%f %f %f %f",&a[0],&a[1],&a[2],&a[3])==4) {
+            l->colorTransform.colorMatrix[i*4+0] = a[0];
+            l->colorTransform.colorMatrix[i*4+1] = a[1];
+            l->colorTransform.colorMatrix[i*4+2] = a[2];
+            l->colorTransform.colorMatrix[i*4+3] = a[3];
+          }
+        }
+        loadedSomething();
+      }
+    }
+  }
+  reOpen = true;
+  dialogColorMatrix(true);
+}
+
+void saveColorMatrix(const char *shortPath, const char *longFileName) {
+  Layer *l = currentCanvas->getActiveLayer(); 
+  if (l != NULL) {
+    FILE *out = createTempFile(shortPath,"w");
+    if (out != NULL) {
+      for (int i = 0; i < 4; i++) {
+        fprintf(out,"%f %f %f %f\n"
+          ,l->colorTransform.colorMatrix[i*4+0]
+          ,l->colorTransform.colorMatrix[i*4+1]
+          ,l->colorTransform.colorMatrix[i*4+2]
+          ,l->colorTransform.colorMatrix[i*4+3]);
+      } 
+      fclose(out);
+      renameTempFile(shortPath, longFileName);
+      savedSomething();
+    }
+  }
+  reOpen = true;
+  dialogColorMatrix(true);
+}
+
 class ZipDesc {
 public:
   ZipDesc() {
@@ -1348,6 +1395,7 @@ extern int newWidth;
 extern int newHeight;
 extern char newLayerName[LAYERNAMEMAX];
 void importFolder(const char *shortPath, const char *longFileName) {
+  UNUSED(longFileName);
   Array<File> folder; getFilesOfFolder(folder,shortPath);
   if (!folder.empty()) {
     int pos = 0;

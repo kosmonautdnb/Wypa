@@ -125,6 +125,7 @@ void drawDialogs() {
   dialogAbout(false);
   dialogDocumentation(false);
   dialogNewHere(false);
+  dialogSuite(false);
   dialogExit(false);
   dialogDuplicate(false);
   dialogMergeDown(false);
@@ -395,6 +396,52 @@ void dialogNewHere(bool openIt) {
     "In move mode you can also move with the Numblock.\n"
     "\n"
     "<Alt> and mouse pans the image plane.\n"
+  );
+  ImGui::Separator();
+  if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogSuite(bool openIt) {
+  DIALOGSTART("Puls4r game creation suite")
+  ImGui::Text(
+    "This little freeware program is brought to you by\n"
+    "Puls4r\n"
+    "\n"
+    "Puls4r started originally as C16 and C64 and Plus/4\n"
+    "game creation company.\n"
+    "\n"
+    "With the need to migrate to FreeDOS from Windows 10\n"
+    "we where missing the tools available on Windows.\n"
+    "Mainly the tools to create games.\n"
+    "\n"
+    "Currently there are two tools for the creation of games\n"
+    "available for DOS from Puls4r.\n"
+    "\n"
+    "The first one is \"SWIFE\" a 3D object placement tool.\n"
+    "With \"SWIFE\" you can take 3D objects from the internet\n"
+    "and create a 3D scene by placing and manipulating these\n"
+    "objects. By this you can create 3D worlds for your DOS\n"
+    "3D games.\n"
+    "\n"
+    "The second one is \"WYPA\" a multi feature paint program\n"
+    "for DOS. It's the tool you are currently running on your\n"
+    "computer.\n"
+    "\n"
+    "It's highly likely that more DOS based game creation tools\n"
+    "will follow in this \"Suite\".\n"
+    "\n"
+    "Puls4r (Stefan Mader) also provided WatcomGL. A basic 3D\n"
+    "graphics library for DJGPP/WATCOMC which let's you do\n"
+    "most of the stuff early OpenGLs on other platforms\n"
+    "where able to do. It's performant and is used as base for\n"
+    "our programs like \"WYPA\"\n"
+    "\n"
+    "There is also a WatcomLibs project on github where you can\n"
+    "find many libraries to do graphics/sound/fileformat etc..\n"
+    "stuff on DOS/FreeDOS.\n"
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
@@ -1807,12 +1854,19 @@ void dialogEmboss(bool openIt) {
 
 void dialogColorMatrix(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float redScale=1, blueScale=1, greenScale=1,allScale=1;
+  static bool update = false;
+
+  if (reOpen) {
+    reOpen = false;
+    update = true;
+  }
 
   DIALOGSTART("Color matrix");
 
   ImGui::PushItemWidth(7*7);
 
-  float *v; bool update = false;
+  float *v;
   ImGui::Text("Channel red"); 
   ImGui::SameLine(); ImGui::Text(""); ImGui::SameLine(); if (roundButton("Normalize####DIALOGCOLORMATRIXNORMALIZER",true)) {
     update = true;
@@ -1825,6 +1879,14 @@ void dialogColorMatrix(bool openIt) {
   v = &l->colorTransform.colorMatrix[0*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into red");
   v = &l->colorTransform.colorMatrix[0*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into green");
   v = &l->colorTransform.colorMatrix[0*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into blue");
+  v = &redScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUER",v,0,0,2); ImGui::SameLine(); if (roundButton("Scale red by####DIALOGCOLORMATRIXSCALER",true)) {
+    update = true;
+    l->colorTransform.colorMatrix[0*4+0] *= *v;
+    l->colorTransform.colorMatrix[0*4+1] *= *v;
+    l->colorTransform.colorMatrix[0*4+2] *= *v;
+  } else toolTip("Scale the red values");
+
+  ImGui::Separator();
 
   ImGui::Text("");
   ImGui::Text("Channel green");
@@ -1840,6 +1902,14 @@ void dialogColorMatrix(bool openIt) {
   v = &l->colorTransform.colorMatrix[1*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into red");
   v = &l->colorTransform.colorMatrix[1*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into green");
   v = &l->colorTransform.colorMatrix[1*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into blue");
+  v = &greenScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEG",v,0,0,2); ImGui::SameLine(); if (roundButton("Scale green by####DIALOGCOLORMATRIXSCALEG",true)) {
+    update = true;
+    l->colorTransform.colorMatrix[1*4+0] *= *v;
+    l->colorTransform.colorMatrix[1*4+1] *= *v;
+    l->colorTransform.colorMatrix[1*4+2] *= *v;
+  } else toolTip("Scale the green values");
+
+  ImGui::Separator();
 
   ImGui::Text("");
   ImGui::Text("Channel blue");
@@ -1855,6 +1925,30 @@ void dialogColorMatrix(bool openIt) {
   v = &l->colorTransform.colorMatrix[2*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into red");
   v = &l->colorTransform.colorMatrix[2*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into green");
   v = &l->colorTransform.colorMatrix[2*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into blue");
+  v = &blueScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEB",v,0,0,2); ImGui::SameLine(); if (roundButton("Scale blue by####DIALOGCOLORMATRIXSCALEB",true)) {
+    update = true;
+    l->colorTransform.colorMatrix[2*4+0] *= *v;
+    l->colorTransform.colorMatrix[2*4+1] *= *v;
+    l->colorTransform.colorMatrix[2*4+2] *= *v;
+  } else toolTip("Scale the blue values");
+
+  ImGui::Separator();
+  ImGui::Text("");
+
+  v = &allScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEALL",v,0,0,2); ImGui::SameLine(); if (roundButton("Scale all by####DIALOGCOLORMATRIXSCALEALL",true)) {
+    update = true;
+    l->colorTransform.colorMatrix[0*4+0] *= *v;
+    l->colorTransform.colorMatrix[0*4+1] *= *v;
+    l->colorTransform.colorMatrix[0*4+2] *= *v;
+    l->colorTransform.colorMatrix[1*4+0] *= *v;
+    l->colorTransform.colorMatrix[1*4+1] *= *v;
+    l->colorTransform.colorMatrix[1*4+2] *= *v;
+    l->colorTransform.colorMatrix[2*4+0] *= *v;
+    l->colorTransform.colorMatrix[2*4+1] *= *v;
+    l->colorTransform.colorMatrix[2*4+2] *= *v;
+  } else toolTip("Scale red,green,blue values");
+
+  ImGui::Separator();
 
   ImGui::Text("");
   ImGui::Text("Channel alpha");
@@ -1869,8 +1963,32 @@ void dialogColorMatrix(bool openIt) {
   ImGui::PopItemWidth();
 
   if (update) {
+    update = false;
     l->colorTransform.shouldUpdate = true;
     repaintLayer(l,true);
+  }
+
+  if (roundButton("Save##DIALOGCOLORMATRIXSAVE", true)) {
+    ImGui::CloseCurrentPopup();
+    dialogLoadSave(true, DIALOG_SAVECOLORMATRIX);
+  }
+  ImGui::SameLine();
+  if (roundButton("Load##DIALOGCOLORMATRIXLOAD", true)) {
+    ImGui::CloseCurrentPopup();
+    dialogLoadSave(true, DIALOG_LOADCOLORMATRIX);
+  }
+  ImGui::SameLine();
+  if (roundButton("Reset##DIALOGCOLORMATRIXRESET", true)) {
+    memset(l->colorTransform.colorMatrix,0,sizeof(l->colorTransform.colorMatrix));
+    l->colorTransform.colorMatrix[0*4+0] = 1;
+    l->colorTransform.colorMatrix[1*4+1] = 1;
+    l->colorTransform.colorMatrix[2*4+2] = 1;
+    l->colorTransform.colorMatrix[3*4+3] = 1;
+    redScale=1;
+    greenScale=1;
+    blueScale=1;
+    allScale=1;
+    update = true;
   }
   
   if (ImGui::Button("Close##DIALOGCOLORMATRIXCLOSE")) {
@@ -2510,11 +2628,12 @@ const char *img = "*.wyp";
 const char *fnt = "*.ttf";
 const char *tilemap = "*.tm2";
 const char *gradientCrv = "*.cr2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"",""};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","",""};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder};
+const char *colorMatrix = "*.cm2";
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < files.size(); i++) {
@@ -2638,6 +2757,10 @@ void resize2(String &s, int len) {
   memset(&s[a],0,len-a);
 }
 
+String lastPath = "";
+
+#define TOOLTIP(__a__) {if (!previewOn) toolTip(__a__);}
+
 void dialogLoadSave(bool openIt, int dialogMode) {
 
   static int mode = DIALOG_NONE; if (dialogMode != DIALOG_NONE) mode = dialogMode;
@@ -2718,7 +2841,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
     path2 = LONGFILENAME(paths[mode]);
   }
 #if !defined(__DJGPP__)
-  ImGui::Text("Long filenames"); ImGui::SameLine(); if(ImGui::Checkbox("##DIALOGLOADSAVELONGFILENAMES", &longFileNames)) needsRescanFiles = true;
+  ImGui::Text("Long filenames"); TOOLTIP("Use long filenames (provided by e.g. doslfn.com)"); ImGui::SameLine(); if(ImGui::Checkbox("##DIALOGLOADSAVELONGFILENAMES", &longFileNames)) needsRescanFiles = true;
 #endif
   ImGui::SameLine();
   for (int i = 0; i < driveLetters.size(); i++) {
@@ -2728,19 +2851,19 @@ void dialogLoadSave(bool openIt, int dialogMode) {
       paths[mode] = String::fromChar(a) + ":/";
       needsRescanFiles = true;
       //log_setBiosCursor(0,0);
-    }
+    } else TOOLTIP("Select this drive letter");
   }
-  ImGui::Text("%s",dialogFileTypes[mode]);
+  ImGui::Text("%s",dialogFileTypes[mode]); TOOLTIP("The default filetypes for this.");
   ImGui::Separator();
-  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();ImGui::InputText("##DIALOGLOADSAVEFILTER",filter,FILTERNAMEMAX);
+  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();ImGui::InputText("##DIALOGLOADSAVEFILTER",filter,FILTERNAMEMAX); TOOLTIP("You only see files with this in their name");
   ImGui::SameLine();
   if (ImGui::Button("Create folder##DIALOGLOADSAVECREATEFOLDER")) {
       loadSaveShortPath = paths[mode]; 
       dialogCreateFolder(true);
-  }
+  } else TOOLTIP("Create a new folder here");
   ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogCreateFolder(false); ImGui::PopStyleColor(); if (fileSystemUpdatedHere) {fileSystemUpdatedHere = false;needsRescanFiles=true;}
   ImGui::SameLine();
-  ImGui::Text("Preview"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGLOADSAVEPREVIEW",&previewOn)) {if (previewOn) clearPreview();}
+  ImGui::Text("Preview"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGLOADSAVEPREVIEW",&previewOn)) {if (previewOn) clearPreview();} else TOOLTIP("Show a tiny preview of this in a box");
   if (previewOn && previewAspect != 0) {
     ImGui::BeginTooltip();
     ImGui::Image((ImTextureID)previewTexture,ImVec2(previewWidth,previewHeight*aspectRatio*main_window_yres/main_window_xres/previewAspect));
@@ -2750,10 +2873,16 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   if (ImGui::Button("Home##DIALOGLOADSAVEHOME")) {
     paths[mode] = appFolder;
     needsRescanFiles=true;
-  }
+  } else TOOLTIP("Navigate to the folder where you started the program");
+  ImGui::SameLine();
+  if (ImGui::Button("Last##DIALOGLOADSAVELASTPATH")) {
+    paths[mode] = lastPath;
+    needsRescanFiles=true;
+  } else TOOLTIP("Navigate to the folder you used before");
+  ImGui::SameLine();
 
   ImGui::SameLine();
-  ImGui::Text("%s",path2.c_str()); // Text Wrapped has no window Size here
+  ImGui::Text("%s",path2.c_str()); TOOLTIP("The current path"); // Text Wrapped has no window Size here
   ImGui::Separator();
   bool setScrollY0 = false;
   if (paths[mode].length() > 3 && ImGui::Button("..##DIALOGLOADSAVEPATHBACK")) {
@@ -2761,8 +2890,8 @@ void dialogLoadSave(bool openIt, int dialogMode) {
     if (k>=0) paths[mode] = paths[mode].substr(0,k+1);
     needsRescanFiles = true;
     setScrollY0 = true;
-  }
-  ImGui::SameLine(); ImGui::Text("Sort by:"); ImGui::SameLine();
+  } else TOOLTIP("Navigate one folder up");
+  ImGui::SameLine(); ImGui::Text("Sort by:"); TOOLTIP("Sort the files by this property"); ImGui::SameLine();
   for (int l = 0; l < 4; l++) {
     if (l!=0) ImGui::SameLine();
     static const char *headerButtonNames[4] = {"Filename##DIALOGLOADSAVEFILENAMES","Ext##DIALOGLOADSAVEEXTS","Size##DIALOGLOADSAVESIZES","Date##DIALOGLOADSAVEDATES"};
@@ -2770,7 +2899,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
       sortByColumn = l;
       sortingOrder[l] = !sortingOrder[l];
       needsRescanFiles = true;
-    }
+    } else TOOLTIP("Click on this to sort up or down");
   }
   ImGui::Separator();
   int w = main_window_xres/2;
@@ -2778,7 +2907,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   if (!driveReady) {
     if (ImGui::Button("Drive not ready.. Retry.##DIALOGLOADSAVERETRY")) {
       needsRescanFiles = true;
-    }
+    } else TOOLTIP("Click this to try again");
   } else {
     ImGui::BeginChild("DIALOGLOADSAVECHILD",ImVec2(w,h));
     if (setScrollY0) {setScrollY0 = false; ImGui::SetScrollY(0);}
@@ -2869,17 +2998,19 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::PushItemWidth(w);
   ImGui::Text("Filename");
   DIALOGKEYSHERE();
-  ImGui::InputText("##DIALOGLOADSAVEFILENAME",&fileNames[mode][0],NAMEMAXHERE);
+  ImGui::InputText("##DIALOGLOADSAVEFILENAME",&fileNames[mode][0],NAMEMAXHERE); TOOLTIP("The current filename")
   ImGui::PopItemWidth();
   ImGui::Separator();
   if (ImGui::Button(combined(String(proceedButton[mode])+String("##DIALOGLOADSAVEPROCEED")).c_str())) {
+    lastPath = paths[mode];
     result = true;
     ImGui::CloseCurrentPopup();
-  }
+  } else TOOLTIP("Go on with this and use the file/folder");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGLOADSAVECLOSE")) {
+    lastPath = paths[mode];
     ImGui::CloseCurrentPopup();
-  }
+  } else TOOLTIP("Don't proceed with this and return");
   DIALOGEND()
   if (scrollToHelper>0) scrollToHelper--; else scrollToFileName="";
   if (result) {

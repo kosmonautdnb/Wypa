@@ -146,7 +146,7 @@ void showDebugWindow() {
 
   ImGui::PushStyleColor(ImGuiCol_TitleBg,ImVec4(0,0.75,0.75,0.5));
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1,1,1,1));
-  ImGui::Begin("Debug window", NULL, ImVec2(main_window_xres/3,main_window_yres/3),0.25);
+  ImGui::Begin("Status window", NULL, ImVec2(main_window_xres/3,main_window_yres/3),0.25);
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1));
   ImGui::Text("Undo stack %.02fkb", undoStackBytes/1024.f);
   ImGui::Text("Layers %.02fkb", getLayersByteCount()/1024.f);

@@ -2899,13 +2899,13 @@ void Canvas::rotate90DegreesForward() {
     Layer *l = layers[i];
     l->transform.transformation = l->transform.transformation * m;
   }
-  Vector c0(Vector((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5)); c0 = inverse2(transform.transformation) * c0;
+  Vector c0((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5); c0 = inverse2(transform.transformation) * c0;
   int cx0 = canvasX0, cy0 = canvasY0, cx1 = canvasX1, cy1 = canvasY1;
   canvasX0 = -cy1;
   canvasX1 = -cy0;
   canvasY0 = cx0;
   canvasY1 = cx1;
-  Vector c1(Vector((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5)); c1 = inverse2(transform.transformation) * c1;
+  Vector c1((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5); c1 = inverse2(transform.transformation) * c1;
   control.moveByPixels(this,-(c1.x-c0.x),-(c1.y-c0.y));  
   shouldUpdateAll = true;
 }
@@ -2920,13 +2920,13 @@ void Canvas::rotate90DegreesBackward() {
     Layer *l = layers[i];
     l->transform.transformation = l->transform.transformation * m;
   }
-  Vector c0(Vector((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5)); c0 = inverse2(transform.transformation) * c0;
+  Vector c0((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5); c0 = inverse2(transform.transformation) * c0;
   int cx0 = canvasX0, cy0 = canvasY0, cx1 = canvasX1, cy1 = canvasY1;
   canvasX0 = cy0;
   canvasX1 = cy1;
   canvasY0 = -cx1;
   canvasY1 = -cx0;
-  Vector c1(Vector((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5)); c1 = inverse2(transform.transformation) * c1;
+  Vector c1((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5); c1 = inverse2(transform.transformation) * c1;
   control.moveByPixels(this,-(c1.x-c0.x),-(c1.y-c0.y));  
 
   shouldUpdateAll = true;

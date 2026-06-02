@@ -332,11 +332,13 @@ void drawMenuBar() {
     if (ImGui::BeginMenu("Help")) {
       if (ImGui::MenuItem("About")) {dialogAbout(true);}
       if (ImGui::MenuItem("Hotkeys")) {dialogHotkeys(true);}
-      if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
       if (ImGui::MenuItem("Tiny documentation")) {dialogDocumentation(true);}
       ImGui::Separator();
+      if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
+      if (ImGui::MenuItem("Puls4r game creation suite")) {dialogSuite(true);}
+      ImGui::Separator();
       if (ImGui::MenuItem("Show tooltips",NULL,showToolTips,true)) {showToolTips = !showToolTips;}
-      if (ImGui::MenuItem("Show debug window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
+      if (ImGui::MenuItem("Status window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
       on = true;
       ImGui::EndMenu();
     }

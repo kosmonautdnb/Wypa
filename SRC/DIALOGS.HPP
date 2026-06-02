@@ -63,7 +63,9 @@ enum DIALOGMODE {
   DIALOG_SAVETILEMAP = 26,
   DIALOG_SELECTGALLERYFOLDER = 27,
   DIALOG_IMPORTFOLDER = 28,
-  DIALOG_COUNT = 29
+  DIALOG_LOADCOLORMATRIX = 29,
+  DIALOG_SAVECOLORMATRIX = 30,
+  DIALOG_COUNT = 31
 };
 
 void dialogCanvas(bool openIt);
@@ -80,6 +82,7 @@ void dialogUpdateLayer(bool openIt);
 void dialogAbout(bool openIt);
 void dialogDocumentation(bool openIt);
 void dialogNewHere(bool openIt);
+void dialogSuite(bool openIt);
 void dialogExit(bool openIt);
 void dialogDuplicate(bool openIt);
 void dialogMergeDown(bool openIt);
