@@ -252,9 +252,16 @@
       "You can specify the canvas width,height,x and y position." _N_
       "The canvas width and height is the size of the final picture" _N_
       "when exported." _N_
+      "" _N_
       "If you change the width or height you can use a 9x9 button" _N_
       "matrix to specify from which old canvas position changes apply" _N_
       "there is an instant preview for this visible in the background." _N_
+      "" _N_
+      "You can edit pictures in the so called double pixel mode" _N_
+      "of old computers by specifying a pixel width and a pixel height" _N_
+      "to be used. Just like in Photoshop. However the picture gets" _N_
+      "exported in it's internal format." _N_
+      "" _N_
       "Also you can change the grid cell width/height and x/y position." _N_
       "The grid is visible if you turn on the grid via the menu point" _N_
       "\"View\"->\"Show grid\"" _N_

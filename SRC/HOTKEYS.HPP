@@ -50,7 +50,7 @@
 #define HOTKEY_FITCANVAS HOTKEY('F',false,false,"SHIFT<F> Fit image into view")
 #define HOTKEY_ZOOMIN HOTKEY('+',false,false,"<+> Zoom in")
 #define HOTKEY_ZOOMOUT HOTKEY('-',false,false,"<-> Zoom out")
-#define HOTKEY_ZOOMPAN HOTKEY(' ',false,false,"ALT pan picture")
+#define HOTKEY_ZOOMPAN HOTKEY(' ',false,false,"ALT Pan picture with mouse (or just cursor keys)")
 #define HOTKEY_MOUSELOCKX HOTKEY('x',false,false,"<x> Lock mouse on x axis")
 #define HOTKEY_MOUSELOCKY HOTKEY('y',false,false,"<y> Lock mouse on y axis")
 #define HOTKEY_FULLSCREEN HOTKEY('u',false,false,"<u> Raw view without panels")

@@ -539,6 +539,9 @@ bool isWandAccepted(unsigned int destColor, unsigned int checkColor) {
 
 void useToolWand() {
   if (!isPaintAreaActive()) return;
+
+  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+
   if (!ImGui::IsMouseClicked(0)) return;
 
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; if (locked(l,LOCK_SELECTION)) return;

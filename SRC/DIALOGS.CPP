@@ -550,9 +550,9 @@ void dialogImportFolder(bool openIt) {
 
 void dialogHotkeys(bool openIt) {
   DIALOGSTART("Hotkeys")
+  HOTKEY_ZOOMPAN
   HOTKEY_ZOOMIN
   HOTKEY_ZOOMOUT
-  HOTKEY_ZOOMPAN
   HOTKEY_TOOL_SELECTION
   HOTKEY_TOOL_MOVE
   HOTKEY_TOOL_WAND
