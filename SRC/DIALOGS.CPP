@@ -2784,11 +2784,15 @@ void callLoadSaveFunc() {
   dialogLoadSaveModeId = 0;
 }
 
+bool dialogOverwriteDone = false;
+
 void dialogOverwrite(bool openIt) {
   if (openIt) {
+    dialogOverwriteDone = false;
     String shortPath = shortFileName(loadSaveShortPath+loadSaveLongFileName);
     FILE *in = fopen(dosFileName(shortPath).c_str(),"rb");
     if (in == NULL) {
+      dialogOverwriteDone = true;
       callLoadSaveFunc();
       return;  // don't open dialog
     }
@@ -2803,6 +2807,7 @@ void dialogOverwrite(bool openIt) {
   ImGui::Separator();
   if (ImGui::Button("Overwrite##DIALOGOVERWRITEOVERWRITE")) {
     callLoadSaveFunc();
+    dialogOverwriteDone = true;
     dialogLoadSaveModeId = 0;
     ImGui::CloseCurrentPopup();
   }
@@ -2858,7 +2863,6 @@ String lastPath = "";
 #define TOOLTIP(__a__) {if (!previewOn) toolTip(__a__);}
 
 void dialogLoadSave(bool openIt, int dialogMode) {
-  dialogOverwrite(false);
 
   static int mode = DIALOG_NONE; if (dialogMode != DIALOG_NONE) mode = dialogMode;
 #define FILTERNAMEMAX 16
@@ -2911,6 +2915,9 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   }
   bool result = false;
   DIALOGSTART(dialogCaption[mode])
+  ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogOverwrite(false); ImGui::PopStyleColor();
+  ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogCreateFolder(false); ImGui::PopStyleColor(); if (fileSystemUpdatedHere) {fileSystemUpdatedHere = false;needsRescanFiles=true;}
+
   noUndoMessage();
   if (paths[mode].empty()) {paths[mode] = getCWD();}
   if (needsRescanFiles) {
@@ -2958,7 +2965,6 @@ void dialogLoadSave(bool openIt, int dialogMode) {
       loadSaveShortPath = paths[mode]; 
       dialogCreateFolder(true);
   } else TOOLTIP("Create a new folder here");
-  ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogCreateFolder(false); ImGui::PopStyleColor(); if (fileSystemUpdatedHere) {fileSystemUpdatedHere = false;needsRescanFiles=true;}
   ImGui::SameLine();
   ImGui::Text("Preview"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGLOADSAVEPREVIEW",&previewOn)) {if (previewOn) clearPreview();} else TOOLTIP("Show a tiny preview of this in a box");
   if (previewOn && previewAspect != 0) {
@@ -3100,17 +3106,6 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::Separator();
   if (ImGui::Button(combined(String(proceedButton[mode])+String("##DIALOGLOADSAVEPROCEED")).c_str())) {
     lastPath = paths[mode];
-    result = true;
-    ImGui::CloseCurrentPopup();
-  } else TOOLTIP("Go on with this and use the file/folder");
-  ImGui::SameLine();
-  if (ImGui::Button("Close##DIALOGLOADSAVECLOSE")) {
-    lastPath = paths[mode];
-    ImGui::CloseCurrentPopup();
-  } else TOOLTIP("Don't proceed with this and return");
-  DIALOGEND()
-  if (scrollToHelper>0) scrollToHelper--; else scrollToFileName="";
-  if (result) {
     loadSaveFunc = NULL;
     if (funcs[mode]!=NULL) {
       loadSaveFunc = funcs[mode]; 
@@ -3120,8 +3115,24 @@ void dialogLoadSave(bool openIt, int dialogMode) {
       if (toLower(proceedButton[mode])=="save") {
         if (loadSaveLongFileName.find(".")<0) {loadSaveLongFileName += dialogDefaultExtension[mode];}
         dialogOverwrite(true);
-      } else
+      } else {
         callLoadSaveFunc();
+        dialogOverwriteDone = true;
+      }
     }
-  }
+    //ImGui::CloseCurrentPopup();
+  } else TOOLTIP("Go on with this and use the file/folder");
+
+  if (dialogOverwriteDone) {
+    dialogOverwriteDone = false;
+    ImGui::CloseCurrentPopup();
+  } 
+
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGLOADSAVECLOSE")) {
+    lastPath = paths[mode];
+    ImGui::CloseCurrentPopup();
+  } else TOOLTIP("Don't proceed with this and return");
+  DIALOGEND()
+  if (scrollToHelper>0) scrollToHelper--; else scrollToFileName="";
 }
