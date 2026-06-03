@@ -96,6 +96,7 @@ void dialogGlow(bool openIt);
 void dialogEmboss(bool openIt);
 void dialogHotkeys(bool openIt);
 void dialogColorMatrix(bool openIt);
+void dialogColorMatrixDirect(bool openIt);
 void dialogQuantizePalette(bool openIt);
 void dialogExtrudeSelection(bool openIt);
 void dialogKeying(bool openIt);

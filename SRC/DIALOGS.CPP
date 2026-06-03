@@ -108,12 +108,13 @@ void freeDialogs() {
   }
 }
 
+bool dialogLoadSaveOff = false;
+
 void drawDialogs() {
   dialogCanvas(false);
   dialogExpandShrinkSelection(false);
   dialogImageResize(false);
-  dialogLoadSave(false,DIALOG_NONE);
-  dialogOverwrite(false);
+  if (!dialogLoadSaveOff) {dialogLoadSave(false,DIALOG_NONE);} dialogLoadSaveOff = false;
   dialogDeletePicture(false);
   dialogAddLayer(false);
   dialogDeleteLayers(false);
@@ -1852,17 +1853,91 @@ void dialogEmboss(bool openIt) {
   DIALOGEND()
 }
 
+void applyColorMatrix(Layer *dest, Layer *source) {
+  if (locked(dest,LOCK_ANY)) return;
+  if (dest == NULL || source == NULL || dest->width != source->width || dest->height != source->height) return;
+  bool hasSelection = dest->hasSelection();
+  float *colorMatrix = dest->colorTransform.colorMatrix;
+  for (int i = 0; i < dest->width*dest->height; i++) {
+    if ((!hasSelection)||(dest->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int colS = source->pixels[i];
+      int rf = colS & 255;
+      int gf = (colS>>8) & 255;
+      int bf = (colS>>16) & 255;
+      int af = (colS>>24) & 255;
+      int r = (int)(rf * colorMatrix[0*4+0] + gf * colorMatrix[1*4+0] + bf * colorMatrix[2*4+0] + colorMatrix[4*4+0]);
+      int g = (int)(rf * colorMatrix[0*4+1] + gf * colorMatrix[1*4+1] + bf * colorMatrix[2*4+1] + colorMatrix[4*4+1]);
+      int b = (int)(rf * colorMatrix[0*4+2] + gf * colorMatrix[1*4+2] + bf * colorMatrix[2*4+2] + colorMatrix[4*4+2]);
+      int a = (int)(af * colorMatrix[3*4+3] + colorMatrix[4*4+3]);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (a < 0) a = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a > 255) a = 255;
+      dest->pixels[i] = r | (g<<8) | (b<<16) | (a<<24);
+    }
+  }
+}
+
+bool colorMatrixDirect = false;
+void dialogColorMatrixDirect(bool openIt) {
+  colorMatrixDirect = true;
+  dialogColorMatrix(openIt);
+  colorMatrixDirect = false;
+}
+
 void dialogColorMatrix(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static float redScale=1, blueScale=1, greenScale=1,allScale=1;
   static bool update = false;
+  static float colorMatrixSaved[4*5];
+  static bool applyDirect = false;
+  static Layer *clone = NULL;
 
-  if (reOpen) {
-    reOpen = false;
-    update = true;
+  if (openIt) {
+    beforeUndoPoint();
+    applyDirect = colorMatrixDirect;
+    memcpy(colorMatrixSaved,l->colorTransform.colorMatrix,sizeof(colorMatrixSaved));
+    memset(l->colorTransform.colorMatrix,0,sizeof(l->colorTransform.colorMatrix));
+    l->colorTransform.colorMatrix[0*4+0] = 1;
+    l->colorTransform.colorMatrix[1*4+1] = 1;
+    l->colorTransform.colorMatrix[2*4+2] = 1;
+    l->colorTransform.colorMatrix[3*4+3] = 1;
+    if (applyDirect) {
+      if (clone != NULL) {delete clone; clone = NULL;}
+      clone = l->clone();
+    }
   }
 
   DIALOGSTART("Color matrix");
+  dialogLoadSaveOff = true; dialogLoadSave(false,DIALOG_NONE);
+
+  if (roundButton("Greyscale##DIALOGCOLORMATRIXGREYSCALE", true)) {
+    memset(l->colorTransform.colorMatrix,0,sizeof(l->colorTransform.colorMatrix));
+    for (int y = 0; y < 3; y++) {
+      for (int x = 0; x < 3; x++) {
+        l->colorTransform.colorMatrix[x*4+y] = 1.0/3.0;
+      }
+    }
+    l->colorTransform.colorMatrix[3*4+3] = 1;
+    update = true;
+  }
+  if (roundButton("Greyscale with luminance##DIALOGCOLORMATRIXGREYSCALELUMINANCE", true)) {
+    memset(l->colorTransform.colorMatrix,0,sizeof(l->colorTransform.colorMatrix));
+    const float luma[3] = {0.2126,0.7152,0.0722};
+    for (int y = 0; y < 3; y++) {
+      for (int x = 0; x < 3; x++) {
+        l->colorTransform.colorMatrix[x*4+y] = luma[x];
+      }
+    }
+    l->colorTransform.colorMatrix[3*4+3] = 1;
+    update = true;
+  }
+
+  ImGui::Separator();
 
   ImGui::PushItemWidth(7*7);
 
@@ -1876,10 +1951,10 @@ void dialogColorMatrix(bool openIt) {
     l->colorTransform.colorMatrix[0*4+1] = k.y;
     l->colorTransform.colorMatrix[0*4+2] = k.z;
   } else toolTip("Final red of red,green,blue should sum up to one");
-  v = &l->colorTransform.colorMatrix[0*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into red");
-  v = &l->colorTransform.colorMatrix[0*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into green");
-  v = &l->colorTransform.colorMatrix[0*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of red into blue");
-  v = &redScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUER",v,0,0,2); ImGui::SameLine(); if (roundButton("Scale red by####DIALOGCOLORMATRIXSCALER",true)) {
+  v = &l->colorTransform.colorMatrix[0*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRR",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of red into red");
+  v = &l->colorTransform.colorMatrix[0*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRG",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of red into green");
+  v = &l->colorTransform.colorMatrix[0*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRB",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of red into blue");
+  v = &redScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUER",v,0,0,4); ImGui::SameLine(); if (roundButton("Scale red by####DIALOGCOLORMATRIXSCALER",true)) {
     update = true;
     l->colorTransform.colorMatrix[0*4+0] *= *v;
     l->colorTransform.colorMatrix[0*4+1] *= *v;
@@ -1899,10 +1974,10 @@ void dialogColorMatrix(bool openIt) {
     l->colorTransform.colorMatrix[1*4+1] = k.y;
     l->colorTransform.colorMatrix[1*4+2] = k.z;
   } else toolTip("Final green of red,green,blue should sum up to one");
-  v = &l->colorTransform.colorMatrix[1*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into red");
-  v = &l->colorTransform.colorMatrix[1*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into green");
-  v = &l->colorTransform.colorMatrix[1*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of green into blue");
-  v = &greenScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEG",v,0,0,2); ImGui::SameLine(); if (roundButton("Scale green by####DIALOGCOLORMATRIXSCALEG",true)) {
+  v = &l->colorTransform.colorMatrix[1*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGR",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of green into red");
+  v = &l->colorTransform.colorMatrix[1*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGG",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of green into green");
+  v = &l->colorTransform.colorMatrix[1*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGB",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of green into blue");
+  v = &greenScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEG",v,0,0,4); ImGui::SameLine(); if (roundButton("Scale green by####DIALOGCOLORMATRIXSCALEG",true)) {
     update = true;
     l->colorTransform.colorMatrix[1*4+0] *= *v;
     l->colorTransform.colorMatrix[1*4+1] *= *v;
@@ -1922,10 +1997,10 @@ void dialogColorMatrix(bool openIt) {
     l->colorTransform.colorMatrix[2*4+1] = k.y;
     l->colorTransform.colorMatrix[2*4+2] = k.z;
   } else toolTip("Final blue of red,green,blue should sum up to one");
-  v = &l->colorTransform.colorMatrix[2*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBR",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into red");
-  v = &l->colorTransform.colorMatrix[2*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBG",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into green");
-  v = &l->colorTransform.colorMatrix[2*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBB",v,0,0,2)) {update = true;} else toolTip("Transfer this amount of blue into blue");
-  v = &blueScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEB",v,0,0,2); ImGui::SameLine(); if (roundButton("Scale blue by####DIALOGCOLORMATRIXSCALEB",true)) {
+  v = &l->colorTransform.colorMatrix[2*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBR",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of blue into red");
+  v = &l->colorTransform.colorMatrix[2*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBG",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of blue into green");
+  v = &l->colorTransform.colorMatrix[2*4+2]; ImGui::Text("Into blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBB",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of blue into blue");
+  v = &blueScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEB",v,0,0,4); ImGui::SameLine(); if (roundButton("Scale blue by####DIALOGCOLORMATRIXSCALEB",true)) {
     update = true;
     l->colorTransform.colorMatrix[2*4+0] *= *v;
     l->colorTransform.colorMatrix[2*4+1] *= *v;
@@ -1935,7 +2010,7 @@ void dialogColorMatrix(bool openIt) {
   ImGui::Separator();
   ImGui::Text("");
 
-  v = &allScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEALL",v,0,0,2); ImGui::SameLine(); if (roundButton("Scale all by####DIALOGCOLORMATRIXSCALEALL",true)) {
+  v = &allScale; ImGui::InputFloat("##DIALOGCOLORSCALEVALUEALL",v,0,0,4); ImGui::SameLine(); if (roundButton("Scale all by####DIALOGCOLORMATRIXSCALEALL",true)) {
     update = true;
     l->colorTransform.colorMatrix[0*4+0] *= *v;
     l->colorTransform.colorMatrix[0*4+1] *= *v;
@@ -1952,7 +2027,7 @@ void dialogColorMatrix(bool openIt) {
 
   ImGui::Text("");
   ImGui::Text("Channel alpha");
-  v = &l->colorTransform.colorMatrix[3*4+3]; ImGui::Text("Scale alpha"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXA",v,0,0,2)) {update = true;} else toolTip("Update alpha by this scaling");
+  v = &l->colorTransform.colorMatrix[3*4+3]; ImGui::Text("Scale alpha"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXA",v,0,0,4)) {update = true;} else toolTip("Update alpha by this scaling");
 
   ImGui::Text("");
   v = &l->colorTransform.colorMatrix[4*4+0]; ImGui::Text("Add to red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXADDR",v,0,0,2)) {update = true;} else toolTip("Add this amount to red (-256..256)");
@@ -1962,19 +2037,11 @@ void dialogColorMatrix(bool openIt) {
 
   ImGui::PopItemWidth();
 
-  if (update) {
-    update = false;
-    l->colorTransform.shouldUpdate = true;
-    repaintLayer(l,true);
-  }
-
   if (roundButton("Save##DIALOGCOLORMATRIXSAVE", true)) {
-    ImGui::CloseCurrentPopup();
     dialogLoadSave(true, DIALOG_SAVECOLORMATRIX);
   }
   ImGui::SameLine();
   if (roundButton("Load##DIALOGCOLORMATRIXLOAD", true)) {
-    ImGui::CloseCurrentPopup();
     dialogLoadSave(true, DIALOG_LOADCOLORMATRIX);
   }
   ImGui::SameLine();
@@ -1990,10 +2057,39 @@ void dialogColorMatrix(bool openIt) {
     allScale=1;
     update = true;
   }
+   
+  if (shouldUpdateAll) update = true;
+  if (update) {
+    update = false;
+    if (applyDirect) {
+      applyColorMatrix(l,clone); // no update is sent to the layers colorgrading, so the old grading stays and the new grading gets "added" here
+    } else {
+      l->colorTransform.shouldUpdate = true;
+    }
+    repaintLayer(l,true);
+  }
+
+  if (applyDirect) {
+    if (ImGui::Button("Apply##DIALOGCOLORMATRIXAPPLY")) {
+      if (clone != NULL) {delete clone; clone = NULL;}
+      if (applyDirect) memcpy(l->colorTransform.colorMatrix,colorMatrixSaved,sizeof(colorMatrixSaved));
+      shouldUpdateAll = true;
+      updatedPixels(l);
+      afterUndoPoint();
+      ImGui::CloseCurrentPopup();
+    } else toolTip("Apply this color transformation. no preview.");
+    ImGui::SameLine();
+  }
   
   if (ImGui::Button("Close##DIALOGCOLORMATRIXCLOSE")) {
+    if (applyDirect && clone != NULL) {
+      if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+      if (clone != NULL) {delete clone; clone = NULL;}
+      memcpy(l->colorTransform.colorMatrix,colorMatrixSaved,sizeof(colorMatrixSaved));
+      repaintLayer(l,true);
+    }
     ImGui::CloseCurrentPopup();
-  } else toolTip("Apply this color transformation");
+  } else {if (!applyDirect) toolTip("Apply this color transformation"); else toolTip("Don't do anything");}
   DIALOGEND()
 }
 
@@ -2762,6 +2858,7 @@ String lastPath = "";
 #define TOOLTIP(__a__) {if (!previewOn) toolTip(__a__);}
 
 void dialogLoadSave(bool openIt, int dialogMode) {
+  dialogOverwrite(false);
 
   static int mode = DIALOG_NONE; if (dialogMode != DIALOG_NONE) mode = dialogMode;
 #define FILTERNAMEMAX 16

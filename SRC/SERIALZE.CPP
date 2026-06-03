@@ -831,8 +831,8 @@ void loadColorMatrix(const char *shortPath, const char *longFileName) {
     if (!arr.empty()) {
       const char *str = (char*)&arr[0];
       Array<String> lines = getLines(str);
-      if (lines.size() == 4) {
-        for (int i = 0; i < 4; i++) {
+      if (lines.size() == 5) {
+        for (int i = 0; i < 5; i++) {
           float a[4];
           if (sscanf(lines[i].c_str(),"%f %f %f %f",&a[0],&a[1],&a[2],&a[3])==4) {
             l->colorTransform.colorMatrix[i*4+0] = a[0];
@@ -845,8 +845,7 @@ void loadColorMatrix(const char *shortPath, const char *longFileName) {
       }
     }
   }
-  reOpen = true;
-  dialogColorMatrix(true);
+  shouldUpdateAll = true;
 }
 
 void saveColorMatrix(const char *shortPath, const char *longFileName) {
@@ -854,7 +853,7 @@ void saveColorMatrix(const char *shortPath, const char *longFileName) {
   if (l != NULL) {
     FILE *out = createTempFile(shortPath,"w");
     if (out != NULL) {
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 5; i++) {
         fprintf(out,"%f %f %f %f\n"
           ,l->colorTransform.colorMatrix[i*4+0]
           ,l->colorTransform.colorMatrix[i*4+1]
@@ -866,8 +865,6 @@ void saveColorMatrix(const char *shortPath, const char *longFileName) {
       savedSomething();
     }
   }
-  reOpen = true;
-  dialogColorMatrix(true);
 }
 
 class ZipDesc {

@@ -156,6 +156,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Antialias selected",NULL,false,hasSelection)) {beforeUndoPoint();currentCanvas->antialiasSelected();afterUndoPoint();}
       ImGui::Separator();
       if (ImGui::MenuItem("Greyscale",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->greyScale();afterUndoPoint();}
+      if (ImGui::MenuItem("Color matrix",NULL,false,count == 1)) {dialogColorMatrixDirect(true);}
       if (ImGui::MenuItem("Gradiation curves",NULL,false,count == 1)) {dialogGradiationCurves(true);}
       if (ImGui::MenuItem("Color balance",NULL,false,count == 1)) {dialogColorBalance(true);}
       if (ImGui::MenuItem("Invert color",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertColor();afterUndoPoint();}
