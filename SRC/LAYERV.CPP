@@ -108,7 +108,7 @@ void drawLayerView() {
       else
         currentLayer->quantizePosition();
       afterUndoPoint();
-    } else toolTip("Fit layer coordinates");
+    } else toolTip("Fit layer coordinates, with <SHIFT> also fit size");
   }
 
   if (roundButton(currentCanvas->justSingle?"Single off##LAYERVIEWSINGLE":"Single on ##LAYERVIEWSINGLE",true)) {

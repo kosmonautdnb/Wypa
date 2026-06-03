@@ -78,6 +78,7 @@ public:
       glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, width, height, 0, GL_RGBA, GL_BYTE, NULL);
       glBindTexture(GL_TEXTURE_2D,0);
     } else {
+      reverseLastLayerIdCountUp();
       width = l->width; height = l->height;
       glBindTexture(GL_TEXTURE_2D,texHandle);
       glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, width, height, 0, GL_RGBA, GL_BYTE, l->pixels);

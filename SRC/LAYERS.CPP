@@ -3055,6 +3055,8 @@ void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpola
       double scaleY2 = (double)hAfter/hBefore;
       Matrix m2; m2.scale3(Vector(scaleX2,scaleY2,1));
       l->transform.transformation = m2 * l->transform.transformation;
+      l->transform.update();
+      l->quantizeBoundingBox(); // sadly needed
     }
     l->transform.update();
   }
