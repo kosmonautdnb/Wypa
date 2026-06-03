@@ -49,7 +49,12 @@
   "There is no code running on the graphics card here and no" _N_
   "specialized processor instructions used like the common" _N_
   "SIMD (single instruction multiple data). Thus the program is" _N_
-  "slow, yet usable (atleast here)." _N_
+  "slow, yet usable (atleast here). It also doesn't use" _N_
+  "multithreading. Which is ok from my perspective, it seems" _N_
+  "not to overheat here by this. My computer mostly crashes" _N_
+  "when overheating. Multithreading is mostly not available" _N_
+  "on DOS, yet I have seen a DMMI DOS extension which seems" _N_
+  "to help with multithreading at least in assembly." _N_
   "" _N_
   "The DJGPP build is massively faster here (than Watcom)." _N_
   "" _N_

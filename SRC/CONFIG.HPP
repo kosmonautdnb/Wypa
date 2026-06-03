@@ -85,7 +85,8 @@ void toolTip(const char *fmt, ...);
   S_DOUBLE("aspectRatio",aspectRatio);\
   if (fabs(aspectRatio-16.0/9.0) < 0.0001) aspectRatio = 16.0/9.0;\
   S_BOOL("useUndo",useUndo);\
-  S_BOOL("showToolTips",showToolTips);
+  S_BOOL("showToolTips",showToolTips);\
+  int wypaVersion = version; S_INT("wypaVersion",wypaVersion);
 
 String combined(const String &c);
 extern char tempBuffer[256];
