@@ -912,7 +912,6 @@ void playTilingAnimation(Layer *l) {
   if (s<=0||l->toolInfo.tilingAnimFPS<=0) {blitTilingAnimFrame(l,f0); return;}
   int s2 = s;
   bool doubleSided = l->toolInfo.tilingAnimDoubleSided;
-  if (s < 2) doubleSided = false;
   if (doubleSided) {s += s-1;}
   l->toolInfo.tilingAnimTime += timeDelta * l->toolInfo.tilingAnimFPS * (l->toolInfo.tilingAnimReverse ? -1 : 1); // actually the current frame
   if (l->toolInfo.tilingAnimTime<0) {l->toolInfo.tilingAnimTime += s * floor(-l->toolInfo.tilingAnimTime/s+1);}
@@ -920,7 +919,7 @@ void playTilingAnimation(Layer *l) {
   if (tilingFrame<0) {blitTilingAnimFrame(l,f0); return;}
   tilingFrame %= (s+1);
   if (doubleSided && tilingFrame >= s2) {
-    tilingFrame = s - 1 - (tilingFrame - s2);
+    tilingFrame = s2 - (tilingFrame - s2);
   }
   tilingFrame += l->toolInfo.tilingAnimFirstFrame;
   l->toolInfo.tilingAnimFrame = tilingFrame;
