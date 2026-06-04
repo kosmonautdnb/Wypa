@@ -71,6 +71,9 @@ public:
   void load(const String &fileName) {
     this->fileName = fileName;
     Layer *l = loadImage(String(""), fileName);
+    if (l == NULL) {
+      l = loadThumb(String(""), fileName);
+    }
     if (l == NULL || l->width <= 1 || l->height <= 1) {
       if (l != NULL) delete l;
       width = 1; height = 1;
@@ -268,7 +271,7 @@ void blitGallery() {
     int k = (int)floor(i-1+currentIndex);
     if ((unsigned int)k < galleryFiles.size()) {
       int mapIndex = (k + GALLERYTEXTURECOUNT) % GALLERYTEXTURECOUNT;
-      gallery[mapIndex]->update(galleryFiles[k]); if (gallery[mapIndex]->isInvalid()) {galleryFiles.erase(k,1); continue;}
+      gallery[mapIndex]->update(galleryFiles[k]);
       gallery[mapIndex]->blit(i-(currentIndex-floor(currentIndex)));
     }
   }

@@ -1832,7 +1832,6 @@ void CanvasControl::zoomBy(Canvas *canvas, double screenPixelCenterX, double scr
 void Canvas::init(int width, int height) {
   transform.clear();
   if (pixels != NULL) {delete[] pixels; pixels = NULL;}
-  if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;}
   pixels = new unsigned int[width*height];
   if (pixels==NULL) {
     this->width = 0;
@@ -1840,6 +1839,7 @@ void Canvas::init(int width, int height) {
     return;
   }
   memset(pixels,0,width*height*sizeof(unsigned int));
+  if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;}
   pixelStates = new unsigned char[width*height];
   if (pixelStates==NULL) {
     this->width = 0;
@@ -1853,6 +1853,28 @@ void Canvas::init(int width, int height) {
   this->canvasY0 = 0;
   this->canvasX1 = width*aspectRatio*glFrameBufferHeight/glFrameBufferWidth;
   this->canvasY1 = height;
+}
+
+void Canvas::resize(int newWidth, int newHeight) {
+  if (newWidth<1 || newHeight<1) return;
+  if (pixels != NULL) {delete[] pixels; pixels = NULL;}
+  pixels = new unsigned int[newWidth*newHeight];
+  if (pixels==NULL) {
+    this->width = 0;
+    this->height = 0;
+    return;
+  }
+  memset(pixels,0,newWidth*newHeight*sizeof(unsigned int));
+  if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;}
+  pixelStates = new unsigned char[newWidth*newHeight];
+  if (pixelStates==NULL) {
+    this->width = 0;
+    this->height = 0;
+    return;
+  }
+  memset(pixelStates,0,newWidth*newHeight*sizeof(unsigned char));
+  this->width = newWidth;
+  this->height = newHeight;
 }
 
 Canvas *Canvas::clone() {

@@ -1154,6 +1154,31 @@ void loadImage(const char *shortPath, const char *longFileName) {
   loadedSomething();
 }
 
+RGBAImage generateThumbFromLayer(Layer *l) {
+  RGBAImage ret;
+  if (l != NULL) {
+    RGBAImage img;
+    img.data = l->pixels;
+    img.width = l->width;
+    img.height = l->height;
+    int newWidth = img.width;
+    int newHeight = img.height;
+    if (newWidth > 0 && newHeight > 0) {
+      if (newWidth>newHeight) {
+        newHeight = 256*newHeight/newWidth;
+        newWidth = 256;
+      } else {
+        newWidth = 256*newWidth/newHeight;
+        newHeight = 256;
+      }
+      if (newWidth > 0 && newHeight > 0) {
+        ret = img.getResized(newWidth,newHeight);
+      }
+    }
+  }
+  return ret;
+}
+
 void saveImage(const char *shortPath, const char *longFileName) {
   initStatusBar();
   mz_zip_archive &zip = globalZip;
@@ -1173,6 +1198,22 @@ void saveImage(const char *shortPath, const char *longFileName) {
 
   updateStatusBar();
   Layer *l = currentCanvas->getSelectionAsLayer(false,true,true);
+  RGBAImage thumb;
+
+  if (l != NULL) {
+    thumb = generateThumbFromLayer(l);
+  } else {
+    // this is for pictures with tilemaps, sorry (it maybe needs a lot of memory)
+    duplicatePicture(false);
+    Canvas *c = canvas.back();  canvas.resize(canvas.size()-1);
+    c->resize(c->canvasX1 - c->canvasX0,c->canvasY1 - c->canvasY0);
+    Canvas *d = currentCanvas; currentCanvas = c; blitCanvas(); currentCanvas = d;
+    Layer *l2 = layerFromCanvas(c);
+    thumb = generateThumbFromLayer(l2); 
+    delete c;
+    delete l2;
+  }
+ 
   if (l != NULL) {
     updateStatusBar();
     String fileName = "image.png";
@@ -1189,6 +1230,21 @@ void saveImage(const char *shortPath, const char *longFileName) {
     dosRemoveFile(fileName.c_str());
     updateStatusBar();
     delete l;
+  }
+
+  if (thumb.data != NULL) {
+    if (thumb.width >= 1 && thumb.height >= 1) {
+      String fileName = "thumb.png";
+      dosRemoveFile(fileName.c_str());
+      updateStatusBar();
+      thumb.savePNG(fileName.c_str());
+      updateStatusBar();
+      mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
+      updateStatusBar();
+      dosRemoveFile(fileName.c_str());
+      updateStatusBar();
+    }
+    thumb.free();
   }
 
   if (!mz_zip_writer_finalize_archive(&zip)) allWentWell = false;
@@ -1461,9 +1517,27 @@ Layer *loadImage(const String &filePath, const String &fileName) {
   if (img.data != NULL) {
     ret = new Layer();
     ret->init(img.width,img.height);
-    delete[] ret->pixels;
-    ret->pixels = img.data;
-    // no free of img needed here
+    memcpy(ret->pixels,img.data,ret->width*ret->height*sizeof(unsigned int));
+    img.free();
+  }
+  loadedSomething();
+  return ret;
+}
+
+Layer *loadThumb(const String &filePath, const String &fileName) {
+  Layer *ret = NULL;
+  RGBAImage img;
+  if (toLower(getExtension(fileName)) == ".wyp") {
+    Array<unsigned char> array;
+    if (readZippedFile(filePath.c_str(), fileName.c_str(), "thumb.png", array)) {
+      img = RGBAImage::fromMemory(&array[0],array.size());
+    }
+  }
+  if (img.data != NULL) {
+    ret = new Layer();
+    ret->init(img.width,img.height);
+    memcpy(ret->pixels,img.data,ret->width*ret->height*sizeof(unsigned int));
+    img.free();
   }
   loadedSomething();
   return ret;
@@ -1471,6 +1545,10 @@ Layer *loadImage(const String &filePath, const String &fileName) {
 
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName) {
   Layer *l = loadImage(String(path), String(fileName));
+  if (l == NULL) {
+    l = loadThumb(String(path), String(fileName));
+  }
+
   if (l == NULL) {
     if (getExtension(toLower(fileName)) == ".ttf") {
       String fullFileName = shortFileName(dosFileName(String(path)+String(fileName)));

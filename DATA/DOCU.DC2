@@ -6,6 +6,10 @@
 "" _N_
 "Remember sliders can be changed by value with CTRL." _N_
 "" _N_
+"Troubleshooting{" _N_
+  "You almost always can press CTRL and Escape to exit." _N_
+"}" _N_
+"" _N_
 "Source code{" _N_
   "Wypa is intended as an easy and very small program." _N_
   "So to say, the source code may not be understandable." _N_

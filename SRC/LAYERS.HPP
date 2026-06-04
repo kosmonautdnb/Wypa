@@ -767,6 +767,7 @@ public:
   }
 
   void init(int width, int height);
+  void resize(int newWidth, int newHeight);
   Canvas *clone();
   void clearUpdateFlag();
   void updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor);
@@ -915,6 +916,7 @@ extern float monitorGamma;
 extern bool shouldRecreateQuantization;
 extern bool showOnlyActiveLayersSelection;
 
+Layer *layerFromCanvas(Canvas *canvas);
 void repaintLayer(Layer *layer, bool fullUpdate);
 void blitCanvas();
 
