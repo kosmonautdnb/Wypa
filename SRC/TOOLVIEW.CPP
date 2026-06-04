@@ -806,8 +806,8 @@ void updateTilingImage(const RGBAImage &image) {
         double y2 = (double)(y - tilingTextureHeight*0.5)*scale/py;
         x2 += image.width*0.5;
         y2 += image.height*0.5;
-        int x3 = (int)floor(x2);
-        int y3 = (int)floor(y2);
+        int x3 = (int)floor(x2+0.5);
+        int y3 = (int)floor(y2+0.5);
         if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
       }
       tilingTextureContent[x+y*tilingTextureWidth] = gammaCorrect(col);
@@ -831,8 +831,8 @@ void updateTilingImageAnim(const RGBAImage &image) {
           double y2 = (double)(y - tilingTextureHeight*0.5)*scale/py;
           x2 += image.width*0.5;
           y2 += image.height*0.5;
-          int x3 = (int)floor(x2);
-          int y3 = (int)floor(y2);
+          int x3 = (int)floor(x2+0.5);
+          int y3 = (int)floor(y2+0.5);
           if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) {
             col = image.data[x3+y3*image.width];
             int r = (col) & 255;
