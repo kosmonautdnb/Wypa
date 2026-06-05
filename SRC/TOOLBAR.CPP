@@ -37,7 +37,7 @@ int tool = TOOL_NONE;
 int lastTool = TOOL_NONE;
 bool fullScreen = false;
 
-const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tiling","Blur","Overlays","Modify","Tilemap"};
+const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tileset","Blur","Overlays","Modify","Tilemap"};
 
 void initToolBar() {
 }
@@ -124,10 +124,10 @@ void drawToolBar() {
     toolBarButton("magicTool",TOOL_MAGIC); toolTip("Postprocessing tool");
     toolBarButton("blurTool",TOOL_BLUR); toolTip("Blur tool");
     toolBarButton("measureTool",TOOL_MEASURE); toolTip("Measure tool");
-    toolBarButton("tilingTool",TOOL_TILING); toolTip("Tiling tool");
-    toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
     toolBarButton("modifyTool",TOOL_MODIFY); toolTip("Modify tool");
+    toolBarButton("tilingTool",TOOL_TILING); toolTip("Tileset tool");
     toolBarButton("tilemapTool",TOOL_TILEMAP); toolTip("Tilemap tool");
+    toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
     ImGui::End();
   }
   if (lastTool != tool) {toolChangeMessage(lastTool,tool); lastTool = tool;}

@@ -99,7 +99,7 @@
       "Let's you save the Wypa .wyp image you are currently" _N_
       "editing." _N_
     "}" _N_
-    "Import image{" _N_
+    "Load any image as a single layer{" _N_
       "If you load a Wypa .wyp image with this it gets 'reduced'" _N_
       "to a single layer." _N_
       "This option is for loading other formats than .wyp" _N_
@@ -914,7 +914,7 @@
     "Mouse down selects the first point and consecutive mouse up" _N_
     "selects the second point." _N_
   "}" _N_
-  "Tiling tool{" _N_
+  "Tileset tool{" _N_
     "You can organize tilesets with this." _N_
     "You need a grid size (width and height per cell)." _N_
     "With the left mouse button you get a cells bitmap content." _N_
