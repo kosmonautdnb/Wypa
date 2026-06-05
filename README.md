@@ -1,5 +1,5 @@
 # Wypa
-A tiny and fastcoded swift and DOS based Photoshop like picture edit program. (in development). 
+##If you are using Dos and need a freeware alternative to "Photoshop" or "Clipstudio paint". It may have some problems left, however it's already useful for image manipulations on Dos.  
 
 Tiny usage video here:  
 https://www.youtube.com/watch?v=420j0mS6s1w&pp  
