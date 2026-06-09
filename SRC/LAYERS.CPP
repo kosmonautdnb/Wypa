@@ -3472,7 +3472,16 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     if (i3 == 0 || here.z > boundingBox.z) boundingBox.z = here.z;
     if (i3 == 0 || here.w > boundingBox.w) boundingBox.w = here.w;
   }
-  if (oneIsTileMap && (!allIsTileMap)) return NULL; if (oneIsTileMap) return getMergedTileMapLayer(this,layers);
+  if (oneIsTileMap && (!allIsTileMap)) {
+    for (int i = 0; i < layers.size(); i++) {
+      if (layers[i]->type == LAYERTYPE_TILEMAP) {
+        Layer *l2 = NULL;
+        for (int j = 0; j < layers.size(); j++) if (layers[i]->tileSourceLayerId == layers[j]->id) {l2 = layers[j]; break;}
+        if (l2 == NULL) return NULL; 
+      }
+    }
+  }
+  if (oneIsTileMap && allIsTileMap) return getMergedTileMapLayer(this,layers);
   int x0 = (int)floor(boundingBox.x);
   int y0 = (int)floor(boundingBox.y);
   int x1 = (int)floor(boundingBox.z);
@@ -3508,7 +3517,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   copyCanvas->transform.update();
 
   copyCanvas->layers = layers;
-  hilightSelection = false;
+  hilightSelection = false; // !!
   overlaysOn = false;
   unsigned int modeBefore = LAYERMODE_UNDEFINED; if (!copyCanvas->layers.empty()) {modeBefore = copyCanvas->layers.back()->mode; copyCanvas->layers.back()->mode = LAYERMODE_COPY;}
   copyCanvas->update(true);

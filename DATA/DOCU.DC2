@@ -1105,6 +1105,9 @@
   "Single on/off - just the current selected layer is visible." _N_
   "Highlite layers - all other layers are darkened." _N_
   "" _N_
+  "Be aware that merging of a tilemap layer onto a bitmap layer" _N_
+  "only works, if you also include the tileset in the merge." _N_
+  "" _N_
   "Layer modes{" _N_
     "ALPHA = normal alpha blending." _N_
     "PREMULTIPLIEDALPHA = with this you don't have smears when combining." _N_
