@@ -245,7 +245,7 @@ void dialogDocumentation(bool openIt) {
 
   DIALOGSTART("Tiny documentation")
   bool toFirst = false;
-  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();if (ImGui::InputText("##DIALOGDOCUMENTATIONFILTER",filter,FILTERNAMEMAX2)) {toFirst = true; index = 0;}
+  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine(); DIALOGKEYSHERE(); if (ImGui::InputText("##DIALOGDOCUMENTATIONFILTER",filter,FILTERNAMEMAX2)) {toFirst = true; index = 0;}
 
   ImGui::SameLine();
   if (ImGui::Button("Collapse all##DIALOGDOCUMENTATIONCOLLAPSEALL")) {
@@ -478,7 +478,7 @@ void dialogInsertTileMapLayer(bool openIt) {
 
   DIALOGSTART("Insert tilemap layer")
   noUndoMessage();
-  ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGINSERTTILEMAPLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The name of the tilemap layer");
+  ImGui::Text("Layer name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGINSERTTILEMAPLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The name of the tilemap layer");
   ImGui::PushItemWidth(64+16*2);
   ImGui::Text("Tilemap width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGINSERTTILEMAPWIDTH",&w); toolTip("The width in tiles of the tilemap layer");
   ImGui::Text("Tilemap height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGINSERTTILEMAPHEIGHT",&h); toolTip("The height in tiles of the tilemap layer");
@@ -527,7 +527,7 @@ void dialogImportFolder(bool openIt) {
 
   DIALOGSTART("Insert folder layer")
   noUndoMessage();
-  ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGIMPORTFOLDERLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The name of the layer");
+  ImGui::Text("Layer name"); ImGui::SameLine();  DIALOGKEYSHERE(); ImGui::InputText("##DIALOGIMPORTFOLDERLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The name of the layer");
   ImGui::PushItemWidth(64+16*2);
   ImGui::Text("Layer width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGIMPORTFOLDERWIDTH",&w); toolTip("The width of the layer where the imported pictures are on");
   ImGui::Text("Layer height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGIMPORTFOLDERHEIGHT",&h); toolTip("The height of the layer where the imported pictures are on");
@@ -801,7 +801,7 @@ void dialogAddLayer(bool openIt) {
   }
   DIALOGSTART("Add layer");
   noUndoMessage();
-  ImGui::Text("Layer name"); ImGui::SameLine(); ImGui::InputText("##DIALOGADDLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The new layers name");
+  ImGui::Text("Layer name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGADDLAYERNAME",layerName,LAYERNAMEMAX); toolTip("The new layers name");
   ImGui::PushItemWidth(64+16*2);
   ImGui::Text("Layer width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERWIDTH",&w); toolTip("The new layers width in pixels");
   ImGui::Text("Layer height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGADDLAYERHEIGHT",&h); toolTip("The new layers height in pixels");
@@ -967,7 +967,7 @@ void dialogPictureInfo(bool openIt) {
   int nameSize = 7*(PICTURENAMEMAX);
   ImGui::PushItemWidth(nameSize);
   ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9,0.9,0.9,1));
-  ImGui::Text("Name"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX); toolTip("The name of the picture");
+  ImGui::Text("Name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGPICTUREINFOPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX); toolTip("The name of the picture");
   ImGui::Text("Author"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOAUTHOR",currentCanvas->author, PICTURENAMEMAX); toolTip("The author of that picture");
   ImGui::PopStyleColor();
   ImGui::PopItemWidth();
@@ -2567,7 +2567,7 @@ void dialogNewImage(bool openIt) {
     aspectInches = hinches != 0 ? (double)winches / hinches : 1;
   }
   DIALOGSTART("New picture");
-  ImGui::Text("Picture name"); ImGui::SameLine(); ImGui::InputText("##DIALOGNEWIMAGENAME",imageName,PICTURENAMEMAX); toolTip("The name of the picture");
+  ImGui::Text("Picture name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGNEWIMAGENAME",imageName,PICTURENAMEMAX); toolTip("The name of the picture");
   ImGui::PushItemWidth(7*14);
   ImGui::Text("Type"); ImGui::SameLine(); ImGui::Combo("##DIALOGNEWIMAGETYPE",&type, imageMeasureNames, IMAGEMEASURE_COUNT); toolTip("The measure type for the image creation");
   ImGui::PopItemWidth();
@@ -2834,12 +2834,13 @@ void dialogCreateFolder(bool openIt) {
   ImGui::TextWrapped("Long path:%s",longFileName(f).c_str()); toolTip("The long (doslfn.com) DOS path");
   ImGui::EndChild();
   ImGui::Separator();
-  ImGui::Text("Folder name"); ImGui::SameLine(); ImGui::InputText("##DIALOGCREATEFOLDERCHILD",folderName,MAX_LFN_PATH); toolTip("How the new folder to create should be named here");
+  ImGui::Text("Folder name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGCREATEFOLDERCHILD",folderName,MAX_LFN_PATH); toolTip("How the new folder to create should be named here");
   ImGui::Separator();
   if (!k.empty()) {
     if (ImGui::Button("Create folder##DIALOGCREATEFOLDERCREATE")) {
-      if (!doslfnCreateDirectory(folderName)) {
-        dosCreateFolder(String(folderName));
+      String f = loadSaveShortPath + k;
+      if (!doslfnCreateDirectory(f.c_str())) {
+        dosCreateFolder(f);
       }
       fileSystemUpdatedHere = true;
       ImGui::CloseCurrentPopup();
@@ -3100,8 +3101,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::Separator();
   ImGui::PushItemWidth(w);
   ImGui::Text("Filename");
-  DIALOGKEYSHERE();
-  ImGui::InputText("##DIALOGLOADSAVEFILENAME",&fileNames[mode][0],NAMEMAXHERE); TOOLTIP("The current filename")
+  DIALOGKEYSHERE(); ImGui::InputText("##DIALOGLOADSAVEFILENAME",&fileNames[mode][0],NAMEMAXHERE); TOOLTIP("The current filename")
   ImGui::PopItemWidth();
   ImGui::Separator();
   if (ImGui::Button(combined(String(proceedButton[mode])+String("##DIALOGLOADSAVEPROCEED")).c_str())) {
