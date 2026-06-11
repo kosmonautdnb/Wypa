@@ -688,6 +688,7 @@ Array<String> getLines(const char *string) {
     }
     k += String::fromChar(c);
   }
+  if (!k.empty()) ret.push_back(k);
   return ret;
 }
 
