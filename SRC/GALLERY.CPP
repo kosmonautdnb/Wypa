@@ -50,10 +50,12 @@ public:
   String fileName;
   File file;
   int width,height;
+  bool hasAlpha;
 
   GalleryEntry() {
     fileName = "";
     width = height = 1;
+    hasAlpha = false;
     glGenTextures(1,&texHandle);
     glBindTexture(GL_TEXTURE_2D,texHandle);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -84,6 +86,7 @@ public:
       reverseLastLayerIdCountUp();
       width = l->width; height = l->height;
       glBindTexture(GL_TEXTURE_2D,texHandle);
+      hasAlpha = false; for (int i = 0; i < width*height; i++) {if (((l->pixels[i]>>24)&255)!=255) {hasAlpha = true; break;}}
       glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, width, height, 0, GL_RGBA, GL_BYTE, l->pixels);
       glBindTexture(GL_TEXTURE_2D,0);
       delete l;
@@ -135,6 +138,12 @@ public:
 
     glEnd();
 
+    if (hasAlpha) {
+      glEnable(GL_BLEND);
+      //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // ALPHA
+      glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // PREMUL
+    }
+
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D,texHandle);
     glBegin(GL_QUADS);
@@ -144,6 +153,8 @@ public:
     glTexCoord2f(0,1); glVertex4f(left,bottom,0,1);
     glTexCoord2f(1,1); glVertex4f(right,bottom,0,1);
     glEnd();
+
+    if (hasAlpha) glDisable(GL_BLEND);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

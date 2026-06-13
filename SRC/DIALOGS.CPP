@@ -3107,20 +3107,27 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   if (ImGui::Button(combined(String(proceedButton[mode])+String("##DIALOGLOADSAVEPROCEED")).c_str())) {
     lastPath = paths[mode];
     loadSaveFunc = NULL;
-    if (funcs[mode]!=NULL) {
-      loadSaveFunc = funcs[mode]; 
-      loadSaveShortPath = paths[mode]; 
-      loadSaveLongFileName = fileNames[mode];
-      loadSaveLongFileName.resize(strlen(loadSaveLongFileName.c_str()));
-      if (toLower(proceedButton[mode])=="save") {
-        if (loadSaveLongFileName.find(".")<0) {loadSaveLongFileName += dialogDefaultExtension[mode];}
-        dialogOverwrite(true);
-      } else {
-        callLoadSaveFunc();
-        dialogOverwriteDone = true;
-      }
+
+    String fileName = fileNames[mode];
+    fileName.resize(strlen(fileName.c_str()));
+
+    if (fileName.empty() && toLower(proceedButton[mode])!="select") {
+      dialogOverwriteDone = true;
+    } else {
+      if (funcs[mode]!=NULL) {
+        loadSaveFunc = funcs[mode]; 
+        loadSaveShortPath = paths[mode]; 
+        loadSaveLongFileName = fileName;
+        if (toLower(proceedButton[mode])=="save") {
+          if (loadSaveLongFileName.find(".")<0) {loadSaveLongFileName += dialogDefaultExtension[mode];}
+          dialogOverwrite(true);
+        } else {
+          callLoadSaveFunc();
+          dialogOverwriteDone = true;
+        }
+      } else dialogOverwriteDone = true;
     }
-    //ImGui::CloseCurrentPopup();
+    //ImGui::CloseCurrentPopup(); (this done via dialogOverwriteDone)
   } else TOOLTIP("Go on with this and use the file/folder");
 
   if (dialogOverwriteDone) {

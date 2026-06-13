@@ -533,6 +533,7 @@
       "It gets add to the pictures list and can directly be edited after" _N_
       "loading it." _N_
       "The gallery shows just the single layer/preview for a picture." _N_
+      "If the picture has transparencies, it is shown with \"Premul\"." _N_
     "}" _N_
     "Monitor gamma{" _N_
       "Let's you enter a gamma value for the monitor." _N_
