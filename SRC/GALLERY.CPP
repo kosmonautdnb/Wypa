@@ -71,6 +71,7 @@ public:
   }
 
   void load(const String &fileName) {
+    hasAlpha = false;
     this->fileName = fileName;
     Layer *l = loadImage(String(""), fileName);
     if (l == NULL) {
@@ -86,7 +87,7 @@ public:
       reverseLastLayerIdCountUp();
       width = l->width; height = l->height;
       glBindTexture(GL_TEXTURE_2D,texHandle);
-      hasAlpha = false; for (int i = 0; i < width*height; i++) {if (((l->pixels[i]>>24)&255)!=255) {hasAlpha = true; break;}}
+      for (int i = 0; i < width*height; i++) {if (((l->pixels[i]>>24)&255)!=255) {hasAlpha = true; break;}}
       glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, width, height, 0, GL_RGBA, GL_BYTE, l->pixels);
       glBindTexture(GL_TEXTURE_2D,0);
       delete l;
