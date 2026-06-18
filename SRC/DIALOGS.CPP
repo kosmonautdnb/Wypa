@@ -2112,6 +2112,7 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
       alreadyFound[pos8] |= (unsigned char)(1<<pos7);
       if (currentIndex+2 >= currentSize) {
         colorsWithClusterId.resize(colorsWithClusterId.size()+sizeIncrease);
+        currentSize = colorsWithClusterId.size();
       }
       colorsWithClusterId[currentIndex+0] = c;
       colorsWithClusterId[currentIndex+1] = 0;
@@ -2243,7 +2244,7 @@ void dialogQuantizePalette(bool openIt) {
   ImGui::Text("Use luminance"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGQUANTIZEPALETTELUMINANCE",&useLuminance); toolTip("Not just simple greyscale for comparisons");
   ImGui::PopItemWidth();
 
-  if (roundButton("Preview",true)) {
+  if (roundButton("Preview",true) && (!locked(l,LOCK_ANY))) {
     Array<unsigned int> palette;
     getQuantizedPaletteKMeans(palette, colorCount, clone, useLuminance,32);
     if (l->width == clone->width && l->height == clone->height) {
@@ -2261,16 +2262,18 @@ void dialogQuantizePalette(bool openIt) {
     for (int i = 0; i < quantizedPalette.size(); i++) {
       quantizedPalette[i] = getImVec4Color(palette[i]);
     }
-    memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
+    shouldUpdateAll = true;
     ImGui::CloseCurrentPopup();
     sortPalette(quantizedPalette);
     paletteToSave = &quantizedPalette; dialogLoadSave(true,DIALOG_SAVEPALETTE);
   } else toolTip("Generate the palette and save it for later use");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGQUANTIZEPALETTECLOSE")) {
-    memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
+    shouldUpdateAll = true;
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't do anything");
   DIALOGEND()

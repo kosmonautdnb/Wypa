@@ -416,6 +416,7 @@
       "The algorithm (kMeans) may not be exact in any case and" _N_
       "produce some colors too few (or too much?). But in the" _N_
       "test cases all worked well." _N_
+      "You may use \"luminance\" mode for more/less visual appeal." _N_
       "You can save the generated n color palette to a .pa2 file." _N_
       "For the final step you have to use Quantize layer(s) to" _N_
       "palette (the option here below). Or you can use the palette" _N_
