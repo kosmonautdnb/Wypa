@@ -2058,8 +2058,8 @@ void useToolTiling() {
   mouseClickUndo();
   double lx = mouseX, ly = mouseY; currentCanvas->getLayerPos(l,lx,ly,lx,ly);
   int sx = 0, sy = 0;
-  if (l->toolInfo.tilingWidth>0) sx = (int)floor((lx-l->toolInfo.tilingOffsetX)/l->toolInfo.tilingWidth)*l->toolInfo.tilingWidth;
-  if (l->toolInfo.tilingHeight>0) sy = (int)floor((ly-l->toolInfo.tilingOffsetY)/l->toolInfo.tilingHeight)*l->toolInfo.tilingHeight;
+  if (l->toolInfo.tilingWidth>0) sx = (int)floor((lx-l->toolInfo.tilingOffsetX)/l->toolInfo.tilingWidth)*l->toolInfo.tilingWidth+l->toolInfo.tilingOffsetX;
+  if (l->toolInfo.tilingHeight>0) sy = (int)floor((ly-l->toolInfo.tilingOffsetY)/l->toolInfo.tilingHeight)*l->toolInfo.tilingHeight+l->toolInfo.tilingOffsetY;
   if (ImGui::IsMouseClicked(0)) {
     if (controlKeyId == CONTROLKEY_SHIFT) {
       l->selectNone();
