@@ -2953,8 +2953,12 @@ void useToolTileMap() {
 void useTool() {
   double mouseXBefore = mouseX;
   double mouseYBefore = mouseY;
+  double mouseDXBefore = mouseDX;
+  double mouseDYBefore = mouseDY;
   if (lockedMouseX) mouseX = lockedMousePosX;
   if (lockedMouseY) mouseY = lockedMousePosY;
+  if (lockedMouseX) mouseDX = 0;
+  if (lockedMouseY) mouseDY = 0;
   switch(tool) {
   case TOOL_WAND: {
     useToolWand();
@@ -3007,4 +3011,6 @@ void useTool() {
   }
   mouseX = mouseXBefore;
   mouseY = mouseYBefore;
+  mouseDX = mouseDXBefore;
+  mouseDY = mouseDYBefore;
 }
