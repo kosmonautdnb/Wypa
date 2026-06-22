@@ -41,6 +41,7 @@ bool roundButton(const char *name, bool enabled);
 
 bool galleryVisible = false;
 float galleryScale = 1.f;
+int galleryScrollTo = -1;
 
 const int GALLERYTEXTURECOUNT = 4;
 
@@ -299,14 +300,14 @@ void blitGallery() {
   }
 
   if (!ImGui::GetIO().WantCaptureKeyboard) {
-    if (currentKey == GL_VK_RIGHT || currentKey == '6') {destIndex++;}
-    if (currentKey == GL_VK_LEFT || currentKey == '4') {destIndex--;}
+    if (currentKey == GL_VK_RIGHT || currentKey == '6') {destIndex++; galleryScrollTo = destIndex;}
+    if (currentKey == GL_VK_LEFT || currentKey == '4') {destIndex--; galleryScrollTo = destIndex;}
     if (currentKey == GL_VK_ESCAPE) {galleryVisible = !galleryVisible;}
   }
   if (!ImGui::GetIO().WantCaptureMouse) {
     if (ImGui::IsMouseClicked(0)) {
-      if (mouseX < glFrameBufferWidth*0.5) destIndex--;
-      if (mouseX > glFrameBufferWidth*0.5) destIndex++;
+      if (mouseX < glFrameBufferWidth*0.5) {destIndex--; galleryScrollTo = destIndex;}
+      if (mouseX > glFrameBufferWidth*0.5) {destIndex++; galleryScrollTo = destIndex;}
     }
   }
 
@@ -319,9 +320,9 @@ void drawGalleryView() {
   if (roundButton("Select folder",true)) {
     dialogLoadSave(true, DIALOG_SELECTGALLERYFOLDER);
   } else toolTip("Select the folder to display the images from");
-  if (roundButton("<<",true)) destIndex--; else toolTip("Scroll to the image before");
+  if (roundButton("<<",true)) {destIndex--; galleryScrollTo = destIndex;} else toolTip("Scroll to the image before");
   ImGui::SameLine();
-  if (roundButton(">>",true)) destIndex++; else toolTip("Scroll to the image beyond");
+  if (roundButton(">>",true)) {destIndex++; galleryScrollTo = destIndex;} else toolTip("Scroll to the image beyond");
   ImGui::Separator();
 
   GalleryEntry *a = gallery[0];
@@ -357,8 +358,10 @@ void drawGalleryView() {
     ImGui::Text("%s",galleryFiles[i].name.full.last(14).c_str());
     ImVec2 minB = ImGui::GetItemRectMin();
     ImVec2 maxB = ImGui::GetItemRectMax();
+    if (galleryScrollTo == i) ImGui::SetScrollPosHere();
     if (i == (int)currentIndex) ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x40ffff00);
     if (ImGui::IsMouseClicked(0) && ImGui::IsMouseHoveringRect(minB,maxB)) {currentIndex = i; destIndex = (int)currentIndex;}
   }
   ImGui::EndChild();
+  galleryScrollTo = -1;
 }

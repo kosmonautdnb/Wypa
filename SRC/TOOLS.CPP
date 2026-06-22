@@ -35,6 +35,7 @@
 #include "UNDO.HPP"
 #include "STL/CHARSET.HPP"
 #include "STL/DELAUNTR.HPP"
+#include "GALLERY.HPP"
 #include <math.h>
 
 
@@ -443,7 +444,7 @@ void Gradient::update() {
 }
 
 bool isPaintAreaActive() {
-  return (!ImGui::GetIO().WantCaptureMouse) && (!ImGui::GetIO().WantCaptureKeyboard);
+  return (!ImGui::GetIO().WantCaptureMouse) && (!ImGui::GetIO().WantCaptureKeyboard) && (!galleryVisible);
 }
 
 Array<unsigned short> quantization;
