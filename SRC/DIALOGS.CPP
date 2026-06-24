@@ -2715,7 +2715,7 @@ void exportLayersRawDialogOpen(const char *shortPath, const char *longFileName) 
 }
 
 typedef void (*LOADSAVEFUNC)(const char *shortPath, const char *longFileName);
-const char *imgs = ".png,.jpg,.tga,.bmp,.psd,.gif,.pic,.pnm,.hdr,.svg";
+const char *imgs = ".png,.jpg,.tga,.bmp,.psd,.gif,.pic,.pnm,.hdr,.svg,.pcx,.lbm";
 const char *png = ".png";
 const char *psd = ".psd";
 const char *all = "*.*";

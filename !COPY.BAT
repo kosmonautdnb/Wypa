@@ -23,6 +23,7 @@ copy /Y c:\_STL_\OBJECT.CPP SRC\STL\
 copy /Y c:\_STL_\PAIR.HPP SRC\STL\
 copy /Y c:\_STL_\PARSON.HPP SRC\STL\
 copy /Y c:\_STL_\PARSON.CPP SRC\STL\
+copy /Y c:\_STL_\PCXLBML.HPP SRC\STL\
 copy /Y c:\_STL_\PSDIMAGE.HPP SRC\STL\
 copy /Y c:\_STL_\PSDIMAGE.CPP SRC\STL\
 copy /Y c:\_STL_\SET.HPP SRC\STL\

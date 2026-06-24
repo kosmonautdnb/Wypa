@@ -32,8 +32,8 @@
 #include "STL/PSDIMAGE.HPP"
 #include "TOOLVIEW.HPP"
 #include "TOOLS.HPP"
-#include "STL\NANOSVG.HPP"
-#include "STL\NSVGRAST.HPP"
+#include "STL/NANOSVG.HPP"
+#include "STL/NSVGRAST.HPP"
 #include "DIALOGS.HPP"
 #include "STL/PARSON.HPP"
 #include "STL/JSONWRT.HPP"
@@ -51,6 +51,10 @@
 #include "FILTER.HPP"
 #include "GALLERY.HPP"
 #include <math.h>
+#define __PCXLBMLOAD_IMPLEMENTATION__
+#define __PCXLBMLOAD_MALLOCINSTEADOFNEW__
+#include "STL/PCXLBML.HPP"
+
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
 
@@ -1504,6 +1508,14 @@ Layer *loadImage(const String &filePath, const String &fileName) {
       String fullFileName = shortFileName(dosFileName(String(filePath)+String(fileName)));
       img = getSVGImage(fullFileName,1);
     }
+    if (toLower(getExtension(fileName)) == ".pcx") {
+      String fullFileName = shortFileName(dosFileName(String(filePath)+String(fileName)));
+      loadPCX(fullFileName.c_str(),(PCXLBM_U32**)&img.data,(PCXLBM_U32*)&img.width,(PCXLBM_U32*)&img.height);
+    }
+    if (toLower(getExtension(fileName)) == ".lbm") {
+      String fullFileName = shortFileName(dosFileName(String(filePath)+String(fileName)));
+      loadLBM(fullFileName.c_str(),(PCXLBM_U32**)&img.data,(PCXLBM_U32*)&img.width,(PCXLBM_U32*)&img.height);
+    }
   }
 
   if (img.data == NULL) {
@@ -1514,7 +1526,6 @@ Layer *loadImage(const String &filePath, const String &fileName) {
       }
     }
   }
-
   if (img.data != NULL) {
     ret = new Layer();
     ret->init(img.width,img.height);
