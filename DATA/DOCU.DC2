@@ -8,6 +8,14 @@
 "" _N_
 "Troubleshooting{" _N_
   "You almost always can press CTRL and Escape to exit." _N_
+  "" _N_
+  "If you don't finish a text or number entering with enter," _N_
+  "you can't edit the picture further." _N_
+  "" _N_
+  "Look for the blinking \"!\" sign on the right side," _N_
+  "and press it before merging layers. Without pressing it" _N_
+  "before you may get wrong pixels in merges. If it stays" _N_
+  "red after pressing, try to press it together with SHIFT." _N_
 "}" _N_
 "" _N_
 "Source code{" _N_
@@ -37,6 +45,17 @@
   "even without many comments that would bloat the source." _N_
 "}" _N_
 "FreeDOS{" _N_
+  "Hard drive{" _N_
+    "ASOT FreeDOS uses Fat32. If you plan to buy a real" _N_
+    "USB hard drive to omit the USB wear out of USB" _N_
+    "sticks. You can buy any \"real\" USB hard drive up to max." _N_
+    "2TB (2 Terrabytes) and burn FreeDOS e.g. with RUFUS" _N_
+    "on Windows. You have to enable a \"special\" option" _N_
+    "in RUFUS to burn USB hard drives that are not USB sticks." _N_
+    "I strongly suggest using a real USB hard drive, since" _N_
+    "here some USB sticks already worn out due to the" _N_
+    "heavy usage of this and other programs." _N_
+  "}" _N_
   "If you use FreeDOS/DOS from an USB then keep in mind," _N_
   "that USB sticks may (relatively fast) wear out and get" _N_
   "slow when using them too much (write cycles)." _N_
