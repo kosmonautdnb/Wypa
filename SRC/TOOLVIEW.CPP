@@ -795,6 +795,7 @@ void updateTilingTexture() {
 void updateTilingImage(const RGBAImage &image) {
   double px = currentCanvas->control.pixelSizeX;
   double py = currentCanvas->control.pixelSizeY;
+  double eps = 0.001;
   for (int y = 0; y < tilingTextureHeight; y++) {
     for (int x = 0; x < tilingTextureWidth; x++) {
       unsigned int col = 0x00000000;
@@ -806,8 +807,8 @@ void updateTilingImage(const RGBAImage &image) {
         double y2 = (double)(y - tilingTextureHeight*0.5)*scale/py;
         x2 += image.width*0.5;
         y2 += image.height*0.5;
-        int x3 = (int)floor(x2+0.5);
-        int y3 = (int)floor(y2+0.5);
+        int x3 = (int)floor(x2+eps);
+        int y3 = (int)floor(y2+eps);
         if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
       }
       tilingTextureContent[x+y*tilingTextureWidth] = gammaCorrect(col);
@@ -820,6 +821,7 @@ void updateTilingImageAnim(const RGBAImage &image) {
   if (tilingTexture != 0) {
     double px = currentCanvas->control.pixelSizeX;
     double py = currentCanvas->control.pixelSizeY;
+    double eps = 0.001;
     for (int y = 0; y < tilingTextureHeight; y++) {
       for (int x = 0; x < tilingTextureWidth; x++) {
         unsigned int col = 0x00000000;
@@ -831,8 +833,8 @@ void updateTilingImageAnim(const RGBAImage &image) {
           double y2 = (double)(y - tilingTextureHeight*0.5)*scale/py;
           x2 += image.width*0.5;
           y2 += image.height*0.5;
-          int x3 = (int)floor(x2+0.5);
-          int y3 = (int)floor(y2+0.5);
+          int x3 = (int)floor(x2+eps);
+          int y3 = (int)floor(y2+eps);
           if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) {
             col = image.data[x3+y3*image.width];
             int r = (col) & 255;
@@ -963,7 +965,7 @@ void drawToolTilingView() {
     if (l->toolInfo.tilingHeight > 1024) l->toolInfo.tilingHeight = 1024;
     ImGui::PopItemWidth();
     ImGui::Separator();
-    ImGui::Image((ImTextureID)tilingTexture,ImVec2(tilingTextureWidth/(aspectRatio*main_window_yres/main_window_xres),tilingTextureHeight));
+    ImGui::Image((ImTextureID)tilingTexture, ImVec2(tilingTextureWidth/(aspectRatio*main_window_yres/main_window_xres),tilingTextureHeight));
     ImVec2 minB = ImGui::GetItemRectMin();
     ImVec2 maxB = ImGui::GetItemRectMax();
     minB.x -= 1;
