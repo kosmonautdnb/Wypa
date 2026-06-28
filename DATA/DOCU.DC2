@@ -911,6 +911,8 @@
     "You can apply an input gamma to be applied before the grading." _N_
     "You can apply an output gamma to be applied after the grading." _N_
     "The gamma settings have an \"inverse\" button for ease." _N_
+    "The warmth setting is a simple -1 to 1 value, not in Kelvin." _N_
+    "The operators are processed like the item order." _N_
     "" _N_
     "Fast quant is not 100% correct. The \"Quantize\" menu point is better." _N_
     "The current palette is used for quantization/color reduction." _N_
