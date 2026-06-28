@@ -216,6 +216,7 @@ public:
   bool invertG;
   bool invertB;
   bool invertA;
+  float warmth;
   float posterizeGrey;
   float posterizeRed;
   float posterizeGreen;
@@ -282,6 +283,7 @@ public:
   S_BOOL("invertG",(__o__)->invertG);\
   S_BOOL("invertB",(__o__)->invertB);\
   S_BOOL("invertA",(__o__)->invertA);\
+  S_FLOAT("warmth",(__o__)->warmth);\
   S_FLOAT("posterizeGrey",(__o__)->posterizeGrey);\
   S_FLOAT("posterizeRed",(__o__)->posterizeRed);\
   S_FLOAT("posterizeGreen",(__o__)->posterizeGreen);\

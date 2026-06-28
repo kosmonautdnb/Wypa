@@ -348,6 +348,7 @@ float *ColorTransform::processingGet() {
       if (invertG) {gf = -gf; gf += 255.0/3.0;}
       if (invertB) {bf = -bf; bf += 255.0/3.0;}
     }
+
     if (component == 3) {
       af = value;
       float af2 = af * colorMatrix[3*4+3] + colorMatrix[4*4+3];
@@ -379,6 +380,16 @@ float *ColorTransform::processingGet() {
       if (f > 255) f = 255;
     }
     f = powd(f/255.0,gam1)*255.0;
+
+    switch(channel) { // sorry it's only possible after gamma currently
+      case 0: {
+        if (component < 3) f += warmth*255/3;
+      } break;
+      case 2: {
+        if (component < 3) f -= warmth*255/3;
+      } break;
+    }
+
     processing[i] = f;
   }
   return processing;
@@ -584,6 +595,7 @@ void ColorTransform::reset() {
   invertG = false;
   invertB = false;
   invertA = false;
+  warmth = 0;
   posterizeGrey = 0;
   posterizeRed = 0;
   posterizeGreen = 0;

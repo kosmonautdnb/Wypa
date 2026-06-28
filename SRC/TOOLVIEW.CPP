@@ -578,6 +578,8 @@ void drawToolMagicView() {
     ImGui::Text("Output gamma");
     v = &t->gamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Apply this gamma after the colorgrading");
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAMMAINVERT",&t->gammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Invert the gamma here gamma=(1.0/gamma)");
+
+    ImGui::Text("Warmth"); if (ImGui::SliderFloat("##DRAWTOOLMAGICWARMTH",&t->warmth,-1,1)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("The warmth of the color");
       
     ImGui::EndChild();
     ImGui::Separator();
