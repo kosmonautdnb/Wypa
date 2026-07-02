@@ -235,6 +235,7 @@ public:
   float thresholdLuma;
   bool thresholdInvert;
   float ditherStrength;
+  float paletteInfluence;
   float middleRedAdjust;
   float middleGreenAdjust;
   float middleBlueAdjust;
@@ -302,6 +303,7 @@ public:
   S_BOOL("thresholdInvert",(__o__)->thresholdInvert);\
   S_FLOAT("thresholdLuma",(__o__)->thresholdLuma);\
   S_FLOAT("ditherStrength",(__o__)->ditherStrength);\
+  S_FLOAT("paletteInfluence",(__o__)->paletteInfluence);\
   S_FLOAT("middleRedAdjust",(__o__)->middleRedAdjust);\
   S_FLOAT("middleGreenAdjust",(__o__)->middleGreenAdjust);\
   S_FLOAT("middleBlueAdjust",(__o__)->middleBlueAdjust);\
@@ -313,7 +315,7 @@ public:
   if (!save) (__o__)->shouldUpdate = true;\
   S_OBJECT_CLOSE();
 
-unsigned int quantizeFast(unsigned int col, float ditherStrength, int x, int y);
+unsigned int quantizeFast(unsigned int col, float ditherStrength, int x, int y, float paletteInfluence);
 
 class LayerUndoData {
 public:

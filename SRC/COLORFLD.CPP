@@ -440,7 +440,14 @@ ImVec4 getUnusedColor() {
 void insertColor() {
   for (int i = 0; i < palette.size(); i++) {
     if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
-      palette.insert(getUnusedColor(),i); 
+      ImVec4 c = getUnusedColor();
+      if (i > 0 && i < palette.size()) {
+        c.x = (palette[i].x - palette[i-1].x)*0.5 + palette[i-1].x;
+        c.y = (palette[i].y - palette[i-1].y)*0.5 + palette[i-1].y;
+        c.z = (palette[i].z - palette[i-1].z)*0.5 + palette[i-1].z;
+        c.w = (palette[i].w - palette[i-1].w)*0.5 + palette[i-1].w;
+      }
+      palette.insert(c,i); 
       foregroundColor = palette[i];
       return;
     }

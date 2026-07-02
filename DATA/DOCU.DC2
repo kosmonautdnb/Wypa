@@ -929,6 +929,7 @@
     "The current palette is used for quantization/color reduction." _N_
     "You have a \"dither\" option which actually only increases the" _N_
     "luminance in a checkerboard. You can define a factor e.g. how much." _N_
+    "You may change the influence of the palette to the final color." _N_
     "" _N_
     "For posterize you can define the step size per channel or for" _N_
     "just the luminance value. There also an offset definable, so" _N_
@@ -1092,9 +1093,10 @@
     "You can specify the number of color displayed per row." _N_
     "It's just a setting for more orderlyness." _N_
     "" _N_
-    "With \"Insert color\" you can insert a random color at the current" _N_
+    "With \"Insert color\" you can insert a color at the current" _N_
     "position. You may want to update this color with a right mouse" _N_
     "click to a chosen paint color then." _N_
+    "The inserted color is the average of the current and before color." _N_
     "" _N_
     "With \"Remove color\" you erase the current color at the" _N_
     "current position." _N_
