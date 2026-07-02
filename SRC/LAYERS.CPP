@@ -1618,6 +1618,84 @@ void Layer::greyScale() {
   updatedPixels(this);
 }
 
+void Layer::normalize() {
+  if (locked(this,LOCK_PIXELS)) return;
+  bool hasSel = hasSelection();
+  bool first = true;
+  int maxC = 0, minC = 0;
+  for (int i = 0; i < width*height; i++) {
+    if ((!hasSel)||(pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = pixels[i];
+      int r = col & 255;
+      int g = (col>>8) & 255;
+      int b = (col>>16) & 255;
+      int a = (col>>24) & 255;
+      if (first || r < minC) minC = r;
+      if (first || g < minC) minC = g;
+      if (first || b < minC) minC = b;
+      if (first || r > maxC) maxC = r;
+      if (first || g > maxC) maxC = g;
+      if (first || b > maxC) maxC = b;
+      first = false;
+    }
+  }
+  if (minC != maxC) {
+    for (int i = 0; i < width*height; i++) {
+      if ((!hasSel)||(pixelStates[i] & PIXELSTATE_SELECTED)) {
+        unsigned int col = pixels[i];
+        int r = col & 255;
+        int g = (col>>8) & 255;
+        int b = (col>>16) & 255;
+        int a = (col>>24) & 255;
+        r = (r - minC)*255/(maxC-minC);
+        g = (g - minC)*255/(maxC-minC);
+        b = (b - minC)*255/(maxC-minC);
+        pixels[i] = (r)|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+  updatedPixels(this);
+}
+
+void Layer::whiteBalance() {
+  if (locked(this,LOCK_PIXELS)) return;
+  bool hasSel = hasSelection();
+  int ra = 0, ga = 0, ba = 0, wa = 0;
+  for (int i = 0; i < width*height; i++) {
+    if ((!hasSel)||(pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = pixels[i];
+      int r = col & 255;
+      int g = (col>>8) & 255;
+      int b = (col>>16) & 255;
+      int a = (col>>24) & 255;
+      ra += r; ga += g; ba += b; wa++;
+    }
+  }
+  if (wa > 0) {
+    double grey = (double)(ra + ga + ba)/wa/3.0;
+    double rs = grey / ((double)ra/wa);
+    double gs = grey / ((double)ga/wa);
+    double bs = grey / ((double)ba/wa);
+    for (int i = 0; i < width*height; i++) {
+      if ((!hasSel)||(pixelStates[i] & PIXELSTATE_SELECTED)) {
+        unsigned int col = pixels[i];
+        int r = col & 255;
+        int g = (col>>8) & 255;
+        int b = (col>>16) & 255;
+        int a = (col>>24) & 255;
+        r *= rs;
+        g *= gs;
+        b *= bs;
+        if (r > 255) r = 255;
+        if (g > 255) g = 255;
+        if (b > 255) b = 255;
+        pixels[i] = (r)|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+  updatedPixels(this);
+}
+
 void Layer::colorFromAlpha() {
   if (locked(this,LOCK_PIXELS)) return;
   for (int i = 0; i < width*height; i++) {
@@ -3393,6 +3471,22 @@ void Canvas::greyScale() {
   for (int i = 0; i < layers.size(); i++) {
     Layer *l = layers[i];
     if (l->state.selected || l->state.active) l->greyScale();
+  }
+  shouldUpdateAll = true;
+}
+
+void Canvas::normalize() {
+  for (int i = 0; i < layers.size(); i++) {
+    Layer *l = layers[i];
+    if (l->state.selected || l->state.active) l->normalize();
+  }
+  shouldUpdateAll = true;
+}
+
+void Canvas::whiteBalance() {
+  for (int i = 0; i < layers.size(); i++) {
+    Layer *l = layers[i];
+    if (l->state.selected || l->state.active) l->whiteBalance();
   }
   shouldUpdateAll = true;
 }

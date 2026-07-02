@@ -529,6 +529,8 @@ public:
   void fillSelectionWithColor(unsigned int color);
   void fillSelectionWithAlpha(unsigned char alpha);
   void greyScale();
+  void normalize();
+  void whiteBalance();
   void invertColor();
   void invertAlpha();
   void expandSelection(int pixels);
@@ -836,6 +838,8 @@ public:
   void expandSelection(int pixels);
   void antialiasSelected();
   void greyScale();
+  void normalize();
+  void whiteBalance();
   void setPixel(double x, double y, unsigned int color);
   void pixelLine(double x0,double y0,double x1,double y1,unsigned int color);
   

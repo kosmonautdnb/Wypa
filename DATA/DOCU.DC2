@@ -203,6 +203,11 @@
       "FXAA is a anti aliasing and thus makes the structures" _N_
       "more smooth. FXAA is also called \"screen space antialiasing\"." _N_
     "}" _N_
+    "Normalize{" _N_
+      "Makes the RGB colors occupy the full 0..255 range." _N_
+      "thus removing lower \"greys\" and upper \"greys\" making" _N_
+      "them black or white by increasing the contrast." _N_
+    "}" _N_
     "Greyscale{" _N_
       "Makes the selected area (or the whole area if nothing is" _N_
       "selected) from colored to grey. There is no luminance conversion" _N_
@@ -239,6 +244,12 @@
     "Invert alpha{" _N_
       "Inverts the selected area (or the whole area if nothing is" _N_
       " selected) by using alpha(transparency) = 255-alpha." _N_
+    "}" _N_
+    "Simple white balance{" _N_
+      "Applies the very simple \"Gray World\" algorithm." _N_
+      "Should result in a more natural looking picture, however" _N_
+      "the \"Gray World\" algorithm is one of the most basic" _N_
+      "white balance algorithms and may stress the wrong colors." _N_
     "}" _N_
     "Undo enabled{" _N_
       "You may disable undo. Undo uses rather much memory and is" _N_
