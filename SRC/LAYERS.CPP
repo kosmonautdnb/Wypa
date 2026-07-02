@@ -1672,10 +1672,13 @@ void Layer::whiteBalance() {
     }
   }
   if (wa > 0) {
-    double grey = (double)(ra + ga + ba)/wa/3.0;
-    double rs = grey / ((double)ra/wa);
-    double gs = grey / ((double)ga/wa);
-    double bs = grey / ((double)ba/wa);
+    ra /= wa;
+    ba /= wa;
+    ga /= wa;
+    double grey = (double)(ra + ga + ba)/3.0;
+    double rs = ra != 0 ? grey / ra : 1;
+    double gs = ga != 0 ? grey / ga : 1;
+    double bs = ba != 0 ? grey / ba : 1;
     for (int i = 0; i < width*height; i++) {
       if ((!hasSel)||(pixelStates[i] & PIXELSTATE_SELECTED)) {
         unsigned int col = pixels[i];
