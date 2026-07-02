@@ -93,4 +93,6 @@ extern char tempBuffer[256];
 
 float getFreeMemoryInKb();
 
+extern float luminanceValues[3];
+
 #endif //__CONFIG_H__

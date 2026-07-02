@@ -235,7 +235,7 @@ float *ColorTransform::processingGet() {
   float ag = addGreen/3.0;
   float ab = addBlue/3.0;
   float aa = addAlpha;
-  Vector a(0.25,0.6,0.15); a = normalize(a);
+  Vector a(luminanceValues[0],luminanceValues[1],luminanceValues[2]); a = normalize(a); // the normalize is just...
   Array<unsigned char> gradiation;
   if (!gradientCurves.empty()) {
     stringToCurves(gradientCurves);
@@ -614,7 +614,7 @@ void ColorTransform::reset() {
   thresholdLuma = 128;
   thresholdInvert = false;
   ditherStrength = 0;
-  paletteInfluence = 1;
+  paletteShift = 0;
   middleRedAdjust = 0;
   middleGreenAdjust = 0;
   middleBlueAdjust = 0;
@@ -1786,8 +1786,9 @@ void Layer::pasteColorTransform() {
 }
 
 unsigned int quantizingPalette[256];
+int quantizingPaletteSize = 0;
 
-__inline unsigned int quantizeColorFast(unsigned int col, float ditherStrength, int x, int y, float paletteInfluence) {
+__inline unsigned int quantizeColorFast(unsigned int col, float ditherStrength, int x, int y, int shift) {
 
   if (shouldRecreateQuantization) {
     reCreateQuantization();
@@ -1796,6 +1797,7 @@ __inline unsigned int quantizeColorFast(unsigned int col, float ditherStrength, 
     for (int i = 0; i < k; i++) {
       quantizingPalette[i] = getUIntColor(palette[i]);
     }
+    quantizingPaletteSize = k;
   }
   shouldRecreateQuantization = false;
 
@@ -1819,7 +1821,7 @@ __inline unsigned int quantizeColorFast(unsigned int col, float ditherStrength, 
   g >>= 2;
   b >>= 2;
   unsigned short q = quantization[r+g*64+b*64*64];
-  int pal = q & 255;
+  int pal = q & 255; pal += shift; if (pal > quantizingPaletteSize-1) pal = quantizingPaletteSize - 1; if (pal < 0) pal = 0;
   bool checkEdges = q & (0x1<<8);
   unsigned int newColor = col;
   if (!checkEdges) {
@@ -1827,27 +1829,21 @@ __inline unsigned int quantizeColorFast(unsigned int col, float ditherStrength, 
   } else {
     int ld = 256*256*5;
     for (int k = 0; k < 8; k++) {
-      unsigned int col2 = quantizingPalette[quantization[(r+(k&1))+(g+(k&2)/2)*64+(b+(k&4)/4)*64*64] & 255];
+      int pal = quantization[(r+(k&1))+(g+(k&2)/2)*64+(b+(k&4)/4)*64*64] & 255;
+      unsigned int col2 = quantizingPalette[pal];
       int rd = (int)(col2 & 255)-r;
       int gd = (int)((col2>>8) & 255)-g;
       int bd = (int)((col2>>16) & 255)-b;
       int d = rd*rd+gd*gd+bd*bd;
-      if (d < ld) {ld = d; newColor = col2;}
+      if (d < ld) {ld = d; pal += shift; if (pal > quantizingPaletteSize-1) pal = quantizingPaletteSize - 1;  if (pal < 0) pal = 0; newColor = quantizingPalette[pal];}
     }
-  }
-  if (paletteInfluence < 1)  {
-    float k = paletteInfluence;
-    int r = ((int)(newColor & 255) - (int)(col & 255)) * k + (col & 255);
-    int g = ((int)((newColor>>8) & 255) - (int)((col>>8) & 255)) * k + ((col>>8) & 255);
-    int b = ((int)((newColor>>16) & 255) - (int)((col>>16) & 255)) * k + ((col>>16) & 255);
-    newColor = (r)|(g<<8)|(b<<16)|(newColor & 0xff000000);
   }
   col = newColor;
   return col;
 }
 
-unsigned int quantizeFast(unsigned int col, float ditherStrength, int x, int y, float paletteInfluence) {
-  return quantizeColorFast(col, ditherStrength, x, y, paletteInfluence);
+unsigned int quantizeFast(unsigned int col, float ditherStrength, int x, int y, int shift) {
+  return quantizeColorFast(col, ditherStrength, x, y, shift);
 }
 
 void Layer::bakeMagic(bool onlyInSelection) {
@@ -1859,7 +1855,7 @@ void Layer::bakeMagic(bool onlyInSelection) {
     if (colorTransform.useColorTransform) col = colorTransform.applyColorTransform(col);
     if (colorTransform.usePosterize) col = colorTransform.applyPosterize(col);
     if (colorTransform.useThreshold) col = colorTransform.applyThreshold(col);
-    if (quantize) col = quantizeColorFast(col, colorTransform.ditherStrength, i % width, i / width, colorTransform.paletteInfluence);
+    if (quantize) col = quantizeColorFast(col, colorTransform.ditherStrength, i % width, i / width, colorTransform.paletteShift);
     pixels[i] = col;
   }
   shouldUpdateAll = true;
@@ -2098,7 +2094,7 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColor
           if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
           if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
           if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
-          if (l->colorTransform.useQuantization) col = quantizeColorFast(col, l->colorTransform.ditherStrength,x,y, l->colorTransform.paletteInfluence);
+          if (l->colorTransform.useQuantization) col = quantizeColorFast(col, l->colorTransform.ditherStrength,x,y,l->colorTransform.paletteShift);
         }
         return col;
       }
@@ -2178,6 +2174,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       for (int i = 0; i < k; i++) {
         quantizingPalette[i] = getUIntColor(palette[i]);
       }
+      quantizingPaletteSize = k;
     }
     shouldRecreateQuantization = false;
   }
@@ -2377,7 +2374,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           g >>= 2;
           b >>= 2;
           unsigned short q = quantization[r+g*64+b*64*64];
-          int pal = q & 255;
+          int pal = q & 255; pal += layer->colorTransform.paletteShift; if (pal > quantizingPaletteSize-1) pal = quantizingPaletteSize - 1; if (pal < 0) pal = 0;
           bool checkEdges = q & (0x1<<8);
           unsigned int newColor = rgb1;
           if (!checkEdges) {
@@ -2385,20 +2382,14 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           } else {
             int ld = 256*256*5;
             for (int k = 0; k < 8; k++) {
-              unsigned int col = quantizingPalette[quantization[(r+(k&1))+(g+(k&2)/2)*64+(b+(k&4)/4)*64*64] & 255];
+              pal = quantization[(r+(k&1))+(g+(k&2)/2)*64+(b+(k&4)/4)*64*64] & 255;
+              unsigned int col = quantizingPalette[pal];
               int rd = (int)(col & 255)-r;
               int gd = (int)((col>>8) & 255)-g;
               int bd = (int)((col>>16) & 255)-b;
               int d = rd*rd+gd*gd+bd*bd;
-              if (d < ld) {ld = d; newColor = col;}
+              if (d < ld) {ld = d;  pal += layer->colorTransform.paletteShift; if (pal > quantizingPaletteSize-1) pal = quantizingPaletteSize - 1;  if (pal < 0) pal = 0; newColor = quantizingPalette[pal];}
             }
-          }
-          if (layer->colorTransform.paletteInfluence < 1)  {
-            float k = layer->colorTransform.paletteInfluence;
-            int r = ((int)(newColor & 255) - (int)(rgb1 & 255)) * k + (rgb1 & 255);
-            int g = ((int)((newColor>>8) & 255) - (int)((rgb1>>8) & 255)) * k + ((rgb1>>8) & 255);
-            int b = ((int)((newColor>>16) & 255) - (int)((rgb1>>16) & 255)) * k + ((rgb1>>16) & 255);
-            newColor = (r)|(g<<8)|(b<<16)|(newColor & 0xff000000);
           }
           rgb1 = newColor;
         }

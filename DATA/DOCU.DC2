@@ -620,6 +620,10 @@
       "If you disable this option the selections of all layers bleed" _N_
       "through. So to say you see all layer selections at once/combined." _N_
     "}" _N_
+    "Sort palette by luminances{" _N_
+      "Uses the luminance to sort the palette from dark to bright." _N_
+      "Better save the palette before because of no undo." _N_
+    "}" _N_
   "}" _N_
   "Filter{" _N_
     "Difference clouds{" _N_
@@ -929,7 +933,7 @@
     "The current palette is used for quantization/color reduction." _N_
     "You have a \"dither\" option which actually only increases the" _N_
     "luminance in a checkerboard. You can define a factor e.g. how much." _N_
-    "You may change the influence of the palette to the final color." _N_
+    "You can add a value to the color index chosen by \"Palette shift\"." _N_
     "" _N_
     "For posterize you can define the step size per channel or for" _N_
     "just the luminance value. There also an offset definable, so" _N_

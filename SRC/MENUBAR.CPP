@@ -290,6 +290,8 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Clear mouse lock",NULL,false,lockedMouseX||lockedMouseY)) {lockedMouseX = false; lockedMouseY = false;}
       if (ImGui::MenuItem("Show only selected layer(s) selection",NULL,showOnlyActiveLayersSelection)) {showOnlyActiveLayersSelection = !showOnlyActiveLayersSelection; shouldUpdateAll = true;}
+      ImGui::Separator();
+      if (ImGui::MenuItem("Sort palette by luminance",NULL)) {sortPalette(palette); updatePalette(); shouldUpdateAll = true; showPalette = true;}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Filter")) {

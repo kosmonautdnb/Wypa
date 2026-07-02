@@ -646,8 +646,8 @@ void drawToolMagicView() {
     if (palette.size()<=256) {
       ImGui::Text("Dithering");
       v = &t->ditherStrength; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWDITHERSTRENGTH",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Apply this dither factor to the pixel luminances before quantizing.");
-      ImGui::Text("Influence");
-      v = &t->paletteInfluence; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWPALETTEINFLUENCE",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("How much the original color and the color of the palette should mix.");
+      ImGui::Text("Palette shift");
+      if (ImGui::InputInt("##DRAWTOOLMAGICVIEWPALETTESHIFT",&t->paletteShift,1,1)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Add or sub from the palette entry after quantizazion.");
     } else {
       if (palette.size()>256) ImGui::Text("Quantization\nonly with\npalettes\n<=256 colors");
     }

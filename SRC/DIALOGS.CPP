@@ -1927,10 +1927,9 @@ void dialogColorMatrix(bool openIt) {
   }
   if (roundButton("Greyscale with luminance##DIALOGCOLORMATRIXGREYSCALELUMINANCE", true)) {
     memset(l->colorTransform.colorMatrix,0,sizeof(l->colorTransform.colorMatrix));
-    const float luma[3] = {0.2126,0.7152,0.0722};
     for (int y = 0; y < 3; y++) {
       for (int x = 0; x < 3; x++) {
-        l->colorTransform.colorMatrix[x*4+y] = luma[x];
+        l->colorTransform.colorMatrix[x*4+y] = luminanceValues[x];
       }
     }
     l->colorTransform.colorMatrix[3*4+3] = 1;
@@ -2127,9 +2126,9 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
   Array<unsigned int> clusterColorsRGBAW; clusterColorsRGBAW.resize(colorCount*KMEANSCHANNELS);
   srand(0); for (int i2 = 0; i2 < clusterColorsRGBAW.size(); i2++) clusterColorsRGBAW[i2] = (i2/KMEANSCHANNELS)*255/colorCount;
 
-  float sr = luminance ? 0.25 : 1;
-  float sg = luminance ? 0.6 : 1;
-  float sb = luminance ? 0.15 : 1;
+  float sr = luminance ? luminanceValues[0] : 1;
+  float sg = luminance ? luminanceValues[1] : 1;
+  float sb = luminance ? luminanceValues[2] : 1;
 
   initStatusBar();
   for (int step = 0; step < steps; step++) {

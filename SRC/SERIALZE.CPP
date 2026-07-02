@@ -555,7 +555,7 @@ void exportLayersRaw(const char *shortPath, const char *longFileName, bool apply
           if (l->colorTransform.useColorTransform) img.data[j] = l->colorTransform.applyColorTransform(img.data[j]);
           if (l->colorTransform.usePosterize) img.data[j] = l->colorTransform.applyPosterize(img.data[j]);
           if (l->colorTransform.useThreshold) img.data[j] = l->colorTransform.applyThreshold(img.data[j]);
-          if (l->colorTransform.useQuantization) img.data[j] = quantizeFast(img.data[j], l->colorTransform.ditherStrength, j % l->width, j / l->width, l->colorTransform.paletteInfluence);
+          if (l->colorTransform.useQuantization) img.data[j] = quantizeFast(img.data[j], l->colorTransform.ditherStrength, j % l->width, j / l->width, l->colorTransform.paletteShift);
         }
       }
       img.width = l->width;

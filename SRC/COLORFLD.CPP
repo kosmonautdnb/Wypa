@@ -83,8 +83,8 @@ int paletteSort(const void *p, const void *q)
   const ImVec4* a = (const ImVec4*)p;
   const ImVec4* b = (const ImVec4*)q;
 
-  double la = a->x+a->y+a->z;
-  double lb = b->x+b->y+b->z;
+  double la = a->x*luminanceValues[0]+a->y*luminanceValues[1]+a->z*luminanceValues[2];
+  double lb = b->x*luminanceValues[0]+b->y*luminanceValues[1]+b->z*luminanceValues[2];
 
   if (la > lb) return 1;
   if (la < lb) return -1;

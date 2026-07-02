@@ -179,3 +179,5 @@ void toolTip(const char *fmt, ...) {
     ImGui::EndTooltip();
   }
 }
+
+float luminanceValues[3] = {0.2126,0.7152,0.0722}; //{0.25,0.6,.15};
