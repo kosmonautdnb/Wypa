@@ -292,6 +292,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Show only selected layer(s) selection",NULL,showOnlyActiveLayersSelection)) {showOnlyActiveLayersSelection = !showOnlyActiveLayersSelection; shouldUpdateAll = true;}
       ImGui::Separator();
       if (ImGui::MenuItem("Sort palette by luminance",NULL)) {sortPalette(palette); updatePalette(); shouldUpdateAll = true; showPalette = true;}
+      if (ImGui::MenuItem("Quantize with luminance",NULL,fastQuantWithLuma)) {fastQuantWithLuma = !fastQuantWithLuma; shouldUpdateAll = true; updatePalette();}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Filter")) {

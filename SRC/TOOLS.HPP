@@ -241,6 +241,7 @@ void bakeModify(bool justCreateSelection);
 
 extern Array<unsigned short> quantization;
 void reCreateQuantization();
+extern bool fastQuantWithLuma;
 
 bool isPaintAreaActive();
 
@@ -269,6 +270,7 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
   S_FLOAT("lineWidth",lineWidth);\
   S_BOOL("lineCap",lineCap);\
   S_BOOL("lineAntialiasing",lineAntialiasing);\
-  S_BOOL("toolOutline",toolOutline);
+  S_BOOL("toolOutline",toolOutline);\
+  S_BOOL("fastQuantWithLuma",fastQuantWithLuma);
 
 #endif //__TOOLS_HPP__

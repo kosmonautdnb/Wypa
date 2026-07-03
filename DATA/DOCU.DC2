@@ -624,6 +624,11 @@
       "Uses the luminance to sort the palette from dark to bright." _N_
       "Better save the palette before because of no undo." _N_
     "}" _N_
+    "Quantize with luminance{" _N_
+      "Use the luminance instead of the average to quantize" _N_
+      "the pictures (e.g. with postprocessing). It may or may not lead" _N_
+      "to better \"to palette\" quantization results." _N_
+    "}" _N_
   "}" _N_
   "Filter{" _N_
     "Difference clouds{" _N_

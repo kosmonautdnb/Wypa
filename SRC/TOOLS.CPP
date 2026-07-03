@@ -461,13 +461,17 @@ void reCreateQuantization() {
       for (int b = 0; b < 64; b++) {
         int bs = b * 4;
         int found = 0;
-        double ld = 256*256*5;
+        double ld = 256*256*5*2*2;
         for (int i = 0; i < palette.size(); i++) {
           unsigned int col = colors[i];
           double rd = (double)(col & 255)-rs;
           double gd = (double)((col>>8) & 255)-gs;
           double bd = (double)((col>>16) & 255)-bs;
-          //rd *= 0.25; gd *= 0.6; bd *= 0.15;
+          if (fastQuantWithLuma) {
+            rd *= luminanceValues[0];
+            gd *= luminanceValues[1];
+            bd *= luminanceValues[2];
+          }
           double dist = rd*rd+gd*gd+bd*bd;
           if (dist < ld) {
             ld = dist;
@@ -498,6 +502,8 @@ void reCreateQuantization() {
   }
 
 }
+
+bool fastQuantWithLuma = false;
 
 void moveSelectedLayersByCanvasPixels(double x, double y) {
   bool one = false;

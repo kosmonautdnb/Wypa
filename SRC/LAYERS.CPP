@@ -1749,7 +1749,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
     int gs = (col>>8) & 255;
     int bs = (col>>16) & 255;
     int as = (col>>24) & 255;
-    int ld = 256*256*4;
+    int ld = 256*256*4*2*2;
     int found = 0;
     for (int j = 0; j < colors.size(); j++) {
       int rd = colors[j] & 255;
@@ -1760,6 +1760,11 @@ void Layer::quantize(const Array<unsigned int> &colors) {
       gd -= gs;
       bd -= bs;
       ad -= as;
+      if (fastQuantWithLuma) {
+        rd *= luminanceValues[0];
+        gd *= luminanceValues[1];
+        bd *= luminanceValues[2];
+      }
       int d = rd*rd+gd*gd+bd*bd+ad*ad;
       if (d < ld) {found = j; ld = d;}
     }
