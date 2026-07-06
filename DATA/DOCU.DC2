@@ -16,6 +16,13 @@
   "and press it before merging layers. Without pressing it" _N_
   "before you may get wrong pixels in merges. If it stays" _N_
   "red after pressing, try to press it together with SHIFT." _N_
+  "" _N_
+  "If you experience mouse jittering, try CTMOUSE (CuteMouse)." _N_
+  "The AI says, that motioncorrection of Microsofts mouse" _N_
+  "driver may be the problem." _N_
+  "Currently there is no other workaround for that, since" _N_
+  "CuteMouse doesn't provide motion counters here and I" _N_
+  "just use CuteMouse." _N_
 "}" _N_
 "" _N_
 "Source code{" _N_
@@ -80,6 +87,7 @@
   "to help with multithreading at least in assembly." _N_
   "" _N_
   "The DJGPP build is massively faster here (than Watcom)." _N_
+  "The normal/internal DJGPP DPMI host may be slow." _N_
   "" _N_
   "The program maybe used with old CRT monitors or even 16:9" _N_
   "monitors which are currently a standard as of 2026. There is" _N_
