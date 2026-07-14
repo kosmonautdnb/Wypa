@@ -42,6 +42,7 @@ void filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int wid
 void filterDenoise();
 void filterSharpen();
 void filterSuperXBR();
+void filterEagle();
 
 #define S_FILTER_CPP()
 
