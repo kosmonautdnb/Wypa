@@ -29,6 +29,8 @@
 #include "SERIALZE.HPP"
 #include "UNDO.HPP"
 #include <math.h>
+#define __SUPERXBR_IMPLEMENTATION__
+#include "STL/SUPERXBR.HPP"
 
 float sfrand2d(int seed,float x, float y) {
   x *= 3.3333;
@@ -1005,6 +1007,22 @@ void filterSharpen() {
       }
     }
   }
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
+void filterSuperXBR() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  beforeUndoPoint();
+  int w = l->width, h = l->height;
+  Array<unsigned int> source;
+  source.resize(w*h);
+  memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
+  l->setContentSize(w*2, h*2);
+  superXBR(&source[0],l->pixels,w,h);
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();

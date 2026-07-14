@@ -41,6 +41,7 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
 void filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, unsigned int color, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert);
 void filterDenoise();
 void filterSharpen();
+void filterSuperXBR();
 
 #define S_FILTER_CPP()
 
