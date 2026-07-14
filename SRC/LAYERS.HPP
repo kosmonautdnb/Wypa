@@ -234,6 +234,7 @@ public:
   float thresholdAlpha;
   float thresholdLuma;
   bool thresholdInvert;
+  bool thresholdBlackWhite;
   float ditherStrength;
   int paletteShift;
   float middleRedAdjust;
@@ -301,6 +302,7 @@ public:
   S_FLOAT("thresholdBlue",(__o__)->thresholdBlue);\
   S_FLOAT("thresholdAlpha",(__o__)->thresholdAlpha);\
   S_BOOL("thresholdInvert",(__o__)->thresholdInvert);\
+  S_BOOL("thresholdBlackWhite",(__o__)->thresholdBlackWhite);\
   S_FLOAT("thresholdLuma",(__o__)->thresholdLuma);\
   S_FLOAT("ditherStrength",(__o__)->ditherStrength);\
   S_INT("paletteShift",(__o__)->paletteShift);\

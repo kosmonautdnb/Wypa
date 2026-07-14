@@ -613,6 +613,7 @@ void ColorTransform::reset() {
   thresholdAlpha = 0;
   thresholdLuma = 128;
   thresholdInvert = false;
+  thresholdBlackWhite = true;
   ditherStrength = 0;
   paletteShift = 0;
   middleRedAdjust = 0;
@@ -687,6 +688,7 @@ unsigned int ColorTransform::applyThreshold(unsigned int pixel) {
     rgb1 = 0xffffffff;
   }
   if (thresholdInvert) rgb1 ^= 0xffffffff;
+  if (thresholdBlackWhite && rgb1 == 0x00000000) rgb1 = 0xff000000;
   return rgb1;
 }
 
@@ -752,8 +754,8 @@ void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
   if (delta == 0) return;
   double px = x0;
   double py = y0;
-  double xa = (double)(x1 - x0)/delta;
-  double ya = (double)(y1 - y0)/delta;
+  double xa = (double)deltaX/delta;
+  double ya = (double)deltaY/delta;
   for (int i = 0; i < delta+1; i++) {
     setPixel(px,py,color);
     px += xa;
@@ -771,8 +773,8 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool c
   if (delta == 0) return;
   double px = x0;
   double py = y0;
-  double xa = (double)(x1 - x0)/delta;
-  double ya = (double)(y1 - y0)/delta;
+  double xa = (double)deltaX/delta;
+  double ya = (double)deltaY/delta;
   for (int i = 0; i < delta+1; i++) {
     int x = px;
     int y = py;
@@ -796,8 +798,8 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool
   if (delta == 0) return;
   double px = x0;
   double py = y0;
-  double xa = (double)(x1 - x0)/delta;
-  double ya = (double)(y1 - y0)/delta;
+  double xa = (double)deltaX/delta;
+  double ya = (double)deltaY/delta;
   for (int i = 0; i < delta; i++) {
     int x = px;
     int y = py;
@@ -2355,6 +2357,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
             rgb1 = 0xffffffff;
           }
           if (layer->colorTransform.thresholdInvert) rgb1 ^= 0xffffffff;
+          if (layer->colorTransform.thresholdBlackWhite && rgb1 == 0x00000000) rgb1 = 0xff000000;
         }
       }
 
@@ -2855,7 +2858,14 @@ void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1
         l0.y -= screenPosY;
         l1.x -= screenPosX;
         l1.y -= screenPosY;
-        pixelLine(l0.x,l0.y,l1.x,l1.y,0xff00ffff);
+        const int k2 = 20;
+        for (int k = 0; k < k2; k++) {
+          Vector _l0 = (l1-l0)*k/k2+l0;
+          Vector _l1 = (l1-l0)*(k+1)/k2+l0;
+          pixelLine(_l0.x+1,_l0.y+1,_l1.x+1,_l1.y+1,k & 1 ? 0xff00ffff : 0xff000000);
+          pixelLine(_l0.x-1,_l0.y-1,_l1.x-1,_l1.y-1,k & 1 ? 0xff00ffff : 0xff000000);
+          pixelLine(_l0.x,_l0.y,_l1.x,_l1.y,k & 1 ? 0xff00ffff : 0xff000000);
+        }
       }
     }
   }
@@ -2953,7 +2963,7 @@ void Canvas::insertTextLayer() {
   }
   Layer *l = new Layer();
   l->invalidateContent();
-  l->mode = LAYERMODE_ALPHA;
+  l->mode = LAYERMODE_PREMULTIPLIEDALPHA;
   l->type = LAYERTYPE_TEXT;
   l->state.lockBits = LOCK_TEXT;
   sprintf(l->name,"text");
@@ -3517,15 +3527,15 @@ void Canvas::setPixel(double x, double y, unsigned int color) {
 }
 
 void Canvas::pixelLine(double x0, double y0,double x1, double y1,unsigned int color) {
-  int deltaX = x1 - x0;
-  int deltaY = y1 - y0;
+  int deltaX = (int)x1 - (int)x0;
+  int deltaY = (int)y1 - (int)y0;
   int delta = abs(deltaX);
   if (abs(deltaY)>delta) delta = abs(deltaY);
   if (delta == 0) return;
-  double px = x0;
-  double py = y0;
-  double xa = (double)(x1 - x0)/delta;
-  double ya = (double)(y1 - y0)/delta;
+  double px = (int)x0;
+  double py = (int)y0;
+  double xa = (double)deltaX/delta;
+  double ya = (double)deltaY/delta;
   for (int i = 0; i < delta+1; i++) {
     setPixel(px,py,color);
     px += xa;
@@ -4194,6 +4204,7 @@ void blitCanvas() {
           col >>= 3;
           col &= 0x1f1f1f1f;
           col |= 0x20202020;
+          if (fullScreen) col = 0x00000000;
         }
       }
       if (currentCanvas->gridOn) {

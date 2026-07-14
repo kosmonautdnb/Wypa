@@ -623,6 +623,7 @@ void drawToolMagicView() {
     shouldUpdateAll = true;
   } else toolTip("Make all values above threshold white, the others transparent");
   if (l->colorTransform.useThreshold) {
+    ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEBLACKWHITE",&t->thresholdBlackWhite)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Use black/white instead of transparent/white");
     ImGui::BeginChild("DRAWTOOLMAGICCHILDTHRESHOLD",ImVec2(0,50));
     ImGui::Text("Threshold RGBA");
     v = &t->thresholdLuma; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDLUMA",v,0,255)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Threshold on red,green,blue");

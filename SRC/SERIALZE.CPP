@@ -515,6 +515,7 @@ void insertImageLayers(const char *shortPath, const char *longFileName) {
 void exportLayers(const char *shortPath, const char *longFileName) {
   Layer *l = currentCanvas->getSelectionAsLayer(false,false,true);
   if (l == NULL) return;
+  l->bakeMagic(false); // needed for single layer wyp images
   tempName = getTempFileName(shortPath);
   RGBAImage img;
   img.data = l->pixels;
@@ -529,6 +530,7 @@ void exportLayers(const char *shortPath, const char *longFileName) {
 void exportPNG(const char *shortPath, const char *longFileName) {
   Layer *l = currentCanvas->getSelectionAsLayer(false,true,true);
   if (l == NULL) return;
+  l->bakeMagic(false); // needed for single layer wyp images
   tempName = getTempFileName(shortPath);
   RGBAImage img;
   img.data = l->pixels;
@@ -1206,6 +1208,7 @@ void saveImage(const char *shortPath, const char *longFileName) {
   RGBAImage thumb;
 
   if (l != NULL) {
+    l->bakeMagic(false);
     thumb = generateThumbFromLayer(l);
   } else {
     // this is for pictures with tilemaps, sorry (it maybe needs a lot of memory)

@@ -186,6 +186,8 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
   float xpos = 0;  
   float ypos = 0;  
 
+  unsigned int col2 = l->toolInfo.fontColor;
+
   float xposStart = xpos;
 
   float scaleOne = f->getScaleForPixelHeight(1);
@@ -257,7 +259,12 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
               unsigned int col = l->pixels[xd+yd*l->width];
               unsigned int a = (col >> 24) & 255;
               a = 255-(255-a)*(255-val)/255;
-              col = (col & 0x00ffffff) | (a <<24);
+              col = 0x00000000; if (a != 0x00) {
+                int r = (col2 & 0xff)*a/255;
+                int g = ((col2>>8) & 0xff)*a/255;
+                int b = ((col2>>16) & 0xff)*a/255;
+                col = r|(g<<8)|(b<<16)|(a <<24);
+              }
               l->pixels[xd+yd*l->width] = col;
             }
           }
@@ -292,6 +299,6 @@ void paintTextIntoLayer(class Layer *l) {
   if (width*height==0) return;
   l->setContentSize(width,height);
   unsigned int col = l->toolInfo.fontColor;
-  for (int i2 = 0; i2 < width*height; i2++) l->pixels[i2] = col & 0x00ffffff;
+  for (int i2 = 0; i2 < width*height; i2++) l->pixels[i2] = 0x00000000;
   getTextBounds(f, l, x0, y0, x1, y1, true, lineWidths);
 }
