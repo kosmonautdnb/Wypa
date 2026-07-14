@@ -143,7 +143,7 @@ unsigned int colorSliderTextureContent[colorSliderTextureWidth*colorSliderTextur
 void updateColorSlidersTexture() {
   ImVec4 _hsl; getHsl(foregroundColor,&_hsl.x,&_hsl.y,&_hsl.z);
   for (int y = 0; y < 6; y++) {
-    for (int x = 0; x < colorSliderTextureWidth; x++) {
+    for (int x = 0; x < (int)colorSliderTextureWidth; x++) {
       float fx = (float)x /colorSliderTextureWidth;
       float h,s,l;
       ImVec4 rgb;
@@ -243,9 +243,9 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
   const double wheelPixels = 16.0;
   unsigned int *rgba = glGetTexturePointer(colorWheelTexture);
   double s = 1.0/(1.0/sqrt(2.0));
-  for (int y = 0; y < colorWheelY; y++) {
+  for (int y = 0; y < (int)colorWheelY; y++) {
     double fy = (double)y / (colorWheelY-1) * 2.0 - 1.0;
-    for (int x = 0; x < colorWheelX; x++) {
+    for (int x = 0; x < (int)colorWheelX; x++) {
       double fx = (double)x / (colorWheelX-1) * 2.0 - 1.0;
       double d = sqrt(fx*fx+fy*fy);
       unsigned int c = 0;
@@ -321,7 +321,7 @@ bool colorItem(const String &name, const String &id, ImVec4 *color) {
   ImGui::SameLine();
   static char colorText[11];
   sprintf(colorText,"%08x",swapRB(getUIntColor(*color)));
-  for (int i = 0; i < strlen(colorText); i++) if (colorText[i]>='a'&&colorText[i]<='f') colorText[i]=(char)((colorText[i]-'a')+'A');
+  for (int i = 0; i < (int)strlen(colorText); i++) if (colorText[i]>='a'&&colorText[i]<='f') colorText[i]=(char)((colorText[i]-'a')+'A');
   ImGui::PushItemWidth(7*8);
   if (ImGui::InputText(id.c_str(),colorText,9)) {
     unsigned int value = 0;
@@ -410,11 +410,11 @@ void colorDisplay(ImVec4 *c) {
 }
 
 void removeColor() {
-  for (int i = 0; i < palette.size(); i++) {
+  for (int i = 0; i < (int)palette.size(); i++) {
     if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
       palette.erase(i,1); 
       int pos = i; 
-      if (pos>=palette.size()) pos = palette.size()-1; 
+      if (pos>=(int)palette.size()) pos = palette.size()-1; 
       if ((unsigned int)pos<palette.size()) foregroundColor = palette[pos];
       return;
     }
@@ -429,7 +429,7 @@ ImVec4 getUnusedColor() {
     int a = (rand() & 127)+128;
     unsigned int col = r|(g<<8)|(b<<16)|(a<<24);
     bool found = false;
-    for (int j = 0; j < palette.size(); j++) {
+    for (int j = 0; j < (int)palette.size(); j++) {
       if (getUIntColor(palette[i])==col) {found = true; break;}
     }
     if (!found) return ImVec4(r/255.f,g/255.f,b/255.f,a/255.f);
@@ -438,10 +438,10 @@ ImVec4 getUnusedColor() {
 }
 
 void insertColor() {
-  for (int i = 0; i < palette.size(); i++) {
+  for (int i = 0; i < (int)palette.size(); i++) {
     if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
       ImVec4 c = getUnusedColor();
-      if (i > 0 && i < palette.size()) {
+      if (i > 0 && i < (int)palette.size()) {
         c.x = (palette[i].x - palette[i-1].x)*0.5 + palette[i-1].x;
         c.y = (palette[i].y - palette[i-1].y)*0.5 + palette[i-1].y;
         c.z = (palette[i].z - palette[i-1].z)*0.5 + palette[i-1].z;
@@ -453,7 +453,7 @@ void insertColor() {
     }
   }
   palette.push_back(getUnusedColor()); 
-  foregroundColor = palette[palette.size()-1];
+  foregroundColor = palette[(int)palette.size()-1];
 }
 
 void displayPostProcessedColorItem() {
@@ -461,7 +461,7 @@ void displayPostProcessedColorItem() {
   if (l != NULL && l->colorTransform.useColorTransform) {//||l->colorTransform.useQuantization||l->colorTransform.usePosterize||l->colorTransform.useThreshold)) {
     ImGui::SameLine();
     ImGui::PushID("##DRAWCOLORITEMPOSTPROCESSCOLOR");
-    bool quantize = l->colorTransform.useQuantization && (quantization.size() == 64*64*64);
+    //bool quantize = l->colorTransform.useQuantization && ((int)quantization.size() == 64*64*64);
     unsigned int col = getUIntColor(foregroundColor);
     if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
     //if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
@@ -493,7 +493,7 @@ void drawColorField() {
     if (roundButton("Save palette##DRAWCOLORFIELDPALETTESAVE",!palette.empty())) {
       paletteToSave = &palette; dialogLoadSave(true,DIALOG_SAVEPALETTE);
     } else toolTip("Save as palette .pa2 file");
-    ImGui::Text("Palette colors"); int cols = palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; if (cols < 0) cols = 0; palette.resize(cols); updatePalette();} else toolTip("Color count in current palette");
+    ImGui::Text("Palette colors"); int cols = (int)palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; if (cols < 0) cols = 0; palette.resize(cols); updatePalette();} else toolTip("Color count in current palette");
     ImGui::Text("Colors per row"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWPALETTECOLORFIELDROWCOLS",&paletteColorsPerRow, 1, 1)) {} else toolTip("Display column count");
     if (paletteColorsPerRow > 16) paletteColorsPerRow = 16;
     if (paletteColorsPerRow < 1) paletteColorsPerRow = 1;
@@ -513,7 +513,7 @@ void drawColorField() {
     int b = (sidebar_width-40-16) / (paletteColorsPerRow);
     b -= 1; // rounding
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0,0));
-    for (int i = 0; i < palette.size(); i++) {
+    for (int i = 0; i < (int)palette.size(); i++) {
       ImGui::PushID(combined(String("##DRAWCOLORFIELDPALETTEPALETTEBUTTON")+String::fromInt(i)).c_str());
       if ((i % paletteColorsPerRow) != 0) {
         ImGui::SameLine();

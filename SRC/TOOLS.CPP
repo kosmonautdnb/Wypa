@@ -56,7 +56,7 @@ void initTools() {
 }
 
 void freeTools() {
-  for (int i = 0; i < brushes.size(); i++) delete brushes[i];
+  for (int i = 0; i < (int)brushes.size(); i++) delete brushes[i];
   brushes.clear();
   delete onePixelBrush;
   copiedTiling.free();
@@ -102,7 +102,7 @@ void drawText(float scale, int xp, int yp, const char *text, uint32_t color, flo
             for (int x4 = x0; x4 < x1; x4++) {
               int x5 = xp + x4;
               int y5 = yp + y4;
-              if ((unsigned int)x5<glFrameBufferWidth && (unsigned int)y5<glFrameBufferHeight) glFrameBuffer[x5+y5*glFrameBufferWidth] = color;
+              if ((unsigned int)x5<(unsigned int)glFrameBufferWidth && (unsigned int)y5<(unsigned int)glFrameBufferHeight) glFrameBuffer[x5+y5*glFrameBufferWidth] = color;
             }
           }
         }
@@ -129,7 +129,7 @@ float sampleDistanceField(float *field, double dx, double dy, int fieldWidth, in
   dy *= fieldHeight;
   int x = (int)floor(dx);
   int y = (int)floor(dy);
-  if ((unsigned int)x >= fieldWidth || (unsigned int)y >= fieldHeight) return -1;
+  if ((unsigned int)x >= (unsigned int)fieldWidth || (unsigned int)y >= (unsigned int)fieldHeight) return -1;
   float p00 = field[x+y*fieldWidth];
   float p10 = x+1<fieldWidth?field[x+1+y*fieldWidth]:p00;
   float p01 = y+1<fieldHeight?field[x+(y+1)*fieldWidth]:p00;
@@ -154,7 +154,6 @@ void BrushInstance::resize(Brush *base, double newPixelWidth, double newPixelHei
   double yf = xf;
   double ax = (newPixelWidth-floor(newPixelWidth))*0.5;
   double ay = (newPixelHeight-floor(newPixelHeight))*0.5;
-  double k = 0.1;
   double o = base->ovality + 1;
   double r = -base->rotation * PI / 180.0;
   bool isSinglePixel = pixelHeight < 3 && pixelWidth < 3;
@@ -202,12 +201,12 @@ void BrushInstance::updateGLHandle(Brush *base) {
   Array<unsigned char> temp;
   temp.resize(values.size());
   double minv = 1; double maxv = 0;
-  for (int i = 0; i < temp.size(); i++) {double a = values[i]; if (a<0) a = 0; if (a<minv) minv = a;if (a>maxv) maxv = a;}
+  for (int i = 0; i < (int)temp.size(); i++) {double a = values[i]; if (a<0) a = 0; if (a<minv) minv = a;if (a>maxv) maxv = a;}
   if (maxv!=minv) {
     double d = 255.0/(maxv-minv)*base->opacity;
-    for (int i2 = 0; i2 < temp.size(); i2++) {temp[i2] = values[i2]>=0?(values[i2]-minv)*d:0;}
+    for (int i2 = 0; i2 < (int)temp.size(); i2++) {temp[i2] = values[i2]>=0?(values[i2]-minv)*d:0;}
   } else {
-    for (int i2 = 0; i2 < temp.size(); i2++) {temp[i2] = 255*maxv*base->opacity;}
+    for (int i2 = 0; i2 < (int)temp.size(); i2++) {temp[i2] = 255*maxv*base->opacity;}
   }
 
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, pixelWidth, pixelHeight, 0, GL_ALPHA, GL_BYTE, &temp[0]);
@@ -256,7 +255,7 @@ double Brush::pixelHeight() {
 __inline float scanSampleDistanceField2(const RGBAImage &image,float x,float y) {
   int px = (int)floor(x);
   int py = (int)floor(y);
-  if ((unsigned int)px >= image.width || (unsigned int)py >= image.height) return 0;
+  if ((unsigned int)px >= (unsigned int)image.width || (unsigned int)py >= (unsigned int)image.height) return 0;
   unsigned int col = image.data[px+py*image.width];
   int a = col >> 24;
   return a / 255.f;
@@ -304,7 +303,7 @@ void scanSampleDistanceField(Brush *brush, const RGBAImage &image) {
       float distanceFieldPosX = ((float)x - (float)BRUSHDISTANCEFIELDSIZE/2)*scale + (float)image.width/2;
       int dx = (int)floor(distanceFieldPosX);
       float distance = -1;
-      if ((unsigned int)dx<image.width&&(unsigned int)dy<image.height) {
+      if ((unsigned int)dx<(unsigned int)image.width&&(unsigned int)dy<(unsigned int)image.height) {
         bool isForward = scanSampleDistanceFieldIsForward(image,dx,dy);
         for (int rad = 0; rad <= maxRad; rad++) {
           for (int x0 = -rad; x0 <= rad; x0++) {
@@ -344,17 +343,17 @@ void scanSampleDistanceField(Brush *brush, const RGBAImage &image) {
 __inline bool rightRange(Gradient *gradient, int index, float value) {
   if ((unsigned int)index >= gradient->elements.size()) return false;
   bool left = value >= gradient->elements[index].position;
-  bool right = index + 1 < gradient->elements.size() ? value < gradient->elements[index+1].position : false;
+  bool right = index + 1 < (int)gradient->elements.size() ? value < gradient->elements[index+1].position : false;
   return left && right;
 }
 
 __inline unsigned int interpolateRange(Gradient *gradient, int index, float value) {
   if (gradient->elements.empty()) return 0x00000000;
   if (index < 0) return gradient->elements[0].color;
-  if (index >= gradient->elements.size()) return gradient->elements.back().color;
+  if (index >= (int)gradient->elements.size()) return gradient->elements.back().color;
   GradientElement *e0 = &gradient->elements[index];
   if (e0->isStep) return e0->color;
-  if (index + 1 >= gradient->elements.size()) return e0->color;
+  if (index + 1 >= (int)gradient->elements.size()) return e0->color;
   GradientElement *e1 = &gradient->elements[index+1];
   float d = e1->position-e0->position;
   if (d <= 0) return e0->color;
@@ -388,7 +387,7 @@ unsigned int Gradient::getColor(float between0And1) {
     return interpolateRange(this, lastAccessPoint, posToLookUp);
   }
   if (posToLookUp > elements[lastAccessPoint].position) {
-    for (; lastAccessPoint < elements.size(); lastAccessPoint++) {
+    for (; lastAccessPoint < (int)elements.size(); lastAccessPoint++) {
       if (rightRange(this, lastAccessPoint, posToLookUp)) {
         return interpolateRange(this, lastAccessPoint, posToLookUp);
       }
@@ -453,7 +452,7 @@ void reCreateQuantization() {
   if (palette.size()>256 || palette.empty()) {quantization.clear(); return;}
   if (quantization.empty()) quantization.resize(64*64*64);
   Array<unsigned int> colors; colors.resize(palette.size());
-  for (int i = 0; i < palette.size(); i++) colors[i] = getUIntColor(palette[i]);
+  for (int i = 0; i < (int)palette.size(); i++) colors[i] = getUIntColor(palette[i]);
   for (int r = 0; r < 64; r++) {
     int rs = r * 4;
     for (int g = 0; g < 64; g++) {
@@ -462,7 +461,7 @@ void reCreateQuantization() {
         int bs = b * 4;
         int found = 0;
         double ld = 256*256*5*2*2;
-        for (int i = 0; i < palette.size(); i++) {
+        for (int i = 0; i < (int)palette.size(); i++) {
           unsigned int col = colors[i];
           double rd = (double)(col & 255)-rs;
           double gd = (double)((col>>8) & 255)-gs;
@@ -507,12 +506,12 @@ bool fastQuantWithLuma = false;
 
 void moveSelectedLayersByCanvasPixels(double x, double y) {
   bool one = false;
-  for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) {
+  for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) {
     Layer *l = currentCanvas->layers[i2];
     if (l->state.selected) {one = true; break;}
   }
 
-  for (int i = 0; i < currentCanvas->layers.size(); i++) {
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
     if ((l->state.selected && one) || (l->state.active && (!one))) {
       Vector b = l->boundingBox();
@@ -556,7 +555,7 @@ void useToolWand() {
   beforeUndoPoint();
 
   int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
-  if ((unsigned int)lx>=l->width||(unsigned int)ly>=l->height) return;
+  if ((unsigned int)lx>=(unsigned int)l->width||(unsigned int)ly>=(unsigned int)l->height) return;
   int colorHere = l->pixels[lx+ly*l->width];
   if (controlKeyId == CONTROLKEY_NONE) for (int i = 0; i < l->width*l->height; i++) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
 
@@ -611,7 +610,7 @@ void useToolWand() {
 void placeCorner(double mouseX, double mouseY) {
   beforeUndoPoint();
   Array<Layer *> selected;
-  for (int i = 0; i < currentCanvas->layers.size(); i++) {if (currentCanvas->layers[i]->state.selected||currentCanvas->layers[i]->state.active) selected.push_back(currentCanvas->layers[i]);}
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {if (currentCanvas->layers[i]->state.selected||currentCanvas->layers[i]->state.active) selected.push_back(currentCanvas->layers[i]);}
   if (selected.empty()) return;
 
   if (selected.size() == 1) {
@@ -827,7 +826,7 @@ void useToolFill() {
     }
   }
 
-  if ((unsigned int)lx>=l->width||(unsigned int)ly>=l->height) return;
+  if ((unsigned int)lx>=(unsigned int)l->width||(unsigned int)ly>=(unsigned int)l->height) return;
 
   unsigned int clickBack = currentCanvas->getLayerColor(mouseX, mouseY,false);
   if (ImGui::IsMouseClicked(1)) {
@@ -994,7 +993,7 @@ bool useToolSelectionMove(Layer *activeLayer) {
           bool selected = false;
           int x2 = x + deltaX;
           int y2 = y + deltaY;
-          if ((unsigned int)x2 < activeLayer->width && (unsigned int)y2 < activeLayer->height) {
+          if ((unsigned int)x2 < (unsigned int)activeLayer->width && (unsigned int)y2 < (unsigned int)activeLayer->height) {
             unsigned char p = activeLayer->pixelStates[x2+y2*activeLayer->width];
             if (p & PIXELSTATE_SELECTED) selected = true;
           }
@@ -1013,7 +1012,8 @@ void useToolSelection() {
   if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
 
   Layer *activeLayer = currentCanvas->getActiveLayer(); 
-  if (activeLayer == NULL) return; if (locked(activeLayer,LOCK_SELECTION)) return;
+  if (activeLayer == NULL) return; 
+  if (locked(activeLayer,LOCK_SELECTION)) return;
 
   static Layer *selectionToolLayer = activeLayer;
   selectionToolLayer = activeLayer;
@@ -1121,10 +1121,12 @@ void useToolSelection() {
     selectionX1 = lx;
     selectionY1 = ly;
     double pixelAspect = currentCanvas->control.pixelSizeX<=0||currentCanvas->control.pixelSizeY<=0?1:currentCanvas->control.pixelSizeX/currentCanvas->control.pixelSizeY;
-    if (selectionProportional) if (lx-selectionX0>ly-selectionY0) {
-      selectionY1 = selectionY0+(lx-selectionX0)*pixelAspect; 
-    } else {
-      selectionX1 = selectionX0+(ly-selectionY0)/pixelAspect;
+    if (selectionProportional) {
+      if (lx-selectionX0>ly-selectionY0) {
+        selectionY1 = selectionY0+(lx-selectionX0)*pixelAspect; 
+      } else {
+        selectionX1 = selectionX0+(ly-selectionY0)/pixelAspect;
+      }
     }
     scrollByCanvasBorders();
     double x0 = selectionX0 < selectionX1 ? selectionX0 : selectionX1;
@@ -1168,7 +1170,7 @@ void useToolSelection() {
                 double d = sqrt(dx*dx+dy*dy);
                 if (d > 1) continue;
               }
-              if ((unsigned int)xl < selectionPlane->width && (unsigned int)yl < selectionPlane->height)
+              if ((unsigned int)xl < (unsigned int)selectionPlane->width && (unsigned int)yl < (unsigned int)selectionPlane->height)
                 selectionPlane->pixels[xl+yl*selectionPlane->width] = 1;
             }
           }
@@ -1394,7 +1396,7 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
       int by = (int)py;
       if (bx == 0) bx = (int)floor(px);
       if (by == 0) by = (int)floor(py);
-      if ((unsigned int)bx < b->pixelWidth && (unsigned int)by < b->pixelHeight) {
+      if ((unsigned int)bx < (unsigned int)b->pixelWidth && (unsigned int)by < (unsigned int)b->pixelHeight) {
         int p = x + y * layer->width;
         float here = b->values[bx+by*b->pixelWidth];
         if (interpolate) {
@@ -1623,7 +1625,6 @@ void useToolPainting() {
   }
   Layer *activeLayer = currentCanvas->getActiveLayer(); if (activeLayer != NULL && locked(activeLayer,LOCK_PIXELS)) return;
   static Layer *paintToolLayer = activeLayer;
-  bool layerSwitched = paintToolLayer != activeLayer;
   paintToolLayer = activeLayer;
   if (paintToolLayer != NULL && paintToolLayer->width * paintToolLayer->height==0) return;
 
@@ -1759,7 +1760,7 @@ void useToolPainting() {
         double ay = delta == 0 ? 0 : (double)(lpy1-lpy0)/delta;
         Matrix m2 = inverse2(paintToolLayer->transform.transformation);
         for (int i3 = 0; i3 < delta+1; i3++) {
-          double angle = -1,dx,dy;
+          double angle = -1,dx=0,dy=0;
           if (brush->followRotation) {
             dx = paintingPointX1 - paintingPointX0;
             dy = paintingPointY1 - paintingPointY0;
@@ -1906,7 +1907,7 @@ float FXAA_REDUCE_MIN = 1.f/128.f;
 float FXAA_REDUCE_MUL = 1.f/(8.f*(1.f/2.f));
 float FXAA_SPAN_MAX = 8.f;
 
-static __inline const float luma(const unsigned int rgba) {
+static __inline float luma(const unsigned int rgba) {
   return (float)((rgba & 255)*25+(float)((rgba>>8) & 255)*60+(float)((rgba>>16) & 255)*15)*(1.f/255.f/100.f);
 }
 
@@ -2047,7 +2048,7 @@ void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy, bool useAlpha)
     for (int x = 0; x < c.width; x++) {
       int dx = sx + x;
       int dy = sy + y;
-      if ((unsigned int)dx < l->width && (unsigned int)dy < l->height) {
+      if ((unsigned int)dx < (unsigned int)l->width && (unsigned int)dy < (unsigned int)l->height) {
         unsigned int col = c.data[x+y*c.width];
         if ((!useAlpha)||(((col>>24)&255)!=0))
           l->pixels[dx+dy*l->width] = col;
@@ -2092,15 +2093,14 @@ void drawMouseArrow2(int mouseX, int mouseY) {
   "00989999"
   "00989000"
   "00099000";
-  bool first = true; for (int y = 0; y < height; y++) { for (int x = 0; x < width; x++) {
+  for (int y = 0; y < height; y++) { for (int x = 0; x < width; x++) {
       char c = bitmap[x+y*width];
       if (c != '0') {unsigned int color = 0xffffffff;
          if (c == '9') color = 0xff000000;
          if (c == '6') color = 0xffffffff;
         int dx = x+mouseX;
         int dy = y+mouseY;
-        if ((unsigned int)dx < glFrameBufferWidth && (unsigned int)dy < glFrameBufferHeight) glFrameBuffer[dx+dy*glFrameBufferWidth]=color;
-        first = false;
+        if ((unsigned int)dx < (unsigned int)glFrameBufferWidth && (unsigned int)dy < (unsigned int)glFrameBufferHeight) glFrameBuffer[dx+dy*glFrameBufferWidth]=color;
       }
     }
   }
@@ -2121,7 +2121,7 @@ void drawOpenGLMarkerCircle(double sx, double sy, double r, unsigned int color) 
       if (d <= r) {
         int d2 = (int)floor(d);
         int alpha = d2<r-1 ? 255 : (1-(d - d2))*255.0;
-        if ((unsigned int)ix < glFrameBufferWidth && (unsigned int)iy < glFrameBufferHeight) {
+        if ((unsigned int)ix < (unsigned int)glFrameBufferWidth && (unsigned int)iy < (unsigned int)glFrameBufferHeight) {
           unsigned int c = glFrameBuffer[ix+iy*glFrameBufferWidth];
           int r = ((int)(color & 255) - (int)(c & 255))*alpha/255+(int)(c & 255);
           int g = ((int)((color>>8) & 255) - (int)((c>>8) & 255))*alpha/255+(int)((c>>8) & 255);
@@ -2151,7 +2151,7 @@ void drawOpenGLSimpleLine(double sx0, double sy0, double sx1, double sy1, unsign
     int x = floor(px);
     int y = floor(py);
 
-    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+    if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
 
@@ -2168,22 +2168,22 @@ void drawOpenGLRect(double sx0, double sy0, double sx1, double sy1, unsigned int
 
   for (int x = sx0; x <= sx1; x++) {
     int y = sy0;
-    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+    if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
     y = sy1;
-    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+    if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
   }
 
   for (int y = sy0; y <= sy1; y++) {
     int x = sx0;
-    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+    if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
     x = sx1;
-    if ((unsigned int)x < glFrameBufferWidth && (unsigned int)y < glFrameBufferHeight) {
+    if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
   }
@@ -2270,7 +2270,7 @@ void toolCanvasStuff() {
           if (modifyClearBackground) {
             glBegin(GL_TRIANGLES);
             glColor4f(1,0,1,1);
-            for (int i2 = 0; i2 < modifyTriangles.size()/3; i2++) {
+            for (int i2 = 0; i2 < (int)modifyTriangles.size()/3; i2++) {
               for (int i3 = 0; i3 < 3; i3++) {
                 int p = modifyTriangles[i2*3+i3];
                 if ((unsigned int)p<points->size()) {
@@ -2287,7 +2287,7 @@ void toolCanvasStuff() {
           glBindTexture(GL_TEXTURE_2D,modifyGLHandle);
           glBegin(GL_TRIANGLES);
           glColor4f(1,1,1,1);
-          for (int i2 = 0; i2 < modifyTriangles.size()/3; i2++) {
+          for (int i2 = 0; i2 < (int)modifyTriangles.size()/3; i2++) {
             for (int i3 = 0; i3 < 3; i3++) {
               int p = modifyTriangles[i2*3+i3];
               if ((unsigned int)p<points->size()) {
@@ -2305,7 +2305,7 @@ void toolCanvasStuff() {
           glBindTexture(GL_TEXTURE_2D,0);
         }
       }
-      for (int i2 = 0; i2 < modifyTriangles.size()/3; i2++) {
+      for (int i2 = 0; i2 < (int)modifyTriangles.size()/3; i2++) {
         for (int i3 = 0; i3 < 3; i3++) {
           int p0 = modifyTriangles[i2*3+i3];
           int p1 = modifyTriangles[i2*3+((i3+1)%3)];
@@ -2318,7 +2318,7 @@ void toolCanvasStuff() {
           }
         }
       }
-      for (int i = 0; i < points->size(); i++) {
+      for (int i = 0; i < (int)points->size(); i++) {
         double sx = (*points)[i].x, sy = (*points)[i].y; currentCanvas->getScreenPos(sx,sy,sx,sy);
         drawOpenGLMarkerCircle(sx+1,sy+1,4,0xff000000);
         unsigned int col = 0xff0000ff;
@@ -2336,7 +2336,7 @@ void toolCanvasStuff() {
       int lxi = (int)floor(lx); int lyi = (int)floor(ly);
       int txi = (int)floor((double)lxi/l2->toolInfo.tilingWidth);
       int tyi = (int)floor((double)lyi/l2->toolInfo.tilingHeight);
-      if ((unsigned int)txi < l->width && (unsigned int)tyi < l->height) {
+      if ((unsigned int)txi < (unsigned int)l->width && (unsigned int)tyi < (unsigned int)l->height) {
         double sx0 = txi*l2->toolInfo.tilingWidth;
         double sy0 = tyi*l2->toolInfo.tilingHeight;
         double sx1 = (txi+1)*l2->toolInfo.tilingWidth;
@@ -2413,7 +2413,7 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
         int by = (int)py;
         if (bx == 0) bx = (int)floor(px);
         if (by == 0) by = (int)floor(py);
-        if ((unsigned int)bx < blurCircleSize && (unsigned int)by < blurCircleSize) {
+        if ((unsigned int)bx < (unsigned int)blurCircleSize && (unsigned int)by < (unsigned int)blurCircleSize) {
           paintBackground[bx+by*blurCircleSize] = layer->pixels[x+y*layer->width];
           paintValues[bx+by*blurCircleSize] = 1;
         }
@@ -2429,7 +2429,7 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
       int by = (int)py;
       if (bx == 0) bx = (int)floor(px);
       if (by == 0) by = (int)floor(py);
-      if ((unsigned int)bx < blurCircleSize && (unsigned int)by < blurCircleSize) {
+      if ((unsigned int)bx < (unsigned int)blurCircleSize && (unsigned int)by < (unsigned int)blurCircleSize) {
         int p = x + y * layer->width;
         float dx = (bx+0.5f)/blurCircleSize*2.f-1.f;
         float dy = (by+0.5f)/blurCircleSize*2.f-1.f;
@@ -2448,7 +2448,7 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                 int y2 = by+ky;
                 for (int kx = -1; kx <= 1; kx++) {
                   int x2 = bx+kx;
-                  if ((unsigned int)x2<blurCircleSize && (unsigned int)y2<blurCircleSize) {
+                  if ((unsigned int)x2<(unsigned int)blurCircleSize && (unsigned int)y2<(unsigned int)blurCircleSize) {
                     if (paintValues[x2+y2*blurCircleSize] != 0) {
                       float where = 1000.0;
                       if (where > 0) {
@@ -2536,7 +2536,7 @@ bool modifyOutlined = false;
 void createModifyTriangles() {
   Array<double> points;
 
-  for (int i = 0; i < modifyPointsSource.size(); i++) {
+  for (int i = 0; i < (int)modifyPointsSource.size(); i++) {
     points.push_back(modifyPointsSource[i].x);
     points.push_back(modifyPointsSource[i].y);
   }
@@ -2545,7 +2545,7 @@ void createModifyTriangles() {
   delau.delaunator(&points);
 
   modifyTriangles.clear();
-  for (int i2 = 0; i2 < delau.triangles.size(); i2++) modifyTriangles.push_back(delau.triangles[i2]);
+  for (int i2 = 0; i2 < (int)delau.triangles.size(); i2++) modifyTriangles.push_back(delau.triangles[i2]);
 }
 
 void bakeModify(bool justCreateSelection) {
@@ -2556,8 +2556,8 @@ void bakeModify(bool justCreateSelection) {
     beforeUndoPoint();
 
     Array<Vector> here;
-    int pointCount = modifyMode ? modifyPointsDest.size() : modifyPointsSource.size();
-    int triangleCount = modifyTriangles.size()/3;
+    int pointCount = modifyMode ? (int)modifyPointsDest.size() : (int)modifyPointsSource.size();
+    int triangleCount = (int)modifyTriangles.size()/3;
     for (int i3 = 0; i3 < pointCount; i3++) {
       double lx,ly; lx = modifyMode ? modifyPointsDest[i3].x : modifyPointsSource[i3].x; ly = modifyMode ? modifyPointsDest[i3].y : modifyPointsSource[i3].y; currentCanvas->getLayerPosFromCanvasPos(l,lx,ly,lx,ly); here.push_back(Vector(floor(lx),floor(ly)));
     }
@@ -2565,13 +2565,13 @@ void bakeModify(bool justCreateSelection) {
     for (int y = 0; y < l->height; y++) {
       for (int x = 0; x < l->width; x++) {
         Vector p(x,y);
-        double sum = 0;
+        //double sum = 0;
         bool thisPixelShouldBeProcessed = false;
         for (int i = 0; i < triangleCount; i++) {
           Vector d[3];
-          d[0] = (unsigned int)modifyTriangles[i*3+0]<pointCount?here[modifyTriangles[i*3+0]]:Vector();
-          d[1] = (unsigned int)modifyTriangles[i*3+1]<pointCount?here[modifyTriangles[i*3+1]]:Vector();
-          d[2] = (unsigned int)modifyTriangles[i*3+2]<pointCount?here[modifyTriangles[i*3+2]]:Vector();
+          d[0] = (unsigned int)modifyTriangles[i*3+0]<(unsigned int)pointCount?here[modifyTriangles[i*3+0]]:Vector();
+          d[1] = (unsigned int)modifyTriangles[i*3+1]<(unsigned int)pointCount?here[modifyTriangles[i*3+1]]:Vector();
+          d[2] = (unsigned int)modifyTriangles[i*3+2]<(unsigned int)pointCount?here[modifyTriangles[i*3+2]]:Vector();
   
           bool allIn = true;
           for (int t = 0; t < 3; t++) {
@@ -2599,7 +2599,7 @@ void bakeModify(bool justCreateSelection) {
   beforeUndoPoint();
   Vector minB,maxB;
   bool first = true;
-  for (int i = 0; i < modifyPointsSource.size(); i++) {
+  for (int i = 0; i < (int)modifyPointsSource.size(); i++) {
     Vector k = modifyPointsSource[i];
     if (first || k.x < minB.x) minB.x = k.x;
     if (first || k.y < minB.y) minB.y = k.y;
@@ -2607,7 +2607,7 @@ void bakeModify(bool justCreateSelection) {
     if (first || k.y > maxB.y) maxB.y = k.y;
     first = false;
   }
-  for (int i2 = 0; i2 < modifyPointsDest.size(); i2++) {
+  for (int i2 = 0; i2 < (int)modifyPointsDest.size(); i2++) {
     Vector k = modifyPointsDest[i2];
     if (first || k.x < minB.x) minB.x = k.x;
     if (first || k.y < minB.y) minB.y = k.y;
@@ -2628,13 +2628,13 @@ void bakeModify(bool justCreateSelection) {
   Layer *clone = l->clone();
   Array<Vector> source;
   Array<Vector> dest;
-  int pointCount = modifyPointsSource.size();
+  int pointCount = (int)modifyPointsSource.size();
   for (int i3 = 0; i3 < pointCount; i3++) {
     double lx,ly;
     lx = modifyPointsSource[i3].x; ly = modifyPointsSource[i3].y; currentCanvas->getLayerPosFromCanvasPos(l,lx,ly,lx,ly); source.push_back(Vector(floor(lx),floor(ly)));
     lx = modifyPointsDest[i3].x; ly = modifyPointsDest[i3].y; currentCanvas->getLayerPosFromCanvasPos(l,lx,ly,lx,ly); dest.push_back(Vector(floor(lx),floor(ly)));
   }
-  int triangleCount = modifyTriangles.size()/3;
+  int triangleCount = (int)modifyTriangles.size()/3;
   Array<double> values;
   values.resize(triangleCount*3);
 
@@ -2644,13 +2644,13 @@ void bakeModify(bool justCreateSelection) {
       if ((y & 15)==0) updateStatusBar();
       for (int x = layerStartX; x < layerEndX; x++) {
         Vector p(x,y);
-        double sum = 0;
+        //double sum = 0;
         bool thisPixelShouldBeProcessed = false;
         for (int i = 0; i < triangleCount; i++) {
           Vector d[3];
-          d[0] = (unsigned int)modifyTriangles[i*3+0]<pointCount?source[modifyTriangles[i*3+0]]:Vector();
-          d[1] = (unsigned int)modifyTriangles[i*3+1]<pointCount?source[modifyTriangles[i*3+1]]:Vector();
-          d[2] = (unsigned int)modifyTriangles[i*3+2]<pointCount?source[modifyTriangles[i*3+2]]:Vector();
+          d[0] = (unsigned int)modifyTriangles[i*3+0]<(unsigned int)pointCount?source[modifyTriangles[i*3+0]]:Vector();
+          d[1] = (unsigned int)modifyTriangles[i*3+1]<(unsigned int)pointCount?source[modifyTriangles[i*3+1]]:Vector();
+          d[2] = (unsigned int)modifyTriangles[i*3+2]<(unsigned int)pointCount?source[modifyTriangles[i*3+2]]:Vector();
   
           bool allIn = true;
           for (int t = 0; t < 3; t++) {
@@ -2681,9 +2681,9 @@ void bakeModify(bool justCreateSelection) {
       baryTriangle = -1;
       for (int i = 0; i < triangleCount; i++) {
         Vector d[3];
-        d[0] = (unsigned int)modifyTriangles[i*3+0]<pointCount?dest[modifyTriangles[i*3+0]]:Vector();
-        d[1] = (unsigned int)modifyTriangles[i*3+1]<pointCount?dest[modifyTriangles[i*3+1]]:Vector();
-        d[2] = (unsigned int)modifyTriangles[i*3+2]<pointCount?dest[modifyTriangles[i*3+2]]:Vector();
+        d[0] = (unsigned int)modifyTriangles[i*3+0]<(unsigned int)pointCount?dest[modifyTriangles[i*3+0]]:Vector();
+        d[1] = (unsigned int)modifyTriangles[i*3+1]<(unsigned int)pointCount?dest[modifyTriangles[i*3+1]]:Vector();
+        d[2] = (unsigned int)modifyTriangles[i*3+2]<(unsigned int)pointCount?dest[modifyTriangles[i*3+2]]:Vector();
 
         bool allIn = true;
         for (int t = 0; t < 3; t++) {
@@ -2745,27 +2745,27 @@ void bakeModify(bool justCreateSelection) {
         double tx = 0, ty = 0;
         if (modifyOutlined) {
           if (sum != 0) {
-            for (int k = 0; k < values.size(); k++) {
+            for (int k = 0; k < (int)values.size(); k++) {
               values[k] /= sum;
             }
   
             for (int i = 0; i < triangleCount; i++) {
               for (int j = 0; j < 3; j++) {
                 double f = values[i*3+j];
-                Vector d; d = (unsigned int)modifyTriangles[i*3+j]<pointCount?source[modifyTriangles[i*3+j]]:Vector();
+                Vector d; d = (unsigned int)modifyTriangles[i*3+j]<(unsigned int)pointCount?source[modifyTriangles[i*3+j]]:Vector();
                 tx += d.x * f;
                 ty += d.y * f;
               }
             }
           }    
         } else {
-          if ((unsigned int)baryTriangle < triangleCount) {
+          if ((unsigned int)baryTriangle < (unsigned int)triangleCount) {
             tx = 0;
             ty = 0;
             for (int j = 0; j < 3; j++) {
               double f = bary[j];
               int j2 = (j + 3 - 1) % 3;
-              Vector d; d = (unsigned int)modifyTriangles[baryTriangle*3+j2]<pointCount?source[modifyTriangles[baryTriangle*3+j2]]:Vector();
+              Vector d; d = (unsigned int)modifyTriangles[baryTriangle*3+j2]<(unsigned int)pointCount?source[modifyTriangles[baryTriangle*3+j2]]:Vector();
               tx += d.x * f;
               ty += d.y * f;
             }
@@ -2774,7 +2774,7 @@ void bakeModify(bool justCreateSelection) {
   
         int txi = (int)floor(tx);
         int tyi = (int)floor(ty);
-        if ((unsigned int)txi<clone->width&&(unsigned int)tyi<clone->height) {
+        if ((unsigned int)txi<(unsigned int)clone->width&&(unsigned int)tyi<(unsigned int)clone->height) {
           if (!modifyFiltered) {
             unsigned int col = clone->pixels[txi+tyi*clone->width];
             l->pixels[x+y*l->width] = col;
@@ -2857,7 +2857,7 @@ void useToolModify() {
     double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
     int found = -1;
     double ld = 0;
-    for (int i = 0; i < points->size(); i++) {
+    for (int i = 0; i < (int)points->size(); i++) {
       double dx = (*points)[i].x - cx;
       double dy = (*points)[i].y - cy;
       double d = dx*dx+dy*dy;
@@ -2875,7 +2875,7 @@ void useToolModify() {
       if (!modifyMode) {
         double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
         points->push_back(Vector(cx,cy));
-        selectedModifyPoint = points->size()-1;
+        selectedModifyPoint = (int)points->size()-1;
         createModifyTriangles();
       }
     }
@@ -2905,7 +2905,7 @@ void useToolTileMap() {
   int lxi = (int)floor(lx); int lyi = (int)floor(ly);
   int txi = (int)floor((double)lxi/l2->toolInfo.tilingWidth);
   int tyi = (int)floor((double)lyi/l2->toolInfo.tilingHeight);
-  if ((unsigned int)txi < l->width && (unsigned int)tyi < l->height) {
+  if ((unsigned int)txi < (unsigned int)l->width && (unsigned int)tyi < (unsigned int)l->height) {
     static bool wasDown = false;
     static int lastTxi = -1;
     static int lastTyi = -1;
@@ -2935,13 +2935,13 @@ void useToolTileMap() {
         for (int i = 0; i < d+1; i++) {
           txi = (int)floor(px);
           tyi = (int)floor(py);
-          if ((unsigned int)txi < l->width && (unsigned int)tyi < l->height) {
+          if ((unsigned int)txi < (unsigned int)l->width && (unsigned int)tyi < (unsigned int)l->height) {
             l->pixels[txi+tyi*l->width] = l->toolInfo.tileMapSelectedTile;
             double cx0 = txi, cy0 = tyi; currentCanvas->getCanvasPosFromLayerPos(l,cx0,cy0,cx0,cy0);
             double cx1 = txi+1, cy1 = tyi+1; currentCanvas->getCanvasPosFromLayerPos(l,cx1,cy1,cx1,cy1);
             for (int y = (int)cy0; y < (int)cy1; y++) {
               for (int x = (int)cx0; x < (int)cx1; x++) {
-                if ((unsigned int)x < currentCanvas->width && (unsigned int)y < currentCanvas->height) {
+                if ((unsigned int)x < (unsigned int)currentCanvas->width && (unsigned int)y < (unsigned int)currentCanvas->height) {
                   currentCanvas->pixelStates[x+y*currentCanvas->width] |= PIXELSTATE_UPDATED;
                 }
               }

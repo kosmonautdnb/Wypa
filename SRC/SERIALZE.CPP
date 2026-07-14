@@ -154,8 +154,8 @@ void writeJson(Array<char> *arr, String *string) {
 #define S_IMVEC4(__name__, __v__) {ImVec4 *typeSafe = &(__v__); UNUSED(typeSafe); jsonSerialize(&jsonArray, (void**)&jsonPos, JSONTYPE_IMVEC4, __name__, &(__v__), jsonIsSaving,arrayIndex);}
 
 #define S_ZIPARRAY(__fileName__,__v__,__es__) {\
-  int a = __v__.size(); S_INT(((__fileName__)+"_ARRAYSIZE").c_str(),a);\
-  int b = __es__; S_INT(((__fileName__)+"_ELEMENTSIZE").c_str(),b);\
+  int a = (int)__v__.size(); S_INT(((__fileName__)+"_ARRAYSIZE").c_str(),a);\
+  int b = (int)__es__; S_INT(((__fileName__)+"_ELEMENTSIZE").c_str(),b);\
   if (!save) __v__.resize(a);\
   zipData(save,__fileName__,&(__v__[0]),a*b);\
 }
@@ -167,7 +167,7 @@ Array<unsigned int*> idsToResolve;
 #define S_IDREFERENCE(__name__,__id__) {S_UINT(__name__,__id__); idsToResolve.push_back(&(__id__));}
 #define S_RESOLVEIDS() {\
   if (!save) {\
-    for (int i = 0; i < idsToResolve.size(); i++) {\
+    for (int i = 0; i < (int)idsToResolve.size(); i++) {\
       unsigned int *dest = idsToResolve[i];\
       if (idRemap.has(*dest)) *dest = idRemap[*dest]; else *dest = 0;\
     }\
@@ -188,7 +188,7 @@ String encodeBase64(void *data, unsigned int len) {
   unsigned char *src = (unsigned char *)data;
   String ret;
   ret.resize((len+2)/3*4);
-  for (int i = 0; i < ret.size()/4; i++) {
+  for (int i = 0; i < (int)ret.size()/4; i++) {
     unsigned char a0 = src[i*3+0];
     unsigned char a1 = src[i*3+1];
     unsigned char a2 = src[i*3+2];
@@ -201,7 +201,7 @@ String encodeBase64(void *data, unsigned int len) {
     ret[i*4+2] = base64[d2];
     ret[i*4+3] = base64[d3];
   }
-  for (int i2 = 0; i2 < len % 3; i2++) ret[ret.size()-i2-1] = '=';
+  for (int i2 = 0; i2 < (int)len % 3; i2++) ret[ret.size()-i2-1] = '=';
   return ret;
 }
 
@@ -237,7 +237,7 @@ int arraySize = 0;
   if (!jsonIsSaving) {\
     (__array__).clear(); (__array__).resize(arraySize);\
   }\
-  for (int i = 0; i < (__array__).size(); i++) {\
+  for (int i = 0; i < (int)((__array__).size()); i++) {\
     arrayIndex = i;\
     __elementFunc__;\
   }\
@@ -247,9 +247,9 @@ int arraySize = 0;
 
 #define S_ARRAY_POINTER_RESIZE(__array__,__type__,__count__) {\
   if (!jsonIsSaving) {\
-    for (int i1 = 0; i1 < (__array__).size(); i1++) if ((__array__)[i1] != NULL) {delete __array__[i1]; (__array__)[i1]=NULL;}\
+    for (int i1 = 0; i1 < (int)((__array__).size()); i1++) if ((__array__)[i1] != NULL) {delete __array__[i1]; (__array__)[i1]=NULL;}\
     (__array__).clear(); (__array__).resize(__count__);\
-    for (int i2 = 0; i2 < (__array__).size(); i2++) (__array__)[i2] = new __type__();\
+    for (int i2 = 0; i2 < (int)((__array__).size()); i2++) (__array__)[i2] = new __type__();\
   }\
 }
 
@@ -257,7 +257,7 @@ int arraySize = 0;
   int k = arrayIndex;\
   S_ARRAY_OPEN(__name__);\
   S_ARRAY_POINTER_RESIZE(__array__,__elementType__,arraySize);\
-  for (int i = 0; i < (__array__).size(); i++) {\
+  for (int i = 0; i < (int)((__array__).size()); i++) {\
     arrayIndex = i;\
     __elementFunc__;\
   }\
@@ -320,7 +320,7 @@ void jsonSerialize(void *json, void **jsonPos, int type, const char *name, void 
       case JSONTYPE_IMVEC4: {ImVec4 *v = (ImVec4*)data; sprintf(tempBuffer,"%s,%s,%s,%s", _D(v->x), _D(v->y), _D(v->z), _D(v->w)); newPos = json_str( oldPos, name, tempBuffer, &len );} break;
     }
     int posInString = (int)(newPos - &(*w)[0]);
-    if (posInString > w->size()-JSONPORTIONLENGTH) {
+    if (posInString > (int)(w->size())-(int)JSONPORTIONLENGTH) {
       w->resize(w->size() + JSONPORTIONLENGTH*2);
       newPos = &(*w)[0] + posInString;
     }
@@ -545,7 +545,7 @@ void exportPNG(const char *shortPath, const char *longFileName) {
 void exportLayersRaw(const char *shortPath, const char *longFileName, bool applyColorTransform) {
   int k = 0;
   initStatusBar();
-  for (int i = 0; i < currentCanvas->layers.size(); i++) {
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
     if ((l->state.selected||l->state.active) && l->width*l->height>0) {
       tempName = getTempFileName(shortPath);
@@ -580,7 +580,7 @@ void insertPSD(const char *shortPath, const char *longFileName) {
   PSDImage *img = new PSDImage();
   if (img->Load(dosFileName(fullFileName).c_str())) {
     int pos = 0;
-    for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
+    for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
     int w = img->header.Columns;
     int h = img->header.Rows;
     int l = img->NumLayers();
@@ -664,7 +664,7 @@ void insertSVGResized(int layerWidth, int layerHeight, float scale)
   }
   free(img);
   int pos = 0;
-  for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active) {pos = i; break;}
   currentCanvas->insertLayer(l,pos);
   loadedSomething();
 }
@@ -679,8 +679,8 @@ void insertSVG(const char *shortPath, const char *longFileName) {
   loadedSomething();
 }
 
-Array<String> getLines(const char *string) {
-  Array<String> ret;
+void getLines(Array<String> &ret, const char *string) {
+  ret.clear();
   int len = strlen(string);
   String k="";
   for (int i = 0; i < len; i++) {
@@ -695,17 +695,16 @@ Array<String> getLines(const char *string) {
     k += String::fromChar(c);
   }
   if (!k.empty()) ret.push_back(k);
-  return ret;
 }
 
 void paletteFromString(const char *str) {
   if (str == NULL) return;
-  Array<String> lines = getLines(str);
-  if (lines.size()<1) return;
+  Array<String> lines; getLines(lines, str);
+  if ((int)lines.size()<1) return;
   int a[4];
   if (sscanf(lines[0].c_str(),"%d",&a[0])==1) paletteColorsPerRow = a[0];
   palette.clear();
-  for (int i = 1; i < lines.size(); i++) {
+  for (int i = 1; i < (int)lines.size(); i++) {
     if (sscanf(lines[i].c_str(),"%d %d %d %d",&a[0],&a[1],&a[2],&a[3])==4) {
       if (a[0]<0) a[0] = 0;
       if (a[1]<0) a[1] = 0;
@@ -725,7 +724,7 @@ String getPaletteString(const Array<ImVec4> &palette, int paletteColorsPerRow) {
   char zwo[256];
   sprintf(zwo,"%d\n",paletteColorsPerRow);
   ret += String(zwo);
-  for (int i = 0; i < palette.size(); i++) {
+  for (int i = 0; i < (int)palette.size(); i++) {
     int r = int(palette[i].x*255.f);
     int g = int(palette[i].y*255.f);
     int b = int(palette[i].z*255.f);
@@ -765,13 +764,13 @@ void savePalette(const char *shortPath, const char *longFileName) {
 
 void gradientFromString(const char *str) {
   if (str == NULL) return;
-  Array<String> lines = getLines(str);
-  if (lines.size()<1) return;
+  Array<String> lines; getLines(lines, str);
+  if ((int)lines.size()<1) return;
   gradient.elements.clear();
   float pos;
   int a[4]; 
   char step;
-  for (int i = 0; i < lines.size(); i++) {
+  for (int i = 0; i < (int)lines.size(); i++) {
     if (sscanf(lines[i].c_str(),"%f %d %d %d %d %c",&pos,&a[0],&a[1],&a[2],&a[3],&step)==6) {
       if (a[0]<0) a[0] = 0;
       if (a[1]<0) a[1] = 0;
@@ -796,7 +795,7 @@ void gradientFromString(const char *str) {
 String getGradientString(const Gradient &gradient) {
   String ret;
   char zwo[256];
-  for (int i = 0; i < gradient.elements.size(); i++) {
+  for (int i = 0; i < (int)gradient.elements.size(); i++) {
     const GradientElement *e = &gradient.elements[i];
     float pos = e->position;
     int r = e->color & 255;
@@ -837,8 +836,8 @@ void loadColorMatrix(const char *shortPath, const char *longFileName) {
     getFileArray(&arr,String(shortPath)+String(longFileName));
     if (!arr.empty()) {
       const char *str = (char*)&arr[0];
-      Array<String> lines = getLines(str);
-      if (lines.size() == 5) {
+      Array<String> lines; getLines(lines, str);
+      if ((int)lines.size() == 5) {
         for (int i = 0; i < 5; i++) {
           float a[4];
           if (sscanf(lines[i].c_str(),"%f %f %f %f",&a[0],&a[1],&a[2],&a[3])==4) {
@@ -877,7 +876,7 @@ void saveColorMatrix(const char *shortPath, const char *longFileName) {
 class ZipDesc {
 public:
   ZipDesc() {
-    sprintf(fileName,"");
+    sprintf(fileName,"%s","");
     data = NULL;
     dataSize = 0;
   }
@@ -896,7 +895,7 @@ bool writeZippedFiles(const Array<ZipDesc> &desc, const char *shortPath, const c
   mz_zip_zero_struct(&zip);
   String zipName = getTempFileName(shortPath);
   if (!mz_zip_writer_init_file(&zip, zipName.c_str(), 0)) return false;
-  for (int i = 0; i < desc.size(); i++) {
+  for (int i = 0; i < (int)desc.size(); i++) {
     if (!mz_zip_writer_add_mem(&zip, desc[i].fileName, desc[i].data, desc[i].dataSize, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME)) {
     }
   }
@@ -918,7 +917,7 @@ bool readZippedFile(const char *shortPath, const char *longFileName, const char 
 
   if (mz_zip_reader_init_cfile(&zip, in, 0, MZ_ZIP_FLAG_ASCII_FILENAME)) {
     unsigned int fileCount = mz_zip_reader_get_num_files(&zip);
-    for (int i = 0; i < fileCount; i++) {
+    for (int i = 0; i < (int)fileCount; i++) {
       if (mz_zip_reader_file_stat(&zip, i, &file_stat)) {
         String a = (const char *)file_stat.m_filename; a = toLower(unixFileName(a));
         if (a == toLookFor) {
@@ -987,15 +986,15 @@ void saveBrush(const char *shortPath, const char *longFileName) {
 
 void loadBrushes(const char *shortPath, const char *longFileName) {
   Array<Brush *> brushesHere; getBrushesArray(brushesHere, shortPath, longFileName);
-  for (int i = 0; i < brushes.size(); i++) delete brushes[i];
+  for (int i = 0; i < (int)brushes.size(); i++) delete brushes[i];
   brushes.resize(brushesHere.size());
-  for (int i2 = 0; i2 < brushes.size(); i2++) brushes[i2] = brushesHere[i2];
+  for (int i2 = 0; i2 < (int)brushes.size(); i2++) brushes[i2] = brushesHere[i2];
   currentBrush = 0;
 }
 
 void saveBrushes(const char *shortPath, const char *longFileName) {
   Array<Brush *> brushesHere; 
-  for (int i = 0; i < brushes.size(); i++) brushesHere.push_back(brushes[i]);
+  for (int i = 0; i < (int)brushes.size(); i++) brushesHere.push_back(brushes[i]);
   putBrushesArray(brushesHere, shortPath, longFileName);
 }
 
@@ -1151,7 +1150,7 @@ void loadImage(const char *shortPath, const char *longFileName) {
     canvasHere.erase(0,1);
   }
 
-  for (int i = 0; i < canvasHere.size(); i++) delete canvasHere[i];
+  for (int i = 0; i < (int)canvasHere.size(); i++) delete canvasHere[i];
   canvasHere.clear();
 
   if (!allWentWell) {
@@ -1279,7 +1278,7 @@ unsigned int saveFontId = 0;
 void saveFont(const char *shortPath, const char *longFileName) {
   if (saveFontId == 0) return;
   FontSource *font = NULL;
-  for (int i = 0; i < fonts.size(); i++) {
+  for (int i = 0; i < (int)fonts.size(); i++) {
     if (fonts[i]->id == saveFontId) {font = fonts[i]; break;}
   }
   if (font == NULL) return;
@@ -1327,10 +1326,10 @@ void loadTilingAnim(const char *shortPath, const char *longFileName) {
     for (int y = 0; y < t.height; y++) {
       for (int x = 0; x < t.width; x++) {
         unsigned int col = 0x00000000;
-        if ((unsigned int)x < tw && (unsigned int)y < th) {
+        if ((unsigned int)x < (unsigned int)tw && (unsigned int)y < (unsigned int)th) {
           int sx = x + j * tw;
           int sy = y + 1;
-          if ((unsigned int)sx < img.width && (unsigned int)sy < img.height) {
+          if ((unsigned int)sx < (unsigned int)img.width && (unsigned int)sy < (unsigned int)img.height) {
             col = img.data[sx+sy*img.width];
           }
         }
@@ -1372,7 +1371,7 @@ void saveTilingAnim(const char *shortPath, const char *longFileName) {
         for (int x = 0; x < t.width; x++) {
           int dx = x + i * l->toolInfo.tilingWidth;
           int dy = y + 1;
-          if ((unsigned int)dx < img.width && (unsigned int)dy < img.height)
+          if ((unsigned int)dx < (unsigned int)img.width && (unsigned int)dy < (unsigned int)img.height)
             img.data[dx+dy*img.width] = t.data[x+y*t.width];
         }
       }
@@ -1390,12 +1389,12 @@ void saveTilingAnim(const char *shortPath, const char *longFileName) {
 void loadTileMap(const char *shortPath, const char *longFileName) {
   Array<unsigned char> arr; getFileArray(&arr,String(shortPath)+String(longFileName));
   if (arr.empty()) return;
-  Array<String> lines = getLines((const char *)&arr[0]);
+  Array<String> lines; getLines(lines, (const char *)&arr[0]);
   if (lines.size()<4) return;
   int tileCountX, tileCountY;
   sscanf(lines[1].c_str(),"%d,%d",&tileCountX,&tileCountY);
   if (tileCountX <= 0 || tileCountY <=0) return;
-  if (tileCountY + 2 != lines.size()) return;
+  if (tileCountY + 2 != (int)lines.size()) return;
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
   if (l->type != LAYERTYPE_TILEMAP) return;
@@ -1406,7 +1405,7 @@ void loadTileMap(const char *shortPath, const char *longFileName) {
     int i = 0;
     for (int x = 0; x < tileCountX; x++) {
       String h = "";
-      for (; i < k.size(); i++) {
+      for (; i < (int)k.size(); i++) {
         if (k[i] == ',') {i++;break;}
         h += String::fromChar(k[i]);
       }
@@ -1440,7 +1439,7 @@ void saveTileMap(const char *shortPath, const char *longFileName) {
 
 void getFilesOfFolder(Array<File> &ret, const String &folder) {
   ret.clear(); String f = dosFileName(fromLocalFileName(folder)); ret = dosGetFiles(f);
-  for (int i = 0; i < ret.size(); i++) {
+  for (int i = 0; i < (int)ret.size(); i++) {
     File &k = ret[i];
     bool invalid = (k.attributes & (DOS_ATTR_VOLID|DOS_ATTR_SUBDIR))!=0;
     if (k.name.name == "." || k.name.name == "..") invalid = true;
@@ -1460,7 +1459,7 @@ void importFolder(const char *shortPath, const char *longFileName) {
   Array<File> folder; getFilesOfFolder(folder,shortPath);
   if (!folder.empty()) {
     int pos = 0;
-    for (int i = 0; i < currentCanvas->layers.size(); i++) {
+    for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
       if (currentCanvas->layers[i]->state.active || currentCanvas->layers[i]->state.selected) {pos = i; break;}
     }
     Layer *l = new Layer();
@@ -1475,7 +1474,7 @@ void importFolder(const char *shortPath, const char *longFileName) {
     int posX = posX0;
     int posY = posY0;
     int posMaxY = posY;
-    for (int i2 = 0; i2 < folder.size(); i2++) {
+    for (int i2 = 0; i2 < (int)folder.size(); i2++) {
       Layer *l2 = loadImage(String(""),String(folder[i2].name.full));
       if (l2 != NULL) {
         if (posX + l2->width > l->width) {
@@ -1490,7 +1489,7 @@ void importFolder(const char *shortPath, const char *longFileName) {
           for (int x = 0; x < l2->width; x++) {
             int dx = x + posX;
             int dy = y + posY;
-            if ((unsigned int)dx < l->width && (unsigned int)dy < l->height) {
+            if ((unsigned int)dx < (unsigned int)l->width && (unsigned int)dy < (unsigned int)l->height) {
               l->pixels[dx+dy*l->width] = l2->pixels[x+y*l2->width];
             }
           }

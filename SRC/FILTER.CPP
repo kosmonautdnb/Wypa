@@ -33,8 +33,10 @@
 float sfrand2d(int seed,float x, float y) {
   x *= 3.3333;
   y *= 7.7777;
-  srand((*((unsigned int*)&x))^seed); int xs = rand();
-  srand((*((unsigned int*)&y))^seed); int ys = rand();
+  void *k1 = (void*)(&x);
+  void *k2 = (void*)(&y);
+  srand((*((unsigned int*)k1))^seed); int xs = rand();
+  srand((*((unsigned int*)k2))^seed); int ys = rand();
   srand(xs+ys);
   return (float)rand()*2 / (RAND_MAX-1) - 1;
 }
@@ -52,7 +54,7 @@ void filterDifferenceClouds() {
   beforeUndoPoint();
   Array<float> values;
   values.resize(l->width*l->height);
-  for (int i = 0; i < values.size(); i++) values[i] = 0;
+  for (int i = 0; i < (int)values.size(); i++) values[i] = 0;
   int tileSize = l->width;
   if (l->height > tileSize) tileSize = l->height;
   static int seed = 0; seed += 1337;
@@ -170,7 +172,7 @@ void filterSobelEdgeDetect() {
         for (int x2 = -1; x2 <= 1; x2++) {
           int x3 = x + x2;
           int y3 = y + y2;
-          if ((unsigned int)x3<l->width && (unsigned int)y3<l->height) {
+          if ((unsigned int)x3<(unsigned int)l->width && (unsigned int)y3<(unsigned int)l->height) {
             unsigned int col = l->pixels[x3+y3*l->width];
             int r = col & 255;
             int g = (col>>8) & 255;
@@ -268,7 +270,7 @@ void filterMorphologicalEdgeDetect() {
         for (int j = 0; j < 5; j++) {{int x2 = posX[j]; int y2 = posY[j];
             int x3 = x + x2;
             int y3 = y + y2;
-            if ((unsigned int)x3<l->width && (unsigned int)y3<l->height) {
+            if ((unsigned int)x3<(unsigned int)l->width && (unsigned int)y3<(unsigned int)l->height) {
               unsigned int col = source[x3+y3*l->width];
               int r = col & 255;
               int g = (col>>8) & 255;
@@ -322,7 +324,7 @@ void filterAlphaSoften() {
         for (int j = 0; j < 5; ++j) {
           int x3 = x + posX[j];
           int y3 = y + posY[j];
-          if ((unsigned int)x3<l->width && (unsigned int)y3<l->height) {
+          if ((unsigned int)x3<(unsigned int)l->width && (unsigned int)y3<(unsigned int)l->height) {
             unsigned int col = source[x3+y3*l->width];
             a += (col>>24) & 255;
             w++;
@@ -356,9 +358,9 @@ void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
   initStatusBar();
   Array<unsigned int> blurred;
   blurred.resize(width*height*5);
-  for (int y = 0; y < height; y++) {
+  for (int y = 0; y < (int)height; y++) {
     if ((y & 15)==0) updateStatusBar();
-    for (int x = 0; x < width; x++) {
+    for (int x = 0; x < (int)width; x++) {
       int w = 0;
       int r = 0;
       int g = 0;
@@ -367,7 +369,7 @@ void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
       for (int x2 = -boxW; x2 <= boxW; x2++) {
         int x3 = x2 + x;
         int y3 = y;
-        if ((unsigned int)x3<width&&(unsigned int)y3<height) {
+        if ((unsigned int)x3<(unsigned int)width&&(unsigned int)y3<(unsigned int)height) {
           unsigned int col = source[x3+y3*width];
           r += col & 255;
           g += (col>>8) & 255;
@@ -383,9 +385,9 @@ void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
       blurred[(x+y*width)*5+4] = w;
     }
   }
-  for (int y4 = 0; y4 < height; y4++) {
+  for (int y4 = 0; y4 < (int)height; y4++) {
     if ((y4 & 15)==0) updateStatusBar();
-    for (int x4 = 0; x4 < width; x4++) {
+    for (int x4 = 0; x4 < (int)width; x4++) {
       if ((!usePixelStates)||(pixelStates[x4+y4*width] & PIXELSTATE_SELECTED)) {
         int w = 0;
         int r = 0;
@@ -395,7 +397,7 @@ void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
         for (int y2 = -boxH; y2 <= boxH; y2++) {
           int x3 = x4;
           int y3 = y2 + y4;
-          if ((unsigned int)x3<width&&(unsigned int)y3<height) {
+          if ((unsigned int)x3<(unsigned int)width&&(unsigned int)y3<(unsigned int)height) {
             r += blurred[(x3+y3*width)*5+0];
             g += blurred[(x3+y3*width)*5+1];
             b += blurred[(x3+y3*width)*5+2];
@@ -429,9 +431,9 @@ void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int widt
   float r = -radialAngle*PI*2/360.0;
   float stepX = sin(r);
   float stepY = cos(r);
-  for (int y4 = 0; y4 < height; y4++) {
+  for (int y4 = 0; y4 < (int)height; y4++) {
     if ((y4 & 15)==0) updateStatusBar();
-    for (int x4 = 0; x4 < width; x4++) {
+    for (int x4 = 0; x4 < (int)width; x4++) {
       if ((!usePixelStates)||(pixelStates[x4+y4*width] & PIXELSTATE_SELECTED)) {
         int r = 0;
         int g = 0;
@@ -441,7 +443,7 @@ void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int widt
         for (int k = -radialSize; k <= radialSize; k++) {
           int x3 = stepX * k + x4;
           int y3 = stepY * k + y4;
-          if ((unsigned int)x3 < width && (unsigned int)y3 < height) {
+          if ((unsigned int)x3 < (unsigned int)width && (unsigned int)y3 < (unsigned int)height) {
             unsigned int col = source[x3+y3*width];
             r += col & 255;
             g += (col>>8) & 255;
@@ -527,11 +529,11 @@ void bloomX(unsigned int *buffer, unsigned int width, unsigned int height, float
   weight1 = weight1/weights;
   weight2 = weight2/weights;
   unsigned int *newBuffer = new unsigned int[width*height];
-  for (int y = 0; y < height; y++) {
+  for (int y = 0; y < (int)height; y++) {
     unsigned int *s = &buffer[y*width];
     unsigned int *d = &newBuffer[y*width];
     int rgb;
-    for (int x = 0; x < width; x++) {
+    for (int x = 0; x < (int)width; x++) {
       float t0x = x - tap0; if (t0x < 0) t0x = 0;
       float t1x = x - tap1; if (t1x < 0) t1x = 0;
       float t3x = x + tap1; if (t3x > width-1) t3x = width-1;
@@ -558,11 +560,11 @@ void bloomXFiltered(unsigned int *buffer, unsigned int width, unsigned int heigh
   weight1 = weight1/weights;
   weight2 = weight2/weights;
   unsigned int *newBuffer = new unsigned int[width*height];
-  for (int y = 0; y < height; y++) {
+  for (int y = 0; y < (int)height; y++) {
     unsigned int *s = &buffer[0];
     unsigned int *d = &newBuffer[y*width];
     int rgb;
-    for (int x = 0; x < width; x++) {
+    for (int x = 0; x < (int)width; x++) {
       float t0x = x - tap0; if (t0x < 0) t0x = 0;
       float t1x = x - tap1; if (t1x < 0) t1x = 0;
       float t3x = x + tap1; if (t3x > width-1) t3x = width-1;
@@ -589,11 +591,11 @@ void bloomY(unsigned int *buffer, unsigned int width, unsigned int height, float
   weight1 = weight1/weights;
   weight2 = weight2/weights;
   unsigned int *newBuffer = new unsigned int[width*height];
-  for (int x = 0; x < width; x++) {
+  for (int x = 0; x < (int)width; x++) {
     unsigned int *s = &buffer[x];
     unsigned int *d = &newBuffer[x];
     int rgb;
-    for (int y = 0; y < height; y++) {
+    for (int y = 0; y < (int)height; y++) {
       float t0y = y - tap0; if (t0y < 0) t0y = 0;
       float t1y = y - tap1; if (t1y < 0) t1y = 0;
       float t3y = y + tap1; if (t3y > height-1) t3y = height-1;
@@ -621,11 +623,11 @@ void bloomYFiltered(unsigned int *buffer, unsigned int width, unsigned int heigh
   weight1 = weight1/weights;
   weight2 = weight2/weights;
   unsigned int *newBuffer = new unsigned int[width*height];
-  for (int x = 0; x < width; x++) {
+  for (int x = 0; x < (int)width; x++) {
     unsigned int *s = &buffer[0];
     unsigned int *d = &newBuffer[x];
     int rgb;
-    for (int y = 0; y < height; y++) {
+    for (int y = 0; y < (int)height; y++) {
       float t0y = y - tap0; if (t0y < 0) t0y = 0;
       float t1y = y - tap1; if (t1y < 0) t1y = 0;
       float t3y = y + tap1; if (t3y > height-1) t3y = height-1;
@@ -659,7 +661,7 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
 
   initStatusBar();
 
-  unsigned int *bloomBuffer = new unsigned int[width*height]; for (int i0 = 0; i0 < width*height; i0++) bloomBuffer[i0] = source[i0];
+  unsigned int *bloomBuffer = new unsigned int[width*height]; for (int i0 = 0; i0 < (int)(width*height); i0++) bloomBuffer[i0] = source[i0];
 
   if (passesX > px) {
     updateStatusBar();
@@ -685,7 +687,7 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
     bloomY(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
-  for (int i3 = 0; i3 < width*height; i3++) {
+  for (int i3 = 0; i3 < (int)(width*height); i3++) {
     if ((!usePixelStates)||(pixelStates[i3] & PIXELSTATE_SELECTED)) {
       dest[i3] = bloomBuffer[i3];
     }
@@ -703,9 +705,9 @@ void filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int w
   int posX[5] ={0,-1,1,0,0};
   int posY[5] ={0,0,0,-1,1};
   for (int i = 0; i < steps; i++) {
-    for (int y4 = 0; y4 < height; y4++) {
+    for (int y4 = 0; y4 < (int)height; y4++) {
       if ((y4 & 15)==0) updateStatusBar();
-      for (int x4 = 0; x4 < width; x4++) {
+      for (int x4 = 0; x4 < (int)width; x4++) {
         if ((!usePixelStates)||(pixelStates[x4+y4*width] & PIXELSTATE_SELECTED)) {
           int r = 0;
           int g = 0;
@@ -715,7 +717,7 @@ void filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int w
           for(int j = 0; j < 5; j++) {
             int x3 = x4 + posX[j];
             int y3 = y4 + posY[j];
-            if ((unsigned int)x3<width && (unsigned int)y3<height) {
+            if ((unsigned int)x3<(unsigned int)width && (unsigned int)y3<(unsigned int)height) {
               unsigned int col = f[x3+y3*width];
               r += col & 255;
               g += (col>>8) & 255;
@@ -752,7 +754,7 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
 
   Array<float> temp;
   temp.resize(width*height*2);
-  for (int i = 0; i < width*height; i++) {
+  for (int i = 0; i < (int)(width*height); i++) {
     unsigned int col = source[i];
     int r = col & 255;
     int g = (col>>8) & 255;
@@ -760,15 +762,15 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
     temp[i] = r+g+b;
   }
   for (int j = 0; j < 2; j++) {
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
+    for (int y = 0; y < (int)height; y++) {
+      for (int x = 0; x < (int)width; x++) {
         float val = 0;
         float w = 0;
         val += temp[x+y*width]; w += 1.0;
         if (y > 0) {val += temp[x+(y-1)*width]; w += 1.0;}
-        if (y < height-1) {val += temp[x+(y+1)*width]; w += 1.0;}
+        if (y < (int)height-1) {val += temp[x+(y+1)*width]; w += 1.0;}
         if (x > 0) {val += temp[x-1+y*width]; w += 1.0;}
-        if (x < width-1) {val += temp[x+1+y*width]; w += 1.0;}
+        if (x < (int)width-1) {val += temp[x+1+y*width]; w += 1.0;}
         if (w != 0) val /= w;
         temp[x+y*width+width*height] = val;
       }
@@ -776,8 +778,8 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
     memcpy(&temp[0],&temp[width*height],width*height*sizeof(float));
   }
 
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
+  for (int y = 0; y < (int)height; y++) {
+    for (int x = 0; x < (int)width; x++) {
       if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
         float sobelX = 0;
         float sobelY = 0;
@@ -785,16 +787,16 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
           for (int x2 = -1; x2 <= 1; x2++) {
             int x3 = x + x2;
             int y3 = y + y2;
-            if ((unsigned int)x3<width && (unsigned int)y3<height) {
+            if ((unsigned int)x3<(unsigned int)width && (unsigned int)y3<(unsigned int)height) {
               sobelX += temp[x3+y3*width]*sobelXMat[(x2+1)+(y2+1)*3];
               sobelY += temp[x3+y3*width]*sobelYMat[(x2+1)+(y2+1)*3];
             }
           }
         }
-        if (y == 0 || y == height-1) {
+        if (y == 0 || y == (int)height-1) {
           sobelY = 0;
         }
-        if (x == 0 || x == width-1) {
+        if (x == 0 || x == (int)width-1) {
           sobelX = 0;
         }
         float val = 0;
@@ -821,8 +823,8 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
   int rm = channel == 0 ? 1 : 0;
   int gm = channel == 1 ? 1 : 0;
   int bm = channel == 2 ? 1 : 0;
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
+  for (int y = 0; y < (int)height; y++) {
+    for (int x = 0; x < (int)width; x++) {
       if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
         unsigned int col = source[x+y*width];
         int r = col & 255;
@@ -856,8 +858,8 @@ void filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int wid
   int cr = color & 255;
   int cg = (color>>8) & 255;
   int cb = (color>>16) & 255;
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
+  for (int y = 0; y < (int)height; y++) {
+    for (int x = 0; x < (int)width; x++) {
       if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
         unsigned int col = source[x+y*width];
         int r = col & 255;
@@ -906,8 +908,8 @@ void filterDenoise() {
   Array<unsigned int> _b;
   _a.resize(3*3+1);
   _b.resize(3*3+1);
-  for (int y = 0; y < l->height; y++) {
-    for (int x = 0; x < l->width; x++) {
+  for (int y = 0; y < (int)l->height; y++) {
+    for (int x = 0; x < (int)l->width; x++) {
       if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
         int pos = 0;
         //for (int y2 = -1; y2 <= 1; y2++) {
@@ -915,7 +917,7 @@ void filterDenoise() {
         for (int j = 0; j < 5; j++) {{int x2 = posX[j]; int y2 = posY[j];
             int x3 = x + x2;
             int y3 = y + y2;
-            if ((unsigned int)x3 < l->width && (unsigned int)y3 < l->height) {
+            if ((unsigned int)x3 < (unsigned int)l->width && (unsigned int)y3 < (unsigned int)l->height) {
               unsigned int col = copy[x3+y3*l->width];
               int r = col & 255;
               int g = (col>>8) & 255;
@@ -923,7 +925,7 @@ void filterDenoise() {
               int grey = r*25 + g*60 + b*15;
               int p = 0;
               for (; p < pos; p++) {
-                if (_a[p]>=grey) break;
+                if ((int)_a[p]>=grey) break;
               }
               for (int k = pos-1;k>=p;k--) {
                 _a[k+1] = _a[k];
@@ -955,11 +957,11 @@ void filterSharpen() {
   memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
   int posX[5] ={0,-1,1,0,0};
   int posY[5] ={0,0,0,-1,1};
-  for (int y = 0; y < l->height; y++) {
-    for (int x = 0; x < l->width; x++) {
-      int i3 = x + y * l->width;
+  for (int y = 0; y < (int)l->height; y++) {
+    for (int x = 0; x < (int)l->width; x++) {
+      int i3 = x + y * (int)l->width;
       if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
-        bool first = true;
+        //bool first = true;
         int r = 0;
         int g = 0;
         int b = 0;
@@ -967,7 +969,7 @@ void filterSharpen() {
         for (int j = 0; j < 5; j++) {int x2 = posX[j]; int y2 = posY[j];
           int x3 = x + x2;
           int y3 = y + y2;
-          if ((unsigned int)x3<l->width && (unsigned int)y3<l->height) {
+          if ((unsigned int)x3<(unsigned int)l->width && (unsigned int)y3<(unsigned int)l->height) {
             unsigned int col = source[x3+y3*l->width];
             int ra = col & 255;
             int ga = (col>>8) & 255;

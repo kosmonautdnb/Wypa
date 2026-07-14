@@ -124,7 +124,7 @@ void drawLayerView() {
 #define CELLSIZE 24
 #define CELLPRE 4
   ImGui::BeginChild("LAYERVIEWCHILD",ImVec2(sidebar_width,main_window_yres-ImGui::GetCursorScreenPos().y-20));
-  for (int i = 0; i < currentCanvas->layers.size(); i++) {
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
     ImVec2 cursor = ImGui::GetCursorScreenPos();
 
@@ -192,7 +192,7 @@ void drawLayerView() {
   }
   ImGui::EndChild();
 
-  int count = 0; bool one = false; for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.selected || currentCanvas->layers[i2]->state.active) {one = true; count++;}
+  int count = 0; bool one = false; for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.selected || currentCanvas->layers[i2]->state.active) {one = true; count++;}
 
   if (!currentCanvas->layers.empty()) {
     if (roundButton("Move up##LAYERVIEWADMOVEUP",one && (!(currentCanvas->layers[0]->state.selected || currentCanvas->layers[0]->state.active)))) {

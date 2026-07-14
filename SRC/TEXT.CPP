@@ -32,7 +32,7 @@ void initText() {
 }
 
 void freeText() {
-  for (int i = 0; i < fonts.size(); i++) delete fonts[i];
+  for (int i = 0; i < (int)fonts.size(); i++) delete fonts[i];
   fonts.clear();
 }
 
@@ -100,14 +100,14 @@ GLuint FontSource::createTexture(const String &text, int fontSize, float aspect,
     int w = cx1-cx0;
     int h = cy1-cy0;
     int pitch = w;
-    if (buffer.size()<w*h) buffer.resize(w*h);
+    if ((int)buffer.size()<w*h) buffer.resize(w*h);
     stbtt_MakeCodepointBitmapSubpixel(&font,&buffer[0],w,h,pitch,scaleX,scaleY,shiftX,0,text[ch]);
     for (int y = 0; y < h; y++) {
       for (int x = 0; x < w; x++) {
         unsigned char val = buffer[x+y*pitch];
         int xd = x + (int)floor(xpos)+cx0;
         int yd = y + (int)floor(ypos)+cy0+baseLine;
-        if ((unsigned int)xd < width && (unsigned int)yd < height) {
+        if ((unsigned int)xd < (unsigned int)width && (unsigned int)yd < (unsigned int)height) {
           unsigned int col = texture[xd+yd*width];
           unsigned int a = (col >> 24) & 255;
           a = 255-(255-a)*(255-val)/255;
@@ -145,7 +145,7 @@ void addFontSource(Array<unsigned char> *data, const String &fileName) {
 }
 
 void removeFont(unsigned int fontId) {
-  for (int i = 0; i < fonts.size(); i++) {
+  for (int i = 0; i < (int)fonts.size(); i++) {
     FontSource *f = fonts[i];
     if (f->id == fontId) {
       delete f;
@@ -174,7 +174,7 @@ Layer *getFontLayer(const char *text, float pixelHeight, Array<unsigned char> *f
 Array<FontSource *> fonts;
 
 void reScaleTexts() {
-  for (int i = 0; i < fonts.size(); i++) {
+  for (int i = 0; i < (int)fonts.size(); i++) {
     FontSource *f = fonts[i];
     if (f->glHandle != 0) {glDeleteTextures(1,&f->glHandle); f->glHandle = 0;}
   }
@@ -236,7 +236,7 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
       lastLineWidth = cx1 - xposStart;
 
       if (andDraw) {
-        float lineWidth = lw<lineWidths.size() ? lineWidths[lw] : 100;
+        float lineWidth = lw<(int)lineWidths.size() ? lineWidths[lw] : 100;
         static Array<unsigned char> buffer;
         int w = cx1-cx0;
         int h = cy1-cy0;
@@ -248,14 +248,14 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
         case ALIGN_CENTER: {px = px + ((x1-x0)-lineWidth)*0.5;} break;
         }
         int pitch = w;
-        if (buffer.size()<w*h) buffer.resize(w*h);
+        if ((int)buffer.size()<w*h) buffer.resize(w*h);
         stbtt_MakeCodepointBitmapSubpixel(&f->font,&buffer[0],w,h,pitch,scaleX,scaleY,shiftX,0,l->toolInfo.textEditText[ch]);
         for (int y = 0; y < h; y++) {
           for (int x = 0; x < w; x++) {
             unsigned char val = buffer[x+y*pitch];
             int xd = x + px;
             int yd = y + py;
-            if ((unsigned int)xd < l->width && (unsigned int)yd < l->height) {
+            if ((unsigned int)xd < (unsigned int)l->width && (unsigned int)yd < (unsigned int)l->height) {
               unsigned int col = l->pixels[xd+yd*l->width];
               unsigned int a = (col >> 24) & 255;
               a = 255-(255-a)*(255-val)/255;
@@ -283,7 +283,7 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
 
 void paintTextIntoLayer(class Layer *l) {
   FontSource *f = NULL;
-  for (int i = 0; i < fonts.size(); i++) {
+  for (int i = 0; i < (int)fonts.size(); i++) {
     if (fonts[i]->id == l->toolInfo.fontId) {
       f = fonts[i];
       break;
@@ -298,7 +298,7 @@ void paintTextIntoLayer(class Layer *l) {
   int height = y1 - y0;
   if (width*height==0) return;
   l->setContentSize(width,height);
-  unsigned int col = l->toolInfo.fontColor;
+  //unsigned int col = l->toolInfo.fontColor;
   for (int i2 = 0; i2 < width*height; i2++) l->pixels[i2] = 0x00000000;
   getTextBounds(f, l, x0, y0, x1, y1, true, lineWidths);
 }

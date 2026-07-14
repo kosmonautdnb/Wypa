@@ -123,7 +123,7 @@ public:
     int wallY = wallX * aspectRatio * main_window_yres/main_window_xres;
     int top2 = top - wallY;
     int right3 = right + wallX;
-    float k2 = 0.0;
+    //float k2 = 0.0;
     glBegin(GL_QUADS);
 
     glColor4f(0,0,0,1);
@@ -199,7 +199,7 @@ GalleryEntry *gallery[GALLERYTEXTURECOUNT] = {NULL};
 
 void getFolder(const String &folder) {
   String f = dosFileName(fromLocalFileName(folder)); galleryFiles = dosGetFiles(f);
-  for (int i = 0; i < galleryFiles.size(); i++) {
+  for (int i = 0; i < (int)galleryFiles.size(); i++) {
     File &k = galleryFiles[i];
     bool invalid = (k.attributes & (DOS_ATTR_VOLID|DOS_ATTR_SUBDIR))!=0;
     if (k.name.name == "." || k.name.name == "..") invalid = true;
@@ -282,7 +282,7 @@ void blitGallery() {
 
   for (int i = 0; i < GALLERYTEXTURECOUNT; i++) {
     int k = (int)floor(i-1+currentIndex);
-    if ((unsigned int)k < galleryFiles.size()) {
+    if ((unsigned int)k < (unsigned int)galleryFiles.size()) {
       int mapIndex = (k + GALLERYTEXTURECOUNT) % GALLERYTEXTURECOUNT;
       gallery[mapIndex]->update(galleryFiles[k]);
       gallery[mapIndex]->blit(i-(currentIndex-floor(currentIndex)));
@@ -354,7 +354,7 @@ void drawGalleryView() {
   ImGui::PopItemWidth();
   ImGui::Separator();
   ImGui::BeginChild("DRAWGALLERYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
-  for (int i = 0; i < galleryFiles.size(); i++) {
+  for (int i = 0; i < (int)galleryFiles.size(); i++) {
     ImGui::Text("%s",galleryFiles[i].name.full.last(14).c_str());
     ImVec2 minB = ImGui::GetItemRectMin();
     ImVec2 maxB = ImGui::GetItemRectMax();

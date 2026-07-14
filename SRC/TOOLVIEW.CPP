@@ -171,17 +171,17 @@ bool notInt(double v) {
   return fabs(v - floor(v))>0.0000001;
 }
 
-bool notIntPosX(const Array<Layer *> &selected) {for (int i = 0; i < selected.size(); i++) {Vector k = selected[i]->boundingBox(); if (notInt(k.x)) return true;}  return false;}
-bool notIntPosY(const Array<Layer *> &selected) {for (int i = 0; i < selected.size(); i++) {Vector k = selected[i]->boundingBox(); if (notInt(k.y)) return true;}  return false;}
-bool notIntWidth(const Array<Layer *> &selected) {for (int i = 0; i < selected.size(); i++) {Vector k = selected[i]->boundingBox(); if (notInt(k.z-k.x)) return true;}  return false;}
-bool notIntHeight(const Array<Layer *> &selected) {for (int i = 0; i < selected.size(); i++) {Vector k = selected[i]->boundingBox(); if (notInt(k.w-k.y)) return true;}  return false;}
+bool notIntPosX(const Array<Layer *> &selected) {for (int i = 0; i < (int)selected.size(); i++) {Vector k = selected[i]->boundingBox(); if (notInt(k.x)) return true;}  return false;}
+bool notIntPosY(const Array<Layer *> &selected) {for (int i = 0; i < (int)selected.size(); i++) {Vector k = selected[i]->boundingBox(); if (notInt(k.y)) return true;}  return false;}
+bool notIntWidth(const Array<Layer *> &selected) {for (int i = 0; i < (int)selected.size(); i++) {Vector k = selected[i]->boundingBox(); if (notInt(k.z-k.x)) return true;}  return false;}
+bool notIntHeight(const Array<Layer *> &selected) {for (int i = 0; i < (int)selected.size(); i++) {Vector k = selected[i]->boundingBox(); if (notInt(k.w-k.y)) return true;}  return false;}
 
 void drawToolMoveView() {
   Array<Layer *> selected;
-  for (int i = 0; i < currentCanvas->layers.size(); i++) {if (currentCanvas->layers[i]->state.selected||currentCanvas->layers[i]->state.active) selected.push_back(currentCanvas->layers[i]);}
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {if (currentCanvas->layers[i]->state.selected||currentCanvas->layers[i]->state.active) selected.push_back(currentCanvas->layers[i]);}
   if (!selected.empty()) {
     Vector b;
-    for (int i = 0; i < selected.size(); i++) {
+    for (int i = 0; i < (int)selected.size(); i++) {
       Vector k = selected[i]->boundingBox();
       if (i == 0 || k.x < b.x) b.x = k.x;
       if (i == 0 || k.y < b.y) b.y = k.y;
@@ -230,7 +230,7 @@ void drawToolMoveView() {
       k = y1-y0; ImGui::Text("Bounding height"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGHEIGHT",&k)) {if (k<1) k = 1;currentCanvas->setBoundingSize(x1-x0,k); shouldUpdateAll = true;} if (notIntHeight(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers height");
       float k2 = currentCanvas->getBoundingAngleDegrees(); ImGui::Text("Bounding rotation"); if (ImGui::InputFloat("##DRAWTOOLNOUNDINGROTATION",&k2)) {if(k2<0) k2=0; if (k2>360) k2 = 360;currentCanvas->setBoundingAngleDegrees(k2);shouldUpdateAll = true;} toolTip("Change layer rotation");
       if (roundButton("Fit boundings##DRAWTOOLMOVEVIEWFITTOCANVAS",somethingToFit)) {
-        for (int i = 0; i < selected.size(); i++)
+        for (int i = 0; i < (int)selected.size(); i++)
           selected[i]->quantizeBoundingBox();
       } else toolTip("Put layers on straight coordinates");
       if (roundButton("Snap to grid##DRAWTOOLMOVEVIEWBOUNDINGSNAPTOGRID",currentCanvas->gridOn)) {
@@ -262,7 +262,7 @@ void eraseBrush() {
   if ((unsigned int)currentBrush>=brushes.size()) return;
   delete brushes[currentBrush];
   brushes.erase(currentBrush,1);
-  if ((!brushes.empty()) && currentBrush>=brushes.size()) currentBrush = brushes.size()-1;
+  if ((!brushes.empty()) && currentBrush>=(int)brushes.size()) currentBrush = (int)brushes.size()-1;
 }
 
 void drawBrushSelect(bool pencil) {
@@ -279,7 +279,7 @@ void drawBrushSelect(bool pencil) {
   if (roundButton("Erase##DRAWBRUSHSELECTERASEBRUSH",true)) {eraseBrush();} else toolTip("Erase the current brush");
   //ImGui::Text("Brushes %d",brushes.size()); toolTip("Current brush count");
   ImGui::BeginChild("DRAWBRUSHSELECTCHILD", ImVec2(toolview_width,toolButtonHeight*toolButtonYCount));
-  for (int i = 0; i < brushes.size(); i++) {
+  for (int i = 0; i < (int)brushes.size(); i++) {
     if ((i % toolButtonXCount) != 0) ImGui::SameLine();
     Brush *brush = brushes[i];
     if (drawBrushWindow(combined(String("##DRAWBRUSHSELECT")+String::fromInt(i)).c_str(),BRUSHINSTANCE_SELECT,brush,toolButtonWidth,toolButtonHeight, pencil, i == currentBrush)) {
@@ -321,7 +321,7 @@ void drawBrushSelect(bool pencil) {
             int sx = x2 + minX;
             int sy = y2 + minY;
             unsigned int col = 0x00000000;
-            if ((unsigned int)sx < l->width && (unsigned int)sy < l->height) {
+            if ((unsigned int)sx < (unsigned int)l->width && (unsigned int)sy < (unsigned int)l->height) {
               col = l->pixels[sx+sy*l->width];
             }
             img.data[x2+y2*img.width] = col;
@@ -459,7 +459,7 @@ void drawToolGradientView() {
     updateGradient();
   } else toolTip("Add a gradient element");
   ImGui::BeginChild("DRAWTOOLGRADIENTVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
-  for (int i = 0; i < gradient.elements.size(); i++) {
+  for (int i = 0; i < (int)gradient.elements.size(); i++) {
     GradientElement *e = &gradient.elements[i];
     String id = String("##DRAWTOOLGRADIENTVIEWELEMENT")+String::fromInt(e->id);
     if (id == neededScroll) {
@@ -705,11 +705,11 @@ void drawToolMeasureView() {
     double lx,ly;
     lx = measureCX1-measureCX0;
     ly = measureCY1-measureCY0;
-    ImGui::Text("Canvas %.02f",sqrt(lx*lx+dy*dy)); toolTip("Length of the diagonal of the current mouseclick box on the current picture");
+    ImGui::Text("Canvas %.02f",sqrt(lx*lx+ly*ly)); toolTip("Length of the diagonal of the current mouseclick box on the current picture");
     lx = measureLX1-measureLX0;
     ly = measureLY1-measureLY0;
     if (currentCanvas->isOnlyActiveLayerActive()) {
-      ImGui::Text("Layer %.02f",sqrt(lx*lx+dy*dy)); toolTip("Length of the diagonal of the current mouseclick box on the current layer");
+      ImGui::Text("Layer %.02f",sqrt(lx*lx+ly*ly)); toolTip("Length of the diagonal of the current mouseclick box on the current layer");
     }
     //lx = measureCX0; ly = measureCY0; currentCanvas->getScreenPos(lx,ly,lx,ly); ImVec2 l0(lx,ly);
     //lx = measureCX1; ly = measureCY1; currentCanvas->getScreenPos(lx,ly,lx,ly); ImVec2 l1(lx,ly);
@@ -728,9 +728,9 @@ void updateTilingGrid(Layer *l, bool visible) {
   if (l == NULL) return;
   if (locked(l,LOCK_PIXELS)) return;
   l->updatePixelStates(~(PIXELSTATE_GRID|PIXELSTATE_TEMP),0,0);
-  for (int y = 0; y < l->height; y++) {
-    for (int x = 0; x < l->width; x++) {
-      int i = x + y * l->width;
+  for (int y = 0; y < (int)l->height; y++) {
+    for (int x = 0; x < (int)l->width; x++) {
+      //int i = x + y * (int)l->width;
       if (l->toolInfo.showTilingGrid && visible) {
         int gridX = x-l->toolInfo.tilingOffsetX + l->toolInfo.tilingWidth * 100000;
         int gridY = y-l->toolInfo.tilingOffsetY + l->toolInfo.tilingHeight * 100000;
@@ -746,14 +746,14 @@ void updateTilingGrid(Layer *l, bool visible) {
               for (int x3 = 0; x3 < tw; x3++) {
                 int xp = x + x3;
                 int yp = y + y3;
-                if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) {
+                if ((unsigned int)xp < (unsigned int)l->width && (unsigned int)yp < (unsigned int)l->height) {
                   if (l->pixelStates[xp+yp*l->width] & PIXELSTATE_TEMP) continue;
                   unsigned int col = l->pixels[xp+yp*l->width];
                   for (int y4 = 0; y4 < th; y4++) {
                     for (int x4 = 0; x4 < tw; x4++) {
                       int xp = x + x4;
                       int yp = y + y4;
-                      if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) {
+                      if ((unsigned int)xp < (unsigned int)l->width && (unsigned int)yp < (unsigned int)l->height) {
                         unsigned int col2 = l->pixels[xp+yp*l->width];
                         if (col2 == col) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_TEMP;
                       }
@@ -769,18 +769,18 @@ void updateTilingGrid(Layer *l, bool visible) {
             for (int x2 = 0; x2 < tw; x2++) {
               int xp = x + x2;
               int yp = y;
-              if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
+              if ((unsigned int)xp < (unsigned int)l->width && (unsigned int)yp < (unsigned int)l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
               xp = x + x2;
               yp = y + th;
-              if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
+              if ((unsigned int)xp < (unsigned int)l->width && (unsigned int)yp < (unsigned int)l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
             }
             for (int y2 = 0; y2 < th; y2++) {
               int xp = x;
               int yp = y + y2;
-              if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
+              if ((unsigned int)xp < (unsigned int)l->width && (unsigned int)yp < (unsigned int)l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
               xp = x + tw;
               yp = y + y2;
-              if ((unsigned int)xp < l->width && (unsigned int)yp < l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
+              if ((unsigned int)xp < (unsigned int)l->width && (unsigned int)yp < (unsigned int)l->height) l->pixelStates[xp+yp*l->width] |= PIXELSTATE_GRID;
             }
           }
         }
@@ -814,7 +814,7 @@ void updateTilingImage(const RGBAImage &image) {
         y2 += image.height*0.5;
         int x3 = (int)floor(x2);
         int y3 = (int)floor(y2);
-        if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) col = image.data[x3+y3*image.width];
+        if ((unsigned int)x3<(unsigned int)image.width&&(unsigned int)y3<(unsigned int)image.height) col = image.data[x3+y3*image.width];
       }
       tilingTextureContent[x+y*tilingTextureWidth] = gammaCorrect(col);
     }
@@ -839,7 +839,7 @@ void updateTilingImageAnim(const RGBAImage &image) {
           y2 += image.height*0.5;
           int x3 = (int)floor(x2);
           int y3 = (int)floor(y2);
-          if ((unsigned int)x3<image.width&&(unsigned int)y3<image.height) {
+          if ((unsigned int)x3<(unsigned int)image.width&&(unsigned int)y3<(unsigned int)image.height) {
             col = image.data[x3+y3*image.width];
             int r = (col) & 255;
             int g = (col>>8) & 255;
@@ -934,7 +934,7 @@ void playTilingAnimation(Layer *l) {
 
 void drawToolTilingView() {
   if (wasActiveLayerSwitched()) {
-    for (int i = 0; i < currentCanvas->layers.size(); i++) updateTilingGrid(currentCanvas->layers[i],false);
+    for (int i = 0; i < (int)currentCanvas->layers.size(); i++) updateTilingGrid(currentCanvas->layers[i],false);
     Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) updateTilingGrid(l,true);
   }
 
@@ -1016,7 +1016,7 @@ void drawToolTextView() {
   ImGui::Text("Fonts [%d]",fonts.size()); toolTip("Currently active font count");
   ImGui::BeginChild("DRAWTOOLTEXTVIEWFONTS",ImVec2(toolview_width,200));
   String fileName = "";
-  for (int i = 0; i < fonts.size(); i++) {
+  for (int i = 0; i < (int)fonts.size(); i++) {
     FontSource *f = fonts[i];
     if (f->glHandle == 0) f->glHandle = f->createTexture(getName(f->fileName),20,aspectRatio*main_window_yres/main_window_xres,f->glWidth,f->glHeight,0x00000000);
     ImVec2 minB = ImGui::GetCursorScreenPos();
@@ -1028,7 +1028,8 @@ void drawToolTextView() {
     if (f->id == l->toolInfo.fontId) {fileName = f->fileName; ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x40ffff00);}
   }
   ImGui::EndChild();
-  if (!fileName.empty()) ImGui::Text("%s",(fileName.last(16)).c_str()); toolTip("The .ttf font filename");
+  if (!fileName.empty()) ImGui::Text("%s",(fileName.last(16)).c_str()); 
+  toolTip("The .ttf font filename");
   if (roundButton("Remove font",l->toolInfo.fontId != 0)) {removeFont(l->toolInfo.fontId);l->toolInfo.fontId = 0;} else toolTip("Remove the selected font");
   ImGui::PushItemWidth(7*5);
   ImGui::Text("Font"); 
@@ -1127,10 +1128,10 @@ void drawToolOverlaysView() {
   ImGui::BeginChild("DRAWTOOLOVERLAYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y-20));
   static int selectedOverlay = -1;
   static bool scrollToSelectedOverlay = false;
-  for (int i = 0; i < currentCanvas->overlays.size(); i++) {
+  for (int i = 0; i < (int)currentCanvas->overlays.size(); i++) {
     Overlay *o = currentCanvas->overlays[i];
     Layer *l = NULL;
-    for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) {
+    for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) {
       if (currentCanvas->layers[i2]->id == o->layerId) {
         l = currentCanvas->layers[i2];
         break;
@@ -1211,7 +1212,7 @@ void drawToolOverlaysView() {
       currentCanvas->overlays.insert(o,selectedOverlay);
     } else toolTip("Move selected overlay up in hierarchy");
     ImGui::SameLine();
-    if (roundButton("Down##DRAWTOOLOVERLAYVIEWMOVEDOWN",selectedOverlay<currentCanvas->overlays.size()-1)) {
+    if (roundButton("Down##DRAWTOOLOVERLAYVIEWMOVEDOWN",selectedOverlay<(int)currentCanvas->overlays.size()-1)) {
       Overlay *o = currentCanvas->overlays[selectedOverlay];
       currentCanvas->overlays.erase(selectedOverlay,1);
       selectedOverlay++;
@@ -1231,7 +1232,7 @@ void drawToolModifyView() {
     modifyMode = !modifyMode;
     if (modifyMode) {
       modifyPointsDest.clear();
-      for (int i = 0; i < modifyPointsSource.size(); i++) modifyPointsDest.push_back(modifyPointsSource[i]);
+      for (int i = 0; i < (int)modifyPointsSource.size(); i++) modifyPointsDest.push_back(modifyPointsSource[i]);
     }
   } else toolTip("Switch between source and destination polygon/shape");
   bool hasWarp = currentCanvas->getActiveLayer()!=NULL;
@@ -1269,7 +1270,7 @@ void drawToolModifyView() {
       if (roundButton("Remove point##DRAWTOOLMODIFYREMOVE",true)) {
         modifyPointsSource.erase(selectedModifyPoint,1);
         if ((unsigned int)selectedModifyPoint<modifyPointsDest.size()) modifyPointsDest.erase(selectedModifyPoint,1);
-        if (selectedModifyPoint>=modifyPointsSource.size()) selectedModifyPoint=modifyPointsSource.size()-1;
+        if (selectedModifyPoint>=(int)modifyPointsSource.size()) selectedModifyPoint=modifyPointsSource.size()-1;
         createModifyTriangles();
       } else toolTip("Remove this point again");
     } else {
@@ -1316,8 +1317,8 @@ void drawToolTileMapView() {
 
     int tileWidth = l2->toolInfo.tilingWidth;
     int tileHeight = l2->toolInfo.tilingHeight;
-    int tileOffsetX = l2->toolInfo.tilingOffsetX;
-    int tileOffsetY = l2->toolInfo.tilingOffsetY;
+    //int tileOffsetX = l2->toolInfo.tilingOffsetX;
+    //int tileOffsetY = l2->toolInfo.tilingOffsetY;
     int width = toolview_width; int height = 600;
     ImVec2 cursor0 = ImGui::GetCursorScreenPos();
     ImGui::BeginChild("DRAWTOOLTILEMAPVIEWCHILD", ImVec2(width,height));
@@ -1347,7 +1348,7 @@ void drawToolTileMapView() {
           for (int x = 0; x < tileWidth; x++) {
             int tx = x + sx;
             int ty = y + sy;
-            if ((unsigned int)tx<l2->width && (unsigned int)ty<l2->height) {
+            if ((unsigned int)tx<(unsigned int)l2->width && (unsigned int)ty<(unsigned int)l2->height) {
               unsigned int col = l2->pixels[tx+ty*l2->width];
               int a = (col >> 24) & 255;
               if (a != 0) {
@@ -1368,7 +1369,7 @@ void drawToolTileMapView() {
     int k = (width - 16)/tw;
     if (k != 0) {
       if (scrollToTileMapIndex >= 0) {
-        for (int i = 0; i < tileIndices.size(); i++) {
+        for (int i = 0; i < (int)tileIndices.size(); i++) {
           if (tileIndices[i] == scrollToTileMapIndex) {
             ImGui::SetScrollY((i / k-5)*th);
             break;
@@ -1383,7 +1384,7 @@ void drawToolTileMapView() {
 
     ImVec2 cursor1 = ImGui::GetCursorScreenPos(); cursor1.x += 1; cursor1.y += 3; int posX = cursor1.x; int posY = cursor1.y;
 
-    while(index < tileIndices.size()) {
+    while(index < (int)tileIndices.size()) {
 
       int outaX = 0;
       int outaY = 0;
@@ -1494,7 +1495,7 @@ void drawToolView() {
 
 void toolChangeMessage(int lastTool, int tool) {
   switch(lastTool) {
-  case TOOL_TILING : {for (int i = 0; i < currentCanvas->layers.size(); i++) updateTilingGrid(currentCanvas->layers[i],false);} break;
+  case TOOL_TILING : {for (int i = 0; i < (int)currentCanvas->layers.size(); i++) updateTilingGrid(currentCanvas->layers[i],false);} break;
   }
   switch(tool) {
   case TOOL_TILING : {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) updateTilingGrid(l,true);} break;

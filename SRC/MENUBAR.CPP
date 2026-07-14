@@ -56,7 +56,7 @@ String hex2_(int v) {
 }
 
 String timeDescString() {
-  int rtc_seconds = rtcRead(0);
+  //int rtc_seconds = rtcRead(0);
   int rtc_minutes = rtcRead(2);
   int rtc_hours   = rtcRead(4);
   int rtc_weekday = rtcRead(6);
@@ -142,8 +142,9 @@ void drawMenuBar() {
       bool hasSelection = currentCanvas->hasSelection();
       on = true;
       bool one = false;
+      UNUSED(one);
       int count = 0;
-      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
+      for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (useUndo) {
         if (ImGui::MenuItem(combined(String("Undo[") + String::fromInt(availableUndos) + String("]##UNDO")).c_str(),NULL,false,availableUndos>0)) {undo();}
         if (ImGui::MenuItem("Redo",NULL,false,availableRedos>0)) {redo();}
@@ -199,7 +200,7 @@ void drawMenuBar() {
       on = true;
       bool one = false;
       int count = 0;
-      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
+      for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (ImGui::MenuItem("Add layer")) {dialogAddLayer(true);}
       if (ImGui::MenuItem("Insert layer like this layer",NULL,false,count == 1)) {currentCanvas->insertLayerLikeThisLayer();}
       if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
@@ -243,8 +244,9 @@ void drawMenuBar() {
     if (ImGui::BeginMenu("Selection")) {
       on = true;
       bool one = false;
+      UNUSED(one);
       int count = 0;
-      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
+      for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (ImGui::MenuItem("Select all")) {beforeUndoPoint();currentCanvas->selectAll();afterUndoPoint();}
       if (ImGui::MenuItem("Select none")) {beforeUndoPoint();currentCanvas->selectNone(true);afterUndoPoint();}
       if (ImGui::MenuItem("Invert selection")) {beforeUndoPoint();currentCanvas->invertSelection();afterUndoPoint();}
@@ -297,10 +299,10 @@ void drawMenuBar() {
     }
     if (ImGui::BeginMenu("Filter")) {
       on = true;
-      on = true;
       bool one = false;
+      UNUSED(one);
       int count = 0;
-      for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
+      for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (ImGui::MenuItem("Difference clouds",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterDifferenceClouds();}
       if (ImGui::MenuItem("Noise",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterNoise();}
       if (ImGui::MenuItem("Edge detect",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterMorphologicalEdgeDetect();}
@@ -315,13 +317,13 @@ void drawMenuBar() {
     }
 
     bool hasUpdates = false;
-    for (int i = 0; i < canvas.size(); i++) {
+    for (int i = 0; i < (int)canvas.size(); i++) {
       if (canvas[i]->hasUpdates()) {hasUpdates = true; break;}
     }
 
     if (ImGui::BeginMenu(combined(String(hasUpdates?".":"")+String("Pictures[")+String::fromInt(canvas.size()) + "]##MENUBARPICTURES").c_str())) {
       on = true;
-      for (int i = 0; i < canvas.size(); i++) {
+      for (int i = 0; i < (int)canvas.size(); i++) {
         bool isIt = canvas[i] == currentCanvas;
         if (ImGui::MenuItem(combined(String(canvas[i]->hasUpdates()?".":" ")+String(canvas[i]->pictureName)+String("##MENUBARPICTURES")+String::fromInt(i)).c_str(),NULL,isIt)) {
           currentCanvas = canvas[i];

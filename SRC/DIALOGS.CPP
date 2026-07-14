@@ -39,7 +39,7 @@
 bool reOpen = false;
 bool dialogNoMove = false;
 
-#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize|(dialogNoMove?ImGuiWindowFlags_NoMove:0))) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableNativeInput();
+#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; UNUSED(keyboardFocusNew); static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize|(dialogNoMove?ImGuiWindowFlags_NoMove:0))) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableNativeInput();
 #define DIALOGEND() ImGui::PopStyleColor(); ImGui::EndPopup();} ImGui::PopStyleColor();
 #define DIALOGKEYSHERE() {if (keyboardFocusNew>0) {keyboardFocusNew--;ImGui::SetKeyboardFocusHere();}}
 
@@ -61,8 +61,8 @@ void updatePreview() {
 }
 
 void clearPreview() {
-  for (int y = 0; y < previewHeight; y++) {
-    for (int x = 0; x < previewWidth; x++) {
+  for (int y = 0; y < (int)previewHeight; y++) {
+    for (int x = 0; x < (int)previewWidth; x++) {
       preview[x+y*previewWidth] = 0x40000000;
     }
   }
@@ -200,14 +200,14 @@ void dialogDocumentation(bool openIt) {
   static int index = 0;
   static Array<bool> lineIsOpen;
   if (openIt) {
-    sprintf(filter,"");
+    sprintf(filter,"%s","");
     lineIsOpen.clear();
 #ifndef INTERNALDOCU
     if (docu.empty()) {
       getFileArray(&docu,fromLocalFileName("./DATA/DOCU.DC2"));
       char lc = 0;
       bool inLine = false;
-      for (int i = 0; i < docu.size(); i++) {
+      for (int i = 0; i < (int)docu.size(); i++) {
         char c = (char)docu[i];
         if (c == '"' && lc != '\\') {
           inLine = !inLine;
@@ -249,11 +249,11 @@ void dialogDocumentation(bool openIt) {
 
   ImGui::SameLine();
   if (ImGui::Button("Collapse all##DIALOGDOCUMENTATIONCOLLAPSEALL")) {
-    for (int i = 0; i < lineIsOpen.size(); i++) lineIsOpen[i] = false;
+    for (int i = 0; i < (int)lineIsOpen.size(); i++) lineIsOpen[i] = false;
   }
   ImGui::SameLine();
   if (ImGui::Button("Open all##DIALOGDOCUMENTATIONOPENALL") || strlen(filter) != 0) {
-    for (int i = 0; i < lineIsOpen.size(); i++) lineIsOpen[i] = true;
+    for (int i = 0; i < (int)lineIsOpen.size(); i++) lineIsOpen[i] = true;
   }
 
   int width = main_window_xres/2;
@@ -278,7 +278,7 @@ void dialogDocumentation(bool openIt) {
     char c = *s;
     s++;
     if (c == '_') {
-      if (line+1>lineIsOpen.size()) {lineIsOpen.resize(line+1); lineIsOpen[line] = false;}
+      if (line+1>(int)lineIsOpen.size()) {lineIsOpen.resize(line+1); lineIsOpen[line] = false;}
       bool thisIsOpen = openStack.back();
       if (currentLine.empty()) currentLine = " "; // for cursor
       if (!currentLine.empty()) {
@@ -288,7 +288,7 @@ void dialogDocumentation(bool openIt) {
         ImVec2 cursor0 = ImGui::GetCursorScreenPos(); ImVec2 cursor = cursor0;
         ImGui::Text(""); ImGui::SetCursorScreenPos(cursor0); // for scrolling;
         cursor.x += indent * 10;
-        ImVec2 cursor1 = cursor;
+        //ImVec2 cursor1 = cursor;
         if (d == '{') {
           currentLine = currentLine.substr(0,currentLine.length()-1);
           indent++; openStack.push_back(lineIsOpen[line]);
@@ -472,7 +472,7 @@ void dialogInsertTileMapLayer(bool openIt) {
   static char layerName[LAYERNAMEMAX];
   static int w = 128, h = 128;
   if (openIt) {
-    static int counter = 0; counter++;
+    static unsigned short counter = 0; counter++;
     sprintf(layerName,"Tilemap %d",counter);
   }
 
@@ -487,7 +487,7 @@ void dialogInsertTileMapLayer(bool openIt) {
   if (h < 1) h = 1;
   if (ImGui::Button("Add tilemap##DIALOGINSERTTILEMAPADD")) {
     int pos = 0;
-    for (int i = 0; i < currentCanvas->layers.size(); i++) {
+    for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
       if (currentCanvas->layers[i]->state.active || currentCanvas->layers[i]->state.selected) {pos = i; break;}
     }
     Layer *l = new Layer();
@@ -519,7 +519,7 @@ void dialogImportFolder(bool openIt) {
   static char layerName[LAYERNAMEMAX];
   static int w = 512, h = 512;
   if (openIt) {
-    static int counter = 0; counter++;
+    static unsigned short counter = 0; counter++;
     newWidth = -1;
     newHeight = -1;
     sprintf(layerName,"Folder %d",counter);
@@ -767,11 +767,11 @@ void dialogDeletePicture(bool openIt) {
   noUndoMessage();
   ImGui::Text("Do you want to delete the current picture \"%s\"?",currentCanvas->pictureName);
   if (ImGui::Button("Delete##DIALOGDELETEPICTUREDELETE")) {
-    for (int i = 0; i < canvas.size(); i++) {
+    for (int i = 0; i < (int)canvas.size(); i++) {
       if (canvas[i] == currentCanvas) {
         delete canvas[i];
         canvas.erase(i,1);
-        if (i < canvas.size()) currentCanvas = canvas[i]; 
+        if (i < (int)canvas.size()) currentCanvas = canvas[i]; 
         else
         if (i-1 >= 0) currentCanvas = canvas[i-1];
       }
@@ -794,7 +794,7 @@ void dialogAddLayer(bool openIt) {
   static char layerName[LAYERNAMEMAX];
   static int w = 0, h = 0;
   if (openIt) {
-    static int counter = 0; counter++;
+    static unsigned short counter = 0; counter++;
     sprintf(layerName,"Added %d",counter);
     w = currentCanvas->canvasX1-currentCanvas->canvasX0;
     h = currentCanvas->canvasY1-currentCanvas->canvasY0;
@@ -810,7 +810,7 @@ void dialogAddLayer(bool openIt) {
   if (h < 1) h = 1;
   if (ImGui::Button("Add layer##DIALOGADDLAYERADD")) {
     int pos = 0;
-    for (int i = 0; i < currentCanvas->layers.size(); i++) {
+    for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
       if (currentCanvas->layers[i]->state.active || currentCanvas->layers[i]->state.selected) {pos = i; break;}
     }
     Layer *l = new Layer();
@@ -833,13 +833,13 @@ void dialogDeleteLayers(bool openIt) {
   DIALOGSTART("Delete layers");
 
   Array<Layer *> layers;
-  bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
-  if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+  bool one = false; for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
 
-  int l = layers.size();
+  int l = (int)layers.size();
   for (int i3 = 0; i3 < l; i3++) {
     if (layers[i3]->sourceLayerId == 0) {
-      for (int i4 = 0; i4 < currentCanvas->layers.size(); i4++) {
+      for (int i4 = 0; i4 < (int)currentCanvas->layers.size(); i4++) {
         Layer *z = currentCanvas->layers[i4];
         if (z->sourceLayerId != 0 && z->sourceLayerId == layers[i3]->id) {
           layers.push_back(z);
@@ -854,7 +854,7 @@ void dialogDeleteLayers(bool openIt) {
     noUndoMessage();
     ImGui::Text("Layers to delete");
     ImGui::BeginChild("DELETELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
-    for (int i = 0; i < layers.size(); i++) {
+    for (int i = 0; i < (int)layers.size(); i++) {
       ImGui::Text("\"%s\" %s",layers[i]->name,layers[i]->sourceLayerId != 0 ? "it's a REFERENCE":"");
     }
     ImGui::EndChild();
@@ -862,7 +862,7 @@ void dialogDeleteLayers(bool openIt) {
 
   if (!layers.empty()) {
     if (ImGui::Button("Delete these layers##DIALOGDELETELAYERSDELETE")) {
-      for (int i = 0; i < layers.size(); i++) {
+      for (int i = 0; i < (int)layers.size(); i++) {
         currentCanvas->eraseLayer(layers[i]);
       }
       if (!currentCanvas->layers.empty()) currentCanvas->setActiveLayer(0);
@@ -881,8 +881,8 @@ void dialogMergeDown(bool openIt) {
   DIALOGSTART("Merge down layers");
 
   Array<Layer *> layers;
-  bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
-  if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+  bool one = false; for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
 
   if (layers.empty()) {
     ImGui::Text("No layers selected or active");
@@ -890,7 +890,7 @@ void dialogMergeDown(bool openIt) {
     noUndoMessage();
     ImGui::Text("Layers to merge");
     ImGui::BeginChild("MERGEDOWNLAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
-    for (int i = 0; i < layers.size(); i++) {
+    for (int i = 0; i < (int)layers.size(); i++) {
       ImGui::Text("\"%s\"",layers[i]->name);
     }
     ImGui::EndChild();
@@ -988,7 +988,7 @@ int gradiationTextureHeight = 256;
 void updateGradiationTexture(GLuint gradiationTexture, Layer *l, int type) {
   Array<unsigned int> gradiationTextureContent;
   gradiationTextureContent.resize(gradiationTextureWidth*gradiationTextureHeight);
-  for (int i = 0; i < gradiationTextureContent.size(); i++) gradiationTextureContent[i] = 0xff000000;
+  for (int i = 0; i < (int)gradiationTextureContent.size(); i++) gradiationTextureContent[i] = 0xff000000;
   Array<int> counts; counts.resize(256);
   for (int i5 = 0; i5 < 256; i5++) counts[i5] = 0;
   for (int i2 = 0; i2 < l->width*l->height; i2++) {
@@ -1065,7 +1065,7 @@ public:
 
   int getInterpolation(int x) {
     int found = -1;
-    for (int i = 0; i < points.size()-1; i++) {
+    for (int i = 0; i < (int)points.size()-1; i++) {
       if (x >= points[i].x && x <= points[i+1].x) {
         found = i;
         break;
@@ -1082,7 +1082,7 @@ public:
 
   void insertPoint(int x) {
     int found = -1;
-    for (int i = 0; i < points.size()-1; i++) {
+    for (int i = 0; i < (int)points.size()-1; i++) {
       if (x > points[i].x && x <= points[i+1].x) {
         found = i;
         break;
@@ -1097,7 +1097,7 @@ public:
 
   void erasePoint(int x) {
     if (x < 1) return;
-    if (x >= points.size()-1) return;
+    if (x >= (int)points.size()-1) return;
     points.erase(x,1);
     selectedPoint = x-1;
     dragPoint = -1;
@@ -1107,7 +1107,7 @@ public:
 #define BEZIER_TESSEL 128
     int lxi = points[0].x;
     int lyi = points[0].y;
-    for (int i = 0; i < points.size()-1; i++) {
+    for (int i = 0; i < (int)points.size()-1; i++) {
       for (int j = 0; j < BEZIER_TESSEL+1; j++) {
         double bx = bezier((double)j/BEZIER_TESSEL,points[i].x,points[i].x+points[i].dx[1],points[i+1].x+points[i+1].dx[0],points[i+1].x);
         double by = bezier((double)j/BEZIER_TESSEL,points[i].y,points[i].y+points[i].dy[1],points[i+1].y+points[i+1].dy[0],points[i+1].y);
@@ -1143,7 +1143,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
   static bool lastMouseLeft = ImGui::IsMouseDown(0);
   bool mouseLeft = ImGui::IsMouseDown(0);
   bool toolTipShown = false;
-  for (int i = 0; i < c.points.size()-1; i++) {
+  for (int i = 0; i < (int)c.points.size()-1; i++) {
     ImVec2 p0 = ImVec2(c.points[i].x,255-c.points[i].y);
     ImVec2 p1 = ImVec2(c.points[i+1].x,255-c.points[i+1].y);
     p0.x += minB.x;
@@ -1184,7 +1184,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
   if (!mouseLeft) {
     c.dragPoint = -1;
   }
-  for (int i2 = 0; i2 < c.points.size(); i2++) {
+  for (int i2 = 0; i2 < (int)c.points.size(); i2++) {
     ImVec2 p0 = ImVec2(c.points[i2].x,255-c.points[i2].y);
     p0.x += minB.x;
     p0.y += minB.y;
@@ -1231,7 +1231,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
       dp.x = p0.x + c.points[i2].dx[1];
       dp.y = p0.y - c.points[i2].dy[1];
       dx = mouseX - dp.x; dy = mouseY - dp.y; d = sqrt(dx*dx+dy*dy);
-      if (d < circleRadius && i2 < c.points.size() - 1 ) {
+      if (d < circleRadius && i2 < (int)c.points.size() - 1 ) {
         col = 0xff008080;
         if (mouseLeft) {
           if (!lastMouseLeft) {
@@ -1262,9 +1262,9 @@ void getGradingArrayFromCurves(unsigned char *dest) {
 }
 
 void stringToCurves(const String &string) {
-  Array<String> l = getLines(&string[0]);
+  Array<String> l; getLines(l, &string[0]);
   int currentCurve = -1;
-  for (int i = 0; i < l.size(); i++) {
+  for (int i = 0; i < (int)l.size(); i++) {
     const String &str = l[i];
     if (str == "C") {
       currentCurve++; 
@@ -1284,7 +1284,7 @@ String stringFromCurves() {
   for (int i = 0; i < 5; i++) {
     Curve *c = &curves[i];
     ret += "C\n";
-    for (int j = 0; j < c->points.size(); j++) {
+    for (int j = 0; j < (int)c->points.size(); j++) {
       CurvePoint *p = &c->points[j];
       sprintf(tempBuffer,"P %d %d %.02f %.02f %.02f %.02f\n",p->x,p->y,p->dx[0],p->dy[0],p->dx[1],p->dy[1]);
       ret += String(tempBuffer);
@@ -1340,7 +1340,7 @@ void dialogPreview(Layer *l0, Layer *l1) {
       if (l2 != NULL) {
         int sx = x * l2->width / dialogPreviewTextureWidth;
         int sy = y * l2->height / dialogPreviewTextureHeight;
-        if ((unsigned int)sx < l2->width && (unsigned int)sy < l2->height) col = l2->pixels[sx+sy*l2->width];
+        if ((unsigned int)sx < (unsigned int)l2->width && (unsigned int)sy < (unsigned int)l2->height) col = l2->pixels[sx+sy*l2->width];
       }
       image[x+y*dialogPreviewTextureWidth] = col;
     }
@@ -1354,7 +1354,7 @@ void dialogPreview(Layer *l0, Layer *l1) {
       if (l2 != NULL) {
         int sx = x * l2->width / dialogPreviewTextureWidth;
         int sy = y * l2->height / dialogPreviewTextureHeight;
-        if ((unsigned int)sx < l2->width && (unsigned int)sy < l2->height) col = l2->pixels[sx+sy*l2->width];
+        if ((unsigned int)sx < (unsigned int)l2->width && (unsigned int)sy < (unsigned int)l2->height) col = l2->pixels[sx+sy*l2->width];
       }
       image[x+y*dialogPreviewTextureWidth] = col;
     }
@@ -1458,7 +1458,7 @@ void dialogGradiationCurves(bool openIt) {
   if (pointUpdated) {
     updateGradientCurvesPreview = true;
     CurvePoint &p = c.points[c.selectedPoint];
-    if (c.selectedPoint == 0 || c.selectedPoint == c.points.size()-1) {
+    if (c.selectedPoint == 0 || c.selectedPoint == (int)c.points.size()-1) {
       p.y = colorValue;
     } else {
       CurvePoint &pm = c.points[c.selectedPoint-1];
@@ -1474,7 +1474,7 @@ void dialogGradiationCurves(bool openIt) {
     CurvePoint &p = c.points[c.dragPoint];
     updateGradientCurvesPreview = true;
     if (c.selectedCV < 0) {
-      if (c.dragPoint == 0 || c.dragPoint == c.points.size()-1) {
+      if (c.dragPoint == 0 || c.dragPoint == (int)c.points.size()-1) {
         p.y = colorValue;
       } else {
         CurvePoint &pm = c.points[c.dragPoint-1];
@@ -1500,7 +1500,7 @@ void dialogGradiationCurves(bool openIt) {
   ImGui::Text("CVs"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGGRADIATIONCVS",&showCurveCVs); toolTip("Show bezier curve handles");
   ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel);} else toolTip("Show the curve for a color channel");
   ImGui::PopItemWidth();
-  ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;} else toolTip("Delete this curve point");
+  ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<(int)c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;} else toolTip("Delete this curve point");
 
   if (updateGradientCurvesPreview) {
     if (gradientCurvesToColorTransform == NULL) {
@@ -1626,9 +1626,12 @@ void dialogColorBalance(bool openIt) {
           int ri = (int)r;
           int gi = (int)g;
           int bi = (int)b;
-          if (ri < 0) ri = 0; if (ri > 255) ri = 255;
-          if (gi < 0) gi = 0; if (gi > 255) gi = 255;
-          if (bi < 0) bi = 0; if (bi > 255) bi = 255;
+          if (ri < 0) ri = 0; 
+          if (ri > 255) ri = 255;
+          if (gi < 0) gi = 0; 
+          if (gi > 255) gi = 255;
+          if (bi < 0) bi = 0; 
+          if (bi > 255) bi = 255;
           l->pixels[i] = ri|(gi<<8)|(bi<<16)|(a<<24);        
         }
       }
@@ -1674,7 +1677,7 @@ void dialogBlur(bool openIt) {
   static int blurType = 0;
   static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur","Iterative"};
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
-  static unsigned int maxBlurPixels = 100;
+  static int maxBlurPixels = 100;
 
   static bool updateBlur = false;
 
@@ -2111,7 +2114,7 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
       alreadyFound[pos8] |= (unsigned char)(1<<pos7);
       if (currentIndex+2 >= currentSize) {
         colorsWithClusterId.resize(colorsWithClusterId.size()+sizeIncrease);
-        currentSize = colorsWithClusterId.size();
+        currentSize = (int)colorsWithClusterId.size();
       }
       colorsWithClusterId[currentIndex+0] = c;
       colorsWithClusterId[currentIndex+1] = 0;
@@ -2119,12 +2122,12 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
     }
   }
   colorsWithClusterId.resize(currentIndex);
-  if (colorsWithClusterId.size()/2<colorCount) colorCount = colorsWithClusterId.size()/2;
+  if ((int)colorsWithClusterId.size()/2<colorCount) colorCount = (int)colorsWithClusterId.size()/2;
   if (colorCount == 0) return;
 
 #define KMEANSCHANNELS 4
   Array<unsigned int> clusterColorsRGBAW; clusterColorsRGBAW.resize(colorCount*KMEANSCHANNELS);
-  srand(0); for (int i2 = 0; i2 < clusterColorsRGBAW.size(); i2++) clusterColorsRGBAW[i2] = (i2/KMEANSCHANNELS)*255/colorCount;
+  srand(0); for (int i2 = 0; i2 < (int)clusterColorsRGBAW.size(); i2++) clusterColorsRGBAW[i2] = (i2/KMEANSCHANNELS)*255/colorCount;
 
   float sr = luminance ? luminanceValues[0] : 1;
   float sg = luminance ? luminanceValues[1] : 1;
@@ -2133,7 +2136,7 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
   initStatusBar();
   for (int step = 0; step < steps; step++) {
 
-    for (int i3 = 0; i3 < colorsWithClusterId.size()/2; i3++) {
+    for (int i3 = 0; i3 < (int)colorsWithClusterId.size()/2; i3++) {
       unsigned int col = colorsWithClusterId[i3*2+0];
       float r = col & 255;
       float g = (col>>8) & 255;
@@ -2143,7 +2146,7 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
       b /= sb;
       float ld = 256*256*256;
       int cluster = 0;
-      for (int i4 = 0; i4 < clusterColorsRGBAW.size()/KMEANSCHANNELS; i4++) {
+      for (int i4 = 0; i4 < (int)clusterColorsRGBAW.size()/KMEANSCHANNELS; i4++) {
         float r2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+0];
         float g2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+1];
         float b2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+2];
@@ -2162,22 +2165,22 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
       colorsWithClusterId[i3*2+1] = cluster;
     }
   
-    for (int i5 = 0; i5 < clusterColorsRGBAW.size(); i5++) clusterColorsRGBAW[i5] = 0;
+    for (int i5 = 0; i5 < (int)clusterColorsRGBAW.size(); i5++) clusterColorsRGBAW[i5] = 0;
   
-    for (int i6 = 0; i6 < colorsWithClusterId.size()/2; i6++) {
+    for (int i6 = 0; i6 < (int)colorsWithClusterId.size()/2; i6++) {
       unsigned int col = colorsWithClusterId[i6*2+0];
       unsigned int c = colorsWithClusterId[i6*2+1];
       int r = col & 255;
       int g = (col>>8) & 255;
       int b = (col>>16) & 255;
-      int a = (col>>24) & 255;
+      //int a = (col>>24) & 255;
       clusterColorsRGBAW[c*KMEANSCHANNELS+0] += r;
       clusterColorsRGBAW[c*KMEANSCHANNELS+1] += g;
       clusterColorsRGBAW[c*KMEANSCHANNELS+2] += b;
       clusterColorsRGBAW[c*KMEANSCHANNELS+3] += 1;
     }
   
-    for (int i7 = 0; i7 < clusterColorsRGBAW.size()/KMEANSCHANNELS; i7++) {
+    for (int i7 = 0; i7 < (int)clusterColorsRGBAW.size()/KMEANSCHANNELS; i7++) {
       int w = clusterColorsRGBAW[i7*KMEANSCHANNELS+3];
       if (w != 0) {
         clusterColorsRGBAW[i7*KMEANSCHANNELS+0] /= w;
@@ -2186,11 +2189,11 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
       }
     }
 
-    for (int i9 = 0; i9 < clusterColorsRGBAW.size()/KMEANSCHANNELS; i9++) {
+    for (int i9 = 0; i9 < (int)clusterColorsRGBAW.size()/KMEANSCHANNELS; i9++) {
       int r0 = clusterColorsRGBAW[i9*KMEANSCHANNELS+0];
       int g0 = clusterColorsRGBAW[i9*KMEANSCHANNELS+1];
       int b0 = clusterColorsRGBAW[i9*KMEANSCHANNELS+2];
-      for (int i10 = i9+1; i10 < clusterColorsRGBAW.size()/KMEANSCHANNELS; i10++) {
+      for (int i10 = i9+1; i10 < (int)clusterColorsRGBAW.size()/KMEANSCHANNELS; i10++) {
         int r1 = clusterColorsRGBAW[i10*KMEANSCHANNELS+0];
         int g1 = clusterColorsRGBAW[i10*KMEANSCHANNELS+1];
         int b1 = clusterColorsRGBAW[i10*KMEANSCHANNELS+2];
@@ -2206,7 +2209,7 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
   }
 
   palette.resize(clusterColorsRGBAW.size()/KMEANSCHANNELS);
-  for (int i8 = 0; i8 < palette.size(); i8++) {
+  for (int i8 = 0; i8 < (int)palette.size(); i8++) {
     int r = clusterColorsRGBAW[i8*KMEANSCHANNELS+0];
     int g = clusterColorsRGBAW[i8*KMEANSCHANNELS+1];
     int b = clusterColorsRGBAW[i8*KMEANSCHANNELS+2];
@@ -2258,7 +2261,7 @@ void dialogQuantizePalette(bool openIt) {
     getQuantizedPaletteKMeans(palette, colorCount, clone, useLuminance,32);
     static Array<ImVec4> quantizedPalette;
     quantizedPalette.resize(palette.size());
-    for (int i = 0; i < quantizedPalette.size(); i++) {
+    for (int i = 0; i < (int)quantizedPalette.size(); i++) {
       quantizedPalette[i] = getImVec4Color(palette[i]);
     }
     if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
@@ -2282,8 +2285,8 @@ void dialogDuplicate(bool openIt) {
   DIALOGSTART("Duplicate layers");
 
   Array<Layer *> layers;
-  bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
-  if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+  bool one = false; for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
 
   if (layers.empty()) {
     ImGui::Text("No layers selected or active");
@@ -2291,7 +2294,7 @@ void dialogDuplicate(bool openIt) {
     noUndoMessage();
     ImGui::Text("Layers to duplicate");
     ImGui::BeginChild("DUPLICATELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
-    for (int i = 0; i < layers.size(); i++) {
+    for (int i = 0; i < (int)layers.size(); i++) {
       ImGui::Text("\"%s\"",layers[i]->name);
     }
     ImGui::EndChild();
@@ -2351,7 +2354,7 @@ void dialogExtrudeSelection(bool openIt) {
               for (int i = s-1; i >= 0; i--) {
                 int lx = (int)(x + sx * i);
                 int ly = (int)(y + sy * i);
-                if ((unsigned int)lx < clone->width && (unsigned int)ly < clone->height) {
+                if ((unsigned int)lx < (unsigned int)clone->width && (unsigned int)ly < (unsigned int)clone->height) {
                   unsigned char p = clone->pixelStates[lx+ly*clone->width];
                   selected = p & PIXELSTATE_SELECTED ? true : false;
                   if (selected) break;
@@ -2498,8 +2501,8 @@ void dialogBakeLayers(bool openIt) {
   static int interpolation = INTERPOLATION_NONE;
   DIALOGSTART("Bake layers");
   Array<Layer *> layers;
-  bool one = false; for (int i = 0; i < currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
-  if (!one) for (int i2 = 0; i2 < currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+  bool one = false; for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
 
   if (layers.empty()) {
     ImGui::Text("No layers selected or active");
@@ -2509,7 +2512,7 @@ void dialogBakeLayers(bool openIt) {
     ImGui::Text("");
     ImGui::Text("Layers to bake");
     ImGui::BeginChild("DIALOGBAKELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
-    for (int i = 0; i < layers.size(); i++) {
+    for (int i = 0; i < (int)layers.size(); i++) {
       ImGui::Text("\"%s\"",layers[i]->name);
     }
     ImGui::EndChild();
@@ -2521,7 +2524,7 @@ void dialogBakeLayers(bool openIt) {
   if (!layers.empty()) {
     if (ImGui::Button("Bake these layers##DIALOGBAKELAYERSAPPLY")) {
       beforeUndoPoint();
-      for (int i = 0; i < layers.size(); i++) {
+      for (int i = 0; i < (int)layers.size(); i++) {
         Layer *l = layers[i];
         if (l->type == LAYERTYPE_TEXT) {
           l->type = LAYERTYPE_BASIC;
@@ -2623,16 +2626,16 @@ void dialogGetLayersFromPicture(bool openIt) {
     selected = -1;
   }
   DIALOGSTART("Get selected layers from other picture");
-  if (canvas.size()>1) {
+  if ((int)canvas.size()>1) {
     ImGui::Text("Insert layers from this picture");
   } else {
     ImGui::Text("No other picture available.");
   }
   ImGui::BeginChild("CHILDDIALOGGETLAYERSFROMPICTURE",ImVec2(main_window_xres/2,main_window_yres/3));
-  for (int i = 0; i < canvas.size(); i++) {
+  for (int i = 0; i < (int)canvas.size(); i++) {
     if (canvas[i] != currentCanvas) {
       int count = 0;
-      for (int i2 = 0; i2 < canvas[i]->layers.size(); i2++) {
+      for (int i2 = 0; i2 < (int)canvas[i]->layers.size(); i2++) {
         if (canvas[i]->layers[i2]->state.selected||canvas[i]->layers[i2]->state.active) {
           count++;
         }
@@ -2645,17 +2648,17 @@ void dialogGetLayersFromPicture(bool openIt) {
   }
   ImGui::EndChild();
 
-  if (selected >= 0 && selected < canvas.size()) {
+  if (selected >= 0 && selected < (int)canvas.size()) {
     if (ImGui::Button("Get layers##DIALOGGETLAYERSFROMPICTUREGETLAYERS")) {
       int pos = 0;
-      for (int i = 0; i < currentCanvas->layers.size(); i++) {
+      for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
         if (currentCanvas->layers[i]->state.selected||currentCanvas->layers[i]->state.active) {
           pos = i;
           break;
         }
       }
       Canvas *otherCanvas = canvas[selected];
-      for (int i2 = 0; i2 < otherCanvas->layers.size(); i2++) {
+      for (int i2 = 0; i2 < (int)otherCanvas->layers.size(); i2++) {
         Layer *l = otherCanvas->layers[i2];
         if (l->state.active || l->state.selected) {
           Layer *l2 = l->clone();
@@ -2734,8 +2737,8 @@ const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2
 LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
-  for (int i = 0; i < files.size(); i++) {
-    for (int j = i+1; j < files.size(); j++) {
+  for (int i = 0; i < (int)files.size(); i++) {
+    for (int j = i+1; j < (int)files.size(); j++) {
       bool bigger = false;
       String nameHere = (files[i].name.name + files[i].name.extension);
       bool dirHere = files[i].attributes & DOS_ATTR_SUBDIR;
@@ -2766,19 +2769,6 @@ int dialogLoadSaveModeId = 0;
 LOADSAVEFUNC loadSaveFunc = NULL; 
 String loadSaveShortPath; 
 String loadSaveLongFileName;
-
-Array<String> particles(const String &full, const char limiter, bool withLastParticle) {
-  Array<String> ret;
-  int start = 0;
-  for (int i = 0; i < full.length(); i++) {
-    if (full[i] == limiter) {
-      ret.push_back(full.substr(start,i-start));
-      start = i + 1;
-    }
-  }
-  if (withLastParticle && start != full.length()) ret.push_back(full.substr(start));
-  return ret;
-}
 
 void callLoadSaveFunc() {
   if (loadSaveFunc == NULL) {dialogLoadSaveModeId = 0;return;}
@@ -2825,7 +2815,7 @@ bool fileSystemUpdatedHere = false;
 void dialogCreateFolder(bool openIt) {
   static char folderName[MAX_LFN_PATH];
   if (openIt) {
-    sprintf(folderName,"");
+    sprintf(folderName,"%s","");
   }
   DIALOGSTART("Create a new folder")
   ImGui::BeginChild("##DIALOGCREATEFOLDERCHILD",ImVec2(main_window_xres/2,64));
@@ -2916,7 +2906,6 @@ void dialogLoadSave(bool openIt, int dialogMode) {
     }
     reOpen = false;
   }
-  bool result = false;
   DIALOGSTART(dialogCaption[mode])
   ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogOverwrite(false); ImGui::PopStyleColor();
   ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogCreateFolder(false); ImGui::PopStyleColor(); if (fileSystemUpdatedHere) {fileSystemUpdatedHere = false;needsRescanFiles=true;}
@@ -2933,12 +2922,12 @@ void dialogLoadSave(bool openIt, int dialogMode) {
     if (driveReady) {
       files = dosGetFiles(paths[mode]);
     }
-    for (int i = 0; i < files.size(); i++) {
+    for (int i = 0; i < (int)files.size(); i++) {
       if (files[i].name.name == "." || files[i].name.name == "..") {files.erase(i,1);i--;} else
       if ((files[i].attributes & 0x1f) != DOS_ATTR_SUBDIR && (files[i].attributes & 0x1f) != DOS_ATTR_NORMAL) {files.erase(i,1);i--;}
     }
     if (longFileNames) {
-      for (int i = 0; i < files.size(); i++) {
+      for (int i = 0; i < (int)files.size(); i++) {
           files[i].name.full = LONGFILENAME(files[i].name.full);
           files[i].name.name = getName(files[i].name.full);
           files[i].name.extension = getExtension(files[i].name.full);
@@ -2951,7 +2940,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::Text("Long filenames"); TOOLTIP("Use long filenames (provided by e.g. doslfn.com)"); ImGui::SameLine(); if(ImGui::Checkbox("##DIALOGLOADSAVELONGFILENAMES", &longFileNames)) needsRescanFiles = true;
 #endif
   ImGui::SameLine();
-  for (int i = 0; i < driveLetters.size(); i++) {
+  for (int i = 0; i < (int)driveLetters.size(); i++) {
     if (i != 0) ImGui::SameLine();
     char a = driveLetters[i];
     if (ImGui::Button((String::fromChar(a)+":##DIALOGLOADSAVEDRIVELETTER"+toString(i)).c_str())) {

@@ -741,9 +741,9 @@ public:
     canvasY1 = 0;
     pixels = NULL;
     pixelStates = NULL;
-    static int counter = 0; counter++;
+    static unsigned short counter = 0; counter++;
     sprintf(pictureName,"Picture %d",counter);
-    sprintf(author,"");
+    sprintf(author,"unknown");
     timeStamp = timeDescString();
     version = String::fromInt(::version);
     comment = "";
@@ -764,11 +764,11 @@ public:
   ~Canvas() {
     if (pixels != NULL) {delete[] pixels; pixels = NULL;}
     if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;}
-    for (int i = 0; i < layers.size(); i++) {
+    for (int i = 0; i < (int)layers.size(); i++) {
       if (layers[i] != NULL) {delete layers[i]; layers[i] = NULL;}
     }
     layers.clear();
-    for (int i2 = 0; i2 < overlays.size(); i2++) {
+    for (int i2 = 0; i2 < (int)overlays.size(); i2++) {
       if (overlays[i2] != NULL) {delete overlays[i2]; overlays[i2] = NULL;}
     }
     overlays.clear();

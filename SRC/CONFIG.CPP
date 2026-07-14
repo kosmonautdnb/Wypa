@@ -112,8 +112,8 @@ float getFreeMemoryInKb() {
 
 int getLayersByteCount() {
   int ret = 0;
-  for (int i = 0; i < canvas.size(); i++) {
-    for (int j = 0; j < canvas[i]->layers.size(); j++) {
+  for (int i = 0; i < (int)canvas.size(); i++) {
+    for (int j = 0; j < (int)canvas[i]->layers.size(); j++) {
       ret += canvas[i]->layers[j]->byteCount();
     }
   }

@@ -98,8 +98,8 @@ void updateNavigatorImage() {
   unsigned int *dest = glGetTexturePointer(navigatorTexture);
   unsigned int width = glGetTextureWidth(navigatorTexture);
   unsigned int height = glGetTextureHeight(navigatorTexture);
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
+  for (int y = 0; y < (int)height; y++) {
+    for (int x = 0; x < (int)width; x++) {
       unsigned int col = 0xff000000;
       int sx = x;
       int sy = y;
@@ -115,8 +115,8 @@ void updateLayerImage() {
   unsigned int *dest = glGetTexturePointer(layerTexture);
   unsigned int width = glGetTextureWidth(layerTexture);
   unsigned int height = glGetTextureHeight(layerTexture);
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
+  for (int y = 0; y < (int)height; y++) {
+    for (int x = 0; x < (int)width; x++) {
       unsigned int col = 0xff000000;
       if (l != NULL) {
         int sx = x * l->width / width;

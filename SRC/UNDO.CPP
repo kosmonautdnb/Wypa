@@ -57,7 +57,7 @@ public:
   void get() {
     freeIt();
     undoCanvas = currentCanvas;
-    for (int i = 0; i < undoCanvas->layers.size(); i++) {
+    for (int i = 0; i < (int)undoCanvas->layers.size(); i++) {
       if (undoCanvas->layers[i]->state.active || undoCanvas->layers[i]->state.selected) {
         if (!locked(undoCanvas->layers[i],LOCK_UNDO)) {
           Layer *l2 = undoCanvas->layers[i]; int id = l2->id; 
@@ -70,7 +70,7 @@ public:
   }
 
   void freeIt() {
-    for (int i = 0; i < undoLayers.size(); i++) {
+    for (int i = 0; i < (int)undoLayers.size(); i++) {
       delete undoLayers[i];
     }
     undoLayers.clear();
@@ -78,7 +78,7 @@ public:
 
   bool doWeHaveTheUndoCanvas() {
     if (undoCanvas == NULL) return false;
-    for (int i = 0; i < canvas.size(); i++) if (canvas[i] == undoCanvas) return true;
+    for (int i = 0; i < (int)canvas.size(); i++) if (canvas[i] == undoCanvas) return true;
     return false;
   }
 
@@ -101,9 +101,9 @@ public:
 
   bool isSame(const UndoPacket &source) {
     if (undoLayers.size() != source.undoLayers.size()) return false;
-    for (int i = 0; i < undoLayers.size(); i++) {
+    for (int i = 0; i < (int)undoLayers.size(); i++) {
       int foundSourceLayer = -1;
-      for (int j = 0; j < source.undoLayers.size(); j++) {
+      for (int j = 0; j < (int)source.undoLayers.size(); j++) {
         if (source.undoLayers[j]->id == undoLayers[i]->id) {
           foundSourceLayer = j;
           break;
@@ -132,7 +132,7 @@ public:
 #undef WRITEDWORDHERE
 
   unsigned char *getRleFromDiff(void *a2, void *b2, int bytes, bool doRLE, int &byteCount) {
-#define WRITEDWORDHERE(__a__) {if (writePos>=data.size()) {data.resize(data.size()+ints); writeTo = &data[0];} writeTo[writePos] = (__a__); writePos++;}
+#define WRITEDWORDHERE(__a__) {if (writePos>=(int)data.size()) {data.resize(data.size()+ints); writeTo = &data[0];} writeTo[writePos] = (__a__); writePos++;}
     unsigned int *a = (unsigned int *)a2;
     unsigned int *b = (unsigned int *)b2;
     int ints = bytes / 4; // some elements are missing here
@@ -181,7 +181,7 @@ public:
     while((pixelCount=*read)!=0xffffffff) {
       read++;
       if (inColorData) {
-        for (int i = 0; i < pixelCount; i++) {
+        for (int i = 0; i < (int)pixelCount; i++) {
           *write++ = *read++;
         }
       } else {
@@ -204,8 +204,8 @@ public:
     int lastUndoPixels = source->undoData.updatePixelsCountOfLastUndo;
     int lastUndoPixelStates = source->undoData.updatePixelStatesCountOfLastUndo;
 
-    bool needsFullSourcePixels = source->undoData.updatePixelsCount != lastUndoPixels && (lastUndoPixels >= 0);
-    bool needsFullSourcePixelStates = source->undoData.updatePixelStatesCount != lastUndoPixelStates && (lastUndoPixelStates >= 0);
+    bool needsFullSourcePixels = (int)source->undoData.updatePixelsCount != (int)lastUndoPixels && (lastUndoPixels >= 0);
+    bool needsFullSourcePixelStates = (int)source->undoData.updatePixelStatesCount != (int)lastUndoPixelStates && (lastUndoPixelStates >= 0);
 
     if (isForcedUndoPoint) {
       needsFullSourcePixels = true;
@@ -229,16 +229,16 @@ public:
 
   int byteCount() {
     int ret = 0;
-    for (int i = 0; i < undoLayers.size(); i++) {
+    for (int i = 0; i < (int)undoLayers.size(); i++) {
       ret += undoLayers[i]->byteCount();
     }
     return ret;
   }
 
   void deltaPackFrom(const UndoPacket &source) {
-    for (int i = 0; i < undoLayers.size(); i++) {
+    for (int i = 0; i < (int)undoLayers.size(); i++) {
       int foundSourceLayer = -1;
-      for (int j = 0; j < source.undoLayers.size(); j++) {
+      for (int j = 0; j < (int)source.undoLayers.size(); j++) {
         if (source.undoLayers[j]->id == undoLayers[i]->id) {
           foundSourceLayer = j;
           break;
@@ -265,9 +265,9 @@ public:
 
   void apply(bool forward) {
     if (!doWeHaveTheUndoCanvas()) return;
-    for (int i = 0; i < undoLayers.size(); i++) {
+    for (int i = 0; i < (int)undoLayers.size(); i++) {
       int foundLayer = -1;
-      for (int j = 0; j < undoCanvas->layers.size(); j++) {
+      for (int j = 0; j < (int)undoCanvas->layers.size(); j++) {
         if (undoCanvas->layers[j]->id == undoLayers[i]->id) {
           foundLayer = j;
           break;
@@ -319,9 +319,9 @@ public:
 
   void signSourceLayersAfterUndoPoint() {
     if (!doWeHaveTheUndoCanvas()) return;
-    for (int i = 0; i < undoLayers.size(); i++) {
+    for (int i = 0; i < (int)undoLayers.size(); i++) {
       int foundLayer = -1;
-      for (int j = 0; j < undoCanvas->layers.size(); j++) {
+      for (int j = 0; j < (int)undoCanvas->layers.size(); j++) {
         if (undoCanvas->layers[j]->id == undoLayers[i]->id) {
           foundLayer = j;
           break;
@@ -335,7 +335,7 @@ public:
     if (!doWeHaveTheUndoCanvas()) return;
     if (currentCanvas->layers.empty()) return;
     Layer *l = currentCanvas->layers[0];
-    for (int i = 0; i < undoLayers.size(); i++) {
+    for (int i = 0; i < (int)undoLayers.size(); i++) {
       undoLayers[i]->undoData.updatePixelsCountOfLastSave = l->undoData.updatePixelsCountOfLastSave;
       undoLayers[i]->undoData.updatePixelStatesCountOfLastSave = l->undoData.updatePixelStatesCountOfLastSave;
       if (undoLayers[i]->undoData.undoLayer != NULL) {
@@ -352,7 +352,7 @@ Array<UndoPacket *> undoStages;
 int undoStackBytes = 0;
 void calcUndoStackByteCount() {
   undoStackBytes = 0;
-  for (int i = 0; i < undoStages.size(); i++) {
+  for (int i = 0; i < (int)undoStages.size(); i++) {
     undoStackBytes += undoStages[i]->byteCount();
   }
   undoStackBytes += packetBeforeUndo.byteCount();
@@ -376,7 +376,7 @@ void afterUndoPoint() {
       delete packetAfterUndo;
     } else {
       undoBlink++;
-      for (int i2 = undoStages.size()-availableUndos-1; i2 >= 0 ; i2--) {
+      for (int i2 = (int)undoStages.size()-availableUndos-1; i2 >= 0 ; i2--) {
         if (!undoStages.empty()) {
           delete undoStages.back();
           undoStages.resize(undoStages.size()-1);
@@ -406,17 +406,17 @@ void forceUndoPoint() {
 
 void signSaveForUndo() {
   packetBeforeUndo.signSave();
-  for (int i = 0; i < undoStages.size(); i++) undoStages[i]->signSave();
+  for (int i = 0; i < (int)undoStages.size(); i++) undoStages[i]->signSave();
 }
 
 void undo() {
   if (useUndo) {
     if (undoStages.size()>0) {
-      if (availableRedos > undoStages.size()) return;
+      if (availableRedos > (int)undoStages.size()) return;
       UndoPacket *a = undoStages[undoStages.size()-1-availableRedos];
       a->apply(false);
       availableRedos++;
-      if (availableRedos > undoStages.size()) availableRedos = undoStages.size();
+      if (availableRedos > (int)undoStages.size()) availableRedos = undoStages.size();
       availableUndos = undoStages.size() - availableRedos;
     }
   }
@@ -426,9 +426,9 @@ void redo() {
   if (useUndo) {
     if (undoStages.size()>0) {
       availableUndos++;
-      if (availableUndos > undoStages.size()) availableUndos = undoStages.size();
+      if (availableUndos > (int)undoStages.size()) availableUndos = undoStages.size();
       availableRedos = undoStages.size() - availableUndos;
-      if (availableRedos > undoStages.size()) return;
+      if (availableRedos > (int)undoStages.size()) return;
       UndoPacket *a = undoStages[undoStages.size()-1-availableRedos];
       a->apply(true);
     }
