@@ -146,6 +146,7 @@ void drawDialogs() {
   dialogMonitorGamma(false);
   dialogInsertTileMapLayer(false);
   dialogImportFolder(false);
+  dialogPixelArtInflate(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -543,6 +544,34 @@ void dialogImportFolder(bool openIt) {
   if (ImGui::Button("Close##DIALOGIMPORTFOLDERCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't create a new layer here");
+  DIALOGEND()
+}
+
+void dialogPixelArtInflate(bool openIt) {
+  const int SCALING_TYPE_COUNT = 3;
+  const char *scalingTypeNames[SCALING_TYPE_COUNT] = {"Eagle 2x","Epx 2x","SuperXBR 2x"};
+  const char *scalingTypeDescs[SCALING_TYPE_COUNT] = {"Color preserving","Color preserving","Antialiasing"};
+  static int scalingType = 0;
+  if (openIt) {
+  }
+  DIALOGSTART("Pixelart inflate")
+  ImGui::PushItemWidth(7*15);
+  ImGui::Text("Type");ImGui::SameLine();ImGui::Combo("##DIALOGPIXELARTINFLATETYPE",&scalingType, scalingTypeNames, SCALING_TYPE_COUNT); toolTip("The type of pixel art scaling to apply");
+  ImGui::PopItemWidth();
+  ImGui::Text("%s",scalingTypeDescs[scalingType]);
+
+  if (ImGui::Button("Apply##DIALOGPIXELARTINFLATEAPPLY")) {
+    switch(scalingType) {
+      case 0: {filterEagle();} break;
+      case 1: {filterEpx();} break;
+      case 2: {filterSuperXBR();} break;
+    }
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Next select a folder for importing.");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGPIXELARTINFLATECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't scale the image");
   DIALOGEND()
 }
 

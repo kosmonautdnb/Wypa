@@ -1038,7 +1038,23 @@ void filterEagle() {
   source.resize(w*h);
   memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
   l->setContentSize(w*2, h*2);
-  eagle(&source[0],l->pixels,w,h); // somehow this algorithm is a bit broken, sorry.. Not my fault currently..
+  eagle(&source[0],l->pixels,w,h);
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
+void filterEpx() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  beforeUndoPoint();
+  int w = l->width, h = l->height;
+  Array<unsigned int> source;
+  source.resize(w*h);
+  memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
+  l->setContentSize(w*2, h*2);
+  epx(&source[0],l->pixels,w,h);
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();

@@ -729,10 +729,7 @@
       "This filter also works with selections on layers." _N_
     "}" _N_
     "Pixelart inflate{" _N_
-      "Implementation of the eagle algorithm to scale pixel art by 2." _N_
-      "It is not actually good looking, however it may be used to paint" _N_
-      "further in the upscaled image. The algorithm preserves the" _N_
-      "colors used in the original image." _N_
+      "Implementation of some pixelart scaling algorithms." _N_
       "You may need \"Fit canvas to layers\" after applying this filter." _N_
     "}" _N_
   "}" _N_

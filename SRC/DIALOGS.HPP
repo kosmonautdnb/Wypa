@@ -103,6 +103,8 @@ void dialogKeying(bool openIt);
 void dialogMonitorGamma(bool openIt);
 void dialogInsertTileMapLayer(bool openIt);
 void dialogImportFolder(bool openIt);
+void dialogPixelArtInflate(bool openIt);
+
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);

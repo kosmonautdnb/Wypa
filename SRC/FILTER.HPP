@@ -43,6 +43,7 @@ void filterDenoise();
 void filterSharpen();
 void filterSuperXBR();
 void filterEagle();
+void filterEpx();
 
 #define S_FILTER_CPP()
 
