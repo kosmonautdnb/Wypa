@@ -1502,6 +1502,15 @@ void importFolder(const char *shortPath, const char *longFileName) {
   }
 }
 
+void histogramMatch(const char *shortPath, const char *longFileName) {
+  Layer *l = loadImage(String(shortPath), String(longFileName));
+  if (l == NULL) return;
+  if (l->width < 1 || l->height < 1) {delete l; return;}
+  reverseLastLayerIdCountUp();
+  filterHistogramMatching(l);
+  delete l;
+}
+
 Layer *loadImage(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAIMAGEFROMFILE(img,filePath,fileName);

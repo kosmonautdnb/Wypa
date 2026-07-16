@@ -147,6 +147,7 @@ void drawDialogs() {
   dialogInsertTileMapLayer(false);
   dialogImportFolder(false);
   dialogPixelArtInflate(false);
+  dialogClahe(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -539,7 +540,7 @@ void dialogImportFolder(bool openIt) {
     newWidth = w; newHeight = h; sprintf(newLayerName,"%s",layerName);
     ImGui::CloseCurrentPopup();
     dialogLoadSave(true,DIALOG_IMPORTFOLDER);
-  } else toolTip("Next select a folder for importing.");
+  } else toolTip("Next select a folder for importing");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGIMPORTFOLDERCLOSE")) {
     ImGui::CloseCurrentPopup();
@@ -567,11 +568,32 @@ void dialogPixelArtInflate(bool openIt) {
       case 2: {filterSuperXBR();} break;
     }
     ImGui::CloseCurrentPopup();
-  } else toolTip("Next select a folder for importing.");
+  } else toolTip("Inflate the picture");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGPIXELARTINFLATECLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't scale the image");
+  DIALOGEND()
+}
+
+void dialogClahe(bool openIt) {
+  static float clahe = 1.5;
+  static int cellSize = 16;
+  if (openIt) {
+  }
+  DIALOGSTART("Clahe lighting")
+  ImGui::PushItemWidth(7*9);
+  ImGui::Text("Clahe damping"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGCLAHEVALUE",&clahe,0); toolTip("Lesser values add more light"); if (clahe < 0.05) clahe = 0.05; if (clahe > 4) clahe = 4;
+  ImGui::Text("Clahe cell size"); ImGui::SameLine(); ImGui::InputInt("##DIALOGCLAHECELLSIZE",&cellSize,0,0); toolTip("The less the more positional difference in lighting"); if (cellSize < 8) cellSize = 8;
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGCLAHEAPPLY")) {
+    filterClahe(clahe, cellSize);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Apply the Clahe lighting effect.");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGCLAHECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply Clahe.");
   DIALOGEND()
 }
 
@@ -1014,12 +1036,11 @@ void dialogPictureInfo(bool openIt) {
 
 int gradiationTextureWidth = 256;
 int gradiationTextureHeight = 256;
-void updateGradiationTexture(GLuint gradiationTexture, Layer *l, int type) {
+void updateGradiationTexture(GLuint gradiationTexture, Layer *l, int type, Array<int> &counts, bool squareRoots) {
   Array<unsigned int> gradiationTextureContent;
   gradiationTextureContent.resize(gradiationTextureWidth*gradiationTextureHeight);
   for (int i = 0; i < (int)gradiationTextureContent.size(); i++) gradiationTextureContent[i] = 0xff000000;
-  Array<int> counts; counts.resize(256);
-  for (int i5 = 0; i5 < 256; i5++) counts[i5] = 0;
+  counts.resize(256); for (int i5 = 0; i5 < 256; i5++) counts[i5] = 0;
   for (int i2 = 0; i2 < l->width*l->height; i2++) {
     unsigned int col = l->pixels[i2];
     int r = col & 255;
@@ -1037,21 +1058,19 @@ void updateGradiationTexture(GLuint gradiationTexture, Layer *l, int type) {
     }
     counts[count]++;
   }
-  int max = 0;
+  int max_ = 0;
   for (int i3 = 0; i3 < 256; i3++) {
-    if (counts[i3]>max) max = counts[i3];
+    if (counts[i3]>max_) max_ = counts[i3];
   }
-  if (max > 0) {
-    for (int i4 = 0; i4 < 256; i4++) {
-      counts[i4] = counts[i4]*255/max;
-    }
-  }
+  if (max_ <= 0) max_ = 1;
   for (int y = 0; y < gradiationTextureHeight; y++) {
     for (int x = 0; x < gradiationTextureWidth; x++) {
       int heightHere = 255-y*256/gradiationTextureHeight;
       int xk = x * 256 / gradiationTextureWidth;
       unsigned int col = 0xff000000;
-      if (heightHere < counts[xk]) col = 0xff0000ff;
+      double a = (double)counts[xk]/max_;
+      if (a > 0 && squareRoots) a = sqrt(a);
+      if (heightHere < a * 255) col = 0xff0000ff;
       gradiationTextureContent[x+y*gradiationTextureWidth] = col;
     }
   }
@@ -1167,7 +1186,7 @@ public:
 
 Curve curves[5];
 
-void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
+void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c, int histogramCount) {
   UNUSED(maxB);
   static bool lastMouseLeft = ImGui::IsMouseDown(0);
   bool mouseLeft = ImGui::IsMouseDown(0);
@@ -1187,7 +1206,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
           float py = p0.y;
           if (dx != 0) py = (p1.y-p0.y)*(mouseX-p0.x)/dx+p0.y;
           py -= minB.y; py = 255 - py;
-          toolTip("%d,%d", (int)(mouseX-minB.x),(int)py); toolTipShown = true;
+          toolTip("%d,%d\n%d", (int)(mouseX-minB.x),(int)py,histogramCount); toolTipShown = true;
         }
       }
     } else {
@@ -1201,7 +1220,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c) {
           if (!toolTipShown) {
             float py = p.y;
             py -= minB.y; py = 255 - py;
-            toolTip("%d,%d", (int)(mouseX-minB.x),(int)py); toolTipShown = true;
+            toolTip("%d,%d\n%d", (int)(mouseX-minB.x),(int)py,histogramCount); toolTipShown = true;
           }
         }
         last = p;
@@ -1408,13 +1427,15 @@ void dialogGradiationCurves(bool openIt) {
   static bool updateGradientCurvesPreview = false;
   static const char *channelNames[5] = {"All","Red","Green","Blue","Alpha"};
   static Layer *clone = NULL;
+  static Array<int> histogram;
+  static bool showCurveBetter = false;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   if (openIt) {
     beforeUndoPoint();
     gradiationChannel = 0;
     if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
     glGenTextures(1,&gradiationTexture);
-    updateGradiationTexture(gradiationTexture,l,gradiationChannel);
+    updateGradiationTexture(gradiationTexture,l,gradiationChannel,histogram,showCurveBetter);
     if (!reOpen) {
       for (int i = 0; i < 5; i++) {
         curves[i].clear();
@@ -1453,7 +1474,12 @@ void dialogGradiationCurves(bool openIt) {
   ImGui::Image((ImTextureID)gradiationTexture,ImVec2(gradiationTextureWidth,gradiationTextureHeight));
   ImVec2 minB = ImGui::GetItemRectMin();
   ImVec2 maxB = ImGui::GetItemRectMax();
-  drawCurve(minB,maxB,curves[gradiationChannel]);
+  int histo = 0;
+  if (maxB.x - minB.x > 0) {
+    int mx2 = mouseX - minB.x;
+    if (mx2 >= 0 && mx2 < (int)histogram.size()) histo = histogram[mx2];
+  }
+  drawCurve(minB,maxB,curves[gradiationChannel],histo);
   ImGui::EndChild();
 
   if (gradientCurvesToColorTransform == NULL) {ImGui::SameLine(); DIALOGPREVIEW(l,clone);}
@@ -1527,9 +1553,11 @@ void dialogGradiationCurves(bool openIt) {
   dialogNoMove = false;
   for (int i = 0; i < 5; i++) if (curves[i].dragPoint>=0) dialogNoMove = true;
   ImGui::Text("CVs"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGGRADIATIONCVS",&showCurveCVs); toolTip("Show bezier curve handles");
-  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel);} else toolTip("Show the curve for a color channel");
+  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel,histogram,showCurveBetter);} else toolTip("Show the curve for a color channel");
   ImGui::PopItemWidth();
   ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<(int)c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;} else toolTip("Delete this curve point");
+  ImGui::SameLine(); ImGui::Text("Sqrt"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGGRADIATIONBETTER",&showCurveBetter)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel,histogram,showCurveBetter);} toolTip("Histogram shows squareroots as red columns");
+
 
   if (updateGradientCurvesPreview) {
     if (gradientCurvesToColorTransform == NULL) {
@@ -2759,11 +2787,11 @@ const char *fnt = "*.ttf";
 const char *tilemap = "*.tm2";
 const char *gradientCrv = "*.cr2";
 const char *colorMatrix = "*.cm2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < (int)files.size(); i++) {

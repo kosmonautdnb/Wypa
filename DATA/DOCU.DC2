@@ -238,6 +238,7 @@
       "You may also enter the x and y position of the handles" _N_
       "directly." _N_
       "Every x position gets remapped to a y position (intensity)." _N_
+      "You can switch with \"Sqrt\" to a more meaningful display." _N_
     "}" _N_
     "Color balance{" _N_
       "You can change the colorings of the image here." _N_
@@ -731,6 +732,17 @@
     "Pixelart inflate{" _N_
       "Implementation of some pixelart scaling algorithms." _N_
       "You may need \"Fit canvas to layers\" after applying this filter." _N_
+    "}" _N_
+    "Histogram matching{" _N_
+      "You can take another pictures brightness profile and assign it" _N_
+      "to the current active layer." _N_
+    "}" _N_
+    "Clahe lighting{" _N_
+      "This is a rather \"unique\" implementation of a CLAHE like filter." _N_
+      "If you select lower values for the clahe parameter more light" _N_
+      "will be added to the scene on the current layer. If you increase" _N_
+      "the cellsize parameter the light changes are spread over" _N_
+      "bigger regions." _N_
     "}" _N_
   "}" _N_
   "Pictures{" _N_

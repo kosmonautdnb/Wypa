@@ -81,6 +81,8 @@ void saveTileMap(const char *shortPath, const char *longFileName);
 
 void importFolder(const char *shortPath, const char *longFileName);
 
+void histogramMatch(const char *shortPath, const char *longFileName);
+
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadThumb(const String &filePath, const String &fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);

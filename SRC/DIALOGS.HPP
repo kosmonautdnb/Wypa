@@ -65,7 +65,8 @@ enum DIALOGMODE {
   DIALOG_IMPORTFOLDER = 28,
   DIALOG_LOADCOLORMATRIX = 29,
   DIALOG_SAVECOLORMATRIX = 30,
-  DIALOG_COUNT = 31
+  DIALOG_HISTOGRAMMATCH = 31,
+  DIALOG_COUNT = 32
 };
 
 void dialogCanvas(bool openIt);
@@ -104,6 +105,7 @@ void dialogMonitorGamma(bool openIt);
 void dialogInsertTileMapLayer(bool openIt);
 void dialogImportFolder(bool openIt);
 void dialogPixelArtInflate(bool openIt);
+void dialogClahe(bool openIt);
 
 
 void dialogOverwrite(bool openIt);

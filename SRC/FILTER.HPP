@@ -44,6 +44,8 @@ void filterSharpen();
 void filterSuperXBR();
 void filterEagle();
 void filterEpx();
+void filterHistogramMatching(class Layer *histogramSource);
+void filterClahe(float claheConstant, int cellSize);
 
 #define S_FILTER_CPP()
 

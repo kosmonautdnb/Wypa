@@ -1038,6 +1038,7 @@ void filterEagle() {
   source.resize(w*h);
   memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
   l->setContentSize(w*2, h*2);
+  //eagle(&source[0],l->pixels,w,h);
   eagle(&source[0],l->pixels,w,h);
   repaintLayer(l,true);
   updatedPixels(l);
@@ -1058,4 +1059,269 @@ void filterEpx() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+}
+
+double __round(double v) {
+  return floor(v+0.5);
+}
+
+void filterHistogramMatching(Layer *histogramSource) {
+  Layer *a = currentCanvas->getActiveLayer();
+  if (a == NULL) return;
+  if (locked(a,LOCK_ANY)) return;
+
+  Layer *l = histogramSource;
+
+  int iw = l->width;  int ih = l->height;
+  int tw = a->width;  int th = a->height;
+
+  // converted from github/KIMMINTAE98/Histogram-matching
+  Array<int> inputHistogram; inputHistogram.resize(256); memset(&inputHistogram[0],0,256*sizeof(int));
+  Array<int> targetHistogram; targetHistogram.resize(256); memset(&targetHistogram[0],0,256*sizeof(int));
+  Array<int> matching; matching.resize(256);  memset(&matching[0],0,256*sizeof(int)); // matching function
+  Array<double> inputCDF; inputCDF.resize(256); memset(&inputCDF[0],0,256*sizeof(double));
+  Array<double> targetCDF; targetCDF.resize(256); memset(&targetCDF[0],0,256*sizeof(double));
+
+  // currently only "luminace"
+
+  for (int i0 = 0; i0 < (int)(l->width*l->height); i0++) {
+    unsigned int col = l->pixels[i0];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int grey = (r + g + b)/3;
+    inputHistogram[grey]++;
+  }
+
+  for (int i1 = 0; i1 < (int)(a->width*a->height); i1++) {
+    unsigned int col = a->pixels[i1];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int grey = (r + g + b)/3;
+    targetHistogram[grey]++;
+  }
+
+  inputCDF[0] = (double)inputHistogram[0]/(iw*ih);
+  targetCDF[0] = (double)targetHistogram[0]/(tw*th);
+
+  for (int i = 1; i < 256; i++) {
+    inputCDF[i] = inputCDF[i-1]+(double)inputHistogram[i]/(iw*ih);
+    targetCDF[i] = targetCDF[i-1]+(double)targetHistogram[i]/(tw*th);
+  }
+
+  for (int a_ = 0; a_ < 256; a_++) {
+    double lastDist = 0; bool first = true; int found = 0;
+    for (int b_ = 0; b_ < 256; b_++) {
+      double dist = fabs(inputCDF[a_]-targetCDF[b_]);
+      if (first || dist < lastDist) {found = b_; lastDist = dist; first = false;}
+    }
+    matching[a_] = found;
+  }
+  for (int c_ = 1; c_ < 256-1; c_++) { // not perfect, but whatever
+    if (matching[c_]==0) {
+      int d = c_, e = c_;
+      for(;d>0;d--) if (matching[d]!=0) break;
+      for(;e<255;e++) if (matching[e]!=0) break;
+      for (int j = d+1; j < e; j++) matching[j] = (j-d)*(matching[e]-matching[d])/(e-d)+matching[d];
+    }
+  }
+
+  beforeUndoPoint();
+  for (int i2 = 0; i2 < (int)(a->width*a->height); i2++) {
+    unsigned int col = a->pixels[i2];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int grey = (r + g + b)/3;
+    int grey2 = matching[grey];
+    if (grey != 0) {
+      r = r * grey2 / grey;
+      g = g * grey2 / grey;
+      b = b * grey2 / grey;
+    }
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+    a->pixels[i2] = r|(g<<8)|(b<<16)|(col & 0xff000000);
+  }
+  updatedPixels(a);
+  afterUndoPoint();
+  repaintLayer(a,true);
+}
+
+void filterClahe(float claheConstant, int cellSize) {
+  // not a perfect Clahe implementation
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+
+  int tileW = cellSize;
+  int tileH = cellSize;
+  int iw = tileW, tw = tileW;
+  int ih = tileH, th = tileH;
+  double claheClip = 4; // x times the same color in a 16x16 region is a "no go"
+  double claheAverageFactor = claheConstant;
+
+  Array<int> remap;
+  Array<double> inputHistogram; inputHistogram.resize(256);
+  Array<double> targetHistogram; targetHistogram.resize(256);
+  Array<double> inputCDF; inputCDF.resize(256); memset(&inputCDF[0],0,256*sizeof(double));
+  Array<double> targetCDF; targetCDF.resize(256); memset(&targetCDF[0],0,256*sizeof(double));
+
+  beforeUndoPoint();
+
+  initStatusBar();
+
+  int hcount = 0;
+  int vcount = 0;
+
+  for (int y = 0; y < l->height; y += tileH) {
+    vcount++;
+    int tileH2 = tileH; if (y + tileH2 > l->height) tileH2 = l->height - y;
+    updateStatusBar();
+    hcount = 0;
+    for (int x = 0; x < l->width; x += tileW) {
+      hcount++;
+      int tileW2 = tileW; if (x + tileW2 > l->width) tileW2 = l->width - x;
+
+      int remapStart = remap.size(); remap.resize(remapStart + 256); int *matching = &remap[remapStart];
+
+      memset(&inputHistogram[0],0,256*sizeof(double));
+      memset(&targetHistogram[0],0,256*sizeof(double));
+
+      // generate histogram
+      for (int y2 = 0; y2 < tileH2; y2++) {
+        int y3 = y2 + y;
+        for (int x2 = 0; x2 < tileW2; x2++) {
+          int x3 = x2 + x;
+          unsigned int col = l->pixels[x3 + y3*l->width];
+          int r = col & 255;
+          int g = (col>>8) & 255;
+          int b = (col>>16) & 255;
+          int grey = (r+g+b)/3;
+          inputHistogram[grey]+=1.0;
+          targetHistogram[grey]+=1.0;
+        }
+      }
+
+      int count = 0; double average = 0; for (int j = 0; j < 256; j++) {
+        if (targetHistogram[j] > 0) {count++; average += targetHistogram[j];}
+      }
+      if (count > 0) average /= count;
+      if (true) {
+        claheClip = average * claheAverageFactor;
+      }
+
+      // diffuse histogram by clip value      
+      while(count > 1) {
+        double error = 0;
+        for (int j = 0; j < 256; j++) {
+          double a = targetHistogram[j];
+          if (a > 0 && a > claheClip) {
+            error += a - claheClip;
+            targetHistogram[j] = claheClip;
+          }
+        }
+        if (error == 0) break;
+        error /= count;
+        int count2 = count;
+        for (int j2 = 0; j2 < 256; j2++) {
+          double a = targetHistogram[j2];
+          if (a > 0 && a + error <= claheClip) {
+            targetHistogram[j2] += error;
+            count2--;
+          }
+        }
+        if (count2 > 0) break;
+      }
+
+      // cumulative distribution function
+      inputCDF[0] = (double)inputHistogram[0]/(iw*ih);
+      targetCDF[0] = (double)targetHistogram[0]/(tw*th);
+    
+      for (int k = 1; k < 256; k++) {
+        inputCDF[k] = inputCDF[k-1]+(double)inputHistogram[k]/(iw*ih);
+        targetCDF[k] = targetCDF[k-1]+(double)targetHistogram[k]/(tw*th);
+      }
+
+      for (int a_ = 0; a_ < 256; a_++) {
+        double lastDist = 0; bool first = true; int found = 0;
+        for (int b_ = 0; b_ < 256; b_++) {
+          double dist = fabs(inputCDF[a_]-targetCDF[b_]);
+          if (first || dist < lastDist) {found = b_; lastDist = dist; first = false;}
+        }
+        matching[a_] = found;
+      }
+
+      for (int c_ = 1; c_ < 256-1; c_++) { // not perfect, but whatever
+        if (matching[c_]==0) {
+          int d = c_, e = c_;
+          for(;d>0;d--) if (matching[d]!=0) break;
+          for(;e<255;e++) if (matching[e]!=0) break;
+          for (int j = d+1; j < e; j++) matching[j] = (j-d)*(matching[e]-matching[d])/(e-d)+matching[d];
+        }
+      }
+    }
+  }
+
+  double grey2s[3*3];
+  double lk = sqrt(tileW*tileW+tileH*tileH);
+  {for (int y = 0, ky = 0; y < l->height; y += tileH,ky++) {
+    int tileH2 = tileH; if (y + tileH2 > l->height) tileH2 = l->height - y;
+    updateStatusBar();
+    for (int x = 0, kx = 0; x < l->width; x += tileW,kx++) {
+      int tileW2 = tileW; if (x + tileW2 > l->width) tileW2 = l->width - x;
+
+      for (int y4 = 0; y4 < tileH2; y4++) {
+        int y3 = y4 + y;
+        for (int x4 = 0; x4 < tileW2; x4++) {
+          int x3 = x4 + x;
+          unsigned int col = l->pixels[x3 + y3*l->width];
+          int r = col & 255;
+          int g = (col>>8) & 255;
+          int b = (col>>16) & 255;
+          int grey = (r+g+b)/3;
+          for (int y5 = -1; y5 <= 1; y5++) {
+            for (int x5 = -1; x5 <= 1; x5++) {
+              int x6 = kx + x5;
+              int y6 = ky + y5;
+              if (x6 >= hcount) x6 = hcount-1;
+              if (y6 >= vcount) y6 = vcount-1;
+              if (x6 < 0) x6 = 0;
+              if (y6 < 0) y6 = 0;
+              grey2s[(x5+1)+(y5+1)*3] = remap[(y6*hcount+x6)*256+grey];
+            }
+          }
+
+          double grey2 = 0;
+          double w = 0;
+          for (int y6 = -1; y6 <= 1; y6++) {
+            for (int x6 = -1; x6 <= 1; x6++) {
+              double dx = x + x6 * tileW + tileW/2 - x3;
+              double dy = y + y6 * tileH + tileH/2 - y3;
+              double l = 1-sqrt(dx*dx+dy*dy)/lk;
+              if (l<0) l = 0;
+              grey2 += grey2s[(x6+1)+(y6+1)*3]*l;
+              w +=l;
+            }
+          }
+          grey2 /= w;
+          if (grey != 0) {
+            r = r * grey2 / grey;
+            g = g * grey2 / grey;
+            b = b * grey2 / grey;
+          }
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          l->pixels[x3 + y3*l->width] = r|(g<<8)|(b<<16)|(col & 0xff000000);
+        }
+      }
+    }
+  }}
+
+  updatedPixels(l);
+  afterUndoPoint();
+  repaintLayer(l,true);
 }
