@@ -148,6 +148,7 @@ void drawDialogs() {
   dialogImportFolder(false);
   dialogPixelArtInflate(false);
   dialogClahe(false);
+  dialogCheckerboard(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -589,11 +590,38 @@ void dialogClahe(bool openIt) {
   if (ImGui::Button("Apply##DIALOGCLAHEAPPLY")) {
     filterClahe(clahe, cellSize);
     ImGui::CloseCurrentPopup();
-  } else toolTip("Apply the Clahe lighting effect.");
+  } else toolTip("Apply the Clahe lighting effect");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGCLAHECLOSE")) {
     ImGui::CloseCurrentPopup();
-  } else toolTip("Don't apply Clahe.");
+  } else toolTip("Don't apply Clahe");
+  DIALOGEND()
+}
+
+void dialogCheckerboard(bool openIt) {
+  static int cellWidth = 8;
+  static int cellHeight = 8;
+  static int offsetX = 0;
+  static int offsetY = 0;
+  if (openIt) {
+  }
+  DIALOGSTART("Checkerboard")
+  ImGui::PushItemWidth(7*9);
+  ImGui::Text("Cell width"); ImGui::SameLine(); ImGui::InputInt("##DIALOGCHECKERBOARDCELLWIDTH",&cellWidth,0,0); toolTip("One grid cell size in x"); if (cellWidth<1) cellWidth = 1;
+  ImGui::SameLine();
+  ImGui::Text("Cell height"); ImGui::SameLine(); ImGui::InputInt("##DIALOGCHECKERBOARDCELLHEIGHT",&cellHeight,0,0); toolTip("One grid cell size in y"); if (cellHeight<1) cellHeight = 1;
+  ImGui::Text("Offset x"); ImGui::SameLine(); ImGui::InputInt("##DIALOGCHECKERBOARDCELLOFSX",&offsetX,0,0); toolTip("Grid position in x");
+  ImGui::SameLine();
+  ImGui::Text("Offset y"); ImGui::SameLine(); ImGui::InputInt("##DIALOGCHECKERBOARDCELLOFSY",&offsetY,0,0); toolTip("Grid position in y");
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGCHECKERBOARDAPPLY")) {
+    filterCheckerboard(cellWidth, cellHeight, offsetX, offsetY);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Create a checkerboard");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGCHECKERBOARDCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't create a checkerboard");
   DIALOGEND()
 }
 
@@ -2787,11 +2815,11 @@ const char *fnt = "*.ttf";
 const char *tilemap = "*.tm2";
 const char *gradientCrv = "*.cr2";
 const char *colorMatrix = "*.cm2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < (int)files.size(); i++) {

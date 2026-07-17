@@ -66,7 +66,9 @@ enum DIALOGMODE {
   DIALOG_LOADCOLORMATRIX = 29,
   DIALOG_SAVECOLORMATRIX = 30,
   DIALOG_HISTOGRAMMATCH = 31,
-  DIALOG_COUNT = 32
+  DIALOG_COLORTRANSFER = 32,
+  DIALOG_HISTOGRAMMATCHINGCOLORED = 33,
+  DIALOG_COUNT = 34
 };
 
 void dialogCanvas(bool openIt);
@@ -106,6 +108,7 @@ void dialogInsertTileMapLayer(bool openIt);
 void dialogImportFolder(bool openIt);
 void dialogPixelArtInflate(bool openIt);
 void dialogClahe(bool openIt);
+void dialogCheckerboard(bool openIt);
 
 
 void dialogOverwrite(bool openIt);

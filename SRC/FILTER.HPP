@@ -46,6 +46,10 @@ void filterEagle();
 void filterEpx();
 void filterHistogramMatching(class Layer *histogramSource);
 void filterClahe(float claheConstant, int cellSize);
+void filterColorTransfer(class Layer *colorSource);
+void filterSepia();
+void filterCheckerboard(int w, int h, int xp, int yp);
+void filterHistogramMatchingColored(class Layer *histogramSource);
 
 #define S_FILTER_CPP()
 

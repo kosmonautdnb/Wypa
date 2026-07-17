@@ -305,6 +305,7 @@ void drawMenuBar() {
       for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
       if (ImGui::MenuItem("Difference clouds",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterDifferenceClouds();}
       if (ImGui::MenuItem("Noise",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterNoise();}
+      if (ImGui::MenuItem("Checkerboard",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogCheckerboard(true);}
       if (ImGui::MenuItem("Edge detect",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterMorphologicalEdgeDetect();}
       if (ImGui::MenuItem("Blur",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogBlur(true);}
       if (ImGui::MenuItem("Alpha soften",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterAlphaSoften();}
@@ -314,7 +315,10 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Denoise",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterDenoise();}
       if (ImGui::MenuItem("Sharpen and grain",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSharpen();}
       if (ImGui::MenuItem("Pixelart inflate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelArtInflate(true);}
-      if (ImGui::MenuItem("Histogram matching",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCH);}
+      if (ImGui::MenuItem("Histogram matching (brightness)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCH);}
+      if (ImGui::MenuItem("Histogram matching (colored)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCHINGCOLORED);}
+      if (ImGui::MenuItem("Sepia",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSepia();}
+      if (ImGui::MenuItem("Color transfer (monochrome)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_COLORTRANSFER);}
       if (ImGui::MenuItem("Clahe lighting",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogClahe(true);}
       ImGui::EndMenu();
     }

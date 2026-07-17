@@ -1122,7 +1122,8 @@ void filterHistogramMatching(Layer *histogramSource) {
     if (matching[c_]==0) {
       int d = c_, e = c_;
       for(;d>0;d--) if (matching[d]!=0) break;
-      for(;e<255;e++) if (matching[e]!=0) break;
+      for(;e<256;e++) if (matching[e]!=0) break;
+      if (e<256)
       for (int j = d+1; j < e; j++) matching[j] = (j-d)*(matching[e]-matching[d])/(e-d)+matching[d];
     }
   }
@@ -1258,7 +1259,8 @@ void filterClahe(float claheConstant, int cellSize) {
         if (matching[c_]==0) {
           int d = c_, e = c_;
           for(;d>0;d--) if (matching[d]!=0) break;
-          for(;e<255;e++) if (matching[e]!=0) break;
+          for(;e<256;e++) if (matching[e]!=0) break;
+          if (e<256)
           for (int j = d+1; j < e; j++) matching[j] = (j-d)*(matching[e]-matching[d])/(e-d)+matching[d];
         }
       }
@@ -1324,4 +1326,205 @@ void filterClahe(float claheConstant, int cellSize) {
   updatedPixels(l);
   afterUndoPoint();
   repaintLayer(l,true);
+}
+
+void filterColorTransfer(class Layer *colorSource) {
+  Layer *al = currentCanvas->getActiveLayer();
+  if (al == NULL) return;
+  if (locked(al,LOCK_ANY)) return;
+  int bins = 256;
+  Array<float> sourceColors; sourceColors.resize(bins*4); memset(&sourceColors[0],0,sourceColors.size() * sizeof(float));
+  Array<unsigned int> binColors; binColors.resize(bins); memset(&binColors[0],0,binColors.size() * sizeof(unsigned int));
+
+  float *lumis = luminanceValues;
+
+  for (int i = 0; i < colorSource->width*colorSource->height; i++) {
+    unsigned int col = colorSource->pixels[i];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int bin = (int)(lumis[0]*r+lumis[1]*g+lumis[2]*b)*bins/256;
+    if (bin >= bins) bin = bins-1;
+    sourceColors[bin*4+0] += r;
+    sourceColors[bin*4+1] += g;
+    sourceColors[bin*4+2] += b;
+    sourceColors[bin*4+3] += 1;
+  }
+  if (sourceColors[(bins-1)*4+3]==0) {
+    sourceColors[(bins-1)*4+0] = 255;
+    sourceColors[(bins-1)*4+1] = 255;
+    sourceColors[(bins-1)*4+2] = 255;
+    sourceColors[(bins-1)*4+3] = 1;
+  }
+  for (int j = 0; j < bins; j++) {
+    float r = sourceColors[j*4+0];
+    float g = sourceColors[j*4+1];
+    float b = sourceColors[j*4+2];
+    float w = sourceColors[j*4+3];
+    if (w != 0) {r /= w; g /= w; b /= w;}
+    sourceColors[j*4+0] = r;
+    sourceColors[j*4+1] = g;
+    sourceColors[j*4+2] = b;
+  }
+  for (int l = 1; l < bins - 1; l++) {
+    if (sourceColors[l*4+3] == 0) {
+      int d = l, e = l;
+      for(;d>0;d--) if (sourceColors[d*4+3]!=0) break;
+      for(;e<bins;e++) if (sourceColors[e*4+3]!=0) break;
+      if (e < bins)
+      for (int j = d+1; j < e; j++) {
+        sourceColors[j*4+0] = (j-d)*(sourceColors[e*4+0]-sourceColors[d*4+0])/(e-d)+sourceColors[d*4+0];
+        sourceColors[j*4+1] = (j-d)*(sourceColors[e*4+1]-sourceColors[d*4+1])/(e-d)+sourceColors[d*4+1];
+        sourceColors[j*4+2] = (j-d)*(sourceColors[e*4+2]-sourceColors[d*4+2])/(e-d)+sourceColors[d*4+2];
+      }
+    }
+  }
+  for (int k = 0; k < bins; k++) {
+    int ri = (int)sourceColors[k*4+0];
+    int gi = (int)sourceColors[k*4+1];
+    int bi = (int)sourceColors[k*4+2];
+    binColors[k] = ri|(gi<<8)|(bi<<16);
+  }
+
+  beforeUndoPoint();
+  for (int m = 0; m < al->width*al->height; m++) {
+    unsigned int col = al->pixels[m];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int bin = (int)(lumis[0]*r+lumis[1]*g+lumis[2]*b)*bins/256;
+    if (bin >= bins) bin = bins-1;
+    al->pixels[m] = binColors[bin]|(col & 0xff000000);
+  }
+  updatedPixels(al);
+  afterUndoPoint();
+  repaintLayer(al,true);
+}
+
+void filterSepia() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+
+  beforeUndoPoint();
+  for (int i = 0; i < l->width*l->height; i++) {
+    unsigned int col = l->pixels[i];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int rNew = (int)(r * 0.393 + g * 0.769 + b * 0.189);
+    int gNew = (int)(r * 0.349 + g * 0.686 + b * 0.168);
+    int bNew = (int)(r * 0.272 + g * 0.534 + b * 0.131);
+    if (rNew > 255) rNew = 255;
+    if (gNew > 255) gNew = 255;
+    if (bNew > 255) bNew = 255;
+    l->pixels[i] = rNew | (gNew << 8) | (bNew << 16) | (col & 0xff000000);
+  }
+  updatedPixels(l);
+  afterUndoPoint();
+  repaintLayer(l,true);
+}
+
+void filterCheckerboard(int w, int h, int xp, int yp) {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  if (w <= 0 || h <= 0) return;
+
+  bool hasSelection = l->hasSelection();
+
+  beforeUndoPoint();
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
+        int grey = ((int)floor((double)(x-xp)/w) + (int)floor((double)(y-yp)/h)) & 1;
+        grey *= 255;
+        l->pixels[x+y*l->width] = grey|(grey<<8)|(grey<<16)|0xff000000;
+      }
+    }
+  }
+  updatedPixels(l);
+  afterUndoPoint();
+  repaintLayer(l,true);
+}
+
+void filterHistogramMatchingColored(Layer *histogramSource) {
+  Layer *a = currentCanvas->getActiveLayer();
+  if (a == NULL) return;
+  if (locked(a,LOCK_ANY)) return;
+
+  Layer *l = histogramSource;
+
+  int iw = l->width;  int ih = l->height;
+  int tw = a->width;  int th = a->height;
+
+  // converted from github/KIMMINTAE98/Histogram-matching
+  Array<int> inputHistogram; inputHistogram.resize(256);
+  Array<int> targetHistogram; targetHistogram.resize(256);
+  Array<int> matching; matching.resize(256);  memset(&matching[0],0,256*sizeof(int)); // matching function
+  Array<double> inputCDF; inputCDF.resize(256); memset(&inputCDF[0],0,256*sizeof(double));
+  Array<double> targetCDF; targetCDF.resize(256); memset(&targetCDF[0],0,256*sizeof(double));
+
+  beforeUndoPoint();
+  for (int channel = 0; channel < 3; channel++) {
+    int ch[3];
+
+    memset(&inputHistogram[0],0,256*sizeof(int));
+    memset(&targetHistogram[0],0,256*sizeof(int));
+
+    for (int i0 = 0; i0 < (int)(l->width*l->height); i0++) {
+      unsigned int col = l->pixels[i0];
+      ch[0] = col & 255;
+      ch[1] = (col>>8) & 255;
+      ch[2] = (col>>16) & 255;
+      inputHistogram[ch[channel]]++;
+    }
+  
+    for (int i1 = 0; i1 < (int)(a->width*a->height); i1++) {
+      unsigned int col = a->pixels[i1];
+      ch[0] = col & 255;
+      ch[1] = (col>>8) & 255;
+      ch[2] = (col>>16) & 255;
+      targetHistogram[ch[channel]]++;
+    }
+  
+    inputCDF[0] = (double)inputHistogram[0]/(iw*ih);
+    targetCDF[0] = (double)targetHistogram[0]/(tw*th);
+  
+    for (int i = 1; i < 256; i++) {
+      inputCDF[i] = inputCDF[i-1]+(double)inputHistogram[i]/(iw*ih);
+      targetCDF[i] = targetCDF[i-1]+(double)targetHistogram[i]/(tw*th);
+    }
+  
+    for (int a_ = 0; a_ < 256; a_++) {
+      double lastDist = 0; bool first = true; int found = 0;
+      for (int b_ = 0; b_ < 256; b_++) {
+        double dist = fabs(inputCDF[a_]-targetCDF[b_]);
+        if (first || dist < lastDist) {found = b_; lastDist = dist; first = false;}
+      }
+      matching[a_] = found;
+    }
+    for (int c_ = 1; c_ < 256-1; c_++) { // not perfect, but whatever
+      if (matching[c_]==0) {
+        int d = c_, e = c_;
+        for(;d>0;d--) if (matching[d]!=0) break;
+        for(;e<256;e++) if (matching[e]!=0) break;
+        if (e<256)
+        for (int j = d+1; j < e; j++) matching[j] = (j-d)*(matching[e]-matching[d])/(e-d)+matching[d];
+      }
+    }
+  
+    for (int i2 = 0; i2 < (int)(a->width*a->height); i2++) {
+      unsigned int col = a->pixels[i2];
+      ch[0] = col & 255;
+      ch[1] = (col>>8) & 255;
+      ch[2] = (col>>16) & 255;
+      int v = matching[ch[channel]];
+      a->pixels[i2] &= 0xffffffff-(0xff<<(channel*8));
+      a->pixels[i2] |= v<<(channel*8);
+    }
+  }
+  updatedPixels(a);
+  afterUndoPoint();
+  repaintLayer(a,true);
 }

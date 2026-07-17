@@ -658,6 +658,10 @@
       "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_
+    "Checkerboard{" _N_
+      "You can create a black an white checkerboard pattern." _N_
+      "This filter also works with selections on layers." _N_
+    "}" _N_
     "Edge detect{" _N_
       "Use the morphological gradient to detect edges." _N_
       "The layer is turned into some outlines." _N_
@@ -733,9 +737,20 @@
       "Implementation of some pixelart scaling algorithms." _N_
       "You may need \"Fit canvas to layers\" after applying this filter." _N_
     "}" _N_
-    "Histogram matching{" _N_
+    "Histogram matching (brightness){" _N_
       "You can take another pictures brightness profile and assign it" _N_
       "to the current active layer." _N_
+    "}" _N_
+    "Histogram matching (colored){" _N_
+      "You can take another pictures color profile and assign it" _N_
+      "to the current active layer." _N_
+    "}" _N_
+    "Sepia{" _N_
+      "Converts the current active layer to Sepia colors." _N_
+    "}" _N_
+    "Color transfer (monochrome){" _N_
+      "Gets another pictures dominant colors for any luminance level" _N_
+      "and assigns it to the current layers colors per luminance level." _N_
     "}" _N_
     "Clahe lighting{" _N_
       "This is a rather \"unique\" implementation of a CLAHE like filter." _N_
