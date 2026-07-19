@@ -31,6 +31,7 @@
 #include <math.h>
 #define __SUPERXBR_IMPLEMENTATION__
 #include "STL/SUPERXBR.HPP"
+#include "COLORFLD.HPP"
 
 float sfrand2d(int seed,float x, float y) {
   x *= 3.3333;
@@ -1461,23 +1462,28 @@ void filterHistogramMatchingColored(Layer *histogramSource) {
   // converted from github/KIMMINTAE98/Histogram-matching
   Array<int> inputHistogram; inputHistogram.resize(256);
   Array<int> targetHistogram; targetHistogram.resize(256);
-  Array<int> matching; matching.resize(256);  memset(&matching[0],0,256*sizeof(int)); // matching function
-  Array<double> inputCDF; inputCDF.resize(256); memset(&inputCDF[0],0,256*sizeof(double));
-  Array<double> targetCDF; targetCDF.resize(256); memset(&targetCDF[0],0,256*sizeof(double));
+  Array<int> matching; matching.resize(256); 
+  Array<double> inputCDF; inputCDF.resize(256);
+  Array<double> targetCDF; targetCDF.resize(256);
 
   beforeUndoPoint();
+  // it may be that the order of channels is "important" here
+  int ch[3];
   for (int channel = 0; channel < 3; channel++) {
-    int ch[3];
 
     memset(&inputHistogram[0],0,256*sizeof(int));
     memset(&targetHistogram[0],0,256*sizeof(int));
+    memset(&matching[0],0,256*sizeof(int));
+    memset(&inputCDF[0],0,256*sizeof(double));
+    memset(&targetCDF[0],0,256*sizeof(double));
 
     for (int i0 = 0; i0 < (int)(l->width*l->height); i0++) {
       unsigned int col = l->pixels[i0];
       ch[0] = col & 255;
       ch[1] = (col>>8) & 255;
       ch[2] = (col>>16) & 255;
-      inputHistogram[ch[channel]]++;
+      int v = (ch[channel]-((ch[0] + ch[1] + ch[2]) / 3))/2+128;
+      inputHistogram[v]++;
     }
   
     for (int i1 = 0; i1 < (int)(a->width*a->height); i1++) {
@@ -1485,7 +1491,8 @@ void filterHistogramMatchingColored(Layer *histogramSource) {
       ch[0] = col & 255;
       ch[1] = (col>>8) & 255;
       ch[2] = (col>>16) & 255;
-      targetHistogram[ch[channel]]++;
+      int v = (ch[channel]-((ch[0] + ch[1] + ch[2]) / 3))/2+128;
+      targetHistogram[v]++;
     }
   
     inputCDF[0] = (double)inputHistogram[0]/(iw*ih);
@@ -1519,9 +1526,14 @@ void filterHistogramMatchingColored(Layer *histogramSource) {
       ch[0] = col & 255;
       ch[1] = (col>>8) & 255;
       ch[2] = (col>>16) & 255;
-      int v = matching[ch[channel]];
-      a->pixels[i2] &= 0xffffffff-(0xff<<(channel*8));
-      a->pixels[i2] |= v<<(channel*8);
+      int v = (ch[channel]-((ch[0] + ch[1] + ch[2]) / 3))/2+128;
+      int v2 = matching[v];
+      double cSat = (v2 - 128) * 2;
+      double grey = (ch[0] + ch[1] + ch[2]) / 3;
+      ch[channel] = grey + cSat;
+      if (ch[channel]<0) ch[channel] = 0;
+      if (ch[channel]>255) ch[channel] = 255;
+      a->pixels[i2] = ch[0]|(ch[1]<<8)|(ch[2]<<16)|(col & 0xff000000);
     }
   }
   updatedPixels(a);
