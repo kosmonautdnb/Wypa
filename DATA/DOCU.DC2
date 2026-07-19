@@ -741,8 +741,8 @@
       "You can take another pictures brightness profile and assign it" _N_
       "to the current active layer." _N_
     "}" _N_
-    "Histogram matching (colored){" _N_
-      "You can take another pictures color profile and assign it" _N_
+    "Histogram light (colored){" _N_
+      "You can take another pictures light profile and assign it" _N_
       "to the current active layer." _N_
     "}" _N_
     "Sepia{" _N_
