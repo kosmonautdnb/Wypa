@@ -45,7 +45,7 @@ void FontSource::getBoundsForChar(int c, float scaleX, float scaleY, float shift
   stbtt_GetCodepointBitmapBoxSubpixel(&font,c,scaleX,scaleY,shiftX,0,&x0,&y0,&x1,&y1);
 }
 
-void FontSource::getBounds(const String &text, float scaleX, float scaleY, int &x0, int &y0, int &x1, int &y1) {
+void FontSource::getBounds(const unsigned short *text, float scaleX, float scaleY, int &x0, int &y0, int &x1, int &y1) {
   x0 = y0 = x1 = y1 = 0;
   if (data == NULL) return;
   float xpos = 0;  
@@ -72,7 +72,50 @@ void FontSource::getBounds(const String &text, float scaleX, float scaleY, int &
   }
 }
 
-GLuint FontSource::createTexture(const String &text, int fontSize, float aspect, int &width, int &height, unsigned int col) {
+bool isHex(char c) {
+  if (c >= '0' && c <= '9') return true;
+  if (c >= 'a' && c <= 'f') return true;
+  if (c >= 'A' && c <= 'F') return true;
+  return false;
+}
+
+int fromHex(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return 0;
+}
+
+unsigned short *unicodeTextLine(const String &text) {
+  unsigned short *t = new unsigned short[text.length()+1];
+  int i = 0;
+  int j = 0;
+  for (; i < text.length(); i++) {
+    unsigned char c = text[i];
+    if (c == 0) break;
+    if (c == '^' && i < text.length()-4 && isHex(text[i+1]) && isHex(text[i+2]) && isHex(text[i+3]) && isHex(text[i+4])) {
+      unsigned int h = fromHex(text[i+1])*0x1000+fromHex(text[i+2])*0x100+fromHex(text[i+3])*0x10+fromHex(text[i+4]);
+      t[j] = (unsigned short)h;  
+      i += 4;
+    } else t[j] = c;
+    j++;
+  }
+  t[j] = 0;
+  return t;
+}
+
+void FontSource::getBounds(const String &text, float scaleX, float scaleY, int &x0, int &y0, int &x1, int &y1) {
+  unsigned short *t = unicodeTextLine(text);
+  getBounds(t,scaleX,scaleY,x0,y0,x1,y1);
+  delete[] t;
+}
+
+bool FontSource::hasGlyph(unsigned short uniCodeCodePoint) {
+  int glyph = stbtt_FindGlyphIndex(&font, uniCodeCodePoint);
+  return glyph != 0;
+}
+
+GLuint FontSource::createTexture(const unsigned short *text, int fontSize, float aspect, int &width, int &height, unsigned int col) {
   width = 0;
   height = 0;
 
@@ -131,6 +174,13 @@ GLuint FontSource::createTexture(const String &text, int fontSize, float aspect,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_2D,0);
 
+  return ret;
+}
+
+GLuint FontSource::createTexture(const String &text, int fontSize, float aspect, int &width, int &height, unsigned int col) {
+  unsigned short *t = unicodeTextLine(text);
+  GLuint ret = createTexture(t,fontSize,aspect,width,height,col);
+  delete[] t;
   return ret;
 }
 
@@ -203,9 +253,12 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
   int ch = 0;
   int lw = 0;
   float lastLineWidth = 0;
-  while (l->toolInfo.textEditText[ch]) {
+
+  unsigned short *textEditText2 = unicodeTextLine(l->toolInfo.textEditText);
+
+  while (textEditText2[ch]) {
     int advance,lsb,cx0=0,cy0=0,cx1=0,cy1=0; float shiftX = xpos - (float)floor(xpos);
-    if (l->toolInfo.textEditText[ch] == '\n') {
+    if (textEditText2[ch] == '\n') {
       if (!andDraw) {lineWidths.push_back(lastLineWidth);} else {lw++;}
       stbtt_GetCodepointHMetrics(&f->font, ' ', &advance, &lsb); f->getBoundsForChar(' ',scaleX,scaleY,shiftX,cx0,cy0,cx1,cy1);
       xpos = xposStart;
@@ -222,7 +275,7 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
       }
       lastLineWidth = 0;
     } else {
-      stbtt_GetCodepointHMetrics(&f->font, l->toolInfo.textEditText[ch], &advance, &lsb); f->getBoundsForChar(l->toolInfo.textEditText[ch],scaleX,scaleY,shiftX,cx0,cy0,cx1,cy1);
+      stbtt_GetCodepointHMetrics(&f->font, textEditText2[ch], &advance, &lsb); f->getBoundsForChar(textEditText2[ch],scaleX,scaleY,shiftX,cx0,cy0,cx1,cy1);
       cx0 += xpos;
       cy0 += ypos+baseLine;
       cx1 += xpos;
@@ -249,7 +302,7 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
         }
         int pitch = w;
         if ((int)buffer.size()<w*h) buffer.resize(w*h);
-        stbtt_MakeCodepointBitmapSubpixel(&f->font,&buffer[0],w,h,pitch,scaleX,scaleY,shiftX,0,l->toolInfo.textEditText[ch]);
+        stbtt_MakeCodepointBitmapSubpixel(&f->font,&buffer[0],w,h,pitch,scaleX,scaleY,shiftX,0,textEditText2[ch]);
         for (int y = 0; y < h; y++) {
           for (int x = 0; x < w; x++) {
             unsigned char val = buffer[x+y*pitch];
@@ -271,13 +324,14 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
         }
       }
       xpos += advance * scaleX;
-      if (l->toolInfo.textEditText[ch+1]) {
-        if (l->toolInfo.textEditText[ch+1] != '\n') {xpos += l->toolInfo.fontSpaceX*l->toolInfo.fontScaleX;}
-        xpos += scaleX*stbtt_GetCodepointKernAdvance(&f->font, l->toolInfo.textEditText[ch],l->toolInfo.textEditText[ch+1]);
+      if (textEditText2[ch+1]) {
+        if (textEditText2[ch+1] != '\n') {xpos += l->toolInfo.fontSpaceX*l->toolInfo.fontScaleX;}
+        xpos += scaleX*stbtt_GetCodepointKernAdvance(&f->font, textEditText2[ch],textEditText2[ch+1]);
       }
     }
     ++ch;
   }
+  delete[] textEditText2;
   if (!andDraw) lineWidths.push_back(lastLineWidth);
 }
 

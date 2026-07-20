@@ -946,6 +946,8 @@
     "Several options for text formating are available." _N_
     "You can choose a text color here. You do that" _N_
     "by clicking on the colored box. It sets the text color." _N_
+    "You can view all letters of a font by clicking \"Font glyphs\"." _N_
+    "By using e.g. ^012f you can use letter 012f in your texts." _N_
   "}" _N_
   "Postprocessing tool{" _N_
     "Postprocessing does layer color transformations on the fly." _N_
@@ -1075,6 +1077,16 @@
     "excluded from the displayed list." _N_
     "" _N_
     "This tool also works with selections on layers." _N_
+  "}" _N_
+  "Mirror tool{" _N_
+    "You can enable another mouse cursor that paints" _N_
+    "mirrored." _N_
+    "With a left mouseclick you can place the center of" _N_
+    "the seperating line. You can enter an angle in degrees." _N_
+    "Maybe you want to make a selection to just paint" _N_
+    "in the mirrored area." _N_
+    "" _N_
+    "Mirroring just works for painting/erasing and lines." _N_
   "}" _N_
   "The fullscreen checkbox{" _N_
     "The fullscreen mode is rather not a real fullscreen mode." _N_

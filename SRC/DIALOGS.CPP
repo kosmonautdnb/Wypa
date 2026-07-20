@@ -34,6 +34,7 @@
 #include "COLORFLD.HPP"
 #include "TOOLBAR.HPP"
 #include "GALLERY.HPP"
+#include "TEXT.HPP"
 #include <math.h>
 
 bool reOpen = false;
@@ -149,6 +150,8 @@ void drawDialogs() {
   dialogPixelArtInflate(false);
   dialogClahe(false);
   dialogCheckerboard(false);
+  dialogFontGlyphs(false, NULL);
+
 }
 
 void dialogAbout(bool openIt) {
@@ -622,6 +625,118 @@ void dialogCheckerboard(bool openIt) {
   if (ImGui::Button("Close##DIALOGCHECKERBOARDCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't create a checkerboard");
+  DIALOGEND()
+}
+
+void drawGlyph(FontSource *fontSource, Array<unsigned int> &img,int w, int h, int glyph, int gx, int gy, int gw, int gh) {
+  if (fontSource == NULL) return;
+  unsigned short p[2]; p[0] = (unsigned short)glyph; p[1] = 0; int w2,h2;
+  GLuint texId = fontSource->createTexture(p, gh, 1, w2, h2, 0xff000000);
+  if (texId != 0) {
+    for (int y = 0; y < gh; y++) {
+      for (int x = 0; x < gw; x++) {
+        int px = gx + x;
+        int py = gy + y;
+        if ((unsigned int)px < (unsigned int)w && (unsigned int)py < (unsigned int)h) {
+          if (x < w2 && y < h2) {
+            unsigned int col = *(glGetTexturePointer(texId)+x+y*w2);
+            int grey = (col>>24) & 255;
+            grey = 255-grey;
+            img[px+py*w] = grey|(grey<<8)|(grey<<16)|0xff000000;
+          }
+          if (x == gw-1 || y == gh-1) {
+            img[px+py*w] = 0xff808080;
+          }
+        }
+      }
+    }
+    glDeleteTextures(1,&texId);
+  }
+}
+
+void dialogFontGlyphs(bool openIt, const char *fontFileName) {
+  static FontSource *fontSource = NULL;
+  static int countX = 16;
+  static bool rebuildGlyphs = false;
+  static unsigned int glyphTexture = 0;
+  static int glyphTextureWidth = 0;
+  static int glyphTextureHeight = 0;
+  if (openIt) {
+    if (fontSource != NULL) {delete fontSource; fontSource = NULL;}
+    if (glyphTexture != 0) {glDeleteTextures(1,&glyphTexture); glyphTexture = 0;}
+    Array<unsigned char> *fontData = new Array<unsigned char>();
+    getFileArray(fontData, fontFileName);
+    if (!fontData->empty()) {
+      fontSource = new FontSource(fontData, fontFileName);
+    } else {
+      delete fontData;
+    }
+    rebuildGlyphs = true;
+  }
+  DIALOGSTART("Font Glyphs")
+  int w = main_window_xres*2/3;
+  int h = main_window_yres*2/3;
+  int glyphXRes = (w-16) / (countX > 0 ? countX : 1);
+  int glyphYRes = glyphXRes;
+  if (fontSource != NULL) {
+    ImGui::BeginChild("DIALOGFONTGLYPHSCHILD",ImVec2(w,h));
+    double aspect = 1.0/aspectRatio * main_window_xres / main_window_yres;
+    ImVec2 c = ImGui::GetCursorScreenPos();
+    ImGui::Image((ImTextureID)glyphTexture, ImVec2(glyphTextureWidth, glyphTextureHeight/aspect));
+    int count = 0;
+    for (int k = 0; k < 0x10000; k++) {
+      if (fontSource->hasGlyph((unsigned short)k)) {
+        int cx = count % countX;
+        int cy = count / countX;
+        int sx = cx * glyphXRes;
+        int sy = ((cy+1) * glyphYRes)/aspect-13;
+        sx += c.x; sy += c.y;
+        if (sx >= 0 && sy >= 0 && sx < (int)main_window_xres && sy < (int)main_window_yres) {
+          ImGui::SetCursorScreenPos(ImVec2(sx,sy));
+          ImGui::TextColored(ImVec4(1,0,0,0.75),"^%04x",k);
+        }
+        count++;
+      }
+    }
+    ImGui::EndChild();
+  } else {
+    ImGui::TextColored(ImVec4(1,0,0,1),"Couldn't find font");
+  }
+  if (rebuildGlyphs) {
+    rebuildGlyphs = false;
+    int glyphCount = 0;
+    for (int i = 0; i < 0x10000; i++) {if (fontSource->hasGlyph((unsigned short)i)) glyphCount++;}
+    glyphTextureWidth = glyphXRes * countX;
+    int countY = (glyphCount + countX - 1) / countX;
+    glyphTextureHeight = glyphYRes * countY;
+    Array<unsigned int> graphic; graphic.resize(glyphTextureWidth * glyphTextureHeight);
+    for (int j = 0; j < glyphTextureWidth*glyphTextureHeight; j++) {
+      graphic[j] = 0xffffffff;
+    }
+    int count = 0;
+    for (int k = 0; k < 0x10000; k++) {
+      if (fontSource->hasGlyph((unsigned short)k)) {
+        int cx = count % countX;
+        int cy = count / countX;
+        drawGlyph(fontSource,graphic,glyphTextureWidth,glyphTextureHeight,k,cx*glyphXRes,cy*glyphYRes,glyphXRes,glyphYRes);
+        count++;
+      }
+    }
+    if (glyphTexture != 0) {glDeleteTextures(1,&glyphTexture); glyphTexture = 0;}
+    glGenTextures(1,&glyphTexture);
+    glBindTexture(GL_TEXTURE_2D,glyphTexture);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, glyphTextureWidth, glyphTextureHeight, 0, GL_RGBA, GL_BYTE, &graphic[0]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D,0);
+  }
+  if (ImGui::Button("Close##DIALOGFONTGLYPHSCLOSE")) {
+    if (fontSource != NULL) {delete fontSource; fontSource = NULL;}
+    if (glyphTexture != 0) {glDeleteTextures(1,&glyphTexture); glyphTexture = 0;}
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
   DIALOGEND()
 }
 

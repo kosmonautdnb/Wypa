@@ -1029,11 +1029,12 @@ void drawToolTextView() {
   }
   ImGui::EndChild();
   if (!fileName.empty()) ImGui::Text("%s",(fileName.last(16)).c_str()); 
+  LayerAdditionalToolInfo *ati = &l->toolInfo;
   toolTip("The .ttf font filename");
   if (roundButton("Remove font",l->toolInfo.fontId != 0)) {removeFont(l->toolInfo.fontId);l->toolInfo.fontId = 0;} else toolTip("Remove the selected font");
+  if (roundButton("Font glyphs##DRAWTOOLTEXTUREVIEWSHOWFONTGLYPHS",ati->fontId != 0)) {dialogFontGlyphs(true, fileName.c_str());} else toolTip("Show the glyphs to enter special chars");
   ImGui::PushItemWidth(7*5);
   ImGui::Text("Font"); 
-  LayerAdditionalToolInfo *ati = &l->toolInfo;
   ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSIZE",&ati->fontSize,0,0,2)) {} else toolTip("The selected font size in pixels in y"); if (ati->fontSize < 1) ati->fontSize = 1;
   ImVec2 cursor = ImGui::GetCursorScreenPos();
   ImVec4 chere = getImVec4Color(ati->fontColor); colorItem("", "##DRAWTOOLTEXTUREVIEWFONTCOLOR", &chere);
@@ -1422,6 +1423,48 @@ void drawToolTileMapView() {
   }
 }
 
+void drawToolMirrorView() {
+  ImGui::Text("Enabled"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMIRRORENABLED",&mirrorToolEnabled)) {;}
+
+  if (mirrorToolEnabled) {
+    bool updateSelection = false;
+    if (roundButton("Make selection##DRAWTOOLMIRRORCREATESELECTION",true)) {updateSelection = true;}
+    ImGui::Text("Selection >"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMIRRORSELECTIONSIDEA",&mirrorToolSideA)) {;}
+    ImGui::PushItemWidth(7*6);
+    ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLMIRRORANGLE",&mirrorToolAngle,0,0,2)) {;}; if (mirrorToolAngle < 0) mirrorToolAngle = 0; if (mirrorToolAngle>360) mirrorToolAngle = 360;
+    float v;
+    v = mirrorToolPoint.x; ImGui::Text("CanvasX"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLMIRRORPOINTX",&v,0,0,2)) {;}; mirrorToolPoint.x = v;
+    v = mirrorToolPoint.y; ImGui::Text("CanvasY"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLMIRRORPOINTY",&v,0,0,2)) {;}; mirrorToolPoint.y = v;
+    if (ImGui::IsMouseClicked(0) && isPaintAreaActive()) {
+      double lx = mouseX, ly = mouseY; currentCanvas->getCanvasPos(lx,ly,lx,ly);
+      mirrorToolPoint.x = lx;
+      mirrorToolPoint.y = ly;
+    }
+    if (updateSelection) {
+      Layer *l = currentCanvas->getActiveLayer();
+      if (l != NULL && (!locked(l,LOCK_SELECTION))) {
+        double px = mirrorToolPoint.x, py = mirrorToolPoint.y;
+        double ax = cos(mirrorToolAngle*PI/180.0); double ay = sin(mirrorToolAngle*PI/180.0);
+        for (int y = 0; y < l->height; y++) {
+          for (int x = 0; x < l->width; x++) {
+            double lx = x, ly = y; currentCanvas->getCanvasPosFromLayerPos(l, lx, ly, lx, ly);
+            double dx = lx - px;
+            double dy = ly - py;
+            double d = -(dx * ay + dy * -ax);
+            bool occluded = d > 0;
+            if (!mirrorToolSideA) occluded = !occluded;
+            l->pixelStates[x+y*l->width] &= ~PIXELSTATE_SELECTED;
+            if (occluded) l->pixelStates[x+y*l->width] |= PIXELSTATE_SELECTED;
+          }
+        }
+      }
+      updatedPixelStates(l);
+      repaintLayer(l,true);
+    }
+    ImGui::PopItemWidth();
+  }
+}
+
 void drawToolView() {
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
@@ -1487,6 +1530,9 @@ void drawToolView() {
       } break;
     case TOOL_TILEMAP: {
         drawToolTileMapView();
+      } break;
+    case TOOL_MIRROR: {
+        drawToolMirrorView();
       } break;
     }
   }

@@ -43,6 +43,7 @@
 int menuBar_height = 17;
 unsigned int undoBlink = 0;
 unsigned int selectionBlink = 0;
+unsigned int picturesBlink = 0;
 
 float mouseSensitivity = 3;
 
@@ -342,6 +343,16 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Picture info")) {dialogPictureInfo(true);}
       if (ImGui::MenuItem("Insert layers from other picture")) {dialogGetLayersFromPicture(true);}
       ImGui::EndMenu();
+    } else {
+      ImVec2 minB = ImGui::GetItemRectMin();
+      ImVec2 maxB = ImGui::GetItemRectMax();
+      maxB.x--;
+      maxB.y--;
+      static unsigned int lastMenuPicturesBlink = 0;
+      if (lastMenuPicturesBlink != picturesBlink) {
+        ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0xffffffff);
+        lastMenuPicturesBlink = picturesBlink;
+      }
     }
 
     if (ImGui::BeginMenu("Help")) {

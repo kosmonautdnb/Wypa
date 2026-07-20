@@ -414,6 +414,7 @@ void undo() {
     if (undoStages.size()>0) {
       if (availableRedos > (int)undoStages.size()) return;
       UndoPacket *a = undoStages[undoStages.size()-1-availableRedos];
+      if (a->undoCanvas != currentCanvas) picturesBlink++;
       a->apply(false);
       availableRedos++;
       if (availableRedos > (int)undoStages.size()) availableRedos = undoStages.size();
@@ -430,6 +431,7 @@ void redo() {
       availableRedos = undoStages.size() - availableUndos;
       if (availableRedos > (int)undoStages.size()) return;
       UndoPacket *a = undoStages[undoStages.size()-1-availableRedos];
+      if (a->undoCanvas != currentCanvas) picturesBlink++;
       a->apply(true);
     }
   }

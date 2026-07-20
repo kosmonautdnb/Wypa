@@ -239,6 +239,11 @@ extern bool modifyOutlined;
 void createModifyTriangles();
 void bakeModify(bool justCreateSelection);
 
+extern bool mirrorToolEnabled;
+extern bool mirrorToolSideA;
+extern float mirrorToolAngle;
+extern Vector mirrorToolPoint;
+
 extern Array<unsigned short> quantization;
 void reCreateQuantization();
 extern bool fastQuantWithLuma;
@@ -271,6 +276,10 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
   S_BOOL("lineCap",lineCap);\
   S_BOOL("lineAntialiasing",lineAntialiasing);\
   S_BOOL("toolOutline",toolOutline);\
-  S_BOOL("fastQuantWithLuma",fastQuantWithLuma);
+  S_BOOL("fastQuantWithLuma",fastQuantWithLuma);\
+  S_BOOL("mirrorToolEnabled",mirrorToolEnabled);\
+  S_BOOL("mirrorToolSideA",mirrorToolSideA);\
+  S_FLOAT("mirrorToolAngle",mirrorToolAngle);\
+  S_VECTOR("mirrorToolPoint",mirrorToolPoint);
 
 #endif //__TOOLS_HPP__

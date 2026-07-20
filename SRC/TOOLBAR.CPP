@@ -30,6 +30,7 @@
 #include "DIALOGS.HPP"
 #include "TOOLVIEW.HPP"
 #include "LAYERS.HPP"
+#include "TOOLS.HPP"
 
 int toolbar_width = 32;
 int toolbar_bottom_height = 32;
@@ -37,7 +38,7 @@ int tool = TOOL_NONE;
 int lastTool = TOOL_NONE;
 bool fullScreen = false;
 
-const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tileset","Blur","Overlays","Modify","Tilemap"};
+const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tileset","Blur","Overlays","Modify","Tilemap","Mirror"};
 
 void initToolBar() {
 }
@@ -73,6 +74,10 @@ bool toolBarButton(const char *svgName, int toolIndex) {
   bool selected = toolIndex == tool;
   Layer *l = currentCanvas->getActiveLayer();
   if (l != NULL) {
+
+    if (toolIndex == TOOL_MIRROR) {
+      if (mirrorToolEnabled) highlighted = true;
+    }
 
     if (toolIndex == TOOL_MAGIC) {
       if (l->colorTransform.useColorTransform) highlighted = true;
@@ -128,6 +133,7 @@ void drawToolBar() {
     toolBarButton("tilingTool",TOOL_TILING); toolTip("Tileset tool");
     toolBarButton("tilemapTool",TOOL_TILEMAP); toolTip("Tilemap tool");
     toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
+    toolBarButton("mirrorTool",TOOL_MIRROR); toolTip("Mirror tool");
     ImGui::End();
   }
   if (lastTool != tool) {toolChangeMessage(lastTool,tool); lastTool = tool;}

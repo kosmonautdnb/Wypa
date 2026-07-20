@@ -446,6 +446,11 @@ bool isPaintAreaActive() {
   return (!ImGui::GetIO().WantCaptureMouse) && (!ImGui::GetIO().WantCaptureKeyboard) && (!galleryVisible);
 }
 
+bool mirrorToolEnabled = false;
+bool mirrorToolSideA = true;
+float mirrorToolAngle = 0;
+Vector mirrorToolPoint(0,0);
+
 Array<unsigned short> quantization;
 
 void reCreateQuantization() {
@@ -1421,6 +1426,7 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
             } else {
               paintValues[p] = value;
             }
+            layer->pixelStates[p] |= PIXELSTATE_TEMP;
           }
           if (b->pixelWidth<=1||b->pixelHeight<=1) { // just one pixel (maybe a hack)
             x = layerUpdateX1;
@@ -1529,9 +1535,40 @@ void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, d
         value = 1-(1-here)*(1-value);
         if (!justSelection || (layer->pixelStates[p] & PIXELSTATE_SELECTED)) {
           paintValues[p] = value;
+          layer->pixelStates[p] |= PIXELSTATE_TEMP;
         }
       }
     }
+  }
+}
+
+void mirrorPoint(double &x, double &y) {
+  double ax = cos(mirrorToolAngle*PI/180.0);
+  double ay = sin(mirrorToolAngle*PI/180.0);
+  double x2 = x - mirrorToolPoint.x;
+  double y2 = y - mirrorToolPoint.y;
+  double d = x2 * ay + y2 * -ax;
+  x = x - 2 * d * ay;
+  y = y - 2 * d * -ax;
+}
+
+void drawLine2(Layer *layer, double canvasX0, double canvasY0, double canvasX1, double canvasY1, bool justSelection) {
+  drawLine(layer, canvasX0, canvasY0, canvasX1, canvasY1, justSelection);
+  if (mirrorToolEnabled) {
+    mirrorPoint(canvasX0,canvasY0);
+    mirrorPoint(canvasX1,canvasY1);
+    drawLine(layer, canvasX0, canvasY0, canvasX1, canvasY1, justSelection);
+  }
+}
+
+void drawTool2(Layer *layer, Brush *brush,double canvasX, double canvasY, double angle, bool justSelection, bool paintJustIntoOutline, bool pencil) {
+  drawTool(layer, brush, canvasX, canvasY, angle, justSelection, paintJustIntoOutline, pencil);
+  if (mirrorToolEnabled) {
+    mirrorPoint(canvasX,canvasY);
+    if (angle >= 0) {
+      angle += mirrorToolAngle*PI/180.0;
+    }
+    drawTool(layer, brush, canvasX, canvasY, angle, justSelection, paintJustIntoOutline, pencil);
   }
 }
 
@@ -1733,10 +1770,12 @@ void useToolPainting() {
       layerBoundings.z += 1;
       layerBoundings.w += 1;
     }
-    if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-    if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-    if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-    if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+    if (!mirrorToolEnabled) { // if mirror tool is on just take the full canvas (slow)
+      if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
+      if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
+      if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
+      if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+    }
 
     double px0 = paintingPointX0; double py0 = paintingPointY0; currentCanvas->getLayerPosFromCanvasPos(paintToolLayer,px0,py0,px0,py0);
     double px1 = paintingPointX1; double py1 = paintingPointY1; currentCanvas->getLayerPosFromCanvasPos(paintToolLayer,px1,py1,px1,py1);
@@ -1781,7 +1820,7 @@ void useToolPainting() {
             rateCounter = 0;
             double cx = px*m2.m[4*0+0]+py*m2.m[4*1+0]+m2.m[4*3+0];
             double cy = px*m2.m[4*0+1]+py*m2.m[4*1+1]+m2.m[4*3+1];
-            drawTool(paintToolLayer,brush,cx,cy,angle,justSelection,false,pencil);
+            drawTool2(paintToolLayer,brush,cx,cy,angle,justSelection,false,pencil);
           }
           px += ax;
           py += ay;
@@ -1796,8 +1835,13 @@ void useToolPainting() {
         }
       } break;
       case TOOL_LINE: {
-        memset(&paintValues[0],0,paintToolLayer->width * paintToolLayer->height * sizeof(float));
-        drawLine(paintToolLayer,paintingPointX0,paintingPointY0,paintingPointX1,paintingPointY1,justSelection);
+        for (int i = 0; i < paintToolLayer->width * paintToolLayer->height; i++) {
+          if (paintValues[i] != 0) {
+            paintToolLayer->pixelStates[i] |= PIXELSTATE_TEMP;
+            paintValues[i] = 0;
+          }
+        }
+        drawLine2(paintToolLayer,paintingPointX0,paintingPointY0,paintingPointX1,paintingPointY1,justSelection);
       } break;
     }
 
@@ -1805,65 +1849,68 @@ void useToolPainting() {
       for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
         int p = x + y * paintToolLayer->width;
         float value = paintValues[p];
-        unsigned int col = paintBackground[p];
-        switch(tool2) {
-          case TOOL_LINE:
-          case TOOL_PAINTBRUSH:
-          case TOOL_MAGIC:
-          case TOOL_PENCIL: {
-            float rd = col & 255;
-            float gd = (col>>8) & 255;
-            float bd = (col>>16) & 255;
-            int ad = (col>>24) & 255;
-            float rs = foregroundColor.x*255.f;
-            float gs = foregroundColor.y*255.f;
-            float bs = foregroundColor.z*255.f;
-            int as = foregroundColor.w*value*255.f*brush->opacity;
-            if (rs < 0) rs = 0;
-            if (gs < 0) gs = 0;
-            if (bs < 0) bs = 0;
-            if (as < 0) as = 0;
-            if (rs > 255) rs = 255;
-            if (gs > 255) gs = 255;
-            if (bs > 255) bs = 255;
-            if (as > 255) as = 255;
-            //int a = ad>as?ad:as;
-            int a = 255-(255-ad)*(255-as)/255; if (a > 255) a = 255;
-            if (a > 0) {
-              rd *= ad;
-              gd *= ad;
-              bd *= ad;
-              rd /= a;
-              gd /= a;
-              bd /= a;
-            }
-            int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
-            int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
-            int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
-            paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
-
-          } break;
-          case TOOL_ERASER: {
-            int ad = (col>>24) & 255;
-            ad *= 1-value;
-            if (ad < 0) ad = 0;
-            switch(paintToolLayer->mode) {
-              case LAYERMODE_PREMULTIPLIEDALPHA: {
-                  int r = col & 255;
-                  int g = (col>>8) & 255;
-                  int b = (col>>16) & 255;
-                  int a = (col>>24) & 255;
-                  r *= 1-value;
-                  g *= 1-value;
-                  b *= 1-value;
-                  if (r < 0) r = 0;
-                  if (g < 0) g = 0;
-                  if (b < 0) b = 0;
-                  col = r|(g<<8)|(b<<16)|(a<<24);
-                } break;
-            }
-            paintToolLayer->pixels[p] = (col & 0x00ffffff)|(ad<<24);
-          } break;
+        if (paintToolLayer->pixelStates[p] & PIXELSTATE_TEMP) {
+          paintToolLayer->pixelStates[p] &= ~PIXELSTATE_TEMP;
+          unsigned int col = paintBackground[p];
+          switch(tool2) {
+            case TOOL_LINE:
+            case TOOL_PAINTBRUSH:
+            case TOOL_MAGIC:
+            case TOOL_PENCIL: {
+              float rd = col & 255;
+              float gd = (col>>8) & 255;
+              float bd = (col>>16) & 255;
+              int ad = (col>>24) & 255;
+              float rs = foregroundColor.x*255.f;
+              float gs = foregroundColor.y*255.f;
+              float bs = foregroundColor.z*255.f;
+              int as = foregroundColor.w*value*255.f*brush->opacity;
+              if (rs < 0) rs = 0;
+              if (gs < 0) gs = 0;
+              if (bs < 0) bs = 0;
+              if (as < 0) as = 0;
+              if (rs > 255) rs = 255;
+              if (gs > 255) gs = 255;
+              if (bs > 255) bs = 255;
+              if (as > 255) as = 255;
+              //int a = ad>as?ad:as;
+              int a = 255-(255-ad)*(255-as)/255; if (a > 255) a = 255;
+              if (a > 0) {
+                rd *= ad;
+                gd *= ad;
+                bd *= ad;
+                rd /= a;
+                gd /= a;
+                bd /= a;
+              }
+              int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
+              int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
+              int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
+              paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
+  
+            } break;
+            case TOOL_ERASER: {
+              int ad = (col>>24) & 255;
+              ad *= 1-value;
+              if (ad < 0) ad = 0;
+              switch(paintToolLayer->mode) {
+                case LAYERMODE_PREMULTIPLIEDALPHA: {
+                    int r = col & 255;
+                    int g = (col>>8) & 255;
+                    int b = (col>>16) & 255;
+                    int a = (col>>24) & 255;
+                    r *= 1-value;
+                    g *= 1-value;
+                    b *= 1-value;
+                    if (r < 0) r = 0;
+                    if (g < 0) g = 0;
+                    if (b < 0) b = 0;
+                    col = r|(g<<8)|(b<<16)|(a<<24);
+                  } break;
+              }
+              paintToolLayer->pixels[p] = (col & 0x00ffffff)|(ad<<24);
+            } break;
+          }
         }
       }
     }
@@ -2096,7 +2143,7 @@ void drawMouseArrow2(int mouseX, int mouseY) {
   for (int y = 0; y < height; y++) { for (int x = 0; x < width; x++) {
       char c = bitmap[x+y*width];
       if (c != '0') {unsigned int color = 0xffffffff;
-         if (c == '9') color = 0xff000000;
+         if (c == '9') color = 0xff0000ff;
          if (c == '6') color = 0xffffffff;
         int dx = x+mouseX;
         int dy = y+mouseY;
@@ -2346,6 +2393,24 @@ void toolCanvasStuff() {
         drawOpenGLRect(sx0,sy0,sx1+1,sy1+1,0xff0000ff); // actually sx0-1???
       }
     } break;
+    case TOOL_MIRROR: {
+      if (mirrorToolEnabled) {
+        double lx = mirrorToolPoint.x, ly = mirrorToolPoint.y; currentCanvas->getScreenPos(lx,ly,lx,ly);
+        double ax = cos(mirrorToolAngle*PI/180.0) + mirrorToolPoint.x;
+        double ay = sin(mirrorToolAngle*PI/180.0) + mirrorToolPoint.y;
+        currentCanvas->getScreenPos(ax,ay,ax,ay);
+        ax -= lx;
+        ay -= ly;
+
+        double s = 10000.0;
+        drawOpenGLSimpleLine(lx+ax*s,ly+ay*s,lx-ax*s,ly-ay*s,0xff0000ff);
+        for (int i = 0; i < 8; i++) {
+          double ax = cos(i/8.0*PI*2);
+          double ay = sin(i/8.0*PI*2);
+          drawOpenGLSimpleLine(lx+ax*4,ly+ay*4,lx-ax*4,ly-ay*4,0xff0000ff);
+        }
+      }
+    }
   }
 
   if (lockedMouseX) {
@@ -2363,6 +2428,12 @@ void toolCanvasStuff() {
         glFrameBuffer[x+y*glFrameBufferWidth]=0xff0000ff;
     }
     drawMouseArrow2(mouseX,y);
+  }
+  if (mirrorToolEnabled) {
+    double lx = mouseX, ly = mouseY; currentCanvas->getCanvasPos(lx,ly,lx,ly);
+    mirrorPoint(lx,ly);
+    currentCanvas->getScreenPos(lx,ly,lx,ly);
+    drawMouseArrow2(lx,ly);
   }
 }
 

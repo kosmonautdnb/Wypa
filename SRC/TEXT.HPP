@@ -74,8 +74,11 @@ public:
 
   float getScaleForPixelHeight(float pixels);
   void getBoundsForChar(int c, float scaleX, float scaleY, float shiftX, int &x0, int &y0, int &x1, int &y1);
+  void getBounds(const unsigned short *text, float scaleX, float scaleY, int &x0, int &y0, int &x1, int &y1);
   void getBounds(const String &text, float scaleX, float scaleY, int &x0, int &y0, int &x1, int &y1);
+  bool hasGlyph(unsigned short uniCodeCodePoint);
 
+  GLuint createTexture(const unsigned short *text, int fontSize, float aspect, int &width, int &height, unsigned int col);
   GLuint createTexture(const String &text, int fontSize, float aspect, int &width, int &height, unsigned int col);
 };
 #define S_FONT(__name__,__o__)\

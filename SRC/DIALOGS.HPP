@@ -109,6 +109,7 @@ void dialogImportFolder(bool openIt);
 void dialogPixelArtInflate(bool openIt);
 void dialogClahe(bool openIt);
 void dialogCheckerboard(bool openIt);
+void dialogFontGlyphs(bool openIt, const char *fontFileName);
 
 
 void dialogOverwrite(bool openIt);

@@ -31,6 +31,7 @@ extern String hex2_(int v);
 String timeDescString();
 extern unsigned int undoBlink;
 extern unsigned int selectionBlink;
+extern unsigned int picturesBlink;
 
 void initMenuBar();
 void freeMenuBar();
