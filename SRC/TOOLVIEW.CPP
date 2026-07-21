@@ -232,9 +232,11 @@ void drawToolMoveView() {
       if (roundButton("Fit boundings##DRAWTOOLMOVEVIEWFITTOCANVAS",somethingToFit)) {
         for (int i = 0; i < (int)selected.size(); i++)
           selected[i]->quantizeBoundingBox();
+        shouldUpdateAll = true;
       } else toolTip("Put layers on straight coordinates");
       if (roundButton("Snap to grid##DRAWTOOLMOVEVIEWBOUNDINGSNAPTOGRID",currentCanvas->gridOn)) {
         currentCanvas->snapToGrid();
+        shouldUpdateAll = true;
       } else toolTip("Arange in grid");
     }
   }
