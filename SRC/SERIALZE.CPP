@@ -1529,6 +1529,25 @@ void histogramMatchingColored(const char *shortPath, const char *longFileName) {
   delete l;
 }
 
+char *textToSave = NULL;
+int textToSaveLength = 0;
+String loadedText = "";
+
+void saveText(const char *shortPath, const char *longFileName) {
+  if (textToSave == NULL) return;
+  FILE *out = createTempFile(shortPath,"w");
+  fprintf(out,"%s",textToSave);
+  fclose(out);
+  renameTempFile(shortPath, longFileName);
+  savedSomething();
+}
+
+void loadText(const char *shortPath, const char *longFileName) {
+  loadedText = getStringFromFile(shortPath, longFileName);
+  dialogCopyPasteLoadedText(true);
+  loadedSomething();
+}
+
 Layer *loadImage(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAIMAGEFROMFILE(img,filePath,fileName);

@@ -68,7 +68,9 @@ enum DIALOGMODE {
   DIALOG_HISTOGRAMMATCH = 31,
   DIALOG_COLORTRANSFER = 32,
   DIALOG_HISTOGRAMMATCHINGCOLORED = 33,
-  DIALOG_COUNT = 34
+  DIALOG_SAVETEXT = 34,
+  DIALOG_LOADTEXT = 35,
+  DIALOG_COUNT = 36
 };
 
 void dialogCanvas(bool openIt);
@@ -110,7 +112,7 @@ void dialogPixelArtInflate(bool openIt);
 void dialogClahe(bool openIt);
 void dialogCheckerboard(bool openIt);
 void dialogFontGlyphs(bool openIt, const char *fontFileName);
-
+void dialogCopyPasteLoadedText(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);

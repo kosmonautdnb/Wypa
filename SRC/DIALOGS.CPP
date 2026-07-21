@@ -151,7 +151,7 @@ void drawDialogs() {
   dialogClahe(false);
   dialogCheckerboard(false);
   dialogFontGlyphs(false, NULL);
-
+  dialogCopyPasteLoadedText(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -735,6 +735,22 @@ void dialogFontGlyphs(bool openIt, const char *fontFileName) {
   if (ImGui::Button("Close##DIALOGFONTGLYPHSCLOSE")) {
     if (fontSource != NULL) {delete fontSource; fontSource = NULL;}
     if (glyphTexture != 0) {glDeleteTextures(1,&glyphTexture); glyphTexture = 0;}
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogCopyPasteLoadedText(bool openIt) {
+  static int loadedTextLength = 0;
+  if (openIt) {
+    loadedTextLength = loadedText.length()+1; // it's safe this way with our string class
+  }
+  DIALOGSTART("Copy paste text")
+  ImGui::Text("Text from loaded file");
+  ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTFROMFILE", &loadedText[0], loadedTextLength); toolTip("The file you have loaded");
+  ImGui::Text("Text to be pasted to");
+  ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTTOEDIT", textToSave, textToSaveLength); toolTip("The text to be edited copy/paste etc..");
+  if (ImGui::Button("Close##DIALOGCOPYPASTELOADEDTEXTCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
   DIALOGEND()
@@ -2930,11 +2946,12 @@ const char *fnt = "*.ttf";
 const char *tilemap = "*.tm2";
 const char *gradientCrv = "*.cr2";
 const char *colorMatrix = "*.cm2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored};
+const char *txt = "*.txt";
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < (int)files.size(); i++) {

@@ -85,6 +85,12 @@ void histogramMatch(const char *shortPath, const char *longFileName);
 void colorTransfer(const char *shortPath, const char *longFileName);
 void histogramMatchingColored(const char *shortPath, const char *longFileName);
 
+extern char *textToSave;
+extern int textToSaveLength;
+extern String loadedText;
+void saveText(const char *shortPath, const char *longFileName);
+void loadText(const char *shortPath, const char *longFileName);
+
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadThumb(const String &filePath, const String &fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);
