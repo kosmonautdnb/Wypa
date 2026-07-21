@@ -3606,10 +3606,26 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   Layer *ret = NULL;
   Vector boundingBox;
   bool oneIsTileMap = false; bool allIsTileMap = true;
+  bool allLayersAreStraight = true;
   for (int i3 = 0; i3 < (int)layers.size(); i3++) {
     if (layers[i3]->type == LAYERTYPE_TILEMAP) oneIsTileMap = true; else allIsTileMap = false;
     layers[i3]->justSelection = pixelSelection && layers[i3]->hasSelection();
-    Vector here = pixelSelection ? layers[i3]->selectionBounding() : layers[i3]->boundingBox();
+    Vector fullLayer = layers[i3]->boundingBox();
+    Vector here = pixelSelection ? layers[i3]->selectionBounding() : fullLayer;
+    double angle = layers[i3]->getAngleDegrees();
+    bool deg0 = fabs(angle-0)<0.01||fabs(angle-360)<0.01; bool deg180 = fabs(angle-180)<0.01; bool deg90 = fabs(angle-90)<0.01||fabs(angle-270)<0.01;
+    if (deg0) {
+      if (deg0 || deg180) {
+        if (fabs((fullLayer.z - fullLayer.x)-layers[i3]->width)>0.001) allLayersAreStraight = false;
+        if (fabs((fullLayer.w - fullLayer.y)-layers[i3]->height)>0.001) allLayersAreStraight = false;
+      }
+      if (deg90) {
+        if (fabs((fullLayer.z - fullLayer.x)-layers[i3]->height)>0.001) allLayersAreStraight = false;
+        if (fabs((fullLayer.w - fullLayer.y)-layers[i3]->width)>0.001) allLayersAreStraight = false;
+      }
+      if (fabs(fullLayer.x-floor(fullLayer.x))>0.001) allLayersAreStraight = false;
+      if (fabs(fullLayer.y-floor(fullLayer.y))>0.001) allLayersAreStraight = false;
+    } else allLayersAreStraight = false;
     if (i3 == 0 || here.x < boundingBox.x) boundingBox.x = here.x;
     if (i3 == 0 || here.y < boundingBox.y) boundingBox.y = here.y;
     if (i3 == 0 || here.z > boundingBox.z) boundingBox.z = here.z;
@@ -3655,21 +3671,37 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   }
   dontUsePostProcessing = layers.size() == 1;
 
-  double eps = 1.0/(2<<9); // 0.0025
-  copyCanvas->transform.translate(eps,eps);
-  copyCanvas->transform.update();
+  // layer rotations don't work fully at the moment
+  if (allLayersAreStraight) {
+    double eps = 0.5;
+    copyCanvas->transform.translate(eps,eps);
+    copyCanvas->transform.update();
+  } else {
+    double eps = 1.0/(2<<9); // 0.0025
+    copyCanvas->transform.translate(eps,eps);
+    copyCanvas->transform.update();
+  }
 
   copyCanvas->layers = layers;
   hilightSelection = false; // !!
   overlaysOn = false;
   unsigned int modeBefore = LAYERMODE_UNDEFINED; if (!copyCanvas->layers.empty()) {modeBefore = copyCanvas->layers.back()->mode; copyCanvas->layers.back()->mode = LAYERMODE_COPY;}
   copyCanvas->update(true);
+
+  if (allLayersAreStraight) {
+    double eps = 0.5;
+    copyCanvas->transform.translate(-eps,-eps);
+    copyCanvas->transform.update();
+  } else {
+    double eps = 1.0/(2<<9); // 0.0025
+    copyCanvas->transform.translate(-eps,-eps);
+    copyCanvas->transform.update();
+  }
+
   if (!copyCanvas->layers.empty()) {copyCanvas->layers.back()->mode = modeBefore;}
+
   overlaysOn = true;
   copyCanvas->layers.clear();
-
-  copyCanvas->transform.translate(-eps,-eps);
-  copyCanvas->transform.update();
 
   ret = layerFromCanvas(copyCanvas);
 
