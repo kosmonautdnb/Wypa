@@ -113,6 +113,7 @@ void dialogClahe(bool openIt);
 void dialogCheckerboard(bool openIt);
 void dialogFontGlyphs(bool openIt, const char *fontFileName);
 void dialogCopyPasteLoadedText(bool openIt);
+void dialogEditText(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);

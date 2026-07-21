@@ -1051,7 +1051,7 @@ void drawToolTextView() {
   if (ImGui::RadioButton("Align right##DRAWTOOLTEXTUREVIEWALIGNRIGHT",&ati->fontAlignment,ALIGN_RIGHT)) {} else toolTip("Text alignment in x centered");
   if (ImGui::RadioButton("Align center##DRAWTOOLTEXTUREVIEWALIGNCENTER",&ati->fontAlignment,ALIGN_CENTER)) {} else toolTip("Text alignment in x to the right");
   ImGui::PopItemWidth();
-  ImGui::Text("Text");
+  ImGui::Text("Text"); ImGui::SameLine(); if (roundButton("Edit##DRAWTOOLTEXTUREVIEWEDITTEXT",true)) {textToSave = ati->textEditText; textToSaveLength = MAXTEXTEDITTEXT; dialogEditText(true);}
   ImGui::PushItemWidth(toolview_width-10);
   ImGui::InputTextMultiline("##DRAWTOOLTEXTUREVIEWALIGNTEXT", ati->textEditText, MAXTEXTEDITTEXT); toolTip("The text to be painted");
   ImGui::PopItemWidth();

@@ -152,6 +152,7 @@ void drawDialogs() {
   dialogCheckerboard(false);
   dialogFontGlyphs(false, NULL);
   dialogCopyPasteLoadedText(false);
+  dialogEditText(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -747,10 +748,21 @@ void dialogCopyPasteLoadedText(bool openIt) {
   }
   DIALOGSTART("Copy paste text")
   ImGui::Text("Text from loaded file");
-  ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTFROMFILE", &loadedText[0], loadedTextLength); toolTip("The file you have loaded");
+  ImVec2 boxSize(main_window_xres*5/6,main_window_yres/3);
+  ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTFROMFILE", &loadedText[0], loadedTextLength, boxSize); toolTip("The file you have loaded");
   ImGui::Text("Text to be pasted to");
-  ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTTOEDIT", textToSave, textToSaveLength); toolTip("The text to be edited copy/paste etc..");
+  ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTTOEDIT", textToSave, textToSaveLength, boxSize); toolTip("The text to be edited copy/paste etc..");
   if (ImGui::Button("Close##DIALOGCOPYPASTELOADEDTEXTCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogEditText(bool openIt) {
+  DIALOGSTART("Edit text")
+  ImVec2 boxSize(main_window_xres*5/6,main_window_yres*2/3);
+  ImGui::InputTextMultiline("##DIALOGEDITTEXTTEXTTOEDIT", textToSave, textToSaveLength, boxSize); toolTip("The text to be edited.");
+  if (ImGui::Button("Close##DIALOGEDITTEXTCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
   DIALOGEND()
