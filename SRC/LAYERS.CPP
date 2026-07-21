@@ -1464,6 +1464,7 @@ void Layer::setLayerPos(double x, double y) {
     transform.translate(-k2.x,-k2.y);
     transform.update();
   }
+  shouldUpdateAll = true;
 }
 
 void Layer::setLayerSize(double width, double height) {

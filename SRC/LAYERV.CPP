@@ -108,7 +108,6 @@ void drawLayerView() {
       else
         currentLayer->quantizePosition();
       afterUndoPoint();
-      shouldUpdateAll = true;
     } else toolTip("Fit layer coordinates, with <SHIFT> also fit size");
   }
 
