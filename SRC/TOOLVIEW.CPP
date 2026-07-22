@@ -1056,8 +1056,9 @@ void drawToolTextView() {
   ImGui::InputTextMultiline("##DRAWTOOLTEXTUREVIEWALIGNTEXT", ati->textEditText, MAXTEXTEDITTEXT); toolTip("The text to be painted");
   ImGui::PopItemWidth();
   if (roundButton("Bake into layer##DRAWTOOLTEXTUREVIEWBAKE",ati->fontId != 0)) {paintTextIntoLayer(l);} else toolTip("Now paint this text into the layer");
-  if (roundButton("Copy from file##DRAWTOOLTEXTUREVIEWTEXTCOPYPASTE",true)) {textToSave = ati->textEditText; textToSaveLength = MAXTEXTEDITTEXT; dialogLoadSave(true,DIALOG_LOADTEXT);} else toolTip("Copy/paste some text from a text file.");
-  if (roundButton("Save text##DRAWTOOLTEXTUREVIEWTEXTSAVETEXT",true)) {textToSave = ati->textEditText; dialogLoadSave(true,DIALOG_SAVETEXT);} else toolTip("Save this text to a text file.");
+  if (roundButton("Copy from file##DRAWTOOLTEXTUREVIEWTEXTCOPYPASTE",true)) {textToSave = ati->textEditText; textToSaveLength = MAXTEXTEDITTEXT; dialogLoadSave(true,DIALOG_LOADTEXT);} else toolTip("Copy/paste some text from a text file");
+  if (roundButton("Save text##DRAWTOOLTEXTUREVIEWTEXTSAVETEXT",true)) {textToSave = ati->textEditText; dialogLoadSave(true,DIALOG_SAVETEXT);} else toolTip("Save this text to a text file");
+  if (roundButton("Load UTF8##DRAWTOOLTEXTUREVIEWTEXTLOADUTF8",true)) {textToSave = ati->textEditText; textToSaveLength = MAXTEXTEDITTEXT; dialogLoadSave(true,DIALOG_LOADTEXTUTF8);} else toolTip("Load an UTF8 based text");
 }
 
 void drawToolOverlaysView() {

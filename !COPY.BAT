@@ -37,6 +37,7 @@ copy /Y c:\_STL_\STRING.HPP SRC\STL\
 copy /Y c:\_STL_\STRING.CPP SRC\STL\
 copy /Y c:\_STL_\SUPERXBR.HPP SRC\STL\
 copy /Y c:\_STL_\TYPES.HPP SRC\STL\
+copy /Y c:\_STL_\UTF8.HPP SRC\STL\
 copy /Y c:\_STL_\VECTOR.HPP SRC\STL\
 copy /Y c:\_STL_\VECTOR.CPP SRC\STL\
 

@@ -50,6 +50,7 @@
 #include "HOTKEYS.HPP"
 #include "FILTER.HPP"
 #include "GALLERY.HPP"
+#include "STL/UTF8.HPP"
 #include <math.h>
 #define __PCXLBMLOAD_IMPLEMENTATION__
 #define __PCXLBMLOAD_MALLOCINSTEADOFNEW__
@@ -1500,6 +1501,7 @@ void importFolder(const char *shortPath, const char *longFileName) {
       }
     }
   }
+  loadedSomething();
 }
 
 void histogramMatch(const char *shortPath, const char *longFileName) {
@@ -1509,6 +1511,7 @@ void histogramMatch(const char *shortPath, const char *longFileName) {
   reverseLastLayerIdCountUp();
   filterHistogramMatching(l);
   delete l;
+  loadedSomething();
 }
 
 void colorTransfer(const char *shortPath, const char *longFileName) {
@@ -1518,6 +1521,7 @@ void colorTransfer(const char *shortPath, const char *longFileName) {
   reverseLastLayerIdCountUp();
   filterColorTransfer(l);
   delete l;
+  loadedSomething();
 }
 
 void histogramMatchingColored(const char *shortPath, const char *longFileName) {
@@ -1527,6 +1531,7 @@ void histogramMatchingColored(const char *shortPath, const char *longFileName) {
   reverseLastLayerIdCountUp();
   filterHistogramMatchingColored(l);
   delete l;
+  loadedSomething();
 }
 
 char *textToSave = NULL;
@@ -1545,6 +1550,44 @@ void saveText(const char *shortPath, const char *longFileName) {
 void loadText(const char *shortPath, const char *longFileName) {
   loadedText = getStringFromFile(shortPath, longFileName);
   dialogCopyPasteLoadedText(true);
+  loadedSomething();
+}
+
+void loadTextUTF8(const char *shortPath, const char *longFileName) {
+  loadedText = getStringFromFile(shortPath, longFileName);
+  if (loadedText.empty()) return;
+
+  utf8_int8_t *here = (utf8_int8_t *)&loadedText[0];
+  bool valid = utf8valid(here) == 0;
+  if (!valid) return;
+
+  size_t len = utf8len(here);
+
+  int j = 0;
+  char *there = textToSave;
+  for (int i = 0; i < len; i++) {
+    utf8_int32_t codePoint  = 0;
+    here = utf8codepoint(here,&codePoint);
+    bool canAddDach = j <= textToSaveLength-5-1; // -1 for the 0
+    bool canAddOne = j <= textToSaveLength-1-1;
+    if (codePoint == 0) {
+      if (!canAddDach) break;
+      int a1 = (codePoint/0x1000) & 15; int a2 = (codePoint/0x100) & 15; int a3 = (codePoint/0x10) & 15; int a4 = codePoint & 15;
+      sprintf(there,"^%01x%01x%01x%01x",a1,a2,a3,a4);
+      there += 5;
+      continue;
+    }
+    if (codePoint >= 256) {
+      if (!canAddDach) break;
+      int a1 = (codePoint/0x1000) & 15; int a2 = (codePoint/0x100) & 15; int a3 = (codePoint/0x10) & 15; int a4 = codePoint & 15;
+      sprintf(there,"^%01x%01x%01x%01x",a1,a2,a3,a4);
+      there += 5;
+      continue;
+    }
+    if (!canAddOne) break;
+    sprintf(there,"%c",codePoint & 255);
+    there++;
+  }
   loadedSomething();
 }
 
