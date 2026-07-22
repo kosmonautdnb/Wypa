@@ -1565,7 +1565,7 @@ void loadTextUTF8(const char *shortPath, const char *longFileName) {
 
   int j = 0;
   char *there = textToSave;
-  for (int i = 0; i < len; i++) {
+  for (int i = 0; i < (int)len; i++) {
     utf8_int32_t codePoint  = 0;
     here = utf8codepoint(here,&codePoint);
     bool canAddDach = j <= textToSaveLength-5-1; // -1 for the 0
@@ -1577,15 +1577,16 @@ void loadTextUTF8(const char *shortPath, const char *longFileName) {
       there += 5;
       continue;
     }
-    if (codePoint >= 256) {
+    if (codePoint >= 256 && codePoint < 0x10000) {
       if (!canAddDach) break;
       int a1 = (codePoint/0x1000) & 15; int a2 = (codePoint/0x100) & 15; int a3 = (codePoint/0x10) & 15; int a4 = codePoint & 15;
       sprintf(there,"^%01x%01x%01x%01x",a1,a2,a3,a4);
       there += 5;
       continue;
     }
+    if (codePoint >= 0x10000) codePoint = '?';
     if (!canAddOne) break;
-    sprintf(there,"%c",codePoint & 255);
+    sprintf(there,"%c",(unsigned char)(codePoint & 255));
     there++;
   }
   loadedSomething();
