@@ -749,6 +749,7 @@ void dialogCopyPasteLoadedText(bool openIt) {
   DIALOGSTART("Copy paste text")
   ImGui::Text("Text from loaded file");
   ImVec2 boxSize(main_window_xres*5/6,main_window_yres/3);
+  DIALOGKEYSHERE();
   ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTFROMFILE", &loadedText[0], loadedTextLength, boxSize); toolTip("The file you have loaded");
   ImGui::Text("Text to be pasted to");
   ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTTOEDIT", textToSave, textToSaveLength, boxSize); toolTip("The text to be edited copy/paste etc..");
@@ -761,6 +762,7 @@ void dialogCopyPasteLoadedText(bool openIt) {
 void dialogEditText(bool openIt) {
   DIALOGSTART("Edit text")
   ImVec2 boxSize(main_window_xres*5/6,main_window_yres*2/3);
+  DIALOGKEYSHERE();
   ImGui::InputTextMultiline("##DIALOGEDITTEXTTEXTTOEDIT", textToSave, textToSaveLength, boxSize); toolTip("The text to be edited.");
   if (ImGui::Button("Close##DIALOGEDITTEXTCLOSE")) {
     ImGui::CloseCurrentPopup();
