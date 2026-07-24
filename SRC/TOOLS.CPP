@@ -36,6 +36,8 @@
 #include "STL/CHARSET.HPP"
 #include "STL/DELAUNTR.HPP"
 #include "GALLERY.HPP"
+#define __HMAP_IMPLEMENTATION__
+#include "STL/HMAP.HPP"
 #include <math.h>
 
 
@@ -2603,6 +2605,7 @@ bool modifyMode = false;
 bool modifyClearBackground = false;
 bool modifyFiltered = true;
 bool modifyOutlined = false;
+bool modifyPerspective = false;
 
 void createModifyTriangles() {
   Array<double> points;
@@ -2708,6 +2711,34 @@ void bakeModify(bool justCreateSelection) {
   int triangleCount = (int)modifyTriangles.size()/3;
   Array<double> values;
   values.resize(triangleCount*3);
+
+  // generate homography if perspective mode is selected
+  Matrix hmap;
+  if (triangleCount == 2 && modifyPerspective) {
+    int points[4];
+    points[0] = modifyTriangles[0*3+0];
+    points[1] = modifyTriangles[0*3+1];
+    points[2] = modifyTriangles[0*3+2];
+    points[3] = -1;
+    for (int j = 0; j < 3; j++) {
+      bool found = true;
+      for (int k = 0; k < 3; k++) {
+        if (modifyTriangles[1*3+j]==points[k]) {found = false; break;}
+      }
+      if (found) {points[3] = modifyTriangles[1*3+j]; break;}
+    }
+    bool valid = true; for (int l = 0; l < 4; l++) if (points[l] < 0 || points[l] >= pointCount) {valid = false; break;}
+    if (valid) {
+      double src[4*2]; double dst[4*2];
+      for (int i = 0; i < 4; i++) {
+        src[i*2+0] = source[points[i]].x;
+        src[i*2+1] = source[points[i]].y;
+        dst[i*2+0] = dest[points[i]].x;
+        dst[i*2+1] = dest[points[i]].y;
+      }
+      hmap = perspectiveHomography(dst, src); // inverse
+    }
+  }
 
   initStatusBar();
   if (modifyClearBackground) {
@@ -2830,15 +2861,23 @@ void bakeModify(bool justCreateSelection) {
             }
           }    
         } else {
-          if ((unsigned int)baryTriangle < (unsigned int)triangleCount) {
-            tx = 0;
-            ty = 0;
-            for (int j = 0; j < 3; j++) {
-              double f = bary[j];
-              int j2 = (j + 3 - 1) % 3;
-              Vector d; d = (unsigned int)modifyTriangles[baryTriangle*3+j2]<(unsigned int)pointCount?source[modifyTriangles[baryTriangle*3+j2]]:Vector();
-              tx += d.x * f;
-              ty += d.y * f;
+          if (modifyPerspective) {
+            Vector v(x,y);
+            v = hmap * v;
+            if (v.w != 0) {v /= v.w;}
+            tx = v.x;
+            ty = v.y;
+          } else {
+            if ((unsigned int)baryTriangle < (unsigned int)triangleCount) {
+              tx = 0;
+              ty = 0;
+              for (int j = 0; j < 3; j++) {
+                double f = bary[j];
+                int j2 = (j + 3 - 1) % 3;
+                Vector d; d = (unsigned int)modifyTriangles[baryTriangle*3+j2]<(unsigned int)pointCount?source[modifyTriangles[baryTriangle*3+j2]]:Vector();
+                tx += d.x * f;
+                ty += d.y * f;
+              }
             }
           }
         }

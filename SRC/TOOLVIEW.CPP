@@ -1249,7 +1249,12 @@ void drawToolModifyView() {
   int k;
   ImGui::Separator();
   ImGui::Text("Pop out"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYBG",&modifyClearBackground)) {} else toolTip("Clear background behind warp");
-  ImGui::Text("Outline mode"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYOUTLINED",&modifyOutlined)) {} else toolTip("Smooth warp using only the outlines");
+  if (!modifyPerspective) {
+    ImGui::Text("Outline mode"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYOUTLINED",&modifyOutlined)) {} else toolTip("Smooth warp using only the outlines");
+  }
+  if ((!modifyOutlined) && modifyPointsSource.size()==4) {
+    ImGui::Text("Persp. mode"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYPERSPECTIVE",&modifyPerspective)) {} else toolTip("Warp using 3D perspective (only available for 4 points) e.g. to rectify documents.");
+  }
   ImGui::Text("Filtered"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYFILTERED",&modifyFiltered)) {} else toolTip("Smoothen the colors when baking");
   ImGui::Separator();
   if (roundButton("Store##DRAWTOOLMODIFYSTORE",modifyPointsSource.size()==modifyPointsDest.size()&&modifyPointsSource.size()!=0&&modifyMode)) {

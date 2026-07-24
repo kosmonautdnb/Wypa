@@ -236,6 +236,7 @@ extern bool modifyMode;
 extern bool modifyClearBackground;
 extern bool modifyFiltered;
 extern bool modifyOutlined;
+extern bool modifyPerspective;
 void createModifyTriangles();
 void bakeModify(bool justCreateSelection);
 
