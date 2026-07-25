@@ -1311,14 +1311,14 @@ void Layer::bakeLayer(int interpolation) {
 
   for (int y = y0; y < y1; y++) {
     for (int x = x0; x < x1; x++) {
-      double px = x;
-      double py = y;
-      double lx3 = px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4]+rounding;
-      double ly3 = px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4]+rounding;
+      double px = x+rounding;
+      double py = y+rounding;
+      double lx3 = px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4];
+      double ly3 = px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4];
       int lx = (int)lx3;
       int ly = (int)ly3;
-      if (lx == 0) lx = (int)floor(px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4]+rounding);
-      if (ly == 0) ly = (int)floor(px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4]+rounding);
+      if (lx == 0) lx = (int)floor(px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4]);
+      if (ly == 0) ly = (int)floor(px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4]);
       if ((unsigned int)lx >= (unsigned int)ow || (unsigned int)ly >= (unsigned int)oh) continue;
       pixelStates[(x-x0)+(y-y0)*this->width] = beforeS[lx+ly*ow];
       switch(interpolation) {
@@ -1369,12 +1369,13 @@ void Layer::bakeLayer(int interpolation) {
       Matrix m2 = transform.transformation * inverse2(m);
       for (int y = 0; y < oh; y++) {
         for (int x = 0; x < ow; x++) {
-          double lx4 = x*m2.m[0+0*4]+y*m2.m[0+1*4]+m2.m[0+3*4]+rounding;
-          double ly4 = x*m2.m[1+0*4]+y*m2.m[1+1*4]+m2.m[1+3*4]+rounding;
+          double px = x; double py = y;
+          double lx4 = px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+rounding;
+          double ly4 = px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+rounding;
           int lx2 = (int)lx4;
           int ly2 = (int)ly4;
-          if (lx2 == 0) lx2 = (int)floor(x*m2.m[0+0*4]+y*m2.m[0+1*4]+m2.m[0+3*4]+rounding);
-          if (ly2 == 0) ly2 = (int)floor(x*m2.m[1+0*4]+y*m2.m[1+1*4]+m2.m[1+3*4]+rounding);
+          if (lx2 == 0) lx2 = (int)floor(px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+rounding);
+          if (ly2 == 0) ly2 = (int)floor(px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+rounding);
           if ((unsigned int)lx2 >= (unsigned int)width || (unsigned int)ly2 >= (unsigned int)height) continue;
           unsigned int ps = beforeP[x+y*ow];
           int r = (ps) & 255;
@@ -1392,7 +1393,27 @@ void Layer::bakeLayer(int interpolation) {
       Matrix m3 = inverse2(m2);
       for (int y2 = 0; y2 < height; y2++) {
         for (int x2 = 0; x2 < width; x2++) {
-          int pos = (x2 + y2 * width)*5;
+          double px = x2+rounding; double py = y2+rounding;
+          double lx4 = px*m3.m[0+0*4]+py*m3.m[0+1*4]+m3.m[0+3*4];
+          double ly4 = px*m3.m[1+0*4]+py*m3.m[1+1*4]+m3.m[1+3*4];
+          int lx2 = (int)lx4;
+          int ly2 = (int)ly4;
+          if (lx2 == 0) lx2 = (int)floor(px*m3.m[0+0*4]+py*m3.m[0+1*4]+m3.m[0+3*4]);
+          if (ly2 == 0) ly2 = (int)floor(px*m3.m[1+0*4]+py*m3.m[1+1*4]+m3.m[1+3*4]);
+          px = lx2; py = ly2; // ow,oh
+          int x3 = x2, y3 = y2;
+          {
+            double lx4 = px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+rounding;
+            double ly4 = px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+rounding;
+            int lx2 = (int)lx4;
+            int ly2 = (int)ly4;
+            if (lx2 == 0) lx2 = (int)floor(px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+rounding);
+            if (ly2 == 0) ly2 = (int)floor(px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+rounding);
+            if ((unsigned int)lx2 < (unsigned int)width || (unsigned int)ly2 < (unsigned int)height) {
+              x3 = lx2; y3 = ly2;
+            }
+          }
+          int pos = (x3 + y3 * width)*5;
           int w = accumulationBuffer[pos+4];
           if (w > 0) {
             int r = accumulationBuffer[pos+0]/w;
@@ -1400,18 +1421,6 @@ void Layer::bakeLayer(int interpolation) {
             int b = accumulationBuffer[pos+2]/w;
             int a = accumulationBuffer[pos+3]/w;
             pixels[x2+y2*width] = (r)|(g<<8)|(b<<16)|(a<<24);
-          } else {
-            double x = x2;
-            double y = y2;
-            double lx4 = x*m3.m[0+0*4]+y*m3.m[0+1*4]+m3.m[0+3*4]+rounding;
-            double ly4 = x*m3.m[1+0*4]+y*m3.m[1+1*4]+m3.m[1+3*4]+rounding;
-            int lx2 = (int)lx4;
-            int ly2 = (int)ly4;
-            if (lx2 == 0) lx2 = (int)floor(x*m3.m[0+0*4]+y*m3.m[0+1*4]+m3.m[0+3*4]+rounding);
-            if (ly2 == 0) ly2 = (int)floor(x*m3.m[1+0*4]+y*m3.m[1+1*4]+m3.m[1+3*4]+rounding);
-            unsigned int ps = 0;
-            if ((unsigned int)lx2 < (unsigned int)ow && (unsigned int)ly2 < (unsigned int)oh) ps = beforeP[lx2+ly2*ow];
-            pixels[x2+y2*width] = ps;
           }
         }
       }
