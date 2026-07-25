@@ -23,11 +23,6 @@
   "Currently there is no other workaround for that, since" _N_
   "CuteMouse doesn't provide motion counters here and I" _N_
   "just use CuteMouse." _N_
-  "" _N_
-  "Merging rotated layers doesn't work accurately currently." _N_
-  "Maybe a workaround is to bake the rotated layer first," _N_
-  "adjust it's position and then merge just that baked layer." _N_
-  "This bug is some sort of a showstopper somehow." _N_
 "}" _N_
 "" _N_
 "Source code{" _N_
@@ -1062,6 +1057,11 @@
     "This is achieved by a technique called \"mean value coordinates\"." _N_
     "" _N_
     "You can store/load a modification for later use (on other layers)." _N_
+    "" _N_
+    "If you have 4 points (2 triangles) you can choose the \"Persp.\"" _N_
+    "mode. This mode tries to convert the perspectivic transformation" _N_
+    "from one polygon to the other. This mode may be used to rectify" _N_
+    "documents." _N_
   "}" _N_
   "Tilemap tool{" _N_
     "This tool is available only for tilemap layers" _N_

@@ -3680,7 +3680,6 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   }
   dontUsePostProcessing = layers.size() == 1;
 
-  // layer rotations don't work fully at the moment
   if (allLayersAreStraight) {
     double eps = 0.5;
     copyCanvas->transform.translate(eps,eps);
