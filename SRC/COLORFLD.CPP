@@ -325,13 +325,14 @@ bool colorItem(const String &name, const String &id, ImVec4 *color) {
   ImGui::PushItemWidth(7*8);
   if (ImGui::InputText(id.c_str(),colorText,9)) {
     unsigned int value = 0;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < strlen(colorText); i++) {
       value <<= 4;
       char c = colorText[i];
       if (c>='0'&&c<='9') value += c-'0';
       if (c>='a'&&c<='f') value += c-'a'+10;
       if (c>='A'&&c<='F') value += c-'A'+10;
     }
+    if (strlen(colorText)<=6) value |= 0xff000000;
     *color = getImVec4Color(swapRB(value));
     ret = true;
   } else toolTip("Hex color edit");

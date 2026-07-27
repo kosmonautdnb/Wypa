@@ -829,7 +829,7 @@ void dialogExit(bool openIt) {
     ImGui::CloseCurrentPopup();
   }
   ImGui::SameLine();
-  if (ImGui::Button("Close##DIALOGEXITCLOSE")) {
+  if (ImGui::Button("Continue##DIALOGEXITCLOSE")) {
     ImGui::CloseCurrentPopup();
   }
   DIALOGEND()

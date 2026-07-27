@@ -116,6 +116,8 @@ void drawMenuBar() {
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
     toolTip("Wypa version %d.%02d", version / 100, version % 100);
     ImGui::SameLine();
+    ImGui::Text("|");
+    ImGui::SameLine();
     if (ImGui::BeginMenu("File")) {
       on = true;
       if (ImGui::MenuItem("New image")) {dialogNewImage(true);}

@@ -321,6 +321,8 @@ int main(int argc, const char *argv[]) {
   ImGui::GetStyle().Colors[ImGuiCol_SliderGrab] = ImVec4(0.2,0.2,0.2,1.f);
   ImGui::GetStyle().Colors[ImGuiCol_TooltipBg] = ImVec4(1,1,1,0.8);
   ImGui::GetStyle().Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0,0,0,0);
+  ImGui::GetStyle().Colors[ImGuiCol_CloseButton] = ImVec4(0.25f,0.25f,0.25f,1.f);
+
   ImGui::GetIO().MouseDoubleClickTime = 1;
 
   loadBaseSVGs();

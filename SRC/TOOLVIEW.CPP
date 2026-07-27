@@ -585,7 +585,7 @@ void drawToolMagicView() {
     ImGui::Separator();
   }
 
-  ImGui::Text("Lookup table"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSELUT",&l->colorTransform.useLut)) {shouldUpdateAll = true;} else toolTip("Color lookup table");
+  ImGui::Text("Lookup table"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSELUT",&l->colorTransform.useLut)) {shouldUpdateAll = true;} else toolTip("Use a color lookup table file");
   if (l->colorTransform.useLut) {
     if (roundButton(t->lut == NULL ? "LUT##DRAWTOOLMAGICLUT":">>LUT##DRAWTOOLMAGICLUT",true)) {if (t->lut != NULL) {delete t->lut; t->lut = NULL;} shouldUpdateAll = true; dialogLoadSave(true, DIALOG_LUT);} else toolTip("Use a color lookup table, too"); 
     if (t->lut != NULL) {ImGui::SameLine(); ImGui::Text("3D %d", t->lutRSize);}
@@ -596,7 +596,7 @@ void drawToolMagicView() {
   } else toolTip("Use just steps per color channel (not linear)");
   if (l->colorTransform.usePosterize) {
     ImGui::BeginChild("DRAWTOOLMAGICCHILDPOSTERIZE",ImVec2(0,60));
-    ImGui::Text("Use grey"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWPOSTERIZEUSEGREY",&t->posterizeUseGrey)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Steps are applied the same on red,green and blue.");
+    ImGui::Text("Use grey"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWPOSTERIZEUSEGREY",&t->posterizeUseGrey)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Steps are applied the same on red,green and blue");
 
     if (!t->posterizeUseGrey) {
       ImGui::Text("Posterize R");
@@ -617,7 +617,7 @@ void drawToolMagicView() {
       v = &t->posterizeAlphaBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEALPHABASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Step begin on alpha");
     } else {
       ImGui::Text("Posterize");
-      v = &t->posterizeGrey; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREY",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Step size on red,green and blue");
+      v = &t->posterizeGrey; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREY",v,0,0,2)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Step size on red,green and blue, e.g. 64 for 4 steps");
       ImGui::Text("Base");
       v = &t->posterizeGreyBase; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPOSTERIZEGREYBASE",v,0,0,2)) {if (*v<-255) *v = -255; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Step begin on red,green and blue");
     }
@@ -627,12 +627,12 @@ void drawToolMagicView() {
 
   ImGui::Text("Threshold"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSETHRESHOLD",&l->colorTransform.useThreshold)) {
     shouldUpdateAll = true;
-  } else toolTip("Make all values above threshold white, the others transparent");
+  } else toolTip("Make all values above threshold white, the others black (or transparent)");
   if (l->colorTransform.useThreshold) {
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEBLACKWHITE",&t->thresholdBlackWhite)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Use black/white instead of transparent/white");
     ImGui::BeginChild("DRAWTOOLMAGICCHILDTHRESHOLD",ImVec2(0,50));
     ImGui::Text("Threshold RGBA");
-    v = &t->thresholdLuma; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDLUMA",v,0,255)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Threshold on red,green,blue");
+    v = &t->thresholdLuma; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDLUMA",v,0,255)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Threshold on red,green,blue (or maybe alpha)");
     ImGui::Text("Invert"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERT",&t->thresholdInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Threshold = 1 - threshold");
     ImGui::Text("Scale red");
     v = &t->thresholdRed; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDRED",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Red influence on threshold. Default is 1/3");
@@ -648,7 +648,7 @@ void drawToolMagicView() {
 
   ImGui::Text("Fast quant"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEQUANTIZATION",&l->colorTransform.useQuantization)) {
     shouldUpdateAll = true;
-  } else toolTip("Use fast palette quantization (it's not a precise mapping");
+  } else toolTip("Use fast palette quantization (it's not a precise mapping)");
   if (l->colorTransform.useQuantization) {
     if (palette.size()<=256) {
       ImGui::Text("Dithering");

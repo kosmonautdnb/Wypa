@@ -1041,6 +1041,11 @@ void useToolSelection() {
   }
 
   int selectionTool2 = tool == TOOL_OVERLAYS ? SELECTIONTOOL_RECTANGLE : selectionTool;
+  bool selectionProportional2 = false;
+  switch(selectionTool) {
+    case SELECTIONTOOL_ELLIPSE: 
+    case SELECTIONTOOL_RECTANGLE: {selectionProportional2 = tool == TOOL_OVERLAYS ? false : selectionProportional;} break;
+  }
 
 #define XEORLINE 1
 #define EORLINE 2
@@ -1128,7 +1133,7 @@ void useToolSelection() {
     selectionX1 = lx;
     selectionY1 = ly;
     double pixelAspect = currentCanvas->control.pixelSizeX<=0||currentCanvas->control.pixelSizeY<=0?1:currentCanvas->control.pixelSizeX/currentCanvas->control.pixelSizeY;
-    if (selectionProportional) {
+    if (selectionProportional2) {
       if (lx-selectionX0>ly-selectionY0) {
         selectionY1 = selectionY0+(lx-selectionX0)*pixelAspect; 
       } else {

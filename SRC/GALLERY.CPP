@@ -171,8 +171,8 @@ public:
     glTexCoord2f(1,1); glVertex4f(right,bottom,0,1);
     glTexCoord2f(0,1); glVertex4f(left,bottom,0,1);
     glColor4f(1,1,1,0);
-    glTexCoord2f(0,0); glVertex4f(left2,bottom2,0,1);
-    glTexCoord2f(1,0); glVertex4f(right2,bottom2,0,1);
+    glTexCoord2f(0,0.5f); glVertex4f(left2,bottom2,0,1);
+    glTexCoord2f(1,0.5f); glVertex4f(right2,bottom2,0,1);
     glEnd();
 
     glDisable(GL_BLEND);
@@ -182,12 +182,13 @@ public:
 
     String s = String(longFileName(fileName)).last(20).c_str();
 
+    int bottom3 = bottom + 12;
     for (int y = -1; y <= 1; y++) {
       for (int x = -1; x <= 1; x++) {
-        drawText(3,left+x*3,bottom+y*3,s.c_str(),0xff000000,0,0);
+        drawText(3,left+x*3,bottom3+y*3,s.c_str(),0xff000000,0,0);
       } 
     }
-    drawText(3,left,bottom,s.c_str(),0xff0000ff,0,0);
+    drawText(3,left,bottom3,s.c_str(),0xff0000ff,0,0);
   }
 };
 

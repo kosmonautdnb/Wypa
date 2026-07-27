@@ -167,8 +167,7 @@ void drawNavigator() {
   if (aspectRatio != 0) {
     navigatorWidth = navigatorHeight / aspectRatio * main_window_xres / main_window_yres;
   }
-  if (ImGui::ImageButton((ImTextureID)navigatorTexture,ImVec2(navigatorWidth,navigatorHeight),ImVec2(0,0),ImVec2(1,1),0)) {
-  } else toolTip("Pixel view");
+  ImGui::Image((ImTextureID)navigatorTexture,ImVec2(navigatorWidth,navigatorHeight)); toolTip("Pixel view");
 #define IMGUIGLFAST
 #ifndef IMGUIGLFAST
   ImVec2 c0 = ImVec2((double)navigatorWidth*(navigatorX/2)/navigatorX,(double)navigatorHeight*(navigatorY/2)/navigatorY);
@@ -196,7 +195,7 @@ void drawNavigator() {
   c0.x = cursor3.x + sidebar_width - navigatorWidth - 10 - layerTextureSizeX;
   c0.y = cursor3.y + navigatorHeight - layerTextureSizeY - 8;
   ImGui::SetCursorScreenPos(c0);
-  ImGui::Image((ImTextureID)layerTexture,ImVec2(layerTextureSizeX,layerTextureSizeY)); toolTip("Current layer");
+  ImGui::Image((ImTextureID)layerTexture,ImVec2(layerTextureSizeX,layerTextureSizeY)); toolTip("Current layer (no aspect ratio)");
 
   updateLayerImage();
   updateNavigatorImage();
