@@ -92,6 +92,8 @@ void saveText(const char *shortPath, const char *longFileName);
 void loadText(const char *shortPath, const char *longFileName);
 void loadTextUTF8(const char *shortPath, const char *longFileName);
 
+void loadLUT(const char *shortPath, const char *longFileName);
+
 double updateToolTip(unsigned int *rgba, int width, int height, const char *path, const char *fileName);
 class Layer *loadThumb(const String &filePath, const String &fileName);
 class Layer *loadImage(const String &filePath, const String &fileName);

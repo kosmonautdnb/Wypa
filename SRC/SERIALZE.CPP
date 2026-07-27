@@ -556,6 +556,7 @@ void exportLayersRaw(const char *shortPath, const char *longFileName, bool apply
       if (applyColorTransform) {
         for (int j = 0; j < l->width*l->height; j++) {
           if (l->colorTransform.useColorTransform) img.data[j] = l->colorTransform.applyColorTransform(img.data[j]);
+          if (l->colorTransform.useLut) img.data[j] = l->colorTransform.applyLut(img.data[j]);
           if (l->colorTransform.usePosterize) img.data[j] = l->colorTransform.applyPosterize(img.data[j]);
           if (l->colorTransform.useThreshold) img.data[j] = l->colorTransform.applyThreshold(img.data[j]);
           if (l->colorTransform.useQuantization) img.data[j] = quantizeFast(img.data[j], l->colorTransform.ditherStrength, j % l->width, j / l->width, l->colorTransform.paletteShift);
@@ -1590,6 +1591,72 @@ void loadTextUTF8(const char *shortPath, const char *longFileName) {
     there++;
   }
   loadedSomething();
+}
+
+void loadLUT(const char *shortPath, const char *longFileName) {
+  Layer *l = currentCanvas->getActiveLayer(); 
+  if (l == NULL) return;
+
+  String text2 = getStringFromFile(shortPath, longFileName);
+  if (!text2.empty()) {
+    int len = text2.length();
+    char *text = text2.c_str();
+    String line = "";
+    if (l->colorTransform.lut == NULL) l->colorTransform.lut = new Array<float>();
+    int currentEntry = 0;
+    int lutSize = 0;
+    float *dest = NULL;
+    initStatusBar();
+    for (int i = 0; i < len; i++) {
+      if ((len > 10) && ((i % (len/10)) == 0)) updateStatusBar();
+      char c = text[i];
+      if (c == 0x0d || c == 0x0a) {
+        if (!line.empty()) {
+          char d = line[0];
+          if (d == 'D') {
+            // DOMAIN_MIN
+            // DOMAIN_MAX
+            // not handled currently
+          }
+          if (d == 'L' && line.length() > strlen("LUT_3D_SIZE")) {
+            int s = -1;
+            if (line[4] == '3' && sscanf(&(line.c_str()[strlen("LUT_3D_SIZE")]),"%d",&s)==1) { // if the lut is too big this will most probably crash
+              if (s>0 && s < 258) {
+                l->colorTransform.lutRSize = s;
+                l->colorTransform.lutGSize = s;
+                l->colorTransform.lutBSize = s;
+                lutSize = s*s*s*3;
+                currentEntry = 0;
+                l->colorTransform.lut->resize(lutSize);
+                dest = &((*l->colorTransform.lut)[0]);
+              }
+            }
+          }
+          if (d >= '0' && d <= '9') {
+            float r=0,g=0,b=0;
+            if (sscanf(line.c_str(), "%f %f %f", &r, &g, &b) == 3) {
+              if (currentEntry + 3 <= lutSize) {
+                if (dest != NULL) {
+                  *dest++ = r;
+                  *dest++ = g;
+                  *dest++ = b;
+                }
+                currentEntry += 3;
+              } else {
+                break;
+              }
+            }
+          }
+        }
+        line = "";      
+        if (i < len-1 && (c == 0x0d && text[i+1]==0x0a)) {i++;}
+        if (i < len-1 && (c == 0x0a && text[i+1]==0x0d)) {i++;}
+        continue;
+      }
+      line += String::fromChar(c);
+    }
+  }
+  shouldUpdateAll = true;
 }
 
 Layer *loadImage(const String &filePath, const String &fileName) {

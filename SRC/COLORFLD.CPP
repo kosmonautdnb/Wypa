@@ -458,12 +458,13 @@ void insertColor() {
 
 void displayPostProcessedColorItem() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l != NULL && l->colorTransform.useColorTransform) {//||l->colorTransform.useQuantization||l->colorTransform.usePosterize||l->colorTransform.useThreshold)) {
+  if (l != NULL && (l->colorTransform.useColorTransform||l->colorTransform.useLut)) {//||l->colorTransform.useQuantization||l->colorTransform.usePosterize||l->colorTransform.useThreshold)) {
     ImGui::SameLine();
     ImGui::PushID("##DRAWCOLORITEMPOSTPROCESSCOLOR");
     //bool quantize = l->colorTransform.useQuantization && ((int)quantization.size() == 64*64*64);
     unsigned int col = getUIntColor(foregroundColor);
     if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
+    if (l->colorTransform.useLut) col = l->colorTransform.applyLut(col);
     //if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
     //if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
     //if (quantize) col = quantizeFast(col, l->colorTransform.ditherStrength, 0, 0);

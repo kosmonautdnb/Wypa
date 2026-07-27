@@ -503,7 +503,7 @@ void drawToolMagicView() {
   float *v;
 
   ImGui::Text("In selection");ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWJUSTINSELECTION",&l->showColorTransformOnlyInSelection)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Do the postprocessing just in the selection");
-  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {beforeUndoPoint();l->bakeMagic(l->hasSelection()); l->colorTransform.useColorTransform = false; l->colorTransform.usePosterize = false; l->colorTransform.useThreshold = false; l->colorTransform.useQuantization = false; afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Apply the postprocessing to the layer");
+  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {beforeUndoPoint();l->bakeMagic(l->hasSelection()); l->colorTransform.useColorTransform = false; l->colorTransform.useLut = false; l->colorTransform.usePosterize = false; l->colorTransform.useThreshold = false; l->colorTransform.useQuantization = false; afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Apply the postprocessing to the layer");
   ImGui::Separator();
   if (roundButton("Reset##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGRESET",true)) {l->colorTransform.reset(); shouldUpdateAll = true;} else toolTip("Clear all postprocessing settings");
   if (roundButton("Copy##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGCOPY",true)) {l->copyColorTransform();} else toolTip("Copy the postprocessing settings");
@@ -573,7 +573,7 @@ void drawToolMagicView() {
     ImGui::Text("Invert B"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERTB",&t->invertB)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Invert blue (blue = 255-blue)"); 
     ImGui::Text("Invert A"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWINVERTA",&t->invertA)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Invert alpha (alpha = 255-alpha)"); 
 
-    if (roundButton("Gradiation##DRAWTOOLMAGICGRADIENTCURVES",true)) {gradientCurvesToColorTransform = t; dialogGradiationCurves(true);} else toolTip("Use gradiation curves."); 
+    if (roundButton("Gradiation##DRAWTOOLMAGICGRADIENTCURVES",true)) {gradientCurvesToColorTransform = t; dialogGradiationCurves(true);} else toolTip("Use gradiation curves"); 
    
     ImGui::Text("Output gamma");
     v = &t->gamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Apply this gamma after the colorgrading");
@@ -583,6 +583,12 @@ void drawToolMagicView() {
       
     ImGui::EndChild();
     ImGui::Separator();
+  }
+
+  ImGui::Text("Lookup table"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSELUT",&l->colorTransform.useLut)) {shouldUpdateAll = true;} else toolTip("Color lookup table");
+  if (l->colorTransform.useLut) {
+    if (roundButton(t->lut == NULL ? "LUT##DRAWTOOLMAGICLUT":">>LUT##DRAWTOOLMAGICLUT",true)) {if (t->lut != NULL) {delete t->lut; t->lut = NULL;} dialogLoadSave(true, DIALOG_LUT);} else toolTip("Use a color lookup table, too"); 
+    if (t->lut != NULL) {ImGui::SameLine(); ImGui::Text("3D %d", t->lutRSize);}
   }
 
   ImGui::Text("Posterize"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEPOSTERIZE",&l->colorTransform.usePosterize)) {

@@ -964,6 +964,7 @@
     "" _N_
     "You can do:" _N_
     "Color grading - The modification of the colors." _N_
+    "LUT relighting - Apply a color lookup table (LUT) (.cube 3D format)." _N_
     "Posterize - Quantize colors into bigger steps." _N_
     "Binarize - Make the color transparent(\"0\") or \"1\" if it fits." _N_
     "Fast quant - Quantize the color to a palette on the fly." _N_

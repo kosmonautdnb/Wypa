@@ -622,6 +622,10 @@ void ColorTransform::reset() {
   perceptional = false;
   shouldUpdate = true;
   gradientCurves = "";
+  if (lut != NULL) {delete lut; lut = NULL;}
+  lutRSize = 0;
+  lutGSize = 0;
+  lutBSize = 0;
 }
 
 void ColorTransform::update() {
@@ -649,6 +653,73 @@ unsigned int ColorTransform::applyColorTransform(unsigned int pixel) {
   if (b2 > 255) b2 = 255;
   if (a2 > 255) a2 = 255;
   return r2|(g2<<8)|(b2<<16)|(a2<<24);
+}
+
+unsigned int ColorTransform::applyLut(unsigned int pixel) {
+  float lutRScale = (float)lutRSize/256.f;
+  float lutGScale = (float)lutGSize/256.f;
+  float lutBScale = (float)lutBSize/256.f;
+  int lutSizeR = lutRSize;
+  int lutSizeG = lutGSize;
+  int lutSizeB = lutBSize;
+  int lutSize = lutSizeR*lutSizeG*lutSizeB;
+  if (lut == NULL || lutSize > (int)lut->size()) return pixel;
+  unsigned int rgb1 = pixel;
+  int r = rgb1 & 255;
+  int g = (rgb1>>8) & 255;
+  int b = (rgb1>>16) & 255;
+  float rf = (float)r * lutRScale; float gf = (float)g * lutGScale; float bf = (float)b * lutBScale;
+  int r0 = (int)rf; int g0 = (int)gf; int b0 = (int)bf;
+  int index000 = r0 + g0*lutSizeR + b0*lutSizeR*lutSizeG;
+  if (index000 < lutSize) {
+    float ra = rf - (float)r0; float ga = gf - (float)g0; float ba = bf - (float)b0; float rd = 1 - ra; float gd = 1 - ga; float bd = 1 - ba;
+    index000 *= 3;
+    int rp = (r0 < lutSizeR-1 ? 1 : 0)*3;
+    int gp = (g0 < lutSizeG-1 ? 1 : 0)*lutSizeR*3;
+    int bp = (b0 < lutSizeB-1 ? 1 : 0)*lutSizeR*lutSizeG*3;
+    float rv=0,gv=0,bv=0;
+    {
+      int index = index000 + 0;
+      float v1 = (*lut)[index] * rd + (*lut)[index + rp] * ra;
+      float v2 = (*lut)[index + gp] * rd + (*lut)[index + gp + rp] * ra;
+      float v3 = (*lut)[index + bp] * rd + (*lut)[index + bp + rp] * ra;
+      float v4 = (*lut)[index + gp + bp] * rd + (*lut)[index + gp + bp + rp] * ra;
+      float w1 = v1 * gd + v2 * ga;
+      float w2 = v3 * gd + v4 * ga;
+      rv = w1 * bd + w2 * ba;
+    }
+    {
+      int index = index000 + 1;
+      float v1 = (*lut)[index] * rd + (*lut)[index + rp] * ra;
+      float v2 = (*lut)[index + gp] * rd + (*lut)[index + gp + rp] * ra;
+      float v3 = (*lut)[index + bp] * rd + (*lut)[index + bp + rp] * ra;
+      float v4 = (*lut)[index + gp + bp] * rd + (*lut)[index + gp + bp + rp] * ra;
+      float w1 = v1 * gd + v2 * ga;
+      float w2 = v3 * gd + v4 * ga;
+      gv = w1 * bd + w2 * ba;
+    }
+    {
+      int index = index000 + 2;
+      float v1 = (*lut)[index] * rd + (*lut)[index + rp] * ra;
+      float v2 = (*lut)[index + gp] * rd + (*lut)[index + gp + rp] * ra;
+      float v3 = (*lut)[index + bp] * rd + (*lut)[index + bp + rp] * ra;
+      float v4 = (*lut)[index + gp + bp] * rd + (*lut)[index + gp + bp + rp] * ra;
+      float w1 = v1 * gd + v2 * ga;
+      float w2 = v3 * gd + v4 * ga;
+      bv = w1 * bd + w2 * ba;
+    }
+    r = (int)(rv*256.f);
+    g = (int)(gv*256.f);
+    b = (int)(bv*256.f);
+    if (r < 0) r = 0;
+    if (g < 0) g = 0;
+    if (b < 0) b = 0;
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+    rgb1 = r|(g<<8)|(b<<16)|(rgb1 & 0xff000000);
+  }
+  return rgb1;
 }
 
 unsigned int ColorTransform::applyPosterize(unsigned int pixel) {
@@ -1759,6 +1830,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
   for (int i = 0; i < width * height; i++) {
     unsigned int col = pixels[i];
     if (colorTransform.useColorTransform) col = colorTransform.applyColorTransform(col);
+    if (colorTransform.useLut) col = colorTransform.applyLut(col);
     if (colorTransform.usePosterize) col = colorTransform.applyPosterize(col);
     if (colorTransform.useThreshold) col = colorTransform.applyThreshold(col);
     int rs = col & 255;
@@ -1789,6 +1861,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
   }
   updatedPixels(this);
   colorTransform.useColorTransform = false;
+  colorTransform.useLut = false;
   colorTransform.usePosterize = false;
   colorTransform.useQuantization = false;
   shouldUpdateAll = true;
@@ -1874,6 +1947,7 @@ void Layer::bakeMagic(bool onlyInSelection) {
     if (onlyInSelection && (!(pixelStates[i] & PIXELSTATE_SELECTED))) continue;
     unsigned int col = pixels[i];
     if (colorTransform.useColorTransform) col = colorTransform.applyColorTransform(col);
+    if (colorTransform.useLut) col = colorTransform.applyLut(col);
     if (colorTransform.usePosterize) col = colorTransform.applyPosterize(col);
     if (colorTransform.useThreshold) col = colorTransform.applyThreshold(col);
     if (quantize) col = quantizeColorFast(col, colorTransform.ditherStrength, i % width, i / width, colorTransform.paletteShift);
@@ -2113,6 +2187,7 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColor
         unsigned int col = l->getPixel(x,y);
         if (useColorTransform) {
           if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
+          if (l->colorTransform.useLut) col = l->colorTransform.applyLut(col);
           if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
           if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
           if (l->colorTransform.useQuantization) col = quantizeColorFast(col, l->colorTransform.ditherStrength,x,y,l->colorTransform.paletteShift);
@@ -2202,12 +2277,22 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
 
   bool useQuantization = (!dontUsePostProcessing) && (layer->colorTransform.useQuantization && (quantization.size() == 64*64*64));
   bool useColorTransform = (!dontUsePostProcessing) && layer->colorTransform.useColorTransform;
+  bool useLut =  (!dontUsePostProcessing) && layer->colorTransform.useLut;
   bool usePosterize = (!dontUsePostProcessing) && layer->colorTransform.usePosterize;
   bool useThreshold =  (!dontUsePostProcessing) && layer->colorTransform.useThreshold;
   int thresholdRed = (int)floor(layer->colorTransform.thresholdRed*256);
   int thresholdGreen = (int)floor(layer->colorTransform.thresholdGreen*256);
   int thresholdBlue = (int)floor(layer->colorTransform.thresholdBlue*256);
   int thresholdAlpha = (int)floor(layer->colorTransform.thresholdAlpha*256);
+  float lutRScale = (float)layer->colorTransform.lutRSize/256.f;
+  float lutGScale = (float)layer->colorTransform.lutGSize/256.f;
+  float lutBScale = (float)layer->colorTransform.lutBSize/256.f;
+  int lutSizeR = layer->colorTransform.lutRSize;
+  int lutSizeG = layer->colorTransform.lutGSize;
+  int lutSizeB = layer->colorTransform.lutBSize;
+  int lutSize = lutSizeR*lutSizeG*lutSizeB;
+  if (layer->colorTransform.lut == NULL || lutSize > (int)layer->colorTransform.lut->size()) useLut = false;
+  float *lut = NULL; if (layer->colorTransform.lut != NULL) lut = &((*layer->colorTransform.lut)[0]);
 
   bool showSelection = true;
   if (showOnlyActiveLayersSelection) {
@@ -2332,6 +2417,65 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (b > 255) b = 255;
           if (a > 255) a = 255;
           rgb1 = r|(g<<8)|(b<<16)|(a<<24);
+        }
+      }
+
+      if (useLut) {
+        if ((!layer->showColorTransformOnlyInSelection) || (sl & PIXELSTATE_SELECTED)) {
+          int r = rgb1 & 255;
+          int g = (rgb1>>8) & 255;
+          int b = (rgb1>>16) & 255;
+          float rf = (float)r * lutRScale; float gf = (float)g * lutGScale; float bf = (float)b * lutBScale;
+          int r0 = (int)rf; int g0 = (int)gf; int b0 = (int)bf;
+          int index000 = r0 + g0*lutSizeR + b0*lutSizeR*lutSizeG;
+          if (index000 < lutSize) {
+            float ra = rf - (float)r0; float ga = gf - (float)g0; float ba = bf - (float)b0; float rd = 1 - ra; float gd = 1 - ga; float bd = 1 - ba;
+            index000 *= 3;
+            int rp = (r0 < lutSizeR-1 ? 1 : 0)*3;
+            int gp = (g0 < lutSizeG-1 ? 1 : 0)*lutSizeR*3;
+            int bp = (b0 < lutSizeB-1 ? 1 : 0)*lutSizeR*lutSizeG*3;
+            float rv=0,gv=0,bv=0;
+            {
+              int index = index000 + 0;
+              float v1 = lut[index] * rd + lut[index + rp] * ra;
+              float v2 = lut[index + gp] * rd + lut[index + gp + rp] * ra;
+              float v3 = lut[index + bp] * rd + lut[index + bp + rp] * ra;
+              float v4 = lut[index + gp + bp] * rd + lut[index + gp + bp + rp] * ra;
+              float w1 = v1 * gd + v2 * ga;
+              float w2 = v3 * gd + v4 * ga;
+              rv = w1 * bd + w2 * ba;
+            }
+            {
+              int index = index000 + 1;
+              float v1 = lut[index] * rd + lut[index + rp] * ra;
+              float v2 = lut[index + gp] * rd + lut[index + gp + rp] * ra;
+              float v3 = lut[index + bp] * rd + lut[index + bp + rp] * ra;
+              float v4 = lut[index + gp + bp] * rd + lut[index + gp + bp + rp] * ra;
+              float w1 = v1 * gd + v2 * ga;
+              float w2 = v3 * gd + v4 * ga;
+              gv = w1 * bd + w2 * ba;
+            }
+            {
+              int index = index000 + 2;
+              float v1 = lut[index] * rd + lut[index + rp] * ra;
+              float v2 = lut[index + gp] * rd + lut[index + gp + rp] * ra;
+              float v3 = lut[index + bp] * rd + lut[index + bp + rp] * ra;
+              float v4 = lut[index + gp + bp] * rd + lut[index + gp + bp + rp] * ra;
+              float w1 = v1 * gd + v2 * ga;
+              float w2 = v3 * gd + v4 * ga;
+              bv = w1 * bd + w2 * ba;
+            }
+            r = (int)(rv*256.f);
+            g = (int)(gv*256.f);
+            b = (int)(bv*256.f);
+            if (r < 0) r = 0;
+            if (g < 0) g = 0;
+            if (b < 0) b = 0;
+            if (r > 255) r = 255;
+            if (g > 255) g = 255;
+            if (b > 255) b = 255;
+            rgb1 = r|(g<<8)|(b<<16)|(rgb1 & 0xff000000);
+          }
         }
       }
 

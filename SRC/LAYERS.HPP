@@ -191,6 +191,8 @@ public:
     useQuantization = false;
     usePosterize = false;
     useThreshold = false;
+    useLut = false;
+    lut = NULL;
     reset();
   }
   float colorMatrix[4*5];
@@ -246,6 +248,11 @@ public:
   bool usePosterize;
   bool useThreshold;
   String gradientCurves;
+  Array<float> *lut;
+  bool useLut;
+  int lutRSize;
+  int lutGSize;
+  int lutBSize;
   float *processingGet();
   void fromProcessing(float *processing);
   unsigned int r[256];
@@ -256,6 +263,7 @@ public:
   void reset();
   void update();
   unsigned int applyColorTransform(unsigned int pixel);
+  unsigned int applyLut(unsigned int pixel);
   unsigned int applyPosterize(unsigned int pixel);
   unsigned int applyThreshold(unsigned int pixel);
   int byteCount();
@@ -314,6 +322,12 @@ public:
   S_BOOL("usePosterize",(__o__)->usePosterize);\
   S_BOOL("useThreshold",(__o__)->useThreshold);\
   S_STRING("gradientCurves",(__o__)->gradientCurves);\
+  if (!save) {if ((__o__)->lut == NULL) (__o__)->lut = new Array<float>(); (__o__)->lut->clear(); Array<float> *helper = (__o__)->lut; S_ZIPARRAY(combined(String("lut")+String::fromInt(i)+".rgb"),(*helper),sizeof(float)); if ((__o__)->lut->size()==0) {delete (__o__)->lut; (__o__)->lut = NULL;}}\
+  if (save && ((__o__)->lut != NULL)) {Array<float> *helper = (__o__)->lut; S_ZIPARRAY(combined(String("lut")+String::fromInt(i)+".rgb"),(*helper),sizeof(float));}\
+  S_BOOL("useLut",(__o__)->useLut);\
+  S_INT("lutRSize",(__o__)->lutRSize);\
+  S_INT("lutGSize",(__o__)->lutGSize);\
+  S_INT("lutBSize",(__o__)->lutBSize);\
   if (!save) (__o__)->shouldUpdate = true;\
   S_OBJECT_CLOSE();
 
