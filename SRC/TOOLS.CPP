@@ -1356,6 +1356,7 @@ bool lockedMouseX = false;
 bool lockedMouseY = false;
 int lockedMousePosX = 0;
 int lockedMousePosY = 0;
+bool tilingOn = false;
 
 void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double angle, bool justSelection, bool paintJustIntoOutline, bool pencil) {
   if (locked(layer,LOCK_PIXELS)) return;
@@ -1400,6 +1401,15 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
   }
   Matrix s; s.scale3(Vector(toolAspectX,toolAspectY,1));
   m = inverse2(s) * m;
+  int x0 = 0, y0 = 0, x1 = 0, y1 = 0, dx = 0, dy = 0;
+  if (tilingOn) {
+    x0 = layer->toolInfo.tileDrawX0; y0 = layer->toolInfo.tileDrawY0;
+    x1 = layer->toolInfo.tileDrawX1; y1 = layer->toolInfo.tileDrawY1;
+    dx = x1 - x0; if (dx < 1) dx = 1;
+    dy = y1 - y0; if (dy < 1) dy = 1;
+    layerUpdateX0 -= dx; layerUpdateY0 -= dy;
+    layerUpdateX1 += dx; layerUpdateY1 += dy;
+  }
   for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
     for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
       double px = x*m.m[4*0+0]+y*m.m[4*1+0]+m.m[4*3+0];
@@ -1410,6 +1420,14 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
       if (by == 0) by = (int)floor(py);
       if ((unsigned int)bx < (unsigned int)b->pixelWidth && (unsigned int)by < (unsigned int)b->pixelHeight) {
         int p = x + y * layer->width;
+        if (tilingOn) {
+          int kx = x - x0;
+          int ky = y - y0;
+          if (kx >= 0) kx = (kx % dx) + x0; else kx = (abs(dx+kx) % dx) + x0;
+          if (ky >= 0) ky = (ky % dy) + y0; else ky = (abs(dy+ky) % dy) + y0;
+          if ((unsigned int)kx >= (unsigned int)layer->width || (unsigned int)ky >= (unsigned int)layer->height) continue;
+          p = kx + ky * layer->width;
+        }
         float here = b->values[bx+by*b->pixelWidth];
         if (interpolate) {
           float hereX = here;
@@ -1512,6 +1530,15 @@ void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, d
   double lineCenterLY = (ly1+ly0)*0.5;
   double centerLength = lineLength * 0.5 + (lineAntialiasing ? 0 : 0.5)*0.5;
   double lw2 = (lineWidth-(lineAntialiasing ? 0.5 : 0))*0.5;
+  int x0 = 0, y0 = 0, x1 = 0, y1 = 0, dx = 0, dy = 0;
+  if (tilingOn) {
+    x0 = layer->toolInfo.tileDrawX0; y0 = layer->toolInfo.tileDrawY0;
+    x1 = layer->toolInfo.tileDrawX1; y1 = layer->toolInfo.tileDrawY1;
+    dx = x1 - x0; if (dx < 1) dx = 1;
+    dy = y1 - y0; if (dy < 1) dy = 1;
+    layerUpdateX0 -= dx; layerUpdateY0 -= dy;
+    layerUpdateX1 += dx; layerUpdateY1 += dy;
+  }
   for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
     for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
       double lx = x - lineCenterLX;
@@ -1538,6 +1565,14 @@ void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, d
       here = 1 - here;
       if (here >= 0) {
         int p = x + y * layer->width;
+        if (tilingOn) {
+          int kx = x - x0;
+          int ky = y - y0;
+          if (kx >= 0) kx = (kx % dx) + x0; else kx = (abs(dx+kx) % dx) + x0;
+          if (ky >= 0) ky = (ky % dy) + y0; else ky = (abs(dy+ky) % dy) + y0;
+          if ((unsigned int)kx >= (unsigned int)layer->width || (unsigned int)ky >= (unsigned int)layer->height) continue;
+          p = kx + ky * layer->width;
+        }
         float value = paintValues[p];
         value = 1-(1-here)*(1-value);
         if (!justSelection || (layer->pixelStates[p] & PIXELSTATE_SELECTED)) {
@@ -1686,6 +1721,22 @@ void useToolPainting() {
     double toolHeight = (brush->pixelHeight()*0.5+brush->randomY) * toolAspectY;
     updateUpdateFlagByBrushLine(paintToolLayer,cx,cy,cx,cy,toolWidth,toolHeight);
 
+    if (tilingOn) {
+      Matrix m1 = paintToolLayer->transform.transformation * currentCanvas->transform.transformation;
+      for (int y = 0; y < currentCanvas->height; y++) {
+        for (int x = 0; x < currentCanvas->width; x++) {
+          int ix = (int)(x*m1.m[4*0+0]+y*m1.m[4*1+0]+m1.m[4*3+0]);
+          int iy = (int)(x*m1.m[4*0+1]+y*m1.m[4*1+1]+m1.m[4*3+1]);
+          if ((unsigned int)ix < (unsigned int)paintToolLayer->width && (unsigned int)iy < (unsigned int)paintToolLayer->height) {
+            unsigned char p = paintToolLayer->pixelStates[ix+iy*paintToolLayer->width];
+            if (p & PIXELSTATE_OUTLINE) {
+              currentCanvas->pixelStates[x+y*currentCanvas->width] |= PIXELSTATE_UPDATED;
+            }
+          }
+        }
+      }
+    }
+
     repaintLayer(paintToolLayer,false);
     paintToolLayer->hasOutline = true;
     clearOutlineAfterNextPaint = true;
@@ -1777,7 +1828,7 @@ void useToolPainting() {
       layerBoundings.z += 1;
       layerBoundings.w += 1;
     }
-    if (!mirrorToolEnabled) { // if mirror tool is on just take the full canvas (slow)
+    if ((!mirrorToolEnabled) && (!tilingOn)) { // if mirror tool is on just take the full canvas (slow)
       if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
       if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
       if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
@@ -2112,6 +2163,21 @@ void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy, bool useAlpha)
   updatedPixels(l);
 }
 
+void selectTileDrawingRectangle(Layer *l,int x0, int y0, int x1, int y1) {
+  for (int i = 0; i < currentCanvas->layers.size(); i++) {
+    LayerAdditionalToolInfo *t = &currentCanvas->layers[i]->toolInfo; t->tileDrawX0 = 0; t->tileDrawY0 = 0; t->tileDrawX1 = 0; t->tileDrawY1 = 0;
+  }
+  if (l != NULL) {
+    LayerAdditionalToolInfo *t = &l->toolInfo; t->tileDrawX0 = x0; t->tileDrawY0 = y0; t->tileDrawX1 = x1; t->tileDrawY1 = y1;
+  }
+  if (tilingOn) {
+    l->toolInfo.showTilingGrid = false;
+    updateTilingGrid(l,true);
+    l->selectNone();
+    l->addSelectionRectangle(x0,y0,x1,y1);
+  }
+}
+
 void useToolTiling() {
   if (!isPaintAreaActive()) return;
   Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && locked(l,LOCK_PIXELS)) return;
@@ -2125,10 +2191,12 @@ void useToolTiling() {
     if (controlKeyId == CONTROLKEY_SHIFT) {
       l->selectNone();
       l->addSelectionRectangle(sx,sy,sx+l->toolInfo.tilingWidth,sy+l->toolInfo.tilingHeight);
+      selectTileDrawingRectangle(l,sx,sy,sx+l->toolInfo.tilingWidth,sy+l->toolInfo.tilingHeight);
     } else {
       copiedTiling.free();
       copiedTiling = getImageFromLayer(l,sx,sy,l->toolInfo.tilingWidth,l->toolInfo.tilingHeight);
       updateTilingImage(copiedTiling);
+      selectTileDrawingRectangle(l,sx,sy,sx+l->toolInfo.tilingWidth,sy+l->toolInfo.tilingHeight);
     }
   }
   if (ImGui::IsMouseDown(1)) {

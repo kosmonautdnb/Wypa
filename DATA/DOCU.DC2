@@ -620,10 +620,13 @@
       "Places the current image onto the center of the \"screen\" and" _N_
       "zooms it to fit the \"screen\"." _N_
     "}" _N_
-    "Clear mouse lock{" _N_
+    "Clear mouse lock and tiling{" _N_
       "You can lock x or y axis of the mouse in order to paint straight" _N_
       "lines. With this option here you can also remove the lock besides" _N_
       "the keys for that." _N_
+      "" _N_
+      "Also if you did enable the \"Tiled drawing\" feature in the Tileset" _N_
+      "tool this feature will be disabled by this menu line." _N_
     "}" _N_
     "Show only selected layers selection{" _N_
       "If you disable this option the selections of all layers bleed" _N_
@@ -1020,6 +1023,9 @@
     "You can load/save the anim to a png." _N_
     "The first line in the png holds the width of a cell" _N_
     "(a 100% red pixel)." _N_
+    "" _N_
+    "You may use \"Tiled drawing\", which lets you select a cell," _N_
+    "and draw repeated (seamless) on it." _N_
   "}" _N_
   "Overlay tool{" _N_
     "Overlays are painted over the complete image." _N_

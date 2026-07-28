@@ -293,7 +293,11 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
       if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
       ImGui::Separator();
-      if (ImGui::MenuItem("Clear mouse lock",NULL,false,lockedMouseX||lockedMouseY)) {lockedMouseX = false; lockedMouseY = false;}
+      static double k = 0; k += timeDelta; k = fmod(k,2); int k2 = (int)(k*4);
+      bool lockedMouse = lockedMouseX||lockedMouseY||tilingOn;
+      if (lockedMouse) ImGui::PushStyleColor(ImGuiCol_Text,(k2 & 1) ? ImVec4(1,0,0,1) : ImVec4(0.5,0,0,1));
+      if (ImGui::MenuItem("Clear mouse lock and tiling",NULL,false,lockedMouse)) {lockedMouseX = false; lockedMouseY = false; tilingOn = false; if (tool == TOOL_TILING) switchTool(TOOL_NONE);}
+      if (lockedMouse) ImGui::PopStyleColor();
       if (ImGui::MenuItem("Show only selected layer(s) selection",NULL,showOnlyActiveLayersSelection)) {showOnlyActiveLayersSelection = !showOnlyActiveLayersSelection; shouldUpdateAll = true;}
       ImGui::Separator();
       if (ImGui::MenuItem("Sort palette by luminance",NULL)) {sortPalette(palette); updatePalette(); shouldUpdateAll = true; showPalette = true;}

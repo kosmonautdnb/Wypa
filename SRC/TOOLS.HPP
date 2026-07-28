@@ -217,6 +217,8 @@ extern bool lockedMouseY;
 extern int lockedMousePosX;
 extern int lockedMousePosY;
 
+extern bool tilingOn;
+
 extern double measureCX0;
 extern double measureCY0;
 extern double measureLX0;

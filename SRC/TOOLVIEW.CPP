@@ -736,7 +736,13 @@ void updateTilingGrid(Layer *l, bool visible) {
   l->updatePixelStates(~(PIXELSTATE_GRID|PIXELSTATE_TEMP),0,0);
   for (int y = 0; y < (int)l->height; y++) {
     for (int x = 0; x < (int)l->width; x++) {
-      //int i = x + y * (int)l->width;
+
+      if (tilingOn && visible) {
+        if ( (x == l->toolInfo.tileDrawX0) || (y == l->toolInfo.tileDrawY0) || (x == l->toolInfo.tileDrawX1) || (y == l->toolInfo.tileDrawY1) ) {
+          l->pixelStates[x+y*l->width] |= PIXELSTATE_GRID;
+        }
+      }
+
       if (l->toolInfo.showTilingGrid && visible) {
         int gridX = x-l->toolInfo.tilingOffsetX + l->toolInfo.tilingWidth * 100000;
         int gridY = y-l->toolInfo.tilingOffsetY + l->toolInfo.tilingHeight * 100000;
@@ -959,6 +965,9 @@ void drawToolTilingView() {
       ImGui::Text("");
     ImGui::Text("[%d] [%d]",x,y);
     ImGui::Text("Show grid"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGVIEWSHOWGRID",&l->toolInfo.showTilingGrid)) {updateTilingGrid(l,true);} else toolTip("Display the grid in the layer");
+    ImGui::Separator();
+    ImGui::Text("Tiled drawing"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGVIEWTILINGON",&tilingOn)) {updateTilingGrid(l,true);} else toolTip("Edit/Paint in tiling mode (select tile by clicking)");
+    ImGui::Separator();
     ImGui::Text("Cells");
     ImGui::Text("Offset X"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWOFSX",&l->toolInfo.tilingOffsetX,0,0)) {updateTilingGrid(l,true);} else toolTip("Grid displacement in pixels in x");
     ImGui::Text("Offset Y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGVIEWOFSY",&l->toolInfo.tilingOffsetY,0,0)) {updateTilingGrid(l,true);} else toolTip("Grid displacement in pixels in y");

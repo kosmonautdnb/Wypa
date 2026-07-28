@@ -42,6 +42,7 @@ void putTilingAnimRGBAImage(const RGBAImage &img, Layer *l,int frame);
 bool getTilingAnimationFrameLayerCell(class Layer *l,int frame, int &cx, int &cy, int &outaX, int &outaY);
 
 bool notInt(double v);
+void updateTilingGrid(Layer *l, bool visible);
 
 extern int scrollToTileMapIndex;
 extern bool excludeEmptyTiles;

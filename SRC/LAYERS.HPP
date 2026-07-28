@@ -397,6 +397,11 @@ public:
     tilingAnimTime = 0;
     tilingAnimFrame = 0;
 
+    tileDrawX0 = 0;
+    tileDrawY0 = 0;
+    tileDrawX1 = 0;
+    tileDrawY1 = 0;
+
     tileMapSelectedTile = 0;
 
     showTilingGrid = true;
@@ -428,6 +433,11 @@ public:
   bool tilingAnimDoubleSided;
   float tilingAnimTime;
 
+  int tileDrawX0;
+  int tileDrawY0;
+  int tileDrawX1;
+  int tileDrawY1;
+
   int tileMapSelectedTile;
 
   bool showTilingGrid;
@@ -458,6 +468,10 @@ public:
   S_BOOL("tilingAnimPlaying",(__o__)->tilingAnimPlaying);\
   S_BOOL("tilingAnimReverse",(__o__)->tilingAnimReverse);\
   S_BOOL("tilingAnimDoubleSided",(__o__)->tilingAnimDoubleSided);\
+  S_INT("tileDrawX0",(__o__)->tileDrawX0);\
+  S_INT("tileDrawY0",(__o__)->tileDrawY0);\
+  S_INT("tileDrawX1",(__o__)->tileDrawX1);\
+  S_INT("tileDrawY1",(__o__)->tileDrawY1);\
   S_INT("tileMapSelectedTile",(__o__)->tileMapSelectedTile);\
   S_BOOL("showTilingGrid",(__o__)->showTilingGrid);\
   S_BOOL("showTilingGridIndices",(__o__)->showTilingGridIndices);\
