@@ -399,7 +399,7 @@ void drawMenuBar() {
     ImGui::PopItemWidth();
 
 
-    cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 - 110;
+    cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 - 110 - 20;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);
     ImGui::Text("Zoom");
@@ -413,7 +413,9 @@ void drawMenuBar() {
     } else toolTip("Zoom of the complete picture");
     ImGui::PopStyleColor();
     ImGui::PopItemWidth();
-
+    ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.125,0.125,0.125,1));
+    ImGui::SameLine(); if (ImGui::Checkbox("##DRAWMENUBARFULLSCREEN",&fullScreen)) {} else toolTip("Black env.");
+    ImGui::PopStyleColor();
     ImGui::EndMainMenuBar();
   }
   ImGui::PopStyleColor();

@@ -33,7 +33,6 @@
 #include "TOOLS.HPP"
 
 int toolbar_width = 32;
-int toolbar_bottom_height = 32;
 int tool = TOOL_NONE;
 int lastTool = TOOL_NONE;
 bool fullScreen = false;
@@ -111,10 +110,10 @@ bool toolBarButton(const char *svgName, int toolIndex) {
 }
 
 void drawToolBar() {
-  ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.7,0.7,0.7,1));
   if (!fullScreen) {
     ImGui::SetNextWindowPos(ImVec2(0,menuBar_height));
-    ImGui::Begin("TOOLBAR", NULL, ImVec2(toolbar_width,main_window_yres-menuBar_height-toolbar_bottom_height),1.0,FROZENWINDOW);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.7,0.7,0.7,1));
+    ImGui::Begin("TOOLBAR", NULL, ImVec2(toolbar_width,main_window_yres-menuBar_height),1.0,FROZENWINDOW);
     toolBarButton("selectionTool",TOOL_SELECTION); toolTip("Selection tool");
     toolBarButton("moveTool",TOOL_MOVE); toolTip("Move tool");
     toolBarButton("wandTool",TOOL_WAND); toolTip("Magic wand tool");
@@ -135,18 +134,12 @@ void drawToolBar() {
     toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
     toolBarButton("mirrorTool",TOOL_MIRROR); toolTip("Mirror tool");
     ImGui::End();
+    ImGui::PopStyleColor();
   }
   if (lastTool != tool) {toolChangeMessage(lastTool,tool); lastTool = tool;}
-  if (fullScreen) {
-    ImGui::PopStyleColor();
-    ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0,0,0,1));
-  }
-  ImGui::SetNextWindowPos(ImVec2(0,main_window_yres-toolbar_bottom_height));
-  ImGui::Begin("TOOLBARBOTTOM", NULL, ImVec2(toolbar_width,toolbar_bottom_height),1.0,FROZENWINDOW);
-  ImGui::PopStyleColor();
+  ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
+  // some invisible window is needed for all the dialogs
+  ImGui::Begin("DRAWDIALOGS", NULL, ImVec2(0,0),0.0,FROZENWINDOW);
   drawDialogs();
-  ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.7,0.7,0.7,1));
-  if (ImGui::Checkbox("##TOOLBARBOTTOMFULLSCREEN",&fullScreen)) {} else toolTip("Black env.");
   ImGui::End();
-  ImGui::PopStyleColor();
 }
