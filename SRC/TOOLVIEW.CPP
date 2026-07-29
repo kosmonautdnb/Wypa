@@ -652,9 +652,9 @@ void drawToolMagicView() {
   if (l->colorTransform.useQuantization) {
     if (palette.size()<=256) {
       ImGui::Text("Dithering");
-      v = &t->ditherStrength; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWDITHERSTRENGTH",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Apply this dither factor to the pixel luminances before quantizing.");
+      v = &t->ditherStrength; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWDITHERSTRENGTH",v,0,1)) {if (*v<0) *v = 0; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Apply this dither factor to the pixel luminances before quantizing");
       ImGui::Text("Palette shift");
-      if (ImGui::InputInt("##DRAWTOOLMAGICVIEWPALETTESHIFT",&t->paletteShift,1,1)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Add or sub from the palette entry after quantizazion.");
+      if (ImGui::InputInt("##DRAWTOOLMAGICVIEWPALETTESHIFT",&t->paletteShift,1,1)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Add or sub from the palette entry after quantizazion");
     } else {
       if (palette.size()>256) ImGui::Text("Quantization\nonly with\npalettes\n<=256 colors");
     }
@@ -1000,7 +1000,7 @@ void drawToolTilingView() {
     if (l->toolInfo.tilingAnimPlaying) {
       ImGui::Text("Index %d",l->toolInfo.tilingAnimFrame); toolTip("The current tile index in the animation");
     }
-    ImGui::Text("Show indices"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGANIMATIONSHOWINDICES",&l->toolInfo.showTilingGridIndices)) {updateTilingGrid(l,true);} else toolTip("Show tile index under the mouse.");
+    ImGui::Text("Show indices"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILINGANIMATIONSHOWINDICES",&l->toolInfo.showTilingGridIndices)) {updateTilingGrid(l,true);} else toolTip("Show tile index under the mouse");
     ImGui::Text("FPS"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLTILINGANIMATIONFPS",&l->toolInfo.tilingAnimFPS,0,0,2)) {} else toolTip("How fast is the animation"); if (l->toolInfo.tilingAnimFPS<0) l->toolInfo.tilingAnimFPS=0;
     ImGui::Text("Index0"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGANIMATIONFIRSTFRAME",&l->toolInfo.tilingAnimFirstFrame,0,0)) {l->toolInfo.tilingAnimPlaying=false;} else toolTip("The first frame of the animation"); if (l->toolInfo.tilingAnimFirstFrame<0) l->toolInfo.tilingAnimFirstFrame=0;
     ImGui::Text("IndexN"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLTILINGANIMATIONLASTFRAME",&l->toolInfo.tilingAnimLastFrame,0,0)) {l->toolInfo.tilingAnimPlaying=false;} else toolTip("The last frame of the animation"); if (l->toolInfo.tilingAnimLastFrame<0) l->toolInfo.tilingAnimLastFrame=0;
@@ -1268,7 +1268,7 @@ void drawToolModifyView() {
     ImGui::Text("Outline mode"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYOUTLINED",&modifyOutlined)) {} else toolTip("Smooth warp using only the outlines");
   }
   if ((!modifyOutlined) && modifyPointsSource.size()==4) {
-    ImGui::Text("Persp. mode"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYPERSPECTIVE",&modifyPerspective)) {} else toolTip("Warp using 3D perspective (only available for 4 points) e.g. to rectify documents.");
+    ImGui::Text("Persp. mode"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYPERSPECTIVE",&modifyPerspective)) {} else toolTip("Warp using 3D perspective (only available for 4 points) e.g. to rectify documents");
   }
   ImGui::Text("Filtered"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMODIFYFILTERED",&modifyFiltered)) {} else toolTip("Smoothen the colors when baking");
   ImGui::Separator();

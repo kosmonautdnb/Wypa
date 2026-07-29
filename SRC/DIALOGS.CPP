@@ -763,7 +763,7 @@ void dialogEditText(bool openIt) {
   DIALOGSTART("Edit text")
   ImVec2 boxSize(main_window_xres*5/6,main_window_yres*2/3);
   DIALOGKEYSHERE();
-  ImGui::InputTextMultiline("##DIALOGEDITTEXTTEXTTOEDIT", textToSave, textToSaveLength, boxSize); toolTip("The text to be edited.");
+  ImGui::InputTextMultiline("##DIALOGEDITTEXTTEXTTOEDIT", textToSave, textToSaveLength, boxSize); toolTip("The text to be edited");
   if (ImGui::Button("Close##DIALOGEDITTEXTCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
@@ -2309,7 +2309,7 @@ void dialogColorMatrix(bool openIt) {
       updatedPixels(l);
       afterUndoPoint();
       ImGui::CloseCurrentPopup();
-    } else toolTip("Apply this color transformation. no preview.");
+    } else toolTip("Apply this color transformation. no preview");
     ImGui::SameLine();
   }
   
@@ -3181,7 +3181,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
       //log_setBiosCursor(0,0);
     } else TOOLTIP("Select this drive letter");
   }
-  ImGui::Text("%s",dialogFileTypes[mode]); TOOLTIP("The default filetypes for this.");
+  ImGui::Text("%s",dialogFileTypes[mode]); TOOLTIP("The default filetypes for this");
   ImGui::Separator();
   SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();ImGui::InputText("##DIALOGLOADSAVEFILTER",filter,FILTERNAMEMAX); TOOLTIP("You only see files with this in their name");
   ImGui::SameLine();
