@@ -89,7 +89,7 @@ bool toolBarButton(const char *svgName, int toolIndex) {
     }
 
     if (l->type == LAYERTYPE_TILEMAP) {
-      if (toolIndex == TOOL_TILEMAP || toolIndex == TOOL_MOVE || toolIndex == TOOL_MAGIC || toolIndex == TOOL_FILL || toolIndex == TOOL_SELECTION) {
+      if (toolIndex == TOOL_TILEMAP || toolIndex == TOOL_MOVE || toolIndex == TOOL_MAGIC || toolIndex == TOOL_FILL || toolIndex == TOOL_SELECTION || toolIndex == TOOL_WAND) {
       } else {
         disabled = true;
       }

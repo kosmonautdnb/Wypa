@@ -126,6 +126,7 @@ void repaintGradientTexture(Gradient *gradient) {
 }
 
 void drawToolWandView() {
+  Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && locked(l,LOCK_PIXELS_AND_TILEMAP)) return;
   if (controlKeyId == CONTROLKEY_SHIFT) {ImGui::Text("Add selection");} 
   else
     if (controlKeyId == CONTROLKEY_CTRL) {ImGui::Text("Remove selection");} 
@@ -133,9 +134,11 @@ void drawToolWandView() {
     if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {ImGui::Text("Mul selection");} 
   else
     ImGui::Text("");
-  float k;
-  k = wandColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWCOLORDISTANCE",&k,0,256)) {wandColorDistance = k;} else toolTip("Sameness value for color");
-  k = wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
+  if (l->type != LAYERTYPE_TILEMAP) {
+    float k;
+    k = wandColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWCOLORDISTANCE",&k,0,256)) {wandColorDistance = k;} else toolTip("Sameness value for color");
+    k = wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
+  }
   ImGui::Text("Surrounding"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors)) {} else toolTip("Use only surrounding areas");
 }
 

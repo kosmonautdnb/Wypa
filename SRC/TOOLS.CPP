@@ -532,7 +532,8 @@ double wandAlphaDistance = 20;
 double wandColorDistance = 20;
 bool wandByNeighbors = true;
 
-bool isWandAccepted(unsigned int destColor, unsigned int checkColor) {
+bool isWandAccepted(Layer *l,unsigned int destColor, unsigned int checkColor) {
+  if (l->type == LAYERTYPE_TILEMAP) return destColor == checkColor;
   int dr = destColor & 255;
   int dg = (destColor>>8) & 255;
   int db = (destColor>>16) & 255;
@@ -561,9 +562,11 @@ void useToolWand() {
 
   beforeUndoPoint();
 
-  int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2); lx = (int)floor(lx2); ly = (int)floor(ly2);
+  int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2);
+  if (l->type == LAYERTYPE_TILEMAP) {Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId); if (l2 != NULL) {lx2 /= l2->toolInfo.tilingWidth; ly2 /= l2->toolInfo.tilingHeight;}}
+  lx = (int)floor(lx2); ly = (int)floor(ly2);
   if ((unsigned int)lx>=(unsigned int)l->width||(unsigned int)ly>=(unsigned int)l->height) return;
-  int colorHere = l->pixels[lx+ly*l->width];
+  unsigned int colorHere = l->pixels[lx+ly*l->width];
   if (controlKeyId == CONTROLKEY_NONE) for (int i = 0; i < l->width*l->height; i++) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
 
   if (wandByNeighbors) {
@@ -578,10 +581,10 @@ void useToolWand() {
       for (int y = 0; y < l->height; y++) {
         for (int x = 0; x < l->width; x++) {
           if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
-            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l->pixels[x-1+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
-            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l->pixels[x+1+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
-            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l->pixels[x+(y-1)*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
-            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l->pixels[x+(y+1)*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
+            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l,l->pixels[x-1+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
+            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l,l->pixels[x+1+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
+            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l,l->pixels[x+(y-1)*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
+            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l,l->pixels[x+(y+1)*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
           }
         }
       }
@@ -598,7 +601,7 @@ void useToolWand() {
       }
     }
   } else {
-    for (int i = 0; i < l->width*l->height; i++) {bool yes = isWandAccepted(l->pixels[i],colorHere); if (yes) {
+    for (int i = 0; i < l->width*l->height; i++) {bool yes = isWandAccepted(l,l->pixels[i],colorHere); if (yes) {
         if (controlKeyId == CONTROLKEY_NONE) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
         if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) l->pixelStates[i] |= PIXELSTATE_SELECTED;
         if (controlKeyId == CONTROLKEY_CTRL) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
@@ -1161,16 +1164,20 @@ void useToolSelection() {
         selectionPlane->clear();
         Matrix m = inverse2(selectionPlane->transform.transformation);
         Vector b = currentCanvas->getLayerPixelBounding(selectionPlane,x0,y0,x1,y1);
+        int ox=1,oy=1;
         if (tiling) {
-          x0 = floor(x0/tw);
-          y0 = floor(y0/th);
-          x1 = floor((x1-1)/tw)+1;
-          y1 = floor((y1-1)/th)+1;
+          //x0 = floor(x0/tw);
+          //y0 = floor(y0/th);
+          //x1 = floor((x1-1)/tw)+1;
+          //y1 = floor((y1-1)/th)+1;
+          ox = tw < 1 ? 1 : tw; oy = th < 1 ? 1 : th;
+          b.x *= ox; b.z *= ox;
+          b.y *= oy; b.w *= oy;
         }
         for (int yl = b.y; yl < b.w; yl++) {
           for (int xl = b.x; xl < b.z; xl++) {
-            double x2 = xl * m.m[0*4+0]+yl * m.m[1*4+0]+m.m[3*4+0];
-            double y2 = xl * m.m[0*4+1]+yl * m.m[1*4+1]+m.m[3*4+1];
+            double x2 = xl * m.m[0*4+0] + yl * m.m[1*4+0] + m.m[3*4+0];
+            double y2 = xl * m.m[0*4+1] + yl * m.m[1*4+1] + m.m[3*4+1];
             int x = (int)x2;
             int y = (int)y2;
             if (x == 0) x = (int)floor(x2);
@@ -1182,8 +1189,10 @@ void useToolSelection() {
                 double d = sqrt(dx*dx+dy*dy);
                 if (d > 1) continue;
               }
-              if ((unsigned int)xl < (unsigned int)selectionPlane->width && (unsigned int)yl < (unsigned int)selectionPlane->height)
-                selectionPlane->pixels[xl+yl*selectionPlane->width] = 1;
+              int xl2 = xl / ox;
+              int yl2 = yl / oy;
+              if ((unsigned int)xl2 < (unsigned int)selectionPlane->width && (unsigned int)yl2 < (unsigned int)selectionPlane->height)
+                selectionPlane->pixels[xl2+yl2*selectionPlane->width] = 1;
             }
           }
         }

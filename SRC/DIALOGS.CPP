@@ -179,9 +179,9 @@ void dialogAbout(bool openIt) {
     "Version: %d.%02d\n"
     "------------------------------------\n"
     "Wypa is not coded very \"good\".\n"
-    "It's just a proof of concept, since\n"
-    "there where almost no other options\n"
-    "to paint in high resolutions with true color.\n"
+    "It's just a proof of concept, since there\n"
+    "where almost no other options to paint\n"
+    "in high resolutions with true color on DOS.\n"
     "------------------------------------\n"
     "This program is freeware.\n"
   , buildType.c_str(), version / 100, version % 100

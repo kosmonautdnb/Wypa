@@ -1076,8 +1076,9 @@ void Layer::invertSelection() {
 }
 
 void Layer::fillSelectionWithColor(unsigned int color) {
-  if (locked(this,LOCK_PIXELS)) return;
-  for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = color;
+  if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return;
+  if (type == LAYERTYPE_TILEMAP && (color != 0x00000000)) return; // on tilemaps only filling with 0 (clearing) is allowed = NOTILEMAPPIXEL
+  for (int i = 0; i < width * height; i++) if (pixelStates[i] & PIXELSTATE_SELECTED) pixels[i] = type == LAYERTYPE_TILEMAP ? NOTILEMAPPIXEL : color;
   shouldUpdateAll = true;
   updatedPixels(this);
   addUsedColor(getImVec4Color(color));
@@ -4599,6 +4600,9 @@ void newPicture(int w, int h,const String &pictureName) {
 void duplicatePicture(bool mergeLayers) {
   Canvas *zwo = currentCanvas->clone();
   sprintf(zwo->pictureName,"duplicated");
+  for (int i = 0; i < zwo->layers.size(); i++) {
+    if (zwo->layers[i]->type == LAYERTYPE_TILEMAP) mergeLayers = false;
+  }
   if (mergeLayers) {
     zwo->selectAllLayers();
     zwo->mergeDownLayers();
