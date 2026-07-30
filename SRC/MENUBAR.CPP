@@ -110,14 +110,19 @@ void drawMenuBar() {
   double canvasPixelCenterY = currentCanvas->height/2 + currentCanvas->screenPosY;
   if (ImGui::BeginMainMenuBar()) {
     SVG *svg = &svgs["appicon"];
-    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    ImVec2 cursor = ImGui::GetCursorScreenPos(); ImVec2 cursor2 = cursor;
     ImGui::Image((ImTextureID)0,ImVec2(svg->w,svg->h));
+    if (ImGui::IsItemHovered()&&ImGui::IsMouseClicked(0)) {dialogAbout(true);}
     cursor.y -= 4;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
     toolTip("Wypa version %d.%02d", version / 100, version % 100);
     ImGui::SameLine();
+    cursor2.x += svg->w+3;
+    ImGui::SetCursorScreenPos(cursor2);
     ImGui::Text("|");
     ImGui::SameLine();
+    cursor2.x += 7+2;
+    ImGui::SetCursorScreenPos(cursor2);
     if (ImGui::BeginMenu("File")) {
       on = true;
       if (ImGui::MenuItem("New image")) {dialogNewImage(true);}
@@ -374,16 +379,20 @@ void drawMenuBar() {
       on = true;
       ImGui::EndMenu();
     }
-
+    ImGui::SameLine();
+    ImGui::Text("|");
     ImGui::SameLine();
     String timeDesc = timeDescString();
     ImVec2 cursorScreen = ImGui::GetCursorScreenPos();
     cursorScreen.x = main_window_xres - timeDesc.length()*7;
     ImGui::SetCursorScreenPos(cursorScreen);
     ImGui::Text("%s",timeDesc.c_str());
+    cursorScreen.x -= 7 + 3;
+    ImGui::SameLine();
+    ImGui::SetCursorScreenPos(cursorScreen);
+    ImGui::Text("|");
 
-
-    cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150;
+    cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 + 5;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);
     ImGui::Text("Mouse rate");
@@ -399,8 +408,12 @@ void drawMenuBar() {
     ImGui::PopItemWidth();
 
 
-    cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 - 110 - 20;
+    cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 - 110 - 20-3;
     ImGui::SameLine();
+    ImGui::SetCursorScreenPos(cursorScreen);
+    ImGui::Text("|");
+    ImGui::SameLine();
+    cursorScreen.x += 3+3+2+2+1;
     ImGui::SetCursorScreenPos(cursorScreen);
     ImGui::Text("Zoom");
     ImGui::SameLine();
