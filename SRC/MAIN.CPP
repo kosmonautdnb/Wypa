@@ -96,6 +96,10 @@ ImVec2 normalize(const ImVec2 &v) {
   return r;
 }
 
+void turnOnScreenSaver() {
+  screenSaverStartTime = glSeconds()-SCREENSAVERTIMEINSECONDS;
+}
+
 void screenSaver() {
   if (glSeconds()-screenSaverStartTime >= SCREENSAVERTIMEINSECONDS) {
     static ImVec2 textPos(0,0);
@@ -401,6 +405,7 @@ int main(int argc, const char *argv[]) {
     drawLayerView();
     drawToolBar();
     drawToolView();
+    drawDialogs();
     showDebugWindow();
     screenSaver();
     splashScreen();
@@ -417,8 +422,7 @@ int main(int argc, const char *argv[]) {
   printf("-----------------------\n");
   printf("A tiny tool by Puls4r productions.\n");
   printf("This experimental DOS application\n");
-  printf("is just designed for simple painting\n");
-  printf("It's by far not a professional tool.\n");
+  printf("is by far not a professional tool.\n");
   printf("If you just need to paint a picture\n");
   printf("for a game and alikes (thus pixelling)\n");
   printf("maybe it already suffices.\n");

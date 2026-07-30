@@ -581,6 +581,7 @@ public:
   void bakeLayer(int interpolation);
   Layer *clone();
   void convertToPremul();
+  void convertToBitmap(class Canvas *canvas);
 
   void setLayerPos(double x, double y);
   void setLayerSize(double width, double height);
@@ -848,6 +849,7 @@ public:
   void applyAlphaMaskToBelow();
   void quantizeLayers();
   void convertFromAlphaToPremul();
+  void convertFromTilemapToBitmap();
 
   void selectAll();
   void selectNone(bool all);

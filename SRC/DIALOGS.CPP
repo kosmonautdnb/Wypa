@@ -111,7 +111,7 @@ void freeDialogs() {
 
 bool dialogLoadSaveOff = false;
 
-void drawDialogs() {
+void dialogs() {
   dialogCanvas(false);
   dialogExpandShrinkSelection(false);
   dialogImageResize(false);
@@ -153,6 +153,13 @@ void drawDialogs() {
   dialogFontGlyphs(false, NULL);
   dialogCopyPasteLoadedText(false);
   dialogEditText(false);
+}
+
+void drawDialogs() {
+  ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
+  ImGui::Begin("DRAWDIALOGS", NULL, ImVec2(0,0),0.0,FROZENWINDOW);
+  dialogs();
+  ImGui::End();
 }
 
 void dialogAbout(bool openIt) {
@@ -394,6 +401,7 @@ void dialogNewHere(bool openIt) {
     "Most color operations are done with the Postprocessing tool.\n"
     "\n"
     "When painting you may use the right mouse to get the current layer color.\n"
+    "When painting with a pen you can press <ctrl> to erase instead of paint.\n"
     "\n"
     "You can use <ctrl> and <shift> (or both) when selecting things.\n"
     "In selection mode you can also use the right mouse to move the selection.\n"
@@ -441,9 +449,9 @@ void dialogSuite(bool openIt) {
     "It's highly likely that more DOS based game creation tools\n"
     "will follow in this \"Suite\".\n"
     "\n"
-    "Puls4r (Stefan Mader) also provided WatcomGL. A basic 3D\n"
-    "graphics library for DJGPP/WATCOMC which let's you do\n"
-    "most of the stuff early OpenGLs on other platforms\n"
+    "Puls4r (coder: Stefan Mader) also provided WatcomGL.\n"
+    "A basic 3D graphics library for DJGPP/WATCOMC which let's\n"
+    "you do most of the stuff early OpenGLs on other platforms\n"
     "where able to do. It's performant and is used as base for\n"
     "our programs like \"WYPA\"\n"
     "\n"

@@ -109,6 +109,8 @@ bool toolBarButton(const char *svgName, int toolIndex) {
   return ret;
 }
 
+void turnOnScreenSaver();
+
 void drawToolBar() {
   if (!fullScreen) {
     ImGui::SetNextWindowPos(ImVec2(0,menuBar_height));
@@ -133,13 +135,20 @@ void drawToolBar() {
     toolBarButton("tilemapTool",TOOL_TILEMAP); toolTip("Tilemap tool");
     toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
     toolBarButton("mirrorTool",TOOL_MIRROR); toolTip("Mirror tool");
+    float k = 0.75;
+    ImVec2 points[3];
+    double aspect = 1.0/aspectRatio * main_window_xres / main_window_yres;
+    points[0].x = 0; points[0].y = main_window_yres-toolbar_width*k;
+    points[1].x = 0; points[1].y = main_window_yres;
+    points[2].x = toolbar_width*k*aspect; points[2].y = main_window_yres;
+    ImGui::GetWindowDrawList()->AddConvexPolyFilled(points, 3, 0xff7c5b87, true);
+    static bool here = false;
+    if (ImGui::IsMouseHoveringRect(points[0],points[2])) {
+      if (ImGui::IsMouseDown(0)) here = true;
+      if (!ImGui::IsMouseDown(0) && here){here = false;turnOnScreenSaver();}
+    } else here = false;
     ImGui::End();
     ImGui::PopStyleColor();
   }
   if (lastTool != tool) {toolChangeMessage(lastTool,tool); lastTool = tool;}
-  ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
-  // some invisible window is needed for all the dialogs
-  ImGui::Begin("DRAWDIALOGS", NULL, ImVec2(0,0),0.0,FROZENWINDOW);
-  drawDialogs();
-  ImGui::End();
 }

@@ -94,6 +94,12 @@ void takeScreenShot() {
 }
 
 
+void horzSep() {
+  ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1.f,1.f,1.f,0.625f));
+  ImGui::Text("|");
+  ImGui::PopStyleColor();
+}
+
 void drawMenuBar() {
   static int screenShot = 0;
   if (screenShot > 0) {
@@ -110,16 +116,19 @@ void drawMenuBar() {
   double canvasPixelCenterY = currentCanvas->height/2 + currentCanvas->screenPosY;
   if (ImGui::BeginMainMenuBar()) {
     SVG *svg = &svgs["appicon"];
-    ImVec2 cursor = ImGui::GetCursorScreenPos(); ImVec2 cursor2 = cursor;
+    ImVec2 cursor = ImGui::GetCursorScreenPos(); 
+    cursor.x -= 7-2;
+    ImGui::SetCursorScreenPos(cursor); 
+    ImVec2 cursor2 = cursor;
     ImGui::Image((ImTextureID)0,ImVec2(svg->w,svg->h));
     if (ImGui::IsItemHovered()&&ImGui::IsMouseClicked(0)) {dialogAbout(true);}
     cursor.y -= 4;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
     toolTip("Wypa version %d.%02d", version / 100, version % 100);
     ImGui::SameLine();
-    cursor2.x += svg->w+3;
+    cursor2.x += svg->w+3-2;
     ImGui::SetCursorScreenPos(cursor2);
-    ImGui::Text("|");
+    horzSep();
     ImGui::SameLine();
     cursor2.x += 7+2;
     ImGui::SetCursorScreenPos(cursor2);
@@ -143,7 +152,7 @@ void drawMenuBar() {
       ImGui::Separator();
       if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
       ImGui::Separator();
-      if (ImGui::MenuItem("Exit")) {dialogExit(true);}
+      if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Edit")) {
@@ -232,7 +241,8 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Insert alpha mask above layer(s)",NULL,false,count > 0)) {currentCanvas->insertAlphaMasks();}
       if (ImGui::MenuItem("Apply alpha mask to below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}
       ImGui::Separator();
-      if (ImGui::MenuItem("Convert layer(s) from alpha to premul",NULL,false,one)) {currentCanvas->convertFromAlphaToPremul();}
+      if (ImGui::MenuItem("Convert layer(s) from alpha to premul",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromAlphaToPremul();afterUndoPoint();}
+      if (ImGui::MenuItem("Convert layer(s) from tilemap to bitmap",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromTilemapToBitmap();afterUndoPoint();}
       if (ImGui::MenuItem("Quantized palette from layer",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogQuantizePalette(true);}
       if (ImGui::MenuItem("Quantize layer(s) to palette",NULL,false,one)) {beforeUndoPoint();currentCanvas->quantizeLayers();afterUndoPoint();}
       ImGui::Separator();
@@ -278,6 +288,7 @@ void drawMenuBar() {
         lastMenuSelectionBlink = selectionBlink;
       }
     }
+    static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
     if (ImGui::BeginMenu("View")) {
       on = true;
       bool selected;
@@ -298,7 +309,6 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
       if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
       ImGui::Separator();
-      static double k = 0; k += timeDelta; k = fmod(k,2); int k2 = (int)(k*4);
       bool lockedMouse = lockedMouseX||lockedMouseY||tilingOn;
       if (lockedMouse) ImGui::PushStyleColor(ImGuiCol_Text,(k2 & 1) ? ImVec4(1,0,0,1) : ImVec4(0.5,0,0,1));
       if (ImGui::MenuItem("Clear mouse lock and tiling",NULL,false,lockedMouse)) {lockedMouseX = false; lockedMouseY = false; tilingOn = false; if (tool == TOOL_TILING) switchTool(TOOL_NONE);}
@@ -322,8 +332,9 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Blur",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogBlur(true);}
       if (ImGui::MenuItem("Alpha soften",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterAlphaSoften();}
       if (ImGui::MenuItem("Turn to glow",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogGlow(true);}
+      if (ImGui::MenuItem("Strong soften",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSoften();}
       if (ImGui::MenuItem("Emboss",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogEmboss(true);}
-      if (ImGui::MenuItem("Keying",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogKeying(true);}
+      if (ImGui::MenuItem("Keying/matte",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogKeying(true);}
       if (ImGui::MenuItem("Denoise",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterDenoise();}
       if (ImGui::MenuItem("Sharpen and grain",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSharpen();}
       if (ImGui::MenuItem("Pixelart inflate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelArtInflate(true);}
@@ -332,6 +343,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Sepia",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSepia();}
       if (ImGui::MenuItem("Color transfer (monochrome)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_COLORTRANSFER);}
       if (ImGui::MenuItem("Clahe lighting",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogClahe(true);}
+      if (ImGui::MenuItem("OCR black & white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterBlackWhiteOCR();}
       ImGui::EndMenu();
     }
 
@@ -380,9 +392,10 @@ void drawMenuBar() {
       ImGui::EndMenu();
     }
     ImGui::SameLine();
-    ImGui::Text("|");
+    horzSep();
     ImGui::SameLine();
     String timeDesc = timeDescString();
+    if (((k2%10) < 1) && timeDesc.length()>3) {timeDesc[timeDesc.length()-3] = ' ';}
     ImVec2 cursorScreen = ImGui::GetCursorScreenPos();
     cursorScreen.x = main_window_xres - timeDesc.length()*7;
     ImGui::SetCursorScreenPos(cursorScreen);
@@ -390,7 +403,7 @@ void drawMenuBar() {
     cursorScreen.x -= 7 + 3;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);
-    ImGui::Text("|");
+    horzSep();
 
     cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 + 5;
     ImGui::SameLine();
@@ -411,7 +424,7 @@ void drawMenuBar() {
     cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 - 110 - 20-3;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);
-    ImGui::Text("|");
+    horzSep();
     ImGui::SameLine();
     cursorScreen.x += 3+3+2+2+1;
     ImGui::SetCursorScreenPos(cursorScreen);

@@ -704,6 +704,12 @@
       "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_
+    "Strong soften{" _N_
+      "This is somehow something like a bidirectional filter." _N_
+      "It preserves the contours but blurs the rather flat areas." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
+    "}" _N_
     "Emboss{" _N_
       "This takes the luminance of each pixel and it's surrounding" _N_
       "to calculate a direction of the \"heightmap\"." _N_
@@ -761,6 +767,10 @@
       "will be added to the scene on the current layer. If you increase" _N_
       "the cellsize parameter the light changes are spread over" _N_
       "bigger regions." _N_
+    "}" _N_
+    "OCR black & white{" _N_
+      "Actually not so useful for normal painting, but you may prepare." _N_
+      "photographs of text for better readability with it." _N_
     "}" _N_
   "}" _N_
   "Pictures{" _N_

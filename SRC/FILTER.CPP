@@ -1540,3 +1540,146 @@ void filterHistogramMatchingColored(Layer *histogramSource) {
   afterUndoPoint();
   repaintLayer(a,true);
 }
+
+int medianLumaSort(const void *p, const void *q)
+{
+  const double a = *((const double*)p);
+  const double b = *((const double*)q);
+  if (a > b) return 1;
+  if (a < b) return -1;
+  return 0;
+}
+
+void filterSoften() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+
+  beforeUndoPoint();
+  int kernel = 4;
+  Array<double> medians; medians.resize((kernel*2+1) * (kernel*2+1)*3);
+
+  Array<unsigned int> source;
+  source.resize(l->width*l->height);
+  memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
+
+  initStatusBar();
+  bool hasSelection = l->hasSelection();
+
+  for (int y = 0; y < l->height; y++) {
+    if ((y % 100)==0) updateStatusBar();
+    for (int x = 0; x < l->width; x++) {
+      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
+        int siz = 0;
+        double average[3]; average[0] = 0; average[1] = 0; average[2] = 0; 
+        for (int y2 = -kernel; y2 <= kernel; y2++) {
+          for (int x2 = -kernel; x2 <= kernel; x2++) {
+            int x3 = x + x2;
+            int y3 = y + y2;
+            if ((unsigned int)x3<(unsigned int)l->width&&(unsigned int)y3<(unsigned int)l->height) {
+              unsigned int col = source[x3+y3*l->width];
+              double r = col & 255;
+              double g = (col>>8) & 255;
+              double b = (col>>16) & 255;
+              r /= 255.0; g /= 255.0; b /= 255.0;
+              medians[siz+(kernel*2+1) * (kernel*2+1) * 0] = r;
+              medians[siz+(kernel*2+1) * (kernel*2+1) * 1] = g;
+              medians[siz+(kernel*2+1) * (kernel*2+1) * 2] = b;
+              siz++;
+              average[0] += r;
+              average[1] += g;
+              average[2] += b;
+            }
+          }
+        }
+        unsigned int col = source[x+y*l->width];
+        double r2 = col & 255;
+        double g2 = (col>>8) & 255;
+        double b2 = (col>>16) & 255;
+        r2 /= 255.0; g2 /= 255.0; b2 /= 255.0;
+        double here[3]; here[0] = r2; here[1] = g2; here[2] = b2;
+  
+        if (siz > 2) for (int i = 0; i < 3; i++) qsort(&medians[(kernel*2+1) * (kernel*2+1) * i], siz, sizeof(double), medianLumaSort);
+        if (siz > 1) {average[0] /= siz; average[1] /= siz; average[2] /= siz;}
+        col = 0;
+        for (int i = 0; i < 3; i++) {
+          double median = medians[siz/2+(kernel*2+1) * (kernel*2+1) * i];
+          double delta = 1-fabs(here[i]-average[i]); // the smaller this value the more highfrequent
+          double grey = here[i] * (1-delta) + median * delta;
+          int gr = (int)(grey * 255.0);
+          if (gr < 0) gr = 0;
+          if (gr > 255) gr = 255;
+          col |= gr << (i*8);
+        }
+        l->pixels[x+y*l->width] = col|(source[x+y*l->width]&0xff000000);
+      }
+    }
+  }
+  updatedPixels(l);
+  afterUndoPoint();
+  repaintLayer(l,true);
+}
+
+void filterBlackWhiteOCR() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+
+  beforeUndoPoint();
+  int kernel = 4;
+  float *lumis = luminanceValues;
+
+  Array<unsigned int> source;
+  source.resize(l->width*l->height);
+  memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
+
+  initStatusBar();
+  bool hasSelection = l->hasSelection();
+
+  for (int y = 0; y < l->height; y++) {
+    if ((y % 100)==0) updateStatusBar();
+    for (int x = 0; x < l->width; x++) {
+      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
+        int siz = 0;
+        double average = 0;
+        double minLuma = 0;
+        double maxLuma = 0;
+        for (int y2 = -kernel; y2 <= kernel; y2++) {
+          for (int x2 = -kernel; x2 <= kernel; x2++) {
+            int x3 = x + x2;
+            int y3 = y + y2;
+            if ((unsigned int)x3<(unsigned int)l->width&&(unsigned int)y3<(unsigned int)l->height) {
+              unsigned int col = source[x3+y3*l->width];
+              double r = col & 255;
+              double g = (col>>8) & 255;
+              double b = (col>>16) & 255;
+              r /= 255.0; g /= 255.0; b /= 255.0;
+              double luma = r * lumis[0] + g * lumis[1] + b * lumis[2];
+              average += luma;
+              if (siz == 0 || luma < minLuma) minLuma = luma;
+              if (siz == 0 || luma > maxLuma) maxLuma = luma;
+              siz++;
+            }
+          }
+        }
+        if (siz > 1) {average /= siz;}
+        unsigned int col = source[x+y*l->width];
+        double r2 = col & 255;
+        double g2 = (col>>8) & 255;
+        double b2 = (col>>16) & 255;
+        r2 /= 255.0; g2 /= 255.0; b2 /= 255.0;
+        double luma = r2 * lumis[0] + g2 * lumis[1] + b2 * lumis[2];
+        //double l2 = luma < average ? minLuma : maxLuma;
+        double l2 = maxLuma == 0 ? 0 : luma / maxLuma;
+        int gr = (int)(l2 * 255.0);
+        if (gr < 0) gr = 0;
+        if (gr > 255) gr = 255;
+        l->pixels[x+y*l->width] = gr|(gr<<8)|(gr<<16)|(0xff000000);
+      }
+    }
+  }
+  updatedPixels(l);
+  afterUndoPoint();
+  repaintLayer(l,true);
+}
+

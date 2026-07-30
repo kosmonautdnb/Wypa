@@ -1534,6 +1534,83 @@ void Layer::convertToPremul() {
     pixels[i] = r|(g<<8)|(b<<16)|(a<<24);
   }
   mode = LAYERMODE_PREMULTIPLIEDALPHA;
+  updatedPixels(this);
+}
+
+void Layer::convertToBitmap(Canvas *canvas) {
+  bool tiles = type == LAYERTYPE_TILEMAP; if (!tiles) return;
+  Layer *layer = this;
+
+  unsigned int *tileSource = NULL;
+  int tileSourceWidth = 0;
+  int tileSourceHeight = 0;
+  int tileOffsetX = 0;
+  int tileOffsetY = 0;
+  int tileWidth = 1;
+  int tileHeight = 1;
+  int tileSourceTileCountX = 1;
+  int tileSourceTileCountY = 1;
+  if (tiles) {
+    for (int i = 0; i < (int)canvas->layers.size(); i++) {
+      if (canvas->layers[i]->id == layer->tileSourceLayerId) {
+        tileSource = canvas->layers[i]->pixels;
+        tileSourceWidth = canvas->layers[i]->width;
+        tileSourceHeight = canvas->layers[i]->height;
+        tileWidth = canvas->layers[i]->toolInfo.tilingWidth;
+        tileHeight = canvas->layers[i]->toolInfo.tilingHeight;
+        tileOffsetX = canvas->layers[i]->toolInfo.tilingOffsetX;
+        tileOffsetY = canvas->layers[i]->toolInfo.tilingOffsetY;
+        break;
+      }
+    }
+    if (tileSource == NULL) return;
+    if (tileSourceWidth < 1) return;
+    if (tileSourceHeight < 1) return;
+    if (tileWidth < 1) return;
+    if (tileHeight < 1) return;
+    tileSourceTileCountX = tileSourceWidth / tileWidth;
+    tileSourceTileCountY = tileSourceHeight / tileHeight;
+    int outaX = (tileOffsetX+tileWidth*100000) % tileWidth;
+    int outaY = (tileOffsetY+tileHeight*100000) % tileHeight;
+    if (outaX != 0) tileSourceTileCountX--;
+    if (outaY != 0) tileSourceTileCountY--;
+    if (tileSourceTileCountX < 1) return;
+    if (tileSourceTileCountY < 1) return;
+  }
+
+  unsigned char *beforeS = new unsigned char[width*height];
+  unsigned int *beforeP = new unsigned int[width*height];
+  memcpy(beforeS,pixelStates,width*height*sizeof(unsigned char));
+  memcpy(beforeP,pixels,width*height*sizeof(unsigned int));
+  int widthBefore = width;
+  int heightBefore = height;
+  enlargenLayerBy(0,0,widthBefore*tileWidth-widthBefore,heightBefore*tileHeight-heightBefore); // this way because of locks
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int bx = x / tileWidth; int by = y / tileHeight;
+      unsigned int tile = beforeP[bx + by*widthBefore];
+      unsigned int rgb = 0x00000000;
+      if (tile != NOTILEMAPPIXEL) {
+        int tx = tile % tileSourceTileCountX;
+        int ty = tile / tileSourceTileCountX;
+        tx = tx * tileWidth + (x % tileWidth) + tileOffsetX;
+        ty = ty * tileHeight + (y % tileHeight) + tileOffsetY;
+        rgb = 0xffff00ff;
+        if ((unsigned int)tx < (unsigned int)tileSourceWidth && (unsigned int)ty < (unsigned int)tileSourceHeight) {
+          rgb = tileSource[tx+ty*tileSourceWidth];
+        }
+      }
+      pixels[x+y*width] = rgb;
+      pixelStates[x+y*width] = beforeS[bx + by*widthBefore];
+    }
+  }
+  type = LAYERTYPE_BASIC;
+
+  delete[] beforeP;
+  delete[] beforeS;
+  updatedPixels(this);
+  updatedPixelStates(this);
 }
 
 void Layer::setLayerPos(double x, double y) {
@@ -3329,6 +3406,15 @@ void Canvas::convertFromAlphaToPremul() {
     if (layers[i]->state.selected || layers[i]->state.active) {
       layers[i]->mode = LAYERMODE_ALPHA;
       layers[i]->convertToPremul();
+    }
+  }
+  shouldUpdateAll = true;
+}
+
+void Canvas::convertFromTilemapToBitmap() {
+  for (int i = 0; i < (int)layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      if (layers[i]->type == LAYERTYPE_TILEMAP) layers[i]->convertToBitmap(this);
     }
   }
   shouldUpdateAll = true;

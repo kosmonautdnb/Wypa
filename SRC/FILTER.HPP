@@ -50,6 +50,8 @@ void filterColorTransfer(class Layer *colorSource);
 void filterSepia();
 void filterCheckerboard(int w, int h, int xp, int yp);
 void filterHistogramMatchingColored(class Layer *histogramSource);
+void filterSoften();
+void filterBlackWhiteOCR();
 
 #define S_FILTER_CPP()
 
