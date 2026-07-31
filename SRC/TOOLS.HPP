@@ -251,6 +251,8 @@ extern Array<unsigned short> quantization;
 void reCreateQuantization();
 extern bool fastQuantWithLuma;
 
+extern bool rulersOn;
+
 bool isPaintAreaActive();
 
 void initTools();

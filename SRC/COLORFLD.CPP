@@ -325,7 +325,7 @@ bool colorItem(const String &name, const String &id, ImVec4 *color) {
   ImGui::PushItemWidth(7*8);
   if (ImGui::InputText(id.c_str(),colorText,9)) {
     unsigned int value = 0;
-    for (int i = 0; i < strlen(colorText); i++) {
+    for (int i = 0; i < (int)strlen(colorText); i++) {
       value <<= 4;
       char c = colorText[i];
       if (c>='0'&&c<='9') value += c-'0';

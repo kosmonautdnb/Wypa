@@ -306,6 +306,8 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
       ImGui::Separator();
       if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
+      if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
+      ImGui::Separator();
       if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
       if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
       ImGui::Separator();

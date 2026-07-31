@@ -510,6 +510,7 @@ void reCreateQuantization() {
 }
 
 bool fastQuantWithLuma = false;
+bool rulersOn = false;
 
 void moveSelectedLayersByCanvasPixels(double x, double y) {
   bool one = false;
@@ -2173,7 +2174,7 @@ void putImageToLayer(Layer *l, const RGBAImage &c, int sx,int sy, bool useAlpha)
 }
 
 void selectTileDrawingRectangle(Layer *l,int x0, int y0, int x1, int y1) {
-  for (int i = 0; i < currentCanvas->layers.size(); i++) {
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
     LayerAdditionalToolInfo *t = &currentCanvas->layers[i]->toolInfo; t->tileDrawX0 = 0; t->tileDrawY0 = 0; t->tileDrawX1 = 0; t->tileDrawY1 = 0;
   }
   if (l != NULL) {
@@ -2317,6 +2318,19 @@ void drawOpenGLRect(double sx0, double sy0, double sx1, double sy1, unsigned int
     if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
+  }
+}
+
+void drawNumberVert(float siz, int x, int y, int number) {
+  String k = String::fromInt(number); char p[2]; p[1] = 0;
+  if ( (!k.empty()) && number<0) k[0] = 'I';
+  int charHeight = 6;
+  y -= k.length()*charHeight/2;
+  y += 1;
+  for (int i = 0; i < k.length(); i++) {
+    p[0] = k[i];
+    drawText(siz, x+1, i*charHeight+y+1, p, 0xff000000, 0.5, 0);
+    drawText(siz, x, i*charHeight+y, p, 0xffffffff, 0.5, 0);
   }
 }
 
@@ -2518,6 +2532,76 @@ void toolCanvasStuff() {
     mirrorPoint(lx,ly);
     currentCanvas->getScreenPos(lx,ly,lx,ly);
     drawMouseArrow2(lx,ly);
+  }
+  if (rulersOn) {
+    int subSteps = 10;
+    int borderOffset = 10;
+    int lineOffset = 10;
+    int lineLengthFull = 7;
+    int lineLengthSmall = 3;
+    int lineLengthMiddle = 5;
+    int textDist = 7;
+    int x0 = currentCanvas->screenPosX+borderOffset; int y0 = currentCanvas->screenPosY+borderOffset;
+    int sx0 = x0 + lineOffset; int sy0 = y0;
+    int sx1 = x0+currentCanvas->width-borderOffset*2-lineOffset; int sy1 = y0;
+    int sx2 = x0; int sy2 = y0 + lineOffset;
+    int sx3 = x0; int sy3 = y0+currentCanvas->height-borderOffset*2-lineOffset;
+
+    drawOpenGLSimpleLine(sx0, sy0, sx1, sy1, 0xffffffff);
+    drawOpenGLSimpleLine(sx0, sy0+1, sx1, sy1+1, 0xff000000);
+
+    double px0 = x0, py0 = y0; currentCanvas->getCanvasPos(px0,py0,px0,py0);
+    double px1 = x0+1, py1 = y0; currentCanvas->getCanvasPos(px1,py1,px1,py1);
+    double px2 = x0, py2 = y0+1; currentCanvas->getCanvasPos(px2,py2,px2,py2);
+
+    double rulerStep = (px1-px0)*100; rulerStep = floor(rulerStep/10)*10;rulerStep /= (double)subSteps; if (rulerStep < 1) rulerStep = 1;
+    double lastC = 0;
+    for (int x = sx0-1; x <= sx1; x++) {
+      double cx = x,cy = sy0; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+      int vcx = (int)floor(cx/rulerStep);
+      int vlcx = (int)floor(lastC/rulerStep);
+      if (x >= sx0) {
+        if (vcx != vlcx) {
+          int vc = vcx < 0 ? subSteps-1-(abs(vcx+1) % subSteps) : (vcx % subSteps);
+          int lineLength = lineLengthSmall; if (vc == 0) lineLength = lineLengthFull;
+          if (vc == subSteps/2) lineLength = lineLengthMiddle;
+          drawOpenGLSimpleLine(x, sy0-1, x, sy0-1-lineLength, 0xffffffff);
+          drawOpenGLSimpleLine(x+1, sy0-1, x+1, sy0-1-lineLength, 0xff000000);
+          if (vc == 0) {
+            double k = cx;
+            drawText(1, x+1, sy0 + textDist+1, String::fromInt((int)k).c_str(), 0xff000000, 0.5, 0);
+            drawText(1, x, sy0 + textDist, String::fromInt((int)k).c_str(), 0xffffffff, 0.5, 0);
+          }
+        }
+      }
+      if ((int)mouseX==(int)x) drawOpenGLSimpleLine(x, sy0, x+1, sy0, 0xff000000);
+      lastC = cx;
+    }
+    drawOpenGLSimpleLine(sx2, sy2, sx3, sy3, 0xffffffff);
+    drawOpenGLSimpleLine(sx2+1, sy2, sx3+1, sy3, 0xff000000);
+    rulerStep = (py2-py0)*100; rulerStep = floor(rulerStep/10)*10;rulerStep /= (double)subSteps; if (rulerStep < 1) rulerStep = 1;
+    lastC = 0;
+    for (int y = sy2-1; y <= sy3; y++) {
+      double cx = sx2,cy = y; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+      int vcy = (int)floor(cy/rulerStep);
+      int vlcy = (int)floor(lastC/rulerStep);
+      if (y >= sy2) {
+        if (vcy != vlcy) {
+          int vc = vcy < 0 ? subSteps-1-(abs(vcy+1) % subSteps) : (vcy % subSteps);
+          int lineLength = lineLengthSmall; if (vc == 0) lineLength = lineLengthFull;
+          if (vc == subSteps/2) lineLength = lineLengthMiddle;
+          drawOpenGLSimpleLine(sx2-1, y, sx2-1-lineLength, y, 0xffffffff);
+          drawOpenGLSimpleLine(sx2-1, y+1, sx2-1-lineLength, y+1, 0xff000000);
+          if (vc == 0) {
+            double k = cy;
+            drawNumberVert(1, sx2 + textDist, y, (int)k);
+          }
+        }
+      }
+      if ((int)mouseY==(int)y) drawOpenGLSimpleLine(sx2, y, sx2, y+1, 0xff000000);
+      lastC = cy;
+    }
+
   }
 }
 
@@ -2805,7 +2889,7 @@ void bakeModify(bool justCreateSelection) {
     for (int j = 0; j < 3; j++) {
       bool found = true;
       for (int k = 0; k < 3; k++) {
-        if (modifyTriangles[1*3+j]==points[k]) {found = false; break;}
+        if ((int)modifyTriangles[1*3+j]==(int)points[k]) {found = false; break;}
       }
       if (found) {points[3] = modifyTriangles[1*3+j]; break;}
     }

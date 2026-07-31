@@ -4686,10 +4686,8 @@ void newPicture(int w, int h,const String &pictureName) {
 void duplicatePicture(bool mergeLayers) {
   Canvas *zwo = currentCanvas->clone();
   sprintf(zwo->pictureName,"duplicated");
-  for (int i = 0; i < zwo->layers.size(); i++) {
-    if (zwo->layers[i]->type == LAYERTYPE_TILEMAP) mergeLayers = false;
-  }
   if (mergeLayers) {
+    for (int i = 0; i < (int)zwo->layers.size(); i++) if (zwo->layers[i]->type == LAYERTYPE_TILEMAP) zwo->layers[i]->convertToBitmap(zwo);
     zwo->selectAllLayers();
     zwo->mergeDownLayers();
     if (zwo->layers.size()>0) {

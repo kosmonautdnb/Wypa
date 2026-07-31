@@ -239,13 +239,13 @@ int main(int argc, const char *argv[]) {
   glWatcomPrecisionTimer(GL_TRUE);
 
   if (!glVesa(main_window_xres,main_window_yres,32)) {
-    printf("Could not initialize video: %d %d %dbit\n",main_window_xres,main_window_yres,32);
+    printf("Could not initialize video: %d %d %dbit\n",(int)main_window_xres,(int)main_window_yres,32);
     double w;
     w = glSeconds(); while(fabs(w-glSeconds())<1) {;}
-    printf("Trying: %d %d %dbit (not faithful in colors)\n",main_window_xres,main_window_yres,16);
+    printf("Trying: %d %d %dbit (not faithful in colors)\n",(int)main_window_xres,(int)main_window_yres,16);
     w = glSeconds(); while(fabs(w-glSeconds())<1) {;}
     if (!glVesa(main_window_xres,main_window_yres,16)) {
-      printf("Resolution %d by %d seems not supported\n",main_window_xres,main_window_yres);
+      printf("Resolution %d by %d seems not supported\n",(int)main_window_xres,(int)main_window_yres);
       exit(0);
     }
   }

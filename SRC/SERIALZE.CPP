@@ -1618,7 +1618,7 @@ void loadLUT(const char *shortPath, const char *longFileName) {
             // DOMAIN_MAX
             // not handled currently
           }
-          if (d == 'L' && line.length() > strlen("LUT_3D_SIZE")) {
+          if (d == 'L' && (int)line.length() > (int)strlen("LUT_3D_SIZE")) {
             int s = -1;
             if (line[4] == '3' && sscanf(&(line.c_str()[strlen("LUT_3D_SIZE")]),"%d",&s)==1) { // if the lut is too big this will most probably crash
               if (s>0 && s < 258) {

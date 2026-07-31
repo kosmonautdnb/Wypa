@@ -1211,9 +1211,7 @@ void filterClahe(float claheConstant, int cellSize) {
         if (targetHistogram[j] > 0) {count++; average += targetHistogram[j];}
       }
       if (count > 0) average /= count;
-      if (true) {
-        claheClip = average * claheAverageFactor;
-      }
+      claheClip = average * claheAverageFactor; // currently we use this as local clahe clip factor
 
       // diffuse histogram by clip value      
       while(count > 1) {
