@@ -153,6 +153,7 @@ void dialogs() {
   dialogFontGlyphs(false, NULL);
   dialogCopyPasteLoadedText(false);
   dialogEditText(false);
+  dialogDisplacementMap(false);
 }
 
 void drawDialogs() {
@@ -774,6 +775,78 @@ void dialogEditText(bool openIt) {
   ImGui::InputTextMultiline("##DIALOGEDITTEXTTEXTTOEDIT", textToSave, textToSaveLength, boxSize); toolTip("The text to be edited");
   if (ImGui::Button("Close##DIALOGEDITTEXTCLOSE")) {
     ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogDisplacementMap(bool openIt) {
+
+  static Layer *clone = NULL;
+  static int layer = -1;
+  static float displacementX = 1;
+  static float displacementY = 1;
+  static float scale = 10;
+  static bool updateLayer = false;
+  static int type = 1;
+#define DISPLACEMENT_TYPE_COUNT 2
+  static const char *displacementTypeNames[DISPLACEMENT_TYPE_COUNT] = {"Steepness","Grey(128) as base"};
+
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+
+  if (openIt) {
+    beforeUndoPoint();
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    layer = -1;
+    updateLayer = true;
+  }
+  DIALOGSTART("Displacement mapping")
+  ImGui::Text("The red channel is for x displacement");
+  ImGui::Text("The green channel is for y displacement");
+  ImGui::Text("");
+  ImGui::Text("Select a layer as displacement source"); toolTip("This will be the graphical source for the displacement per pixel");
+  ImGui::BeginChild("DIALOGDISPLACEMENTMAPCHILD", ImVec2(main_window_xres/2,main_window_yres/3));
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
+    if (currentCanvas->layers[i] != l) {
+      String buttonName = (layer == i ? ">" : " ") + String("Layer") + String::fromInt(i) + ":\"" + currentCanvas->layers[i]->name + "\"##" + String::fromInt(i);
+      if (ImGui::Button(buttonName.c_str())) {
+        updateLayer = true;
+        layer = i;
+      }
+    }
+  }
+  ImGui::EndChild();
+
+  if ((unsigned int)layer < (unsigned int)currentCanvas->layers.size()) {
+    ImGui::Text("Type");ImGui::SameLine();if(ImGui::Combo("##DIALOGDISPLACEMENTMAPTYPE",&type, displacementTypeNames, DISPLACEMENT_TYPE_COUNT)) {updateLayer = true;} else toolTip("The type of pixel art scaling to apply");
+    ImGui::Text("Displacment Scale"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGDISPLACEMENTMAPSCALE",&scale)) {updateLayer = true;} else toolTip("The magnitude of the pixel movement.");
+    ImGui::Text("Displacement in X"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGDISPLACEMENTMAPSLIDERX",&displacementX,-1,1)) {updateLayer = true;} else toolTip("How much the pixels should be moved in x*scale by the displacement map");
+    ImGui::Text("Displacement in Y"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGDISPLACEMENTMAPSLIDERY",&displacementY,-1,1)) {updateLayer = true;} else toolTip("How much the pixels should be moved in y*scale by the displacement map");
+  }
+
+  if (updateLayer) {
+    if (!ImGui::IsAnyItemActive()) {
+      updateLayer = false;
+      if ((unsigned int)layer < (unsigned int)currentCanvas->layers.size()) {
+        filterDisplacementMap(l->pixels, clone->pixels, l->width, l->height, displacementX*scale, displacementY*scale, type, l->pixelStates, l->hasSelection(), currentCanvas->layers[layer]);
+        repaintLayer(l,true);
+      }
+    }
+  }
+
+  if (ImGui::Button("Apply##DIALOGDISPLCEMEMNTMAPAPPLY")) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGDISPLCEMEMNTMAPCLOSE")) {
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
   } else toolTip("Just close this view");
   DIALOGEND()
 }
@@ -1900,7 +1973,8 @@ enum BLURTYPES {
   BLURTYPE_BOX = 1,
   BLURTYPE_RADIAL = 2,
   BLURTYPE_ITERATIVE = 3,
-  BLURTYPE_COUNT = 4
+  BLURTYPE_MEDIAN = 4,
+  BLURTYPE_COUNT = 5
 };
 
 void dialogBlur(bool openIt) {
@@ -1912,10 +1986,13 @@ void dialogBlur(bool openIt) {
   static float radialAngle = 0;
   static float radialSize = 4;
   static int iterativeSteps = 1;
+  static int medianWidth = 4;
+  static int medianHeight = 4;
   static int blurType = 0;
-  static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur","Iterative"};
+  static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur","Iterative", "Median"};
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static int maxBlurPixels = 100;
+  static int maxMedianPixels = 5;
 
   static bool updateBlur = false;
 
@@ -1956,6 +2033,11 @@ void dialogBlur(bool openIt) {
       ImGui::Text("Iterative blur settings");
       ImGui::Text("Steps"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURITERATIVE",&iterativeSteps,0,0)) {updateBlur = true;} else toolTip("How many steps of pixel merging"); if (iterativeSteps<0) iterativeSteps = 0; if (iterativeSteps>32) iterativeSteps = 32;
     } break;
+    case BLURTYPE_MEDIAN: {
+      ImGui::Text("Median blur settings");
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANWIDTH",&medianWidth,0,0)) {updateBlur = true;} else toolTip("The rectangular blur width/2"); if (medianWidth<0) medianWidth = 0; if (medianWidth>maxMedianPixels) medianWidth = maxMedianPixels;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANHEIGHT",&medianHeight,0,0)) {updateBlur = true;} else toolTip("The rectangular blur height/2"); if (medianHeight<0) medianHeight = 0; if (medianHeight>maxMedianPixels) medianHeight = maxMedianPixels;
+    } break;
   }
   
   ImGui::PopItemWidth();
@@ -1975,6 +2057,7 @@ void dialogBlur(bool openIt) {
           case BLURTYPE_RADIAL: {filterRadialBlur(l->pixels,clone->pixels, l->width, l->height, radialAngle, radialSize,l->pixelStates,l->hasSelection());} break;
           case BLURTYPE_GAUSS: {filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());} break;
           case BLURTYPE_ITERATIVE: {filterIterativeBlur(l->pixels,clone->pixels, l->width, l->height, iterativeSteps, l->pixelStates,l->hasSelection());} break;
+          case BLURTYPE_MEDIAN: {filterMedianBlur(l->pixels,clone->pixels, l->width, l->height, medianWidth, medianHeight,l->pixelStates,l->hasSelection());} break;
         }
         repaintLayer(l,true);
       }

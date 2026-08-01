@@ -44,6 +44,7 @@
 #include "FILTER.HPP"
 #include "GALLERY.HPP"
 #include <math.h>
+#include <conio.h>
 
 bool roundButton(const char *name, bool enabled) {
   ImVec4 color_button_off_bg = ImVec4(0.7,0.7,0.7,1);
@@ -225,6 +226,21 @@ void deleteAll() {
 
 bool quit = false;
 
+void checkMemory() {
+  if (getFreeMemoryInKb() < 60*1024) {
+    printf("You !seem! to not have atleast 60mb of memory free.\n");
+    printf("So, maybe it's not a good idea to run this program.\n");
+    printf("Advisable is to use e.g. the hdpmi32i.exe from SBEMU,\n");
+    printf("which can give you around 4GB of memory even on DOS.\n");
+    printf("You can use this program, but it is strongly advised to\n");
+    printf("open the status window (in Help) and monitor the memory\n");
+    printf("usage.\n");
+    printf("\n");
+    printf("<Press a key>\n");
+    getch();
+  }
+}
+
 int main(int argc, const char *argv[]) {
 
   appFolder = unixFileName(getPath(argv[0]));
@@ -235,6 +251,8 @@ int main(int argc, const char *argv[]) {
   printf("You can find the newest version of Wypa at:\n");
   printf("www.github.com/kosmonautdnb/wypa\n");
   printf("\n");
+
+  checkMemory();
 
   glWatcomPrecisionTimer(GL_TRUE);
 

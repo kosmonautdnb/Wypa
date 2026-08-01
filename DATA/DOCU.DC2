@@ -684,6 +684,7 @@
       "Box - a \"rectangle\" blur." _N_
       "Iterative - a stepwise pixel blur." _N_
       "Radial - a directional blur with an angle and a size." _N_
+      "Median - this one can be used to smooth surfaces." _N_
       "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_
@@ -767,6 +768,12 @@
       "will be added to the scene on the current layer. If you increase" _N_
       "the cellsize parameter the light changes are spread over" _N_
       "bigger regions." _N_
+    "}" _N_
+    "Displacement mapping{" _N_
+      "You can select another layer as pixel morph source and" _N_
+      "Let the pixels of the current layer morph/move by it's values." _N_
+      "If you need a y sine wave just draw some shaded bars horizontally" _N_
+      "into the green channel. For a x sine wave do red vertical bars." _N_
     "}" _N_
     "OCR black & white{" _N_
       "Actually not so useful for normal painting, but you may prepare." _N_

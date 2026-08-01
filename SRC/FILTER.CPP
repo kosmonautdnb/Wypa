@@ -751,6 +751,52 @@ void filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int w
   }
 }
 
+int medianIntSort(const void *p, const void *q)
+{
+  const int a = *((const int*)p);
+  const int b = *((const int*)q);
+  if (a > b) return 1;
+  if (a < b) return -1;
+  return 0;
+}
+
+void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates) {
+  if (medianW < 1 || medianH < 1 || medianW >= width*1.5 || medianH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+  // dest and source are different here
+  Array<int> medians; medians.resize((medianW*2+1)*(medianH*2+1)*3);
+  int *medians2 = &medians[0];
+  initStatusBar();
+  for (int y = 0; y < (int)height; y++) {
+    if ((y % 100)==0) updateStatusBar();
+    for (int x = 0; x < (int)width; x++) {
+      if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
+        int siz = 0;
+        for (int y2 = -medianW; y2 <= medianW; y2++) {
+          for (int x2 = -medianW; x2 <= medianW; x2++) {
+            int x3 = x + x2;
+            int y3 = y + y2;
+            if ((unsigned int)x3<(unsigned int)width&&(unsigned int)y3<(unsigned int)height) {
+              unsigned int col = source[x3+y3*width];
+              int r = col & 255;
+              int g = (col>>8) & 255;
+              int b = (col>>16) & 255;
+              medians2[siz+(medianW*2+1)*(medianH*2+1)*0] = r;
+              medians2[siz+(medianW*2+1)*(medianH*2+1)*1] = g;
+              medians2[siz+(medianW*2+1)*(medianH*2+1)*2] = b;
+              siz++;
+            }
+          }
+        }
+        if (siz > 2) for (int i = 0; i < 3; i++) qsort(&medians[(medianW*2+1)*(medianH*2+1)*i], siz, sizeof(int), medianIntSort);
+        int r = medians[siz/2+(medianW*2+1)*(medianH*2+1)*0];
+        int g = medians[siz/2+(medianW*2+1)*(medianH*2+1)*1];
+        int b = medians[siz/2+(medianW*2+1)*(medianH*2+1)*2];
+        dest[x+y*width] = r | (g<<8) | (b<<16) | (source[x+y*width] & 0xff000000);
+      }
+    }
+  }
+}
+
 void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates) {
   int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1};
   int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
@@ -1556,6 +1602,7 @@ void filterSoften() {
   beforeUndoPoint();
   int kernel = 4;
   Array<double> medians; medians.resize((kernel*2+1) * (kernel*2+1)*3);
+  double *medians2 = &medians[0];
 
   Array<unsigned int> source;
   source.resize(l->width*l->height);
@@ -1580,9 +1627,9 @@ void filterSoften() {
               double g = (col>>8) & 255;
               double b = (col>>16) & 255;
               r /= 255.0; g /= 255.0; b /= 255.0;
-              medians[siz+(kernel*2+1) * (kernel*2+1) * 0] = r;
-              medians[siz+(kernel*2+1) * (kernel*2+1) * 1] = g;
-              medians[siz+(kernel*2+1) * (kernel*2+1) * 2] = b;
+              medians2[siz+(kernel*2+1) * (kernel*2+1) * 0] = r;
+              medians2[siz+(kernel*2+1) * (kernel*2+1) * 1] = g;
+              medians2[siz+(kernel*2+1) * (kernel*2+1) * 2] = b;
               siz++;
               average[0] += r;
               average[1] += g;
@@ -1681,3 +1728,69 @@ void filterBlackWhiteOCR() {
   repaintLayer(l,true);
 }
 
+static __inline void lookupInterpolated(unsigned int *colors, int width, int height, float x, float y, float &red, float &green, float &blue, float &alpha) {
+  if (y < 0) y = 0;
+  if (x < 0) x = 0;
+  if (x > width-1) x = width-1;
+  if (y > height-1) y = height-1;
+  int lx = (int)floor(x), ly = (int)floor(y);
+  double fx = x-floor(x);
+  double fy = y-floor(y);
+  unsigned int p00 = colors[lx+ly*width];
+  unsigned int p10 = (lx+1) < width ? colors[(lx+1)+ly*width] : p00;
+  unsigned int p01 = (ly+1) < height ? colors[lx+(ly+1)*width] : p00;
+  unsigned int p11 = (ly+1) < height && (lx+1) < width ? colors[(lx+1)+(ly+1)*width] : p00;
+  double rt = ((int)(p10 & 255) - (int)(p00 & 255))*fx + (int)(p00 & 255);
+  double gt = ((int)((p10>>8) & 255) - (int)((p00>>8) & 255))*fx + (int)((p00>>8) & 255);
+  double bt = ((int)((p10>>16) & 255) - (int)((p00>>16) & 255))*fx + (int)((p00>>16) & 255);
+  double at = ((int)((p10>>24) & 255) - (int)((p00>>24) & 255))*fx + (int)((p00>>24) & 255);
+  double rb = ((int)(p11 & 255) - (int)(p01 & 255))*fx + (int)(p01 & 255);
+  double gb = ((int)((p11>>8) & 255) - (int)((p01>>8) & 255))*fx + (int)((p01>>8) & 255);
+  double bb = ((int)((p11>>16) & 255) - (int)((p01>>16) & 255))*fx + (int)((p01>>16) & 255);
+  double ab = ((int)((p11>>24) & 255) - (int)((p01>>24) & 255))*fx + (int)((p01>>24) & 255);
+  red = (rb - rt) * fy + rt;
+  green = (gb - gt) * fy + gt;
+  blue = (bb - bt) * fy + bt;
+  alpha = (ab - at) * fy + at;
+}
+
+void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float displacement1, float displacement2, int type, unsigned char *pixelStates, bool usePixelStates, Layer *displace) {
+  if (displace == NULL) return;
+  for (int y = 0; y < (int)height; y++) {
+    for (int x = 0; x < (int)width; x++) {
+      if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
+        float dx = (float)(x * displace->width)/width;
+        float dy = (float)(y * displace->height)/height;
+        float lx = 0, ly = 0;
+        switch(type) {
+          case 0: {
+            float cr=0,cg=0,cb=0,ca=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx-1, dy, cr, cg, cb, ca);
+            float dr=0,dg=0,db=0,da=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx, dy-1, dr, dg, db, da);
+            float er=0,eg=0,eb=0,ea=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx+1, dy, er, eg, eb, ea);
+            float fr=0,fg=0,fb=0,fa=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx, dy+1, fr, fg, fb, fa);
+            lx = x + (er-cr) * displacement1 / 255.0;
+            ly = y + (fg-dg) * displacement2 / 255.0;
+          } break;
+          case 1: {
+            float cr=0,cg=0,cb=0,ca=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx, dy, cr, cg, cb, ca);
+            lx = x + (cr-128) * displacement1/128.0;
+            ly = y + (cg-128) * displacement2/128.0;
+          } break;
+        }
+        float lr=0,lg=0,lb=0,la=0;
+        lookupInterpolated(source, width, height, lx, ly, lr, lg, lb, la);
+        int r = (int)lr; int g = (int)lg; int b = (int)lb; int a = (int)la;
+        if (r < 0) r = 0;
+        if (g < 0) g = 0;
+        if (b < 0) b = 0;
+        if (a < 0) a = 0;
+        if (r > 255) r = 255;
+        if (g > 255) g = 255;
+        if (b > 255) b = 255;
+        if (a > 255) a = 255;
+        dest[x+y*width] = r|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+
+}
