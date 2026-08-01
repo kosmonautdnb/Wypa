@@ -235,6 +235,8 @@ void checkMemory() {
     printf("You can use this program, but it is strongly advised to\n");
     printf("open the status window (in Help) and monitor the memory\n");
     printf("usage.\n");
+    printf("There will be a memory warning anyways in the \"Navigator\"\n");
+    printf("panel if you get below 16mb.\n");
     printf("\n");
     printf("<Press a key>\n");
     getch();
