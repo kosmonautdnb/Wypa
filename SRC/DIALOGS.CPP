@@ -1992,7 +1992,7 @@ void dialogBlur(bool openIt) {
   static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur","Iterative", "Median"};
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static int maxBlurPixels = 100;
-  static int maxMedianPixels = 5;
+  static int maxMedianPixels = 30;
 
   static bool updateBlur = false;
 

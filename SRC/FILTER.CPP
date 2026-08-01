@@ -763,35 +763,71 @@ int medianIntSort(const void *p, const void *q)
 void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates) {
   if (medianW < 1 || medianH < 1 || medianW >= width*1.5 || medianH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
   // dest and source are different here
-  Array<int> medians; medians.resize((medianW*2+1)*(medianH*2+1)*3);
-  int *medians2 = &medians[0];
+  const int mw = (medianW*2+1) * (medianH*2+1);
+  Array<unsigned int> medianx; medianx.resize(mw); unsigned int *medianx2 = &medianx[0];
+  Array<int> medians; medians.resize(mw*3); int *medians2 = &medians[0];
+  Array<int> countSort; countSort.resize(256); int *countSort2 = &countSort[0];
   initStatusBar();
   for (int y = 0; y < (int)height; y++) {
     if ((y % 100)==0) updateStatusBar();
+    bool reScan = true; bool scanned = false;
     for (int x = 0; x < (int)width; x++) {
-      if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
-        int siz = 0;
-        for (int y2 = -medianW; y2 <= medianW; y2++) {
-          for (int x2 = -medianW; x2 <= medianW; x2++) {
-            int x3 = x + x2;
-            int y3 = y + y2;
-            if ((unsigned int)x3<(unsigned int)width&&(unsigned int)y3<(unsigned int)height) {
-              unsigned int col = source[x3+y3*width];
-              int r = col & 255;
-              int g = (col>>8) & 255;
-              int b = (col>>16) & 255;
-              medians2[siz+(medianW*2+1)*(medianH*2+1)*0] = r;
-              medians2[siz+(medianW*2+1)*(medianH*2+1)*1] = g;
-              medians2[siz+(medianW*2+1)*(medianH*2+1)*2] = b;
-              siz++;
+      if (scanned) {
+        if (x < width - medianW) {
+          for (int y2 = 0; y2 < medianH*2+1; y2++) {
+            for (int x2 = 0; x2 < medianW*2+1-1; x2++) {
+              int siz2 = x2 + y2 * (medianW*2+1);
+              medianx2[siz2] = medianx2[siz2+1];
             }
+            medianx2[medianW*2+y2*(medianW*2+1)] = source[x+medianW+(y+y2-medianH)*width];
+          }
+        } else scanned = false;
+      }
+      if (reScan && x >= medianW && y >= medianH && x < width - medianW && y < height - medianH) {
+        reScan = false; scanned = true; int siz2 = 0;
+        for (int y2 = -medianH; y2 <= medianH; y2++) {
+          for (int x2 = -medianW; x2 <= medianW; x2++) {
+            medianx2[siz2++] = source[x2+x+(y2+y)*width];
           }
         }
-        if (siz > 2) for (int i = 0; i < 3; i++) qsort(&medians[(medianW*2+1)*(medianH*2+1)*i], siz, sizeof(int), medianIntSort);
-        int r = medians[siz/2+(medianW*2+1)*(medianH*2+1)*0];
-        int g = medians[siz/2+(medianW*2+1)*(medianH*2+1)*1];
-        int b = medians[siz/2+(medianW*2+1)*(medianH*2+1)*2];
-        dest[x+y*width] = r | (g<<8) | (b<<16) | (source[x+y*width] & 0xff000000);
+      }
+      if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
+        if (scanned) {
+          int m[3]; for (int i = 0; i < 3; i++) {
+            int lk = i * 8;
+            memset(&countSort[0],0,sizeof(int)*countSort.size());
+            for (int j = 0; j < mw; j++) countSort2[(medianx2[j]>>lk)&255]++;
+            int countHere = 0; int overAllCount = 0;
+            int k = 0; for (k = 0; k < 256; k++) {countHere = countSort2[k]; overAllCount += countHere; if (overAllCount>mw/2) break;}
+            m[i] = k < 256 ? k : 255;
+          }
+          int r = m[0]; int g = m[1]; int b = m[2];
+          dest[x+y*width] = r | (g<<8) | (b<<16) | (source[x+y*width] & 0xff000000);
+        } else {
+          // slow but fully working version
+          int siz = 0;
+          for (int y2 = -medianH; y2 <= medianH; y2++) {
+            for (int x2 = -medianW; x2 <= medianW; x2++) {
+              int x3 = x + x2;
+              int y3 = y + y2;
+              if ((unsigned int)x3<(unsigned int)width&&(unsigned int)y3<(unsigned int)height) {
+                unsigned int col = source[x3+y3*width];
+                int r = col & 255;
+                int g = (col>>8) & 255;
+                int b = (col>>16) & 255;
+                medians2[siz+mw*0] = r;
+                medians2[siz+mw*1] = g;
+                medians2[siz+mw*2] = b;
+                siz++;
+              }
+            }
+          }
+          if (siz > 2) for (int i = 0; i < 3; i++) qsort(&medians[mw*i], siz, sizeof(int), medianIntSort);
+          int r = medians[siz/2+mw*0];
+          int g = medians[siz/2+mw*1];
+          int b = medians[siz/2+mw*2];
+          dest[x+y*width] = r | (g<<8) | (b<<16) | (source[x+y*width] & 0xff000000);
+        }
       }
     }
   }
