@@ -243,6 +243,11 @@ void checkMemory() {
   }
 }
 
+int waitTiny = 0;
+void tinyWait() {
+  waitTiny = 2;
+}
+
 int main(int argc, const char *argv[]) {
 
   appFolder = unixFileName(getPath(argv[0]));
@@ -434,6 +439,11 @@ int main(int argc, const char *argv[]) {
     lastActiveLayerSwitchIndex = activeLayerSwitchIndex;
       
     if (refreshMasked) glRefreshMasked(); else glRefresh();
+
+    if (waitTiny>0) {
+      waitTiny--;
+      double a = glSeconds(); while(fabs(glSeconds()-a)<1.0/30.0) {;}
+    }
   }
 
   glDone();

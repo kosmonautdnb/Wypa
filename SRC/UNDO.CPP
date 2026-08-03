@@ -30,6 +30,8 @@
 #include "SERIALZE.HPP"
 #include "MENUBAR.HPP"
 
+void tinyWait();
+
 void initUndo() {
 }
 
@@ -290,7 +292,7 @@ public:
             dest->init(newWidth,newHeight);
           }
           unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_backward);
-          unpackRleStream(dest->pixels, source->undoData.rleDataPixels_backward, dest->pixelStates); dest->hasOutline = true; blitOutlineSolidOneFrame = true;
+          unpackRleStream(dest->pixels, source->undoData.rleDataPixels_backward, dest->pixelStates); dest->hasOutline = true; blitOutlineSolidOneFrame = true; tinyWait();
           dest->undoData.signWith(&source->undoData.undoLayer->undoData);
           dest->colorTransform = source->undoData.undoLayer->colorTransform;
           dest->transform = source->undoData.undoLayer->transform;
@@ -307,7 +309,7 @@ public:
           dest->init(newWidth,newHeight);
         }
         unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_forward);
-        unpackRleStream(dest->pixels, source->undoData.rleDataPixels_forward, dest->pixelStates); dest->hasOutline = true; blitOutlineSolidOneFrame = true;
+        unpackRleStream(dest->pixels, source->undoData.rleDataPixels_forward, dest->pixelStates); dest->hasOutline = true; blitOutlineSolidOneFrame = true; tinyWait();
         dest->undoData.signWith(&source->undoData);
         dest->colorTransform = source->colorTransform;
         dest->transform = source->transform;
