@@ -3489,7 +3489,8 @@ void errorWindow(bool openIt) {
     if (!windowOpen) fileErrors.clear();
   } else {
     ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
-    ImGui::Begin(windowName, NULL, ImVec2(0,0),0.0,FROZENWINDOW);
+    ImGui::Begin(windowName, NULL, ImVec2(1,1),0.0,FROZENWINDOW);
+    ImGui::SetWindowSize(ImVec2(1,1));
     ImGui::End();
   }
 }
