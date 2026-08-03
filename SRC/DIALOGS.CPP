@@ -1709,6 +1709,8 @@ void dialogGradiationCurves(bool openIt) {
     updateGradientCurvesPreview = true;
   }
   DIALOGSTART("Gradiation curves");
+  dialogLoadSaveOff = true; dialogLoadSave(false,DIALOG_NONE);
+
   if (roundButton("Reset##DIALOGGRADIATIONRESET",true)) {
     for (int i = 0; i < 5; i++) {
       curves[i].clear();
@@ -1813,6 +1815,7 @@ void dialogGradiationCurves(bool openIt) {
   ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<(int)c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;} else toolTip("Delete this curve point");
   ImGui::SameLine(); ImGui::Text("Sqrt"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGGRADIATIONBETTER",&showCurveBetter)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel,histogram,showCurveBetter);} toolTip("Histogram shows squareroots as red columns");
 
+  if (shouldUpdateAll) updateGradientCurvesPreview = true;
 
   if (updateGradientCurvesPreview) {
     if (gradientCurvesToColorTransform == NULL) {

@@ -1334,15 +1334,14 @@ void saveFont(const char *shortPath, const char *longFileName) {
 void loadGradientCurve(const char *shortPath, const char *longFileName) {
   String curves = getStringFromFile(shortPath, longFileName);
   stringToCurves(curves);
-  reOpen = true;
-  dialogGradiationCurves(true);
+  shouldUpdateAll = true;
+  loadedSomething();
 }
 
 void saveGradientCurve(const char *shortPath, const char *longFileName) {
   String curves = stringFromCurves();
   putStringToFile(curves, shortPath, longFileName);
-  reOpen = true;
-  dialogGradiationCurves(true);
+  savedSomething();
 }
 
 void loadTilingAnim(const char *shortPath, const char *longFileName) {
