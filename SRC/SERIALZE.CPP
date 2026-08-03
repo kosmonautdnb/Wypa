@@ -384,7 +384,7 @@ void renameTempFile(const char *path, const char *fileName) {
 
 void fileError(const char *fileName) {
   fileErrors.push_back(String(fileName));
-  dialogFileErrors(true);
+  errorWindow(true);
 }
 
 void verifyFile(const char *longFileName, bool additionalSucceed = true) {
@@ -430,6 +430,8 @@ void putStringToFile(const String &string, const char *shortPath, const char *lo
   if (!string.empty()) fwrite(&string[0],1,string.size(),out);
   fclose(out);
   renameTempFile(shortPath, longFileName);
+  verifyFile(longFileName);
+  savedSomething();
 }
 
 

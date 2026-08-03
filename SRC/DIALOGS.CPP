@@ -159,11 +159,9 @@ void dialogs() {
 void drawDialogs() {
   ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
   ImGui::Begin("DRAWDIALOGS", NULL, ImVec2(0,0),0.0,FROZENWINDOW);
-  if (!fileErrors.empty())
-    dialogFileErrors(false);
-  else
-    dialogs();
+  dialogs();
   ImGui::End();
+  errorWindow(false);
 }
 
 void dialogAbout(bool openIt) {
@@ -3462,18 +3460,36 @@ void dialogLoadSave(bool openIt, int dialogMode) {
 }
 
 Array<String> fileErrors;
-void dialogFileErrors(bool openIt) {
-  DIALOGSTART("Some errors at saving")
-  ImGui::Text("Here you see the files that cause problems at reloading them.");
-  ImGui::Text("Most probably they wheren't saved rightly.");
-  ImGui::BeginChild("DIALOGFILEERRORSCHILD", ImVec2(main_window_xres/2,main_window_yres/3));
-  for (int i = 0; i < (int)fileErrors.size(); i++) {
-    ImGui::TextColored(ImVec4(1,0,0,1),"%s",fileErrors[i].last(50).c_str());
+void errorWindow(bool openIt) {
+  static const char *windowName = "Error window";
+  static bool windowOpen = false;
+  if (openIt) {
+    windowOpen = true;
+    return;
   }
-  ImGui::EndChild();
-  if (ImGui::Button("Close##DIALOGFILEERRORSCLOSE")) {
-    fileErrors.clear();
-    ImGui::CloseCurrentPopup();
-  } else toolTip("Just close this view");
-  DIALOGEND()
+  if (windowOpen) {
+    int w = currentCanvas->width; int h = currentCanvas->height;
+    ImGui::SetNextWindowPos(ImVec2(currentCanvas->screenPosX,currentCanvas->screenPosY));
+    ImGui::Begin(windowName,&windowOpen);
+    ImGui::SetWindowSize(ImVec2(w,h));
+    ImGui::TextColored(ImVec4(1,0,0,1), "!!Some errors occured!!");
+    ImGui::Text("Here you see the files that caused problems when reloading them.");
+    ImGui::Text("Most probably they wheren't saved rightly to the drive.");
+    ImGui::Text("Failing files:");
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    ImGui::BeginChild("DIALOGFILEERRORSCHILD", ImVec2(w-40,main_window_yres-cursor.y-30));
+    for (int i = 0; i < (int)fileErrors.size(); i++) {
+      ImGui::TextColored(ImVec4(1,0,0,1),"%s",fileErrors[i].last(50).c_str());
+    }
+    ImGui::EndChild();
+    if (roundButton("Close error window##DIALOGFILEERRORSCLOSE",true)) {
+      windowOpen = false;
+    } else toolTip("Just close this view");
+    ImGui::End();
+    if (!windowOpen) fileErrors.clear();
+  } else {
+    ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
+    ImGui::Begin(windowName, NULL, ImVec2(0,0),0.0,FROZENWINDOW);
+    ImGui::End();
+  }
 }

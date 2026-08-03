@@ -131,7 +131,7 @@ void getGradingArrayFromCurves(unsigned char *dest);
 void sortFileNames(Array<File> &files, int column, bool sortOrder);
 
 extern Array<String> fileErrors;
-void dialogFileErrors(bool openIt);
+void errorWindow(bool openIt);
 
 #define S_DIALOGS_CPP()
 

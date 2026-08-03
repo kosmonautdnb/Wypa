@@ -51,6 +51,7 @@ Gradient gradient;
 RGBAImage copiedTiling;
 
 Matrix inverse2(const Matrix &a);
+void tinyWait();
 
 void initTools() {
   onePixelBrush = new Brush();
@@ -2715,7 +2716,6 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
               int a2 = (col>>24) & 255;
               float f = 1-d;
               if (f > 0) {
-                f = f*timeDelta*2;
                 if (f > 1) f = 1;
                 r = (r - r2)*f+r2;
                 g = (g - g2)*f+g2;
@@ -2758,6 +2758,7 @@ void useToolBlur() {
   if (blurToolLayer != NULL && isPaintAreaActive() && ImGui::IsMouseDown(0)) {
     double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
     drawCircle(blurToolLayer,cx,cy,blurToolLayer->hasSelection(),false);
+    tinyWait();
     repaintLayer(blurToolLayer,false);
     updatedPixels(blurToolLayer);
   }
