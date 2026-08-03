@@ -159,7 +159,10 @@ void dialogs() {
 void drawDialogs() {
   ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
   ImGui::Begin("DRAWDIALOGS", NULL, ImVec2(0,0),0.0,FROZENWINDOW);
-  dialogs();
+  if (!fileErrors.empty())
+    dialogFileErrors(false);
+  else
+    dialogs();
   ImGui::End();
 }
 
@@ -3456,4 +3459,21 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   } else TOOLTIP("Don't proceed with this and return");
   DIALOGEND()
   if (scrollToHelper>0) scrollToHelper--; else scrollToFileName="";
+}
+
+Array<String> fileErrors;
+void dialogFileErrors(bool openIt) {
+  DIALOGSTART("Some errors at saving")
+  ImGui::Text("Here you see the files that cause problems at reloading them.");
+  ImGui::Text("Most probably they wheren't saved rightly.");
+  ImGui::BeginChild("DIALOGFILEERRORSCHILD", ImVec2(main_window_xres/2,main_window_yres/3));
+  for (int i = 0; i < (int)fileErrors.size(); i++) {
+    ImGui::TextColored(ImVec4(1,0,0,1),"%s",fileErrors[i].last(50).c_str());
+  }
+  ImGui::EndChild();
+  if (ImGui::Button("Close##DIALOGFILEERRORSCLOSE")) {
+    fileErrors.clear();
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
 }

@@ -24,6 +24,7 @@
 #ifndef __DIALOGS_HPP__
 #define __DIALOGS_HPP__
 
+#include "STL/ARRAY.HPP"
 #include "STL/STRING.HPP"
 #include "STL/DOS.HPP"
 
@@ -128,6 +129,9 @@ String stringFromCurves();
 void getGradingArrayFromCurves(unsigned char *dest);
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder);
+
+extern Array<String> fileErrors;
+void dialogFileErrors(bool openIt);
 
 #define S_DIALOGS_CPP()
 

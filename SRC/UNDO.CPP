@@ -173,7 +173,7 @@ public:
 #undef WRITEDWORDHERE
   }
 
-  void unpackRleStream(void *dest, unsigned char *rle) {
+  void unpackRleStream(void *dest, unsigned char *rle, unsigned char *pixelStates = NULL) {
     unsigned int *read = (unsigned int *)rle;
     unsigned int *write = (unsigned int *)dest;
     read++; // kennung
@@ -183,12 +183,15 @@ public:
       if (inColorData) {
         for (int i = 0; i < (int)pixelCount; i++) {
           *write++ = *read++;
+          if (pixelStates != NULL) *pixelStates++ |= PIXELSTATE_OUTLINE;
         }
       } else {
         write += pixelCount;
+        if (pixelStates != NULL) pixelStates += pixelCount;
       }
       inColorData = !inColorData;
     }
+    if (pixelStates != NULL) clearOutlineAfterNextPaint = true;
   }
 
   void generateDeltas(Layer *dest, Layer *source) {
@@ -286,8 +289,8 @@ public:
           if (newHeight != dest->height || newWidth != dest->width) {
             dest->init(newWidth,newHeight);
           }
-          unpackRleStream(dest->pixels, source->undoData.rleDataPixels_backward);
           unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_backward);
+          unpackRleStream(dest->pixels, source->undoData.rleDataPixels_backward, dest->pixelStates); dest->hasOutline = true; blitOutlineSolidOneFrame = true;
           dest->undoData.signWith(&source->undoData.undoLayer->undoData);
           dest->colorTransform = source->undoData.undoLayer->colorTransform;
           dest->transform = source->undoData.undoLayer->transform;
@@ -303,8 +306,8 @@ public:
         if (newHeight != dest->height || newWidth != dest->width) {
           dest->init(newWidth,newHeight);
         }
-        unpackRleStream(dest->pixels, source->undoData.rleDataPixels_forward);
         unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_forward);
+        unpackRleStream(dest->pixels, source->undoData.rleDataPixels_forward, dest->pixelStates); dest->hasOutline = true; blitOutlineSolidOneFrame = true;
         dest->undoData.signWith(&source->undoData);
         dest->colorTransform = source->colorTransform;
         dest->transform = source->transform;

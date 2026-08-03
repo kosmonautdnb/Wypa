@@ -591,7 +591,11 @@ void drawToolMagicView() {
   ImGui::Text("Lookup table"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSELUT",&l->colorTransform.useLut)) {shouldUpdateAll = true;} else toolTip("Use a color lookup table file");
   if (l->colorTransform.useLut) {
     if (roundButton(t->lut == NULL ? "LUT##DRAWTOOLMAGICLUT":">>LUT##DRAWTOOLMAGICLUT",true)) {if (t->lut != NULL) {delete t->lut; t->lut = NULL;} shouldUpdateAll = true; dialogLoadSave(true, DIALOG_LUT);} else toolTip("Use a color lookup table, too"); 
-    if (t->lut != NULL) {ImGui::SameLine(); ImGui::Text("3D %d", t->lutRSize);}
+    if (t->lut != NULL) {
+      ImGui::SameLine(); ImGui::Text("3D %d", t->lutRSize);
+      ImGui::Text("Influence");
+      if (ImGui::SliderFloat("##DRAWTOOLMAGICLUTINFLUENCE",&t->lutInfluence,0,1)) {shouldUpdateAll = true;} else toolTip("How strong the LUT is against the normal color");
+    }
   }
 
   ImGui::Text("Posterize"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEPOSTERIZE",&l->colorTransform.usePosterize)) {

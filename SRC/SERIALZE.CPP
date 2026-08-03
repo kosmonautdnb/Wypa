@@ -382,6 +382,34 @@ void renameTempFile(const char *path, const char *fileName) {
   }
 }
 
+void fileError(const char *fileName) {
+  fileErrors.push_back(String(fileName));
+  dialogFileErrors(true);
+}
+
+void verifyFile(const char *longFileName, bool additionalSucceed = true) {
+  UNUSED(additionalSucceed);
+  FILE *in = fopen(dosFileName(shortFileName(dosFileName(longFileName))).c_str(),"rb");
+  if (in == NULL) {
+    fileError(longFileName);
+    return;
+  }
+  fseek(in,0,SEEK_END);
+  int fileSize = ftell(in);
+  fseek(in,0,SEEK_SET);
+  Array<unsigned char> buffer; int bucketMax = 256*1024; buffer.resize(bucketMax);
+  while(fileSize>0) {
+    int bucket = fileSize >= bucketMax ? bucketMax : fileSize;
+    int read = fread(&buffer[0],1,bucket,in);
+    if (read != bucket) {
+      fileError(longFileName);
+      break;
+    }
+    fileSize -= bucket;
+  }
+  fclose(in);
+}
+
 String getStringFromFile(const char *shortPath, const char *longFileName) {
   String fullFileName = shortFileName(dosFileName(String(shortPath)+String(longFileName)));
   String string;
@@ -525,6 +553,7 @@ void exportLayers(const char *shortPath, const char *longFileName) {
   img.savePNG(tempName.c_str());
   renameTempFile(shortPath, longFileName);
   savedSomething();
+  verifyFile(longFileName, true);
   delete l;
 }
 
@@ -540,6 +569,7 @@ void exportPNG(const char *shortPath, const char *longFileName) {
   img.savePNG(tempName.c_str());
   renameTempFile(shortPath, longFileName);
   savedSomething();
+  verifyFile(longFileName, true);
   delete l;
 }
 
@@ -571,6 +601,7 @@ void exportLayersRaw(const char *shortPath, const char *longFileName, bool apply
       String ext = getExtension(longName);
       longName = name + String::fromInt(k) + ext; k++;
       renameTempFile(shortPath, longName.c_str());
+      verifyFile(longName.c_str(), true);
       updateStatusBar();
     }
   }
@@ -761,6 +792,7 @@ void savePalette(const char *shortPath, const char *longFileName) {
   fprintf(out,"%s",string.c_str());
   fclose(out);
   renameTempFile(shortPath, longFileName);
+  verifyFile(longFileName, true);
   savedSomething();
 }
 
@@ -828,6 +860,7 @@ void saveGradient(const char *shortPath, const char *longFileName) {
 
   fclose(out);
   renameTempFile(shortPath, longFileName);
+  verifyFile(longFileName, true);
   savedSomething();
 }
 
@@ -870,6 +903,7 @@ void saveColorMatrix(const char *shortPath, const char *longFileName) {
       } 
       fclose(out);
       renameTempFile(shortPath, longFileName);
+      verifyFile(longFileName, true);
       savedSomething();
     }
   }
@@ -904,6 +938,7 @@ bool writeZippedFiles(const Array<ZipDesc> &desc, const char *shortPath, const c
   if (!mz_zip_writer_finalize_archive(&zip)) return false;
   if (!mz_zip_writer_end(&zip)) return false;
   renameTempFile(shortPath, longFileName);
+  verifyFile(longFileName, true);
   savedSomething();
   return true;
 }
@@ -984,6 +1019,7 @@ void saveBrush(const char *shortPath, const char *longFileName) {
     putBrushesArray(brushesHere, shortPath, longFileName);
   }
   savedSomething();
+  verifyFile(longFileName, true);
 }
 
 void loadBrushes(const char *shortPath, const char *longFileName) {
@@ -1263,6 +1299,7 @@ void saveImage(const char *shortPath, const char *longFileName) {
   // finished
   if (allWentWell) {currentCanvas->signSave(); signSaveForUndo();}
   savedSomething();
+  verifyFile(longFileName, allWentWell);
 }
 
 void loadFont(const char *shortPath, const char *longFileName) {
@@ -1546,6 +1583,7 @@ void saveText(const char *shortPath, const char *longFileName) {
   fclose(out);
   renameTempFile(shortPath, longFileName);
   savedSomething();
+  verifyFile(longFileName, true);
 }
 
 void loadText(const char *shortPath, const char *longFileName) {

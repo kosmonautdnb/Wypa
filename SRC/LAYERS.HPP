@@ -250,6 +250,7 @@ public:
   String gradientCurves;
   Array<float> *lut;
   bool useLut;
+  float lutInfluence;
   int lutRSize;
   int lutGSize;
   int lutBSize;
@@ -325,6 +326,7 @@ public:
   if (!save) {if ((__o__)->lut == NULL) (__o__)->lut = new Array<float>(); (__o__)->lut->clear(); Array<float> *helper = (__o__)->lut; S_ZIPARRAY(combined(String("lut")+String::fromInt(i)+".rgb"),(*helper),sizeof(float)); if ((__o__)->lut->size()==0) {delete (__o__)->lut; (__o__)->lut = NULL;}}\
   if (save && ((__o__)->lut != NULL)) {Array<float> *helper = (__o__)->lut; S_ZIPARRAY(combined(String("lut")+String::fromInt(i)+".rgb"),(*helper),sizeof(float));}\
   S_BOOL("useLut",(__o__)->useLut);\
+  S_FLOAT("lutInfluence",(__o__)->lutInfluence);\
   S_INT("lutRSize",(__o__)->lutRSize);\
   S_INT("lutGSize",(__o__)->lutGSize);\
   S_INT("lutBSize",(__o__)->lutBSize);\
@@ -955,6 +957,7 @@ extern bool clearOutlineAfterNextPaint;
 extern float monitorGamma;
 extern bool shouldRecreateQuantization;
 extern bool showOnlyActiveLayersSelection;
+extern bool blitOutlineSolidOneFrame;
 
 Layer *layerFromCanvas(Canvas *canvas);
 void repaintLayer(Layer *layer, bool fullUpdate);

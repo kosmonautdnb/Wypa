@@ -1635,64 +1635,108 @@ void filterSoften() {
   if (l == NULL) return;
   if (locked(l,LOCK_ANY)) return;
 
+  int medianW = 4, medianH = 4;
+  int width = l->width;
+  int height = l->height;
+  Array<unsigned int> source2; source2.resize(l->width*l->height); memcpy(&source2[0],l->pixels,l->width*l->height*sizeof(unsigned int)); 
+  unsigned int *source = &source2[0];
+  unsigned int *dest = l->pixels;
+  bool usePixelStates = l->hasSelection();
+  unsigned char *pixelStates = l->pixelStates;
+
+  // dest and source are different here
+  const int mw = (medianW*2+1) * (medianH*2+1);
+  Array<unsigned int> medianx; medianx.resize(mw); unsigned int *medianx2 = &medianx[0];
+  Array<int> medians; medians.resize(mw*3); int *medians2 = &medians[0];
+  Array<int> countSort; countSort.resize(256); int *countSort2 = &countSort[0];
   beforeUndoPoint();
-  int kernel = 4;
-  Array<double> medians; medians.resize((kernel*2+1) * (kernel*2+1)*3);
-  double *medians2 = &medians[0];
-
-  Array<unsigned int> source;
-  source.resize(l->width*l->height);
-  memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
-
   initStatusBar();
-  bool hasSelection = l->hasSelection();
-
-  for (int y = 0; y < l->height; y++) {
+  for (int y = 0; y < (int)height; y++) {
     if ((y % 100)==0) updateStatusBar();
-    for (int x = 0; x < l->width; x++) {
-      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
-        int siz = 0;
-        double average[3]; average[0] = 0; average[1] = 0; average[2] = 0; 
-        for (int y2 = -kernel; y2 <= kernel; y2++) {
-          for (int x2 = -kernel; x2 <= kernel; x2++) {
-            int x3 = x + x2;
-            int y3 = y + y2;
-            if ((unsigned int)x3<(unsigned int)l->width&&(unsigned int)y3<(unsigned int)l->height) {
-              unsigned int col = source[x3+y3*l->width];
-              double r = col & 255;
-              double g = (col>>8) & 255;
-              double b = (col>>16) & 255;
-              r /= 255.0; g /= 255.0; b /= 255.0;
-              medians2[siz+(kernel*2+1) * (kernel*2+1) * 0] = r;
-              medians2[siz+(kernel*2+1) * (kernel*2+1) * 1] = g;
-              medians2[siz+(kernel*2+1) * (kernel*2+1) * 2] = b;
-              siz++;
-              average[0] += r;
-              average[1] += g;
-              average[2] += b;
+    bool reScan = true; bool scanned = false;
+    for (int x = 0; x < (int)width; x++) {
+      if (scanned) {
+        if (x < width - medianW) {
+          for (int y2 = 0; y2 < medianH*2+1; y2++) {
+            for (int x2 = 0; x2 < medianW*2+1-1; x2++) {
+              int siz2 = x2 + y2 * (medianW*2+1);
+              medianx2[siz2] = medianx2[siz2+1];
             }
+            medianx2[medianW*2+y2*(medianW*2+1)] = source[x+medianW+(y+y2-medianH)*width];
+          }
+        } else scanned = false;
+      }
+      if (reScan && x >= medianW && y >= medianH && x < width - medianW && y < height - medianH) {
+        reScan = false; scanned = true; int siz2 = 0;
+        for (int y2 = -medianH; y2 <= medianH; y2++) {
+          for (int x2 = -medianW; x2 <= medianW; x2++) {
+            medianx2[siz2++] = source[x2+x+(y2+y)*width];
           }
         }
+      }
+      if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
+        double m[3]; 
+        double a[3];
+        double here[3];
+        if (scanned) {
+          for (int i = 0; i < 3; i++) {
+            int lk = i * 8;
+            memset(&countSort[0],0,sizeof(int)*countSort.size());
+            a[i] = 0;
+            for (int j = 0; j < mw; j++) {int v = (medianx2[j]>>lk)&255;countSort2[v]++; a[i] += v;}
+            if (mw != 0) a[i] /= mw;
+            int countHere = 0; int overAllCount = 0;
+            int k = 0; for (k = 0; k < 256; k++) {countHere = countSort2[k]; overAllCount += countHere; if (overAllCount>mw/2) break;}
+            m[i] = k < 256 ? k : 255;
+          }
+        } else {
+          // slow but fully working version
+          int siz = 0;
+          a[0] = 0; a[1] = 0; a[2] = 0;
+          for (int y2 = -medianH; y2 <= medianH; y2++) {
+            for (int x2 = -medianW; x2 <= medianW; x2++) {
+              int x3 = x + x2;
+              int y3 = y + y2;
+              if ((unsigned int)x3<(unsigned int)width&&(unsigned int)y3<(unsigned int)height) {
+                unsigned int col = source[x3+y3*width];
+                int r = col & 255;
+                int g = (col>>8) & 255;
+                int b = (col>>16) & 255;
+                medians2[siz+mw*0] = r;
+                medians2[siz+mw*1] = g;
+                medians2[siz+mw*2] = b;
+                a[0] += r;
+                a[1] += g;
+                a[2] += b;
+                siz++;
+              }
+            }
+          }
+          if (siz > 2) for (int i = 0; i < 3; i++) qsort(&medians[mw*i], siz, sizeof(int), medianIntSort);
+          if (siz != 0) {a[0] /= siz; a[1] /= siz; a[2] /= siz;}
+          m[0] = medians[siz/2+mw*0];
+          m[1] = medians[siz/2+mw*1];
+          m[2] = medians[siz/2+mw*2];
+        }
         unsigned int col = source[x+y*l->width];
-        double r2 = col & 255;
-        double g2 = (col>>8) & 255;
-        double b2 = (col>>16) & 255;
-        r2 /= 255.0; g2 /= 255.0; b2 /= 255.0;
-        double here[3]; here[0] = r2; here[1] = g2; here[2] = b2;
-  
-        if (siz > 2) for (int i = 0; i < 3; i++) qsort(&medians[(kernel*2+1) * (kernel*2+1) * i], siz, sizeof(double), medianLumaSort);
-        if (siz > 1) {average[0] /= siz; average[1] /= siz; average[2] /= siz;}
-        col = 0;
+        here[0] = col & 255;
+        here[1] = (col>>8) & 255;
+        here[2] = (col>>16) & 255;
+
+        col = 0x00000000;
         for (int i = 0; i < 3; i++) {
-          double median = medians[siz/2+(kernel*2+1) * (kernel*2+1) * i];
-          double delta = 1-fabs(here[i]-average[i]); // the smaller this value the more highfrequent
+          a[i] /= 255.0;
+          m[i] /= 255.0;
+          here[i] /= 255.0;
+          double median = m[i];
+          double delta = 1-fabs(here[i]-a[i]); // the smaller this value the more highfrequent
           double grey = here[i] * (1-delta) + median * delta;
           int gr = (int)(grey * 255.0);
           if (gr < 0) gr = 0;
           if (gr > 255) gr = 255;
           col |= gr << (i*8);
         }
-        l->pixels[x+y*l->width] = col|(source[x+y*l->width]&0xff000000);
+        dest[x+y*width] = col | (source[x+y*width] & 0xff000000);
       }
     }
   }

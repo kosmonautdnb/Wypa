@@ -86,6 +86,7 @@ bool showSelectionPlaneBounding = false;
 bool clearOutlineAfterNextPaint = false;
 bool shouldRecreateQuantization = true;
 bool showOnlyActiveLayersSelection = true;
+bool blitOutlineSolidOneFrame = false;
 
 void initLayers() {
   selectionPlane = new Layer();
@@ -623,6 +624,7 @@ void ColorTransform::reset() {
   shouldUpdate = true;
   gradientCurves = "";
   if (lut != NULL) {delete lut; lut = NULL;}
+  lutInfluence = 1;
   lutRSize = 0;
   lutGSize = 0;
   lutBSize = 0;
@@ -707,6 +709,14 @@ unsigned int ColorTransform::applyLut(unsigned int pixel) {
       float w1 = v1 * gd + v2 * ga;
       float w2 = v3 * gd + v4 * ga;
       bv = w1 * bd + w2 * ba;
+    }
+    if (lutInfluence != 1) {
+      float r2 = (float)r / 256.f;
+      float g2 = (float)g / 256.f;
+      float b2 = (float)b / 256.f;
+      rv = (rv - r2)*lutInfluence + r2;
+      gv = (gv - g2)*lutInfluence + g2;
+      bv = (bv - b2)*lutInfluence + b2;
     }
     r = (int)(rv*256.f);
     g = (int)(gv*256.f);
@@ -2371,6 +2381,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   int lutSize = lutSizeR*lutSizeG*lutSizeB;
   if (layer->colorTransform.lut == NULL || lutSize > (int)layer->colorTransform.lut->size()) useLut = false;
   float *lut = NULL; if (layer->colorTransform.lut != NULL) lut = &((*layer->colorTransform.lut)[0]);
+  float lutInfluence = layer->colorTransform.lutInfluence;
 
   bool showSelection = true;
   if (showOnlyActiveLayersSelection) {
@@ -2542,6 +2553,14 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
               float w1 = v1 * gd + v2 * ga;
               float w2 = v3 * gd + v4 * ga;
               bv = w1 * bd + w2 * ba;
+            }
+            if (lutInfluence != 1) {
+              float r2 = (float)r / 256.f;
+              float g2 = (float)g / 256.f;
+              float b2 = (float)b / 256.f;
+              rv = (rv - r2)*lutInfluence + r2;
+              gv = (gv - g2)*lutInfluence + g2;
+              bv = (bv - b2)*lutInfluence + b2;
             }
             r = (int)(rv*256.f);
             g = (int)(gv*256.f);
@@ -3322,6 +3341,10 @@ void Canvas::mergeDownLayers() {
   if ((unsigned int)lastPos >= layers.size()) return;
   Layer *l = getSelectionAsLayer(false,false,false);
   if (l == NULL) return;
+  if (layers[lastPos]->type == LAYERTYPE_TEXT && l->type == LAYERTYPE_BASIC) {
+    layers[lastPos]->type = LAYERTYPE_BASIC;
+    layers[lastPos]->state.lockBits = LOCK_NONE;
+  }
   layerGetContent(layers[lastPos],l); layers[lastPos]->transform = l->transform; layers[lastPos]->colorTransform = l->colorTransform;
   updatedPixels(layers[lastPos]);
   updatedPixelStates(layers[lastPos]);
@@ -4524,6 +4547,16 @@ void blitCanvas() {
             if (!(state & PIXELSTATE_SELECTED)) col = (((x+y+time)/4) & 1) ? 0xffffffff : 0xff0000ff;
           }
           if (before & PIXELSTATE_OUTLINE) {
+            if (blitOutlineSolidOneFrame) {
+              unsigned int s = (((x+y+time)/4) & 1) ? 0xffffffff : 0xff0000ff;
+              int r = (col & 255)>>1;
+              int g = ((col>>8) & 255)>>1;
+              int b = ((col>>16) & 255)>>1;
+              r += (s & 255)>>1;
+              g += ((s>>8) & 255)>>1;
+              b += ((s>>16) & 255)>>1;
+              col = (r)|(g<<8)|(b<<16)|(col & 0xff000000);
+            }
             if (!(state & PIXELSTATE_OUTLINE)) col = (((x+y+time)/4) & 1) ? 0xffffffff : 0xffff00ff;
           }
         }
@@ -4594,6 +4627,7 @@ void blitCanvas() {
     }
     currentCanvas->updatePixelStates(~(PIXELSTATE_OUTLINE),0,0);
   }
+  blitOutlineSolidOneFrame = false;
 }
 
 void canvasDefault(Canvas *canvas) {
