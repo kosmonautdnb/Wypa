@@ -26,6 +26,7 @@
 
 extern int availableUndos;
 extern int availableRedos;
+extern bool visibleUndo;
 
 void initUndo();
 void freeUndo();

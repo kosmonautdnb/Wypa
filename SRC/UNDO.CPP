@@ -185,7 +185,7 @@ public:
       if (inColorData) {
         for (int i = 0; i < (int)pixelCount; i++) {
           *write++ = *read++;
-          if (pixelStates != NULL) *pixelStates++ |= PIXELSTATE_OUTLINE;
+          if (pixelStates != NULL && visibleUndo) *pixelStates++ |= PIXELSTATE_OUTLINE;
         }
       } else {
         write += pixelCount;
@@ -292,7 +292,7 @@ public:
             dest->init(newWidth,newHeight);
           }
           unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_backward);
-          unpackRleStream(dest->pixels, source->undoData.rleDataPixels_backward, dest->pixelStates); dest->hasOutline = true; blitOutlineSolidOneFrame = true; tinyWait();
+          unpackRleStream(dest->pixels, source->undoData.rleDataPixels_backward, dest->pixelStates); if (visibleUndo) {dest->hasOutline = true; blitOutlineSolidOneFrame = true; tinyWait();}
           dest->undoData.signWith(&source->undoData.undoLayer->undoData);
           dest->colorTransform = source->undoData.undoLayer->colorTransform;
           dest->transform = source->undoData.undoLayer->transform;
@@ -309,7 +309,7 @@ public:
           dest->init(newWidth,newHeight);
         }
         unpackRleStream(dest->pixelStates, source->undoData.rleDataPixelStates_forward);
-        unpackRleStream(dest->pixels, source->undoData.rleDataPixels_forward, dest->pixelStates); dest->hasOutline = true; blitOutlineSolidOneFrame = true; tinyWait();
+        unpackRleStream(dest->pixels, source->undoData.rleDataPixels_forward, dest->pixelStates); if (visibleUndo) {dest->hasOutline = true; blitOutlineSolidOneFrame = true; tinyWait();}
         dest->undoData.signWith(&source->undoData);
         dest->colorTransform = source->colorTransform;
         dest->transform = source->transform;
@@ -366,6 +366,7 @@ void calcUndoStackByteCount() {
 
 int availableUndos = 0;
 int availableRedos = 0;
+bool visibleUndo = true;
 
 void beforeUndoPoint() {
   if (useUndo) {

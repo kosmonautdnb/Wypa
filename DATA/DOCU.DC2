@@ -613,6 +613,12 @@
       "Shows a grid. You may use some keys to snap the mouse to the grid." _N_
       "The grid can be configured in image properties (menu point)\"Image\"." _N_
     "}" _N_
+    "Show rulers{" _N_
+      "Displays some pixel position displaying rulers on the top and left." _N_
+    "}" _N_
+    "Visible undo/redo{" _N_
+      "Show every undo/redo action as some sort of outline briefly." _N_
+    "}" _N_
     "Center to view{" _N_
       "Places the current image onto the center of the \"screen\"." _N_
     "}" _N_

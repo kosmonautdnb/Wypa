@@ -773,7 +773,7 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
     bool reScan = true; bool scanned = false;
     for (int x = 0; x < (int)width; x++) {
       if (scanned) {
-        if (x < width - medianW) {
+        if (x < (int)width - medianW) {
           for (int y2 = 0; y2 < medianH*2+1; y2++) {
             for (int x2 = 0; x2 < medianW*2+1-1; x2++) {
               int siz2 = x2 + y2 * (medianW*2+1);
@@ -783,7 +783,7 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
           }
         } else scanned = false;
       }
-      if (reScan && x >= medianW && y >= medianH && x < width - medianW && y < height - medianH) {
+      if (reScan && x >= medianW && y >= medianH && x < (int)width - medianW && y < (int)height - medianH) {
         reScan = false; scanned = true; int siz2 = 0;
         for (int y2 = -medianH; y2 <= medianH; y2++) {
           for (int x2 = -medianW; x2 <= medianW; x2++) {
@@ -1809,17 +1809,25 @@ void filterBlackWhiteOCR() {
 }
 
 static __inline void lookupInterpolated(unsigned int *colors, int width, int height, float x, float y, float &red, float &green, float &blue, float &alpha) {
-  if (y < 0) y = 0;
-  if (x < 0) x = 0;
-  if (x > width-1) x = width-1;
-  if (y > height-1) y = height-1;
-  int lx = (int)floor(x), ly = (int)floor(y);
+  if (width<1||height<1) return;
+  int lx = (int)floor(x);
+  int ly = (int)floor(y);
+  int lx2 = lx + 1;
+  int ly2 = ly + 1;
+  if (lx < 0) {lx = 0; x = 0;}
+  if (ly < 0) {ly = 0; y = 0;}
+  if (lx >= width) {lx = width-1; lx2 = lx; x = 0;}
+  if (ly >= height) {ly = height-1; ly2 = ly; y = 0;}
+  if (lx2 >= width-1) lx2 = width - 1;
+  if (ly2 >= height-1) ly2 = height - 1;
+  if (lx2 < 0) {lx2 = 0;}
+  if (ly2 < 0) {ly2 = 0;}
   double fx = x-floor(x);
   double fy = y-floor(y);
   unsigned int p00 = colors[lx+ly*width];
-  unsigned int p10 = (lx+1) < width ? colors[(lx+1)+ly*width] : p00;
-  unsigned int p01 = (ly+1) < height ? colors[lx+(ly+1)*width] : p00;
-  unsigned int p11 = (ly+1) < height && (lx+1) < width ? colors[(lx+1)+(ly+1)*width] : p00;
+  unsigned int p10 = colors[lx2+ly*width];
+  unsigned int p01 = colors[lx+ly2*width];
+  unsigned int p11 = colors[lx2+ly2*width];
   double rt = ((int)(p10 & 255) - (int)(p00 & 255))*fx + (int)(p00 & 255);
   double gt = ((int)((p10>>8) & 255) - (int)((p00>>8) & 255))*fx + (int)((p00>>8) & 255);
   double bt = ((int)((p10>>16) & 255) - (int)((p00>>16) & 255))*fx + (int)((p00>>16) & 255);

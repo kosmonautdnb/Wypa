@@ -104,7 +104,7 @@ Matrix inverse2(const Matrix &a) {
 }
 
 const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy"};
-const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear"};
+const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Lanczos2","Lanczos3"};
 void LayerState::clear() {
   active = false;
   selected = false;
@@ -1365,6 +1365,40 @@ void Layer::resizeLayerContent(int interpolation, int newWidth, int newHeight) {
   transform = before;
 }
 
+static __inline void lookupInterpolated2(unsigned int *colors, int width, int height, float x, float y, float &red, float &green, float &blue, float &alpha) {
+  if (width<1||height<1) return;
+  int lx = (int)floor(x);
+  int ly = (int)floor(y);
+  int lx2 = lx + 1;
+  int ly2 = ly + 1;
+  if (lx < 0) {lx = 0; x = 0;}
+  if (ly < 0) {ly = 0; y = 0;}
+  if (lx >= width) {lx = width-1; lx2 = lx; x = 0;}
+  if (ly >= height) {ly = height-1; ly2 = ly; y = 0;}
+  if (lx2 >= width-1) lx2 = width - 1;
+  if (ly2 >= height-1) ly2 = height - 1;
+  if (lx2 < 0) {lx2 = 0;}
+  if (ly2 < 0) {ly2 = 0;}
+  double fx = x-floor(x);
+  double fy = y-floor(y);
+  unsigned int p00 = colors[lx+ly*width];
+  unsigned int p10 = colors[lx2+ly*width];
+  unsigned int p01 = colors[lx+ly2*width];
+  unsigned int p11 = colors[lx2+ly2*width];
+  double rt = ((int)(p10 & 255) - (int)(p00 & 255))*fx + (int)(p00 & 255);
+  double gt = ((int)((p10>>8) & 255) - (int)((p00>>8) & 255))*fx + (int)((p00>>8) & 255);
+  double bt = ((int)((p10>>16) & 255) - (int)((p00>>16) & 255))*fx + (int)((p00>>16) & 255);
+  double at = ((int)((p10>>24) & 255) - (int)((p00>>24) & 255))*fx + (int)((p00>>24) & 255);
+  double rb = ((int)(p11 & 255) - (int)(p01 & 255))*fx + (int)(p01 & 255);
+  double gb = ((int)((p11>>8) & 255) - (int)((p01>>8) & 255))*fx + (int)((p01>>8) & 255);
+  double bb = ((int)((p11>>16) & 255) - (int)((p01>>16) & 255))*fx + (int)((p01>>16) & 255);
+  double ab = ((int)((p11>>24) & 255) - (int)((p01>>24) & 255))*fx + (int)((p01>>24) & 255);
+  red = (rb - rt) * fy + rt;
+  green = (gb - gt) * fy + gt;
+  blue = (bb - bt) * fy + bt;
+  alpha = (ab - at) * fy + at;
+}
+
 void Layer::bakeLayer(int interpolation) {
   if (locked(this,LOCK_ANY)) return;
   Vector b = boundingBox();
@@ -1388,32 +1422,52 @@ void Layer::bakeLayer(int interpolation) {
 
   Matrix m = transform.transformation;
 
-  double rounding = 0.5;
-  if (interpolation == INTERPOLATION_LINEAR) rounding = 0;
+  int kernelSize = 0;
+  switch(interpolation) {
+  case INTERPOLATION_LANCZOS2: {kernelSize = 2;} break;
+  case INTERPOLATION_LANCZOS3: {kernelSize = 3;} break;
+  }
 
+  initStatusBar();
+  int k = (y1 - y0)/10; if (k < 1) k = 1;
   for (int y = y0; y < y1; y++) {
+    if (((y - y0) % k)==0) updateStatusBar();
     for (int x = x0; x < x1; x++) {
-      double px = x+rounding;
-      double py = y+rounding;
+      double px = x+0.5;
+      double py = y+0.5;
       double lx3 = px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4];
       double ly3 = px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4];
-      int lx = (int)lx3;
-      int ly = (int)ly3;
-      if (lx == 0) lx = (int)floor(px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4]);
-      if (ly == 0) ly = (int)floor(px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4]);
-      if ((unsigned int)lx >= (unsigned int)ow || (unsigned int)ly >= (unsigned int)oh) continue;
-      pixelStates[(x-x0)+(y-y0)*this->width] = beforeS[lx+ly*ow];
       switch(interpolation) {
         case INTERPOLATION_NONE: {
+          int lx = (int)lx3;
+          int ly = (int)ly3;
+          if (lx == 0) lx = (int)floor(px*m.m[0+0*4]+py*m.m[0+1*4]+m.m[0+3*4]);
+          if (ly == 0) ly = (int)floor(px*m.m[1+0*4]+py*m.m[1+1*4]+m.m[1+3*4]);
+          if ((unsigned int)lx >= (unsigned int)ow || (unsigned int)ly >= (unsigned int)oh) continue;
+          pixelStates[(x-x0)+(y-y0)*this->width] = beforeS[lx+ly*ow];
           pixels[(x-x0)+(y-y0)*this->width] = beforeP[lx+ly*ow];
         } break;
         case INTERPOLATION_LINEAR: {
+            lx3 -= 0.5;
+            ly3 -= 0.5;
+            int lx = (int)floor(lx3);
+            int ly = (int)floor(ly3);
+            int lx2 = lx + 1;
+            int ly2 = ly + 1;
+            if (lx < 0) lx = 0;
+            if (ly < 0) ly = 0;
+            if (lx >= ow) continue;
+            if (ly >= oh) continue;
+            if (lx2 >= ow-1) lx2 = ow - 1;
+            if (ly2 >= oh-1) ly2 = oh - 1;
+            if (lx2 < 0) continue;
+            if (ly2 < 0) continue;
             double fx = lx3-floor(lx3);
             double fy = ly3-floor(ly3);
             unsigned int p00 = beforeP[lx+ly*ow];
-            unsigned int p10 = (lx+1) < ow ? beforeP[(lx+1)+ly*ow] : p00;
-            unsigned int p01 = (ly+1) < oh ? beforeP[lx+(ly+1)*ow] : p00;
-            unsigned int p11 = (ly+1) < oh && (lx+1) < ow ? beforeP[(lx+1)+(ly+1)*ow] : p00;
+            unsigned int p10 = beforeP[lx2+ly*ow];
+            unsigned int p01 = beforeP[lx+ly2*ow];
+            unsigned int p11 = beforeP[lx2+ly2*ow];
             double rt = ((int)(p10 & 255) - (int)(p00 & 255))*fx + (int)(p00 & 255);
             double gt = ((int)((p10>>8) & 255) - (int)((p00>>8) & 255))*fx + (int)((p00>>8) & 255);
             double bt = ((int)((p10>>16) & 255) - (int)((p00>>16) & 255))*fx + (int)((p00>>16) & 255);
@@ -1434,8 +1488,50 @@ void Layer::bakeLayer(int interpolation) {
             if (g < 0) g = 0;
             if (b < 0) b = 0;
             if (a < 0) a = 0;
+            if ((unsigned int)lx<(unsigned int)ow && (unsigned int)ly<(unsigned int)oh) pixelStates[(x-x0)+(y-y0)*this->width] = beforeS[lx+ly*ow];
             pixels[(x-x0)+(y-y0)*this->width] = (r)|(g<<8)|(b<<16)|(a<<24);
         } break;
+        case INTERPOLATION_LANCZOS2:
+        case INTERPOLATION_LANCZOS3: {
+          lx3 -= 0.5;
+          ly3 -= 0.5;
+          int lx = (int)floor(lx3);
+          int ly = (int)floor(ly3);
+          float r2 = 0;
+          float g2 = 0;
+          float b2 = 0;
+          float a2 = 0;
+          float w2 = 0;
+          for (int y2 = -kernelSize; y2 <= kernelSize; y2++) {
+            float ky = y2; float ry = ky == 0 ? 1 : (sin(PI*ky)/sin(PI*ky/kernelSize))/((PI*ky)*(PI*ky)/kernelSize);
+            for (int x2 = -kernelSize; x2 <= kernelSize; x2++) {
+              float kx = x2; float rx = kx == 0 ? 1 : (sin(PI*kx)/sin(PI*kx/kernelSize))/((PI*kx)*(PI*kx)/kernelSize);
+              float f = rx * ry;
+              float r=0, g=0, b=0, a=0;
+              lookupInterpolated2(beforeP, ow, oh, x2+lx3, y2+ly3, r, g, b, a);
+              r2 += r * f;
+              g2 += g * f;
+              b2 += b * f;
+              a2 += a * f;
+              w2 += f;
+            }
+          }
+          if (w2 != 0) {r2 /= w2; g2 /= w2; b2 /= w2; a2 /= w2;}
+          int r = floor(r2);
+          int g = floor(g2);
+          int b = floor(b2);
+          int a = floor(a2);
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          if (a > 255) a = 255;
+          if (r < 0) r = 0;
+          if (g < 0) g = 0;
+          if (b < 0) b = 0;
+          if (a < 0) a = 0;
+          if ((unsigned int)lx<(unsigned int)ow && (unsigned int)ly<(unsigned int)oh) pixelStates[(x-x0)+(y-y0)*this->width] = beforeS[lx+ly*ow];
+          pixels[(x-x0)+(y-y0)*this->width] = (r)|(g<<8)|(b<<16)|(a<<24);
+        }
       }
     }
   }
@@ -1452,12 +1548,12 @@ void Layer::bakeLayer(int interpolation) {
       for (int y = 0; y < oh; y++) {
         for (int x = 0; x < ow; x++) {
           double px = x; double py = y;
-          double lx4 = px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+rounding;
-          double ly4 = px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+rounding;
+          double lx4 = px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+0.5;
+          double ly4 = px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+0.5;
           int lx2 = (int)lx4;
           int ly2 = (int)ly4;
-          if (lx2 == 0) lx2 = (int)floor(px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+rounding);
-          if (ly2 == 0) ly2 = (int)floor(px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+rounding);
+          if (lx2 == 0) lx2 = (int)floor(px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+0.5);
+          if (ly2 == 0) ly2 = (int)floor(px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+0.5);
           if ((unsigned int)lx2 >= (unsigned int)width || (unsigned int)ly2 >= (unsigned int)height) continue;
           unsigned int ps = beforeP[x+y*ow];
           int r = (ps) & 255;
@@ -1475,7 +1571,7 @@ void Layer::bakeLayer(int interpolation) {
       Matrix m3 = inverse2(m2);
       for (int y2 = 0; y2 < height; y2++) {
         for (int x2 = 0; x2 < width; x2++) {
-          double px = x2+rounding; double py = y2+rounding;
+          double px = x2+0.5; double py = y2+0.5;
           double lx4 = px*m3.m[0+0*4]+py*m3.m[0+1*4]+m3.m[0+3*4];
           double ly4 = px*m3.m[1+0*4]+py*m3.m[1+1*4]+m3.m[1+3*4];
           int lx2 = (int)lx4;
@@ -1485,12 +1581,12 @@ void Layer::bakeLayer(int interpolation) {
           px = lx2; py = ly2; // ow,oh
           int x3 = x2, y3 = y2;
           {
-            double lx4 = px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+rounding;
-            double ly4 = px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+rounding;
+            double lx4 = px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+0.5;
+            double ly4 = px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+0.5;
             int lx2 = (int)lx4;
             int ly2 = (int)ly4;
-            if (lx2 == 0) lx2 = (int)floor(px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+rounding);
-            if (ly2 == 0) ly2 = (int)floor(px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+rounding);
+            if (lx2 == 0) lx2 = (int)floor(px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+0.5);
+            if (ly2 == 0) ly2 = (int)floor(px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+0.5);
             if ((unsigned int)lx2 < (unsigned int)width || (unsigned int)ly2 < (unsigned int)height) {
               x3 = lx2; y3 = ly2;
             }
