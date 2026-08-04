@@ -116,6 +116,7 @@ int getLayersByteCount() {
     for (int j = 0; j < (int)canvas[i]->layers.size(); j++) {
       ret += canvas[i]->layers[j]->byteCount();
     }
+    ret += canvas[i]->byteCount();
   }
   return ret;
 }

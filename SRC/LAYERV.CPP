@@ -77,7 +77,8 @@ void drawLayerView() {
     int mode = currentLayer->mode - 1; if (ImGui::Combo("##DRAWLAYERVIEWTRANSPARENCYTYPE",&mode, &(layerModeNames[1]), LAYERMODE_COUNT-1)) {
       currentLayer->mode = mode + 1;
       repaintLayer(currentLayer,true);
-    } else toolTip("Layer paint mode");
+    } else toolTip("Layer paint mode: %s",layerModeNamesFull[currentLayer->mode]);
+
     ImGui::PopItemWidth();
     ImGui::SameLine();
     ImGui::PushItemWidth(sidebar_width-(7*8+16)-16);

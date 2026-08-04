@@ -103,7 +103,8 @@ Matrix inverse2(const Matrix &a) {
   return inverse(a); // maybe this inverse is too simple
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Trans"};
+const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Screen","Additive","Subtractive","Multiplicative","Multiplicative*2","Maximum","Minimum","Color hue","Luminance","Soft light","Hard light","Linear light","Pin light","Difference","Copy","Modify above layers opacity"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Lanczos2","Lanczos3"};
 void LayerState::clear() {
@@ -2232,6 +2233,14 @@ void Canvas::init(int width, int height) {
     return;
   }
   memset(pixelStates,0,width*height*sizeof(unsigned char));
+  if (opacityMod != NULL) {delete[] opacityMod; opacityMod = NULL;}
+  opacityMod = new unsigned char[width*height];
+  if (opacityMod==NULL) {
+    this->width = 0;
+    this->height = 0;
+    return;
+  }
+  memset(opacityMod,0,width*height*sizeof(unsigned char));
   this->width = width;
   this->height = height;
   this->canvasX0 = 0;
@@ -2258,6 +2267,13 @@ void Canvas::resize(int newWidth, int newHeight) {
     return;
   }
   memset(pixelStates,0,newWidth*newHeight*sizeof(unsigned char));
+  opacityMod = new unsigned char[newWidth*newHeight];
+  if (opacityMod==NULL) {
+    this->width = 0;
+    this->height = 0;
+    return;
+  }
+  memset(opacityMod,0,newWidth*newHeight*sizeof(unsigned char));
   this->width = newWidth;
   this->height = newHeight;
 }
@@ -2277,6 +2293,7 @@ Canvas *Canvas::clone() {
 
   ret->pixels = new unsigned int[ret->width*ret->height]; if (ret->pixels==NULL) {ret->width = 0; ret->height = 0; return ret;} memcpy(ret->pixels,this->pixels,ret->width*ret->height*sizeof(unsigned int));
   ret->pixelStates = new unsigned char[ret->width*ret->height]; if (ret->pixelStates==NULL) {ret->width = 0; ret->height = 0; return ret;} memcpy(ret->pixelStates,this->pixelStates,ret->width*ret->height*sizeof(unsigned char));
+  ret->opacityMod = new unsigned char[ret->width*ret->height]; if (ret->opacityMod==NULL) {ret->width = 0; ret->height = 0; return ret;} memcpy(ret->opacityMod,this->opacityMod,ret->width*ret->height*sizeof(unsigned char));
 
   return ret;
 }
@@ -2410,6 +2427,7 @@ void fillCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, unsigned int col
 }
 
 bool dontUsePostProcessing = false;
+bool hadOpMod = false;
 
 void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) {
   if ((!canvas->justSingle) && (!layer->state.visible)) return;
@@ -2444,7 +2462,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   if (y1 > canvas->height) y1 = canvas->height;
   if (x0 >= x1) return;
   if (y0 >= y1) return;
-  float alpha = layer->state.alpha;
+  float alpha_ = layer->state.alpha;
   Matrix cm = canvas->transform.transformation;
   Matrix lm = layer->transform.transformation;
   Matrix m = lm * cm;
@@ -2765,6 +2783,13 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
         }
       }
 
+      float alpha = alpha_;
+      unsigned char opMod = canvas->opacityMod[x+y*canvas->width];
+      if (opMod != 0) {
+        alpha *= (float)(255-opMod)/255.f;
+        canvas->opacityMod[x+y*canvas->width] = 0;
+      }
+
       switch(layer->mode) {
       case LAYERMODE_ALPHA: {
           int a = (rgb1 >> 24)*alpha;
@@ -3031,6 +3056,14 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
       case LAYERMODE_COPY: {
           col = rgb1;
         } break;
+      case LAYERMODE_OPMOD: {
+          hadOpMod = true;
+          int r = rgb1 & 255;
+          int g = (rgb1>>8) & 255;
+          int b = (rgb1>>16) & 255;
+          canvas->opacityMod[x+y*canvas->width] = (r + g + b)/3;
+          col = canvas->pixels[x+y*canvas->width];
+        } break;
       }
       if (darken) {col = ((col>>3) & 0x001f1f1f)|(col & 0xff000000);}
       canvas->pixels[x+y*canvas->width] = col;
@@ -3241,6 +3274,10 @@ void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1
         }
       }
     } 
+  }
+  if (hadOpMod) {
+    hadOpMod = false;
+    memset(opacityMod,0,sizeof(unsigned char)*width*height);
   }
 }
 
@@ -4049,7 +4086,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
   copyCanvas->layers = layers;
   hilightSelection = false; // !!
   overlaysOn = false;
-  unsigned int modeBefore = LAYERMODE_UNDEFINED; if (!copyCanvas->layers.empty()) {modeBefore = copyCanvas->layers.back()->mode; copyCanvas->layers.back()->mode = LAYERMODE_COPY;}
+  unsigned int modeBefore = LAYERMODE_UNDEFINED; if (!copyCanvas->layers.empty()) {modeBefore = copyCanvas->layers.back()->mode; if (modeBefore != LAYERMODE_OPMOD) copyCanvas->layers.back()->mode = LAYERMODE_COPY;}
   copyCanvas->update(true);
 
   if (allLayersAreStraight) {
@@ -4062,7 +4099,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     copyCanvas->transform.update();
   }
 
-  if (!copyCanvas->layers.empty()) {copyCanvas->layers.back()->mode = modeBefore;}
+  if (!copyCanvas->layers.empty()) {copyCanvas->layers.back()->mode = modeBefore == LAYERMODE_OPMOD ? LAYERMODE_COPY : modeBefore;}
 
   overlaysOn = true;
   copyCanvas->layers.clear();
@@ -4500,6 +4537,14 @@ Layer *Canvas::getLayerById(unsigned int id) {
       break;
     }
   }
+  return ret;
+}
+
+int Canvas::byteCount() {
+  int ret = 0;
+  ret += width*height*4;
+  ret += width*height*1;
+  ret += width*height*1;
   return ret;
 }
 

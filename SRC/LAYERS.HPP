@@ -60,10 +60,12 @@ enum LAYERMODES {
   LAYERMODE_PINLIGHT = 15,
   LAYERMODE_DIFFERENCE = 16,
   LAYERMODE_COPY = 17,
+  LAYERMODE_OPMOD = 18,
   LAYERMODE_DEFAULT = LAYERMODE_PREMULTIPLIEDALPHA,
-  LAYERMODE_COUNT = 18
+  LAYERMODE_COUNT = 19
 };
 extern const char *layerModeNames[LAYERMODE_COUNT];
+extern const char *layerModeNamesFull[LAYERMODE_COUNT];
 
 enum LAYERTYPES {
   LAYERTYPE_BASIC = 0,
@@ -737,6 +739,7 @@ public:
   int height;
   unsigned int *pixels;
   unsigned char *pixelStates;
+  unsigned char *opacityMod;
   bool gridOn;
   int gridStepX;
   int gridStepY;
@@ -777,6 +780,7 @@ public:
     canvasY1 = 0;
     pixels = NULL;
     pixelStates = NULL;
+    opacityMod = NULL;
     static unsigned short counter = 0; counter++;
     sprintf(pictureName,"Picture %d",counter);
     sprintf(author,"unknown");
@@ -800,6 +804,7 @@ public:
   ~Canvas() {
     if (pixels != NULL) {delete[] pixels; pixels = NULL;}
     if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;}
+    if (opacityMod != NULL) {delete[] opacityMod; opacityMod = NULL;}
     for (int i = 0; i < (int)layers.size(); i++) {
       if (layers[i] != NULL) {delete layers[i]; layers[i] = NULL;}
     }
@@ -919,6 +924,7 @@ public:
   void getContentFromOtherLayer(Layer *dest, unsigned int sourceId);
 
   Layer *getLayerById(unsigned int id);
+  int byteCount();
 };
 
 #define S_CANVAS(__name__,__o__)\
