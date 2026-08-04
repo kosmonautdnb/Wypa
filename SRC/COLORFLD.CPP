@@ -315,6 +315,7 @@ bool colorItem(const String &name, const String &id, ImVec4 *color) {
   bool ret = false;
   ImGui::PushID("##DRAWCOLORITEMTEXBUTTON");
   ImGui::Image((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(*color)); toolTip("Color");
+  if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {addUsedColor(*color); foregroundColor = *color;}
   ImGui::PopID();
   ImGui::SameLine();
   ImGui::Text("%s#",name.c_str());

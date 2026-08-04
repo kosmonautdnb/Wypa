@@ -385,6 +385,15 @@
       "The tilemap is placed at the picture/canvas origin." _N_
       "No undo." _N_
     "}" _N_
+    "Duplicate layer as reference{" _N_
+      "The current selected layer is duplicated as a reference" _N_
+      "Thus all changes made to the original layer are copied" _N_
+      "instantly to the reference layer." _N_
+      "You cannot modify a reference layer directly. It's locked." _N_
+    "}" _N_
+    "Duplicate layer(s){" _N_
+      "Duplicates of the selected layer(s) are placed above the layer(s)." _N_
+    "}" _N_
     "Hide all layers{" _N_
       "Turns off the visibility of all layers." _N_
       "You may turn then on individually then." _N_
@@ -394,9 +403,6 @@
     "}" _N_
     "Select all layers{" _N_
       "Selects all layers (but not their contents)." _N_
-    "}" _N_
-    "Duplicate layer(s){" _N_
-      "Duplicates of the selected layer(s) are placed above the layer(s)." _N_
     "}" _N_
     "Copy layer(s){" _N_
       "Creates a merge of the current selected stuff/layer(s)." _N_
@@ -503,12 +509,6 @@
       "The current selected layer(s) get unlocked. Thus aren't" _N_
       "modificable anymore. Be aware that some layers are locked" _N_
       "by default due to their type." _N_
-    "}" _N_
-    "Duplicate layer as reference{" _N_
-      "The current selected layer is duplicated as a reference" _N_
-      "Thus all changes made to the original layer are copied" _N_
-      "instantly to the reference layer." _N_
-      "You cannot modify a reference layer directly. It's locked." _N_
     "}" _N_
   "}" _N_
   "Selection{" _N_

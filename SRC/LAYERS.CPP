@@ -104,6 +104,7 @@ Matrix inverse2(const Matrix &a) {
 }
 
 const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy"};
+const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Lanczos2","Lanczos3"};
 void LayerState::clear() {
   active = false;
@@ -124,6 +125,7 @@ bool locked(const Layer *l, unsigned int lockFlags) {
   bool _LOCK_PIXELS_AND_TILEMAP = false;
   bool _LOCK_SELECTION = false;
   bool _LOCK_UNDO = false;
+  bool _LOCK_SIZECHANGE = false;
 
   switch(k) {
   case LOCK_TILEMAP : {
@@ -159,6 +161,7 @@ bool locked(const Layer *l, unsigned int lockFlags) {
   case LOCK_PIXELS_AND_TILEMAP : return _LOCK_PIXELS_AND_TILEMAP;
   case LOCK_SELECTION : return _LOCK_SELECTION;
   case LOCK_UNDO : return _LOCK_UNDO;
+  case LOCK_SIZECHANGE : return _LOCK_SIZECHANGE;
   }
   return false;
 }
@@ -1356,6 +1359,7 @@ void layerGetContent(Layer *to, Layer *from) {
 
 void Layer::resizeLayerContent(int interpolation, int newWidth, int newHeight) {
   if (locked(this,LOCK_ANY)) return;
+  if (locked(this,LOCK_SIZECHANGE)) return;
   if (newWidth <= 0) return;
   if (newHeight <= 0) return;
   TransformationState before = transform;
@@ -1401,6 +1405,8 @@ static __inline void lookupInterpolated2(unsigned int *colors, int width, int he
 
 void Layer::bakeLayer(int interpolation) {
   if (locked(this,LOCK_ANY)) return;
+  if (locked(this,LOCK_SIZECHANGE)) return;
+
   Vector b = boundingBox();
   int x0 = (int)floor(b.x);
   int y0 = (int)floor(b.y);
@@ -1798,6 +1804,7 @@ void Layer::snapToGrid(class Canvas *canvas) {
 
 void Layer::enlargenLayerBy(int left, int top, int right, int bottom) {
   if (locked(this,LOCK_PIXELS_AND_TILEMAP)) return;
+  if (locked(this,LOCK_SIZECHANGE)) return;
 
   int newWidth = width + left + right;
   int newHeight = height + top + bottom;
@@ -3813,7 +3820,6 @@ void Canvas::compactLayers() {
       Layer *t = layers[i];
       layers.erase(i,1);
       layers.insert(t,firstIndex);
-
     }
   }
   shouldUpdateAll = true;
@@ -4520,6 +4526,7 @@ void alphaPixel(int x, int y, unsigned int col) {
 }
 
 void blitCanvas() {
+
   int count = 0;
   Layer *repaintLayer = NULL;
   int repaintLayerRepaintState = REPAINTSTATE_NONE;

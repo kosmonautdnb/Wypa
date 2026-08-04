@@ -56,16 +56,21 @@ public:
   Array<Layer *> undoLayers;
   Canvas *undoCanvas;
 
+  void addLayer(Layer *layer) {
+    Layer *l2 = layer; int id = l2->id; 
+    Layer *l = l2->clone(); reverseLastLayerIdCountUp(); l->id = id;
+    memcpy(l->pixelStates,l2->pixelStates,l->width*l->height*sizeof(unsigned char)); // sorry (not cloned before)
+    undoLayers.push_back(l);
+  }
+
   void get() {
     freeIt();
     undoCanvas = currentCanvas;
     for (int i = 0; i < (int)undoCanvas->layers.size(); i++) {
       if (undoCanvas->layers[i]->state.active || undoCanvas->layers[i]->state.selected) {
-        if (!locked(undoCanvas->layers[i],LOCK_UNDO)) {
-          Layer *l2 = undoCanvas->layers[i]; int id = l2->id; 
-          Layer *l = l2->clone(); reverseLastLayerIdCountUp(); l->id = id;
-          memcpy(l->pixelStates,l2->pixelStates,l->width*l->height*sizeof(unsigned char)); // sorry (not cloned before)
-          undoLayers.push_back(l);
+        Layer *l = undoCanvas->layers[i];
+        if (!locked(l,LOCK_UNDO)) {
+          addLayer(l);
         }
       }
     }

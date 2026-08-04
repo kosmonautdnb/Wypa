@@ -217,20 +217,22 @@ void drawMenuBar() {
       on = true;
       bool one = false;
       int count = 0;
-      for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++;}
+      bool oneLocked = false;
+      for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {one = true; count++; if (currentCanvas->layers[i]->state.lockBits & LOCK_USER) oneLocked = true;}
       if (ImGui::MenuItem("Add layer")) {dialogAddLayer(true);}
       if (ImGui::MenuItem("Insert layer like this layer",NULL,false,count == 1)) {currentCanvas->insertLayerLikeThisLayer();}
       if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); switchTool(TOOL_TEXT);}
       if (ImGui::MenuItem("Insert adjustment layer")) {currentCanvas->insertAdjustmentLayer(); }
-      bool tileMapPossible = currentCanvas->getActiveLayer() != NULL && currentCanvas->getActiveLayer()->type == LAYERTYPE_BASIC;
+      bool tileMapPossible = count == 1 && (currentCanvas->getActiveLayer() != NULL && currentCanvas->getActiveLayer()->type == LAYERTYPE_BASIC);
       if (ImGui::MenuItem("Insert tilemap layer with this layers tiles",NULL,false,tileMapPossible)) {dialogInsertTileMapLayer(true); }
+      if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {dialogDuplicate(true);}
+      if (ImGui::MenuItem("Duplicate layer as reference",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->duplicateLayerAsReference(currentCanvas->getActiveLayer());}
       ImGui::Separator();
       if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
       if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
       if (ImGui::MenuItem("Select all layers")) {currentCanvas->selectAllLayers();}
-      if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {dialogDuplicate(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Copy layer(s)",NULL,false,one)) {currentCanvas->copy();}
       if (ImGui::MenuItem("Paste",NULL,false,copyLayer != NULL)) {currentCanvas->paste();}
@@ -255,8 +257,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Crop layer(s) by alpha",NULL,false,one)) {currentCanvas->cropLayersByAlpha(1);}
       ImGui::Separator();
       if (ImGui::MenuItem("Lock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(true);}
-      if (ImGui::MenuItem("Unlock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(false);}
-      if (ImGui::MenuItem("Duplicate layer as reference",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->duplicateLayerAsReference(currentCanvas->getActiveLayer());}
+      if (ImGui::MenuItem(oneLocked ? "*Unlock layer(s)##DRAWMENUBARUNLOCK" : "Unlock layer(s)##DRAWMENUBARUNLOCK",NULL,false,one)) {currentCanvas->lockLayers(false);}
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Selection")) {

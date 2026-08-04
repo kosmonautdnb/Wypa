@@ -537,6 +537,7 @@ void drawToolGradientView() {
       updateGradient();
       if ((unsigned int)i<gradient.elements.size()) e = &gradient.elements[i]; else e = NULL;
       i--;
+      e = NULL; // for safety with the next operations
     } else toolTip("Delete this gradient element");
     ImGui::PopID();
     if (e != NULL) {

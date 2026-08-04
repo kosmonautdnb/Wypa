@@ -3006,6 +3006,15 @@ void dialogUpdateLayer(bool openIt) {
   DIALOGSTART("Update layer");
   Layer *l = currentCanvas->getActiveLayer();
   if (l != NULL) {
+    ImGui::Text("Layer type:%s", layerTypeNames[l->type]);
+    switch(l->type) {
+      case LAYERTYPE_TILEMAP: {
+        Layer *t = currentCanvas->getLayerById(l->tileSourceLayerId);
+        if (t == NULL) ImGui::Text("This layers tileset was deleted"); else ImGui::Text("Has tileset: \"%s\"",t->name);
+      } break;
+    }
+    if (l->sourceLayerId != 0) {Layer *r = currentCanvas->getLayerById(l->sourceLayerId); if (r == NULL) ImGui::Text("This layers source/reference data was deleted"); else ImGui::Text("Displays as a reference of layer: \"%s\"",r->name);}
+    ImGui::Text("");
     ImGui::Text("Old layer pixel data width %d\n", l->width);
     ImGui::Text("Old layer pixel data height %d\n", l->height);
     ImGui::Text("");
@@ -3024,7 +3033,9 @@ void dialogUpdateLayer(bool openIt) {
     ImGui::PopItemWidth();
     ImGui::Text("");
     if (ImGui::Button("Apply##DIALOGUPDATELAYERAPPLY")) {
+      beforeUndoPoint();
       l->enlargenLayerBy(expandLeft,expandTop,expandRight,expandBottom);
+      afterUndoPoint();
       ImGui::CloseCurrentPopup();
     } else toolTip("Update the layer");
     ImGui::SameLine();
