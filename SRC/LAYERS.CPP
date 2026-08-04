@@ -2267,6 +2267,7 @@ void Canvas::resize(int newWidth, int newHeight) {
     return;
   }
   memset(pixelStates,0,newWidth*newHeight*sizeof(unsigned char));
+  if (opacityMod != NULL) {delete[] opacityMod; opacityMod = NULL;}
   opacityMod = new unsigned char[newWidth*newHeight];
   if (opacityMod==NULL) {
     this->width = 0;
