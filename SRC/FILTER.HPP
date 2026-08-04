@@ -54,6 +54,7 @@ void filterHistogramMatchingColored(class Layer *histogramSource);
 void filterSoften();
 void filterBlackWhiteOCR();
 void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float displacement1, float displacement2, int type, unsigned char *pixelStates, bool usePixelStates, class Layer *displace);
+void filterWatershed(class Layer *layer);
 
 #define S_FILTER_CPP()
 

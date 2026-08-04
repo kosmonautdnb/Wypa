@@ -253,6 +253,20 @@ extern bool fastQuantWithLuma;
 
 extern bool rulersOn;
 
+class WatershedPoint {
+public:
+  WatershedPoint() : label(0), x(0), y(0), selection(0) {;}
+  unsigned int label;
+  double x,y;
+  bool selection;
+};
+
+extern bool watershed;
+extern int watershedSelectedPoint;
+extern bool watershedSelectionInside;
+extern bool watershedSelectionOutside;
+extern Array<WatershedPoint> watershedPoints;
+
 bool isPaintAreaActive();
 
 void initTools();

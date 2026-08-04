@@ -883,6 +883,11 @@
     "" _N_
     "If surrounding is enabled the selection only uses nearby pixels." _N_
     "If surrounding is disabled just the whole picture is checked." _N_
+    "" _N_
+    "Segmentation:" _N_
+    "You can use the watershed algorithm to select more precisely." _N_
+    "Do a raw selection. Then use the watershed algorithm and mark" _N_
+    "some outside points with right mouse clicks. Then click render." _N_
   "}" _N_
   "Pipette tool{" _N_
     "This gets the color from the picture into the paint color." _N_

@@ -34,6 +34,7 @@
 #include "LAYERS.HPP"
 #include "COLORFLD.HPP"
 #include "DIALOGS.HPP"
+#include "FILTER.HPP"
 #include "STL/IMAGE.HPP"
 #include "UNDO.HPP"
 #include "TEXT.HPP"
@@ -127,19 +128,73 @@ void repaintGradientTexture(Gradient *gradient) {
 
 void drawToolWandView() {
   Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && locked(l,LOCK_PIXELS_AND_TILEMAP)) return;
-  if (controlKeyId == CONTROLKEY_SHIFT) {ImGui::Text("Add selection");} 
-  else
-    if (controlKeyId == CONTROLKEY_CTRL) {ImGui::Text("Remove selection");} 
-  else
-    if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {ImGui::Text("Mul selection");} 
-  else
+  if (!watershed) {
+    if (controlKeyId == CONTROLKEY_SHIFT) {ImGui::Text("Add selection");} 
+    else
+      if (controlKeyId == CONTROLKEY_CTRL) {ImGui::Text("Remove selection");} 
+    else
+      if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {ImGui::Text("Mul selection");} 
+    else
     ImGui::Text("");
-  if (l->type != LAYERTYPE_TILEMAP) {
-    float k;
-    k = wandColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWCOLORDISTANCE",&k,0,256)) {wandColorDistance = k;} else toolTip("Sameness value for color");
-    k = wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
+    if (l->type != LAYERTYPE_TILEMAP) {
+      float k;
+      k = wandColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWCOLORDISTANCE",&k,0,256)) {wandColorDistance = k;} else toolTip("Sameness value for color");
+      k = wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
+    }
+    ImGui::Text("Surrounding"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors)) {} else toolTip("Use only surrounding areas");
+    ImGui::Text("Slow:");
+    if (roundButton("Segmentation",true)) {
+      watershed = true;
+    }
+  } else {
+    if (roundButton("Close##DRAWTOOLWANDVIEWCLOSE",true)) {
+      watershed = false;
+    }
+    ImGui::Text("Watershed algo.");
+    if (roundButton("Render##DRAWTOOLWANDVIEWRENDER",watershedPoints.size()>0)) {
+      filterWatershed(l);
+      shouldUpdateAll = true;
+    }
+    if (roundButton("Clear##DRAWTOOLWANDVIEWRESET",true)) {
+      watershedPoints.clear();
+    }
+    if (l != NULL && l->hasSelection()) {
+      ImGui::Text("Selection as:");
+      if (!watershedSelectionOutside) {ImGui::Text("Inside"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLWANDVIEWSELECTIONINSIDE",&watershedSelectionInside);}
+      if (!watershedSelectionInside) {ImGui::Text("Outside"); ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLWANDVIEWSELECTIONOUTSIDE",&watershedSelectionOutside);}
+    } else {
+      ImGui::Text("Maybe use");
+      ImGui::Text("selections, too.");
+    }
+    ImGui::Text("RMouse = outside");
+    ImGui::Text("LMouse = inside");
+    ImGui::Separator();
+    ImGui::Text("Points:%d",watershedPoints.size());
+    ImGui::BeginChild("DRAWTOOLWANDVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
+    watershedSelectedPoint = -1;
+    for (int i = 0; i < (int)watershedPoints.size(); i++) {
+      ImVec2 v0 = ImGui::GetCursorScreenPos();
+      WatershedPoint *p = &watershedPoints[i];
+      if (ImGui::Checkbox(combined("##DRAWTOOLWANDVIEWSELECTION_"+String::fromInt(i)).c_str(),&p->selection)) {;} else toolTip("Inside selection or outside selection");
+      ImGui::SameLine();
+      SVG *svg = &svgs["delete"];
+      ImGui::PushID(combined("DRAWTOOLWANDVIEWDELETE_"+String::fromInt(i)).c_str());
+      bool eraseThis = false;
+      if (ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h))) {
+        eraseThis = true;
+      } else toolTip("Delete this marker");
+      ImGui::PopID();
+      ImGui::SameLine(); ImGui::Text("%d,%d",(int)p->x,(int)p->y); toolTip("X and Y canvas position of this marker");
+      if(eraseThis) {
+        watershedPoints.erase(i,1); i--;
+      }
+      ImVec2 v1 = v0;
+      v1.x += toolview_width;
+      v1.y += svg->h;
+      if (ImGui::IsMouseHoveringRect(v0,v1)) watershedSelectedPoint = i;;
+    }
+    ImGui::EndChild();
   }
-  ImGui::Text("Surrounding"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors)) {} else toolTip("Use only surrounding areas");
 }
 
 void drawToolFillView() {

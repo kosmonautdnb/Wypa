@@ -28,6 +28,7 @@
 #include "LAYERS.HPP"
 #include "SERIALZE.HPP"
 #include "UNDO.HPP"
+#include "TOOLS.HPP"
 #include <math.h>
 #define __SUPERXBR_IMPLEMENTATION__
 #include "STL/SUPERXBR.HPP"
@@ -1880,5 +1881,200 @@ void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int
       }
     }
   }
+}
 
+class WatershedEntry {
+public:
+  WatershedEntry() : x(0), y(0), priority(0) {;}
+  WatershedEntry(int x, int y, float priority) : x(x), y(y), priority(priority) {;}
+  int x,y;
+  float priority;
+};
+
+static __inline void putInPriorityQueue(Array<WatershedEntry> &queue, int x, int y, float priority) {
+  int siz = queue.size();
+  WatershedEntry *queue2 = &queue[0];
+  if (siz == 0) {
+    queue.push_back(WatershedEntry(x,y,priority));
+    return;
+  }
+  int last = siz-1;
+  if (priority <= queue2[last].priority) {
+    queue.push_back(WatershedEntry(x,y,priority));
+    return;
+  }
+  if (priority >= queue2[0].priority) {
+    queue.insert(WatershedEntry(x,y,priority),0);
+    return;
+  }
+  int first = 0;
+  
+  while (1) {
+    int middle = (last + first)/2;
+    if (priority == queue2[middle].priority || (last == middle || first == middle)) {
+      queue.insert(WatershedEntry(x,y,priority),middle);
+      break;
+    }
+    if (priority > queue2[middle].priority) {
+      last = middle;
+    } else {
+      first = middle;
+    }
+  }
+}
+
+static __inline void proceedWatershed(int x, int y, Array<WatershedEntry> &queue, float *gradient, unsigned int *labels, int dx, int dy, int width, int height) {
+  int x0 = x; int y0 = y;
+  int x1 = x0 + dx; int y1 = y0 + dy;
+  if ((unsigned int)x0>(unsigned int)width || (unsigned int)y0>(unsigned int)height||(unsigned int)x1>(unsigned int)width || (unsigned int)y1>(unsigned int)height) return;
+  unsigned int label0 = labels[x0+y0*width];
+  unsigned int label1 = labels[x1+y1*width];
+  if (label0 != 0 && label1 == 0) {
+    labels[x1+y1*width] = label0;
+    putInPriorityQueue(queue,x1,y1,gradient[x1+y1*width]);
+  }
+}
+
+void filterWatershed(class Layer *layer) { // actually does the segmentation
+
+  Layer *l = layer;
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+   
+  Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
+  int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false);
+
+  // calculate the gradient in values
+  float *lumis = luminanceValues;
+  Array<float> values; values.resize(l->width*l->height); int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1}; int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      float sobelX[4] = {0,0,0,0};
+      float sobelY[4] = {0,0,0,0};
+      for (int y2 = -1; y2 <= 1; y2++) {
+        for (int x2 = -1; x2 <= 1; x2++) {
+          int x3 = x + x2;
+          int y3 = y + y2;
+          if ((unsigned int)x3<(unsigned int)l->width && (unsigned int)y3<(unsigned int)l->height) {
+            unsigned int col = blurred[x3+y3*l->width];
+            int r = col & 255;
+            int g = (col>>8) & 255;
+            int b = (col>>16) & 255;
+            double sl = r * lumis[0] + g * lumis[1] + b * lumis[2];
+            sobelX[0] += r*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[0] += r*sobelYMat[(x2+1)+(y2+1)*3];
+            sobelX[1] += g*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[1] += g*sobelYMat[(x2+1)+(y2+1)*3];
+            sobelX[2] += b*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[2] += b*sobelYMat[(x2+1)+(y2+1)*3];
+            sobelX[3] += sl*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[3] += sl*sobelYMat[(x2+1)+(y2+1)*3];
+          }
+        }
+      }
+      if (y == 0 || y == l->height-1) {sobelY[0] = sobelY[1] = sobelY[2] = 0;}
+      if (x == 0 || x == l->width-1) {sobelX[0] = sobelX[1] = sobelX[2] = 0;}
+      values[x+y*l->width] = sqrt(sobelX[0]*sobelX[0]+sobelY[0]*sobelY[0]+sobelX[1]*sobelX[1]+sobelY[1]*sobelY[1]+sobelX[2]*sobelX[2]+sobelY[2]*sobelY[2]+sobelX[3]*sobelX[3]+sobelY[3]*sobelY[3]);
+    }
+  }
+  float minV = 0; float maxV = 0;
+  for (int i2 = 0; i2 < l->width*l->height; i2++) {
+    float v = values[i2];
+    if (i2==0 || v < minV) minV = v;
+    if (i2==0 || v > maxV) maxV = v;
+  }
+  float scale = maxV-minV;
+  if (scale != 0) {
+    for (int i2 = 0; i2 < l->width*l->height; i2++) {
+      float v = values[i2];
+      v = (v-minV)/scale;
+      values[i2] = v;
+    }
+  }
+
+  initStatusBar();
+
+  Array<WatershedPoint> watershedPoints2; watershedPoints2 = watershedPoints;
+  Array<WatershedEntry> priorityQueue;
+  Array<unsigned int> labels; labels.resize(layer->width * layer->height); memset(&labels[0],0,sizeof(unsigned int)*labels.size());
+  for (int i = 0; i < (int)watershedPoints2.size(); i++) {
+    WatershedPoint *p = &watershedPoints2[i];
+    double cx = p->x, cy = p->y; currentCanvas->getLayerPosFromCanvasPos(layer,cx,cy,cx,cy);
+    int lx = (int)floor(cx); int ly = (int)floor(cy);
+    if ((unsigned int)lx < (unsigned int)layer->width && (unsigned int)ly < (unsigned int)layer->height) {
+      int index = lx+ly*layer->width;
+      labels[index] = p->label;
+      putInPriorityQueue(priorityQueue, lx, ly, values[index]);
+    }
+  }
+
+  beforeUndoPoint();
+
+  if (watershedSelectionInside || watershedSelectionOutside) {
+    WatershedPoint q;
+    q.selection = watershedSelectionInside;
+    q.label = 0x1234561;
+    watershedPoints2.push_back(q);
+    for (int i4 = 0; i4 < l->width*l->height; i4++) {
+      unsigned char state = l->pixelStates[i4];
+      if (state & PIXELSTATE_SELECTED) {
+        labels[i4] = q.label;
+      }
+      l->pixelStates[i4] &= ~PIXELSTATE_SELECTED;
+    }
+    for (int y = 0; y < l->height; y++) {
+      if ((y % 50)==0) updateStatusBar();
+      for (int x = 0; x < l->width; x++) {
+        unsigned int b = labels[x+y*l->width];
+        if (b != 0) {
+          bool hasNeighbor = false;
+          for (int y2 = -1; y2 <= 1; y2++) { int y3 = y + y2;
+            for (int x2 = -1; x2 <= 1; x2++) { int x3 = x + x2;
+              if ((unsigned int)x3 < (unsigned int)l->width && (unsigned int)y3 < (unsigned int)l->height) {
+                unsigned int a = labels[x3+y3*l->width];
+                if (a == 0) {hasNeighbor = true; break;}
+              }
+            }
+            if (hasNeighbor) break;
+          }
+          if (hasNeighbor) {
+            putInPriorityQueue(priorityQueue, x, y, values[x+y*l->width]);
+          }
+        }
+      }
+    }
+  }
+
+  initStatusBar();
+
+  int count = 0;
+  float *values0 = &values[0];
+  unsigned int *labels0 = &labels[0]; int lw = l->width; int lh = l->height;
+  int portion = l->width * l->height / 15; if (portion < 1) portion = 1;
+  while(!priorityQueue.empty()) {
+    if ((count % portion)==0) updateStatusBar();
+    WatershedEntry here = priorityQueue.back(); priorityQueue.pop_back();
+    int x = here.x; int y = here.y;
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 0, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, -1, 0, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 0, 1, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 0, -1, lw, lh);
+
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 1, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, -1, 1, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 1, -1, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, -1, -1, lw, lh);
+    count++;   
+  }
+
+  for (int i3 = 0; i3 < l->width*l->height; i3++) {
+    unsigned int label = labels[i3];
+    for (int i = 0; i < (int)watershedPoints2.size(); i++) {
+      WatershedPoint *p = &watershedPoints2[i];
+      if (p->label == label) {
+        if (p->selection) l->pixelStates[i3] |= PIXELSTATE_SELECTED;
+        break;
+      }
+    }
+  }
+
+  repaintLayer(l,true);
+  updatedPixelStates(l);
+  afterUndoPoint();
 }

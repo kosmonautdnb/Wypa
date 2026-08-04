@@ -513,6 +513,13 @@ void reCreateQuantization() {
 bool fastQuantWithLuma = false;
 bool rulersOn = false;
 
+bool watershed = false;
+int watershedSelectedPoint = -1;
+bool watershedSelectionOutside = false;
+bool watershedSelectionInside = true;
+Array<WatershedPoint> watershedPoints;
+
+
 void moveSelectedLayersByCanvasPixels(double x, double y) {
   bool one = false;
   for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) {
@@ -553,7 +560,27 @@ bool isWandAccepted(Layer *l,unsigned int destColor, unsigned int checkColor) {
   return alphaDist<wandAlphaDistance && colorDist<wandColorDistance;
 }
 
+void useSubToolWatershed() {
+  if (!isPaintAreaActive()) return;
+
+  if (ImGui::IsMouseClicked(0)||ImGui::IsMouseClicked(1)) {
+    double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx, cy, cx, cy);
+    WatershedPoint point;
+    point.x = cx;
+    point.y = cy;
+    point.selection = ImGui::IsMouseClicked(0);
+    point.label = watershedPoints.size() + 1;
+    watershedPoints.push_back(point);
+  }
+}
+
 void useToolWand() {
+
+  if (watershed) {
+    useSubToolWatershed();
+    return;
+  }
+
   if (!isPaintAreaActive()) return;
 
   if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
@@ -2507,6 +2534,22 @@ void toolCanvasStuff() {
           double ax = cos(i/8.0*PI*2);
           double ay = sin(i/8.0*PI*2);
           drawOpenGLSimpleLine(lx+ax*4,ly+ay*4,lx-ax*4,ly-ay*4,0xff0000ff);
+        }
+      }
+    } break;
+    case TOOL_WAND: {
+      if (watershed) {
+        for (int i = 0; i < (int)watershedPoints.size(); i++) {
+          WatershedPoint *p = &watershedPoints[i];
+          double cx = p->x, cy = p->y; currentCanvas->getScreenPos(cx,cy,cx,cy);
+          unsigned int color = p->selection ? 0xffffff00 : 0xff0000ff;
+          if (watershedSelectedPoint == i) color = 0xff00ffff;
+          for (int j = 0; j < 8; j++) {
+            double ax = cos(j/8.0*PI*2);
+            double ay = sin(j/8.0*PI*2);
+            drawOpenGLSimpleLine(cx+ax*4+1,cy+ay*4+1,cx-ax*4+1,cy-ay*4+1,0xff000000);
+            drawOpenGLSimpleLine(cx+ax*4,cy+ay*4,cx-ax*4,cy-ay*4,color);
+          }
         }
       }
     }
