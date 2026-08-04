@@ -80,6 +80,7 @@ void showDebugWindow();
 
 extern bool showToolTips;
 void toolTip(const char *fmt, ...);
+void toolTip2(const char *fmt, ...);
 
 #define S_CONFIG_CPP()\
   S_DOUBLE("aspectRatio",aspectRatio);\

@@ -103,12 +103,14 @@ void turnOnScreenSaver() {
 
 void screenSaver() {
   if (glSeconds()-screenSaverStartTime >= SCREENSAVERTIMEINSECONDS) {
+    static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
     static ImVec2 textPos(0,0);
     static ImVec2 textDir = normalize(ImVec2(1,1));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0,0,0,1));
     ImGui::SetNextWindowPos(ImVec2(0,0));
     ImGui::Begin("SCREENSAVER", NULL, ImVec2(main_window_xres,main_window_yres),0.95,FROZENWINDOW);
     String date = "Date " + timeDescString();float fontSize = 2.0;
+    if ((((k2/3)%2) < 1) && date.length()>3) {date[date.length()-3] = ' ';}
     ImVec2 textSize = ImGui::CalcTextSize(date.c_str()); textSize.x *= fontSize; textSize.y *= fontSize;
     ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),ImGui::GetWindowFontSize()*fontSize,ImVec2(textPos.x,textPos.y),0xffffffff,date.c_str());
     textPos.x += textDir.x * timeDelta * main_window_xres / 10;

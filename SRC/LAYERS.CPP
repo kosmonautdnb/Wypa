@@ -2184,6 +2184,41 @@ bool Layer::hasUpdates() {
   return (int)undoData.updatePixelsCount != (int)undoData.updatePixelsCountOfLastSave;
 }
 
+int selectionCopyWidth = -1;
+int selectionCopyHeight = -1;
+Array<unsigned char> selectionCopy;
+
+bool Layer::canPasteSelection() {
+  return selectionCopyWidth >= 1 && selectionCopyHeight >= 1 && (int)selectionCopy.size() == selectionCopyWidth*selectionCopyHeight && (!locked(this,LOCK_SELECTION));
+}
+
+void Layer::copySelection() {
+  selectionCopyWidth = width;
+  selectionCopyHeight = height;
+  selectionCopy.resize(selectionCopyWidth*selectionCopyHeight);
+  memcpy(&selectionCopy[0],pixelStates,selectionCopy.size()*sizeof(unsigned char));
+}
+
+void Layer::pasteSelection(int mode) {
+  if (!canPasteSelection()) return;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int sx = x; int sy = y;  
+      unsigned char here = pixelStates[x+y*width];
+      if ((unsigned int)sx<(unsigned int)selectionCopyWidth&&(unsigned int)sy<(unsigned int)selectionCopyHeight) {
+        unsigned char there = selectionCopy[sx+sy*selectionCopyWidth];
+        switch(mode) {
+        case 0: {here &= ~PIXELSTATE_SELECTED; here |= there & PIXELSTATE_SELECTED;} break;
+        case CONTROLKEY_SHIFT: {if (there & PIXELSTATE_SELECTED) here |= PIXELSTATE_SELECTED;} break;
+        case CONTROLKEY_CTRL: {if (there & PIXELSTATE_SELECTED) here &= ~PIXELSTATE_SELECTED;} break;
+        case CONTROLKEY_CTRL|CONTROLKEY_SHIFT: {if ((there & PIXELSTATE_SELECTED) && (here & PIXELSTATE_SELECTED)) here |= PIXELSTATE_SELECTED; else here &= ~PIXELSTATE_SELECTED;} break;
+        }
+      }
+      pixelStates[x+y*width] = here;
+    }
+  }
+}
+
 void CanvasControl::setCanvasTransform(Canvas *canvas) {
   canvas->transform.fresh();
   canvas->transform.translate(scrollX,scrollY);
@@ -3062,7 +3097,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
-          canvas->opacityMod[x+y*canvas->width] = (r + g + b)/3;
+          canvas->opacityMod[x+y*canvas->width] = (unsigned char)((r + g + b)/3);
           col = canvas->pixels[x+y*canvas->width];
         } break;
       }
@@ -4100,7 +4135,7 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
     copyCanvas->transform.update();
   }
 
-  if (!copyCanvas->layers.empty()) {copyCanvas->layers.back()->mode = modeBefore == LAYERMODE_OPMOD ? LAYERMODE_COPY : modeBefore;}
+  if (!copyCanvas->layers.empty()) {copyCanvas->layers.back()->mode = modeBefore == (unsigned int)LAYERMODE_OPMOD ? (unsigned int)LAYERMODE_COPY : modeBefore;}
 
   overlaysOn = true;
   copyCanvas->layers.clear();

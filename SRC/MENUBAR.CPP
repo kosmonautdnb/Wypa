@@ -404,7 +404,7 @@ void drawMenuBar() {
     ImVec2 cursorScreen = ImGui::GetCursorScreenPos();
     cursorScreen.x = main_window_xres - timeDesc.length()*7;
     ImGui::SetCursorScreenPos(cursorScreen);
-    ImGui::Text("%s",timeDesc.c_str());
+    ImGui::Text("%s",timeDesc.c_str()); toolTip("Current date and time");
     cursorScreen.x -= 7 + 3;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);

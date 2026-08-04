@@ -1949,8 +1949,8 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
   Array<float> values; values.resize(l->width*l->height); int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1}; int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
   for (int y = 0; y < l->height; y++) {
     for (int x = 0; x < l->width; x++) {
-      float sobelX[4] = {0,0,0,0};
-      float sobelY[4] = {0,0,0,0};
+      float sobelX[5] = {0,0,0,0,0};
+      float sobelY[5] = {0,0,0,0,0};
       for (int y2 = -1; y2 <= 1; y2++) {
         for (int x2 = -1; x2 <= 1; x2++) {
           int x3 = x + x2;
@@ -1960,17 +1960,19 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
             int r = col & 255;
             int g = (col>>8) & 255;
             int b = (col>>16) & 255;
+            int a = (col>>24) & 255;
             double sl = r * lumis[0] + g * lumis[1] + b * lumis[2];
             sobelX[0] += r*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[0] += r*sobelYMat[(x2+1)+(y2+1)*3];
             sobelX[1] += g*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[1] += g*sobelYMat[(x2+1)+(y2+1)*3];
             sobelX[2] += b*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[2] += b*sobelYMat[(x2+1)+(y2+1)*3];
             sobelX[3] += sl*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[3] += sl*sobelYMat[(x2+1)+(y2+1)*3];
+            sobelX[4] += a*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[4] += a*sobelYMat[(x2+1)+(y2+1)*3];
           }
         }
       }
-      if (y == 0 || y == l->height-1) {sobelY[0] = sobelY[1] = sobelY[2] = 0;}
-      if (x == 0 || x == l->width-1) {sobelX[0] = sobelX[1] = sobelX[2] = 0;}
-      values[x+y*l->width] = sqrt(sobelX[0]*sobelX[0]+sobelY[0]*sobelY[0]+sobelX[1]*sobelX[1]+sobelY[1]*sobelY[1]+sobelX[2]*sobelX[2]+sobelY[2]*sobelY[2]+sobelX[3]*sobelX[3]+sobelY[3]*sobelY[3]);
+      if (y == 0 || y == l->height-1) {sobelY[0] = sobelY[1] = sobelY[2] = sobelY[3] = sobelY[4] = 0;}
+      if (x == 0 || x == l->width-1) {sobelX[0] = sobelX[1] = sobelX[2] = sobelX[3] = sobelX[4] = 0;}
+      values[x+y*l->width] = sqrt(sobelX[0]*sobelX[0]+sobelY[0]*sobelY[0]+sobelX[1]*sobelX[1]+sobelY[1]*sobelY[1]+sobelX[2]*sobelX[2]+sobelY[2]*sobelY[2]+sobelX[3]*sobelX[3]+sobelY[3]*sobelY[3]+sobelX[4]*sobelX[4]+sobelY[4]*sobelY[4]);
     }
   }
   float minV = 0; float maxV = 0;

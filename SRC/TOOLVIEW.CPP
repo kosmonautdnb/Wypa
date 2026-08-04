@@ -223,6 +223,14 @@ void drawToolSelectionView() {
       ImGui::Text("Proportional"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLSELECTIONVIEWPROPORTIONAL",&selectionProportional)) {} else toolTip("Same width and height");
     } break;
   }
+  ImGui::Separator();
+  int count = 0;
+  Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && (!locked(l,LOCK_SELECTION))) {
+    for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {count++;}
+    if (roundButton("Copy selection##DRAWTOOLSELECTIONVIEWCOPYSELECTION",count == 1)) {l->copySelection();}
+    if (roundButton("Paste selection##DRAWTOOLSELECTIONVIEWPASTESELECTION",l->canPasteSelection())) {l->pasteSelection(controlKeyId); shouldUpdateAll = true;}
+  }
+  ImGui::Separator();
 }
 
 bool notInt(double v) {
@@ -507,11 +515,13 @@ void drawToolGradientView() {
   minB.x -= 1;
   minB.y -= 1;
   ImGui::GetWindowDrawList()->AddRect(minB,maxB,0xff000000);
-  ImGui::Text("Start %f", gradient.positionMin); toolTip("First gradient \"value\"");
-  ImGui::Text("End   %f", gradient.positionMax); toolTip("Last gradient \"value\"");
-  ImGui::Text("Inverted"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWINVERTED",&gradient.inverted)) updateGradient(); else toolTip("Mirror the gradient");
-  ImGui::Text("Double sided"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWDOUBLESIDED",&gradient.doubleSided)) updateGradient(); else toolTip("Up+down gradient");
-  ImGui::Text("Circular"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWCIRCULAR",&gradient.round)) updateGradient(); else toolTip("Gradient \"sphere\"");
+  if (!gradient.elements.empty()) {
+    ImGui::Text("Start %f", gradient.positionMin); toolTip("First gradient \"value\"");
+    ImGui::Text("End   %f", gradient.positionMax); toolTip("Last gradient \"value\"");
+    ImGui::Text("Inverted"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWINVERTED",&gradient.inverted)) updateGradient(); else toolTip("Mirror the gradient");
+    ImGui::Text("Double sided"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWDOUBLESIDED",&gradient.doubleSided)) updateGradient(); else toolTip("Up+down gradient");
+    ImGui::Text("Circular"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLGRADIENTVIEWCIRCULAR",&gradient.round)) updateGradient(); else toolTip("Gradient \"sphere\"");
+  }
   if (roundButton("Add element##DRAWTOOLGRADIENTVIEWADDELEMENT",true)) {
     gradient.elements.push_back(GradientElement());
     updateGradient();

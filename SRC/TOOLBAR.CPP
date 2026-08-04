@@ -37,7 +37,7 @@ int tool = TOOL_NONE;
 int lastTool = TOOL_NONE;
 bool fullScreen = false;
 
-const char *toolNames[TOOL_COUNT] = {"no tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tileset","Blur","Overlays","Modify","Tilemap","Mirror"};
+const char *toolNames[TOOL_COUNT] = {"No tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tileset","Blur","Overlays","Modify","Tilemap","Mirror"};
 
 void initToolBar() {
 }
@@ -101,8 +101,8 @@ bool toolBarButton(const char *svgName, int toolIndex) {
         disabled = true;
       }
     }
-
   }
+  if (currentCanvas->layers.size()==0) disabled = true;
   if (selected && disabled) {switchTool(TOOL_NONE);}
   bool ret = imageButton(svgName, combined(String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), selected, highlighted, disabled);
   if (ret && !disabled) {switchTool(toolIndex);}
@@ -144,6 +144,7 @@ void drawToolBar() {
     ImGui::GetWindowDrawList()->AddConvexPolyFilled(points, 3, 0xff7c5b87, true);
     static bool here = false;
     if (ImGui::IsMouseHoveringRect(points[0],points[2])) {
+      toolTip2("Click for screen saver");
       if (ImGui::IsMouseDown(0)) here = true;
       if (!ImGui::IsMouseDown(0) && here){here = false;turnOnScreenSaver();}
     } else here = false;

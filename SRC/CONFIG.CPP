@@ -41,7 +41,7 @@ double aspectRatio = 16.0/9.0;
 const char *logFileName = "WYPA.LOG";
 String appFolder;
 bool refreshMasked = true;
-int version = 70;
+int version = 80;
 double zoomStep = 1.25;
 double scrollKeyPixels = main_window_xres/20;
 unsigned int undoStageCount = 10;
@@ -153,7 +153,7 @@ void showDebugWindow() {
   ImGui::Text("Layers %.02fkb", getLayersByteCount()/1024.f);
   ImGui::Text("Framebuffer %.02fkb",getWatcomGLBytes()/1024.f);
   ImGui::Text("Additional memory %.02fkb",additionalSize/1024.f);
-  ImGui::Text("Maybe free memory %.02fkb", getAdditionalMemoryFreeBytes()/1024.f);
+  ImGui::Text("Maybe free memory %.04fmb", getAdditionalMemoryFreeBytes()/1024.f/1024.f);
   ImGui::Text("FPS %.02f",fps);
   ImGui::PopStyleColor();
   ImGui::End();
@@ -179,6 +179,18 @@ void toolTip(const char *fmt, ...) {
     ImGui::PopStyleColor();
     ImGui::EndTooltip();
   }
+}
+
+void toolTip2(const char *fmt, ...) {
+  if (!showToolTips) return;
+  ImGui::BeginTooltip();
+  ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0.0,0.0,0.0,1));
+  va_list args;
+  va_start(args, fmt);
+  ImGui::TextV(fmt, args);
+  va_end(args);
+  ImGui::PopStyleColor();
+  ImGui::EndTooltip();
 }
 
 float luminanceValues[3] = {0.2126,0.7152,0.0722}; //{0.25,0.6,.15};

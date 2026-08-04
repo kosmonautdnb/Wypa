@@ -613,6 +613,10 @@ public:
 
   unsigned int byteCount();
   bool hasUpdates();
+
+  bool canPasteSelection();
+  void copySelection();
+  void pasteSelection(int mode);
 };
 
 #define S_LAYER(__name__,__o__)\

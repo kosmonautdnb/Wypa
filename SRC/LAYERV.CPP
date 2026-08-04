@@ -78,6 +78,9 @@ void drawLayerView() {
       currentLayer->mode = mode + 1;
       repaintLayer(currentLayer,true);
     } else toolTip("Layer paint mode: %s",layerModeNamesFull[currentLayer->mode]);
+    if (currentLayer->mode == LAYERMODE_OPMOD) {
+      ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x40ff8040);
+    }
 
     ImGui::PopItemWidth();
     ImGui::SameLine();
@@ -162,6 +165,9 @@ void drawLayerView() {
     }
     if (l->type == LAYERTYPE_TILEMAP) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x4000ffff);
+    }
+    if (l->mode == LAYERMODE_OPMOD) {
+      ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ff8040);
     }
     if (l->state.active) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40000000);

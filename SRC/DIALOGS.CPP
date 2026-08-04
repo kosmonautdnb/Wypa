@@ -174,7 +174,7 @@ void dialogAbout(bool openIt) {
 #endif
   DIALOGSTART("About")
   ImGui::Text(
-    "WYPA - A SIMPLE PAINT PAINT PROGRAM FOR DOS\n"
+    "WYPA - A SIMPLE PAINT PROGRAM FOR DOS\n"
     "------------------------------------\n"
     "Coded in early 2026 by\n"
     "Stefan Mader of Puls4r\n"
