@@ -3097,7 +3097,8 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
-          canvas->opacityMod[x+y*canvas->width] = (unsigned char)((r + g + b)/3);
+          int k = (r + g + b)/3 * alpha;
+          canvas->opacityMod[x+y*canvas->width] = (unsigned char)k;
           col = canvas->pixels[x+y*canvas->width];
         } break;
       }
