@@ -450,7 +450,7 @@ int main(int argc, const char *argv[]) {
 
   glDone();
 
-  printf("Wypa version %d.%02d!\n",version / 100, version % 100);
+  printf("Wypa version %d.%02d! (Why you polish abstracts)\n",version / 100, version % 100);
   printf("-----------------------\n");
   printf("A tiny tool by Puls4r productions.\n");
   printf("This experimental DOS application\n");

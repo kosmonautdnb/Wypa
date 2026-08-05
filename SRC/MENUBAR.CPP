@@ -120,9 +120,9 @@ void drawMenuBar() {
     cursor.x -= 7-2;
     ImGui::SetCursorScreenPos(cursor); 
     ImVec2 cursor2 = cursor;
-    ImGui::Image((ImTextureID)0,ImVec2(svg->w,svg->h));
+    ImGui::Image((ImTextureID)0,ImVec2(svg->w,svg->h),ImVec2(0,0),ImVec2(0,0),ImVec4(0,0,0,0));
     if (ImGui::IsItemHovered()&&ImGui::IsMouseClicked(0)) {dialogAbout(true);}
-    cursor.y -= 4;
+    cursor.y += 1;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
     toolTip("Wypa version %d.%02d", version / 100, version % 100);
     ImGui::SameLine();
