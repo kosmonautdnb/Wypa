@@ -3292,12 +3292,19 @@ void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1
   if (layerShapesOn) {
     for (int i = (int)layers.size()-1; i >= 0; i--) {
       Layer *l = layers[i];
+
+      int w = l->width; int h = l->height;
+      if (l->type == LAYERTYPE_TILEMAP) {
+        Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId); // it's ok here to just reference the current canvas
+        if (l2 != NULL) {w *= l2->toolInfo.tilingWidth; h *= l2->toolInfo.tilingHeight;}
+      }
+
       int k[4] = {0,1,3,2};
       for (int j = 0; j < 4; j++) {
         int j0 = k[j];
         int j1 = k[(j+1)&3];
-        Vector l0((j0 & 1) ? l->width : 0, (j0 & 2) ? l->height : 0);
-        Vector l1((j1 & 1) ? l->width : 0, (j1 & 2) ? l->height : 0);
+        Vector l0((j0 & 1) ? w : 0, (j0 & 2) ? h : 0);
+        Vector l1((j1 & 1) ? w : 0, (j1 & 2) ? h : 0);
         getCanvasPosFromLayerPos(l,l0.x,l0.y,l0.x,l0.y);
         getCanvasPosFromLayerPos(l,l1.x,l1.y,l1.x,l1.y);
         getScreenPos(l0.x,l0.y,l0.x,l0.y);

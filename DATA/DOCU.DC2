@@ -50,6 +50,10 @@
   "" _N_
   "For instance the IMGUI.CPP source code is just good readable" _N_
   "even without many comments that would bloat the source." _N_
+  "" _N_
+  "There was no AI involved in coding this, just some questions" _N_
+  "to iask.ai, gemini and copilot. Besides answering these questions" _N_
+  "no AI (or vibecoding) is involved here." _N_
 "}" _N_
 "FreeDOS{" _N_
   "Hard drive{" _N_

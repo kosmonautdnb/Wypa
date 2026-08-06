@@ -117,20 +117,27 @@ void drawMenuBar() {
   if (ImGui::BeginMainMenuBar()) {
     SVG *svg = &svgs["appicon"];
     ImVec2 cursor = ImGui::GetCursorScreenPos(); 
-    cursor.x -= 7-2;
+    cursor.x -= 7-2+4;
     ImGui::SetCursorScreenPos(cursor); 
     ImVec2 cursor2 = cursor;
-    ImGui::Image((ImTextureID)0,ImVec2(svg->w,svg->h),ImVec2(0,0),ImVec2(0,0),ImVec4(0,0,0,0));
+    ImGui::Image((ImTextureID)0,ImVec2(svg->w+7*5,svg->h),ImVec2(0,0),ImVec2(0,0),ImVec4(0,0,0,0));
     if (ImGui::IsItemHovered()&&ImGui::IsMouseClicked(0)) {dialogAbout(true);}
     cursor.y += 1;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
     toolTip("Wypa version %d.%02d", version / 100, version % 100);
     ImGui::SameLine();
-    cursor2.x += svg->w+3-2;
+    cursor2.x += svg->w+3;
+
+    cursor2.x += 1-2;
+    ImGui::SetCursorScreenPos(cursor2);
+    ImGui::Text("WYPA"); ImGui::SameLine();
+    cursor2.x += 7+2 + 7*4-7-1;
+    ImGui::SameLine();
+
     ImGui::SetCursorScreenPos(cursor2);
     horzSep();
     ImGui::SameLine();
-    cursor2.x += 7+2;
+    cursor2.x += 4+2+2+1+2;
     ImGui::SetCursorScreenPos(cursor2);
     if (ImGui::BeginMenu("File")) {
       on = true;

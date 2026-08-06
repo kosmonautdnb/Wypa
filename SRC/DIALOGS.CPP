@@ -789,8 +789,8 @@ void dialogDisplacementMap(bool openIt) {
   static float scale = 10;
   static bool updateLayer = false;
   static int type = 1;
-#define DISPLACEMENT_TYPE_COUNT 2
-  static const char *displacementTypeNames[DISPLACEMENT_TYPE_COUNT] = {"Steepness","Grey(128) as base"};
+#define DISPLACEMENT_TYPE_COUNT 3
+  static const char *displacementTypeNames[DISPLACEMENT_TYPE_COUNT] = {"Steepness","Grey(128) as base","Absolute"};
 
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
 

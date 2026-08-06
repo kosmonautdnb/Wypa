@@ -147,14 +147,14 @@ void showDebugWindow() {
 
   ImGui::PushStyleColor(ImGuiCol_TitleBg,ImVec4(0,0.75,0.75,0.5));
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1,1,1,1));
-  ImGui::Begin("Status window", &debugWindowOn, ImVec2(main_window_xres/3,main_window_yres/3),0.25,ImGuiWindowFlags_NoCollapse);
+  ImGui::Begin("Status window", &debugWindowOn, ImVec2(0,0),0.25,ImGuiWindowFlags_NoCollapse);
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1));
   ImGui::Text("Undo stack %.02fkb", undoStackBytes/1024.f);
   ImGui::Text("Layers %.02fkb", getLayersByteCount()/1024.f);
   ImGui::Text("Framebuffer %.02fkb",getWatcomGLBytes()/1024.f);
   ImGui::Text("Additional memory %.02fkb",additionalSize/1024.f);
   ImGui::Text("Maybe free memory %.04fmb", getAdditionalMemoryFreeBytes()/1024.f/1024.f);
-  ImGui::Text("FPS %.02f",fps);
+  ImGui::Text("FPS %.02f (please use the newest DJGPP if that's a problem)",fps);
   ImGui::PopStyleColor();
   ImGui::End();
   ImGui::PopStyleColor();

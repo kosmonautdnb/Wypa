@@ -1865,6 +1865,13 @@ void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int
             lx = x + (cr-128) * displacement1/128.0;
             ly = y + (cg-128) * displacement2/128.0;
           } break;
+          case 2: {
+            float cr=0,cg=0,cb=0,ca=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx, dy, cr, cg, cb, ca);
+            float xn = cr * width / 255.0;
+            float yn = cg * height / 255.0;
+            lx = (xn-x) * displacement1 + x;
+            ly = (yn-y) * displacement2 + y;
+          } break;
         }
         float lr=0,lg=0,lb=0,la=0;
         lookupInterpolated(source, width, height, lx, ly, lr, lg, lb, la);
