@@ -170,6 +170,12 @@
       "number inserted into the filename. You can specify if you want to" _N_
       "apply the post processing or save them in their raw format as png." _N_
     "}" _N_
+    "Export tga (paletted){" _N_
+      "Saves the complete image as single tga file. It merges the layers" _N_
+      "into this exported format. The tga is uncompressed." _N_
+      "Before exporting the image it is quantized/converted to the set" _N_
+      "palette. If the palette has more than 256 it doesn't save it." _N_
+    "}" _N_
     "Save user interface screenshot{" _N_
       "This saves the current screen (without the open menubar)" _N_
       "there is an aspect ratio correction applied to have the png" _N_
@@ -994,6 +1000,7 @@
     "If you reset it, it gets a zero influence setting set." _N_
     "" _N_
     "You can do:" _N_
+    "See through - Specify a color that is treated like (#00000000)." _N_
     "Color grading - The modification of the colors." _N_
     "LUT relighting - Apply a color lookup table (LUT) (.cube 3D format)." _N_
     "Posterize - Quantize colors into bigger steps." _N_
