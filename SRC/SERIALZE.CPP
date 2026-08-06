@@ -430,7 +430,7 @@ void putStringToFile(const String &string, const char *shortPath, const char *lo
   if (!string.empty()) fwrite(&string[0],1,string.size(),out);
   fclose(out);
   renameTempFile(shortPath, longFileName);
-  verifyFile(longFileName);
+  verifyFile(longFileName, true);
   savedSomething();
 }
 
@@ -587,6 +587,7 @@ void exportLayersRaw(const char *shortPath, const char *longFileName, bool apply
       memcpy(img.data,l->pixels,l->width*l->height*sizeof(unsigned int));
       if (applyColorTransform) {
         for (int j = 0; j < l->width*l->height; j++) {
+          if (l->colorTransform.useTransparentColor) img.data[j] = l->colorTransform.applyTransparentColor(img.data[j]);
           if (l->colorTransform.useColorTransform) img.data[j] = l->colorTransform.applyColorTransform(img.data[j]);
           if (l->colorTransform.useLut) img.data[j] = l->colorTransform.applyLut(img.data[j]);
           if (l->colorTransform.usePosterize) img.data[j] = l->colorTransform.applyPosterize(img.data[j]);
@@ -1783,4 +1784,60 @@ double updateToolTip(unsigned int *rgba, int width, int height, const char *path
     return aspect;
   }
   return 0;
+}
+
+bool writePalettedTGA(const char *shortPath, const char *longFileName, int width, int height, const unsigned char *pixels, const Array<unsigned int> &palette) {
+  FILE *out = createTempFile(shortPath,"wb");
+  if (out == NULL) return false;
+  int xOfs = 0;
+  int yOfs = 0;
+  unsigned char header[18] = {
+    0, // ID length (a string after the header
+    1, // has color map
+    1, // image type = uncompressed color map
+    0,0, // first color map index
+    (unsigned char)(palette.size() & 255),(unsigned char)(palette.size()/256), // color map length 
+    24, // rgb palette
+    (unsigned char)(xOfs & 255),(unsigned char)(xOfs/256),(unsigned char)(yOfs & 255),(unsigned char)(yOfs/256), // x and y origins
+    (unsigned char)(width & 0xff),(unsigned char)(width/256),
+    (unsigned char)(height & 0xff),(unsigned char)(height/256),
+    8, // 8 bits per pixel
+    0, // image descriptor
+  };
+  fwrite(header,1,18,out);
+  for (int i = 0; i < (int)palette.size(); i++) {
+    for (int j = 3-1; j >= 0; j--) {unsigned char c = (unsigned char)((palette[i]>>(j*8)) & 255); fwrite(&c,1,1,out);}
+  }
+  for (int y = height-1; y >= 0; y--) {
+    fwrite(&pixels[y*width],1,width,out);
+  }
+  fclose(out);
+  renameTempFile(shortPath, longFileName);
+  verifyFile(longFileName,true);
+  return true;
+}
+
+void exportTGA(const char *shortPath, const char *longFileName) {
+  Array<unsigned int> palette2; palette2.resize(palette.size()); for (int j = 0; j < (int)palette2.size(); j++) palette2[j] = getUIntColor(palette[j]);
+  if (palette2.size()>256) return;
+
+  Layer *l = currentCanvas->getSelectionAsLayer(false,true,true);
+  if (l == NULL) return;
+  l->bakeMagic(false);
+  l->quantize(palette2);
+  unsigned char *pixels = new unsigned char[l->width*l->height];
+  for (int i = 0; i < l->width * l->height; i++) {
+    unsigned char c = 0;
+    unsigned int col = l->pixels[i];
+    for (int j = 0; j < palette2.size(); j++) {
+      if (palette2[j] == col) {
+        c = j;
+        break;
+      }
+    }
+    pixels[i] = c;
+  }
+  writePalettedTGA(shortPath, longFileName, l->width, l->height, pixels, palette2);
+  delete l;
+  delete pixels;
 }

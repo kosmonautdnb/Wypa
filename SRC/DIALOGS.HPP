@@ -73,7 +73,8 @@ enum DIALOGMODE {
   DIALOG_LOADTEXT = 35,
   DIALOG_LOADTEXTUTF8 = 36,
   DIALOG_LUT = 37,
-  DIALOG_COUNT = 38
+  DIALOG_EXPORTTGA = 38,
+  DIALOG_COUNT = 39
 };
 
 void dialogCanvas(bool openIt);

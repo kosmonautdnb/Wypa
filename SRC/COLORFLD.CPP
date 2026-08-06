@@ -465,6 +465,7 @@ void displayPostProcessedColorItem() {
     ImGui::PushID("##DRAWCOLORITEMPOSTPROCESSCOLOR");
     //bool quantize = l->colorTransform.useQuantization && ((int)quantization.size() == 64*64*64);
     unsigned int col = getUIntColor(foregroundColor);
+    if (l->colorTransform.useTransparentColor) col = l->colorTransform.applyTransparentColor(col);
     if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
     if (l->colorTransform.useLut) col = l->colorTransform.applyLut(col);
     //if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);

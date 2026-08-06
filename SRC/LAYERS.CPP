@@ -632,6 +632,7 @@ void ColorTransform::reset() {
   lutRSize = 0;
   lutGSize = 0;
   lutBSize = 0;
+  transparentColor = 0xffff00ff;
 }
 
 void ColorTransform::update() {
@@ -640,6 +641,10 @@ void ColorTransform::update() {
   float *processing = processingGet();
   fromProcessing(processing);
   delete[] processing;
+}
+
+unsigned int ColorTransform::applyTransparentColor(unsigned int pixel) {
+  return pixel == transparentColor ? 0x00000000 : pixel;
 }
 
 unsigned int ColorTransform::applyColorTransform(unsigned int pixel) {
@@ -2021,6 +2026,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
   initStatusBar();
   for (int i = 0; i < width * height; i++) {
     unsigned int col = pixels[i];
+    if (colorTransform.useTransparentColor) col = colorTransform.applyTransparentColor(col);
     if (colorTransform.useColorTransform) col = colorTransform.applyColorTransform(col);
     if (colorTransform.useLut) col = colorTransform.applyLut(col);
     if (colorTransform.usePosterize) col = colorTransform.applyPosterize(col);
@@ -2052,6 +2058,7 @@ void Layer::quantize(const Array<unsigned int> &colors) {
     if ((i & 65535) == 0) updateStatusBar();
   }
   updatedPixels(this);
+  colorTransform.useTransparentColor = false;
   colorTransform.useColorTransform = false;
   colorTransform.useLut = false;
   colorTransform.usePosterize = false;
@@ -2138,6 +2145,7 @@ void Layer::bakeMagic(bool onlyInSelection) {
   for (int i = 0; i < (int)(width*height); i++) {
     if (onlyInSelection && (!(pixelStates[i] & PIXELSTATE_SELECTED))) continue;
     unsigned int col = pixels[i];
+    if (colorTransform.useTransparentColor) col = colorTransform.applyTransparentColor(col);
     if (colorTransform.useColorTransform) col = colorTransform.applyColorTransform(col);
     if (colorTransform.useLut) col = colorTransform.applyLut(col);
     if (colorTransform.usePosterize) col = colorTransform.applyPosterize(col);
@@ -2430,6 +2438,7 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColor
       if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
         unsigned int col = l->getPixel(x,y);
         if (useColorTransform) {
+          if (l->colorTransform.useTransparentColor) col = l->colorTransform.applyTransparentColor(col);
           if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
           if (l->colorTransform.useLut) col = l->colorTransform.applyLut(col);
           if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
@@ -2540,6 +2549,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   float *lut = NULL; if (layer->colorTransform.lut != NULL) lut = &((*layer->colorTransform.lut)[0]);
   float lutInfluence = layer->colorTransform.lutInfluence;
 
+  bool useTransparentColor = layer->colorTransform.useTransparentColor;
+  unsigned int transparentColor = layer->colorTransform.transparentColor;
+
   bool showSelection = true;
   if (showOnlyActiveLayersSelection) {
     showSelection = layer->state.selected || layer->state.active;
@@ -2639,6 +2651,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
         if ((unsigned int)tx < (unsigned int)tileSourceWidth && (unsigned int)ty < (unsigned int)tileSourceHeight) {
           rgb1 = tileSource[tx+ty*tileSourceWidth];
         }
+      }
+
+      if (useTransparentColor) {
+        if (rgb1 == transparentColor) rgb1 = 0x00000000;
       }
 
       if (useColorTransform) {

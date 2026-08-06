@@ -571,8 +571,10 @@ void drawToolMagicView() {
   ColorTransform *t = &l->colorTransform;
   float *v;
 
+  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+
   ImGui::Text("In selection");ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWJUSTINSELECTION",&l->showColorTransformOnlyInSelection)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Do the postprocessing just in the selection");
-  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {beforeUndoPoint();l->bakeMagic(l->hasSelection()); l->colorTransform.useColorTransform = false; l->colorTransform.useLut = false; l->colorTransform.usePosterize = false; l->colorTransform.useThreshold = false; l->colorTransform.useQuantization = false; afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Apply the postprocessing to the layer");
+  if (roundButton("Bake into##DRAWTOOLMAGICVIEWAPPLYCOLORGRADING",true)) {beforeUndoPoint();l->bakeMagic(l->hasSelection()); l->colorTransform.useTransparentColor = false; l->colorTransform.useColorTransform = false; l->colorTransform.useLut = false; l->colorTransform.usePosterize = false; l->colorTransform.useThreshold = false; l->colorTransform.useQuantization = false; afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Apply the postprocessing to the layer");
   ImGui::Separator();
   if (roundButton("Reset##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGRESET",true)) {l->colorTransform.reset(); shouldUpdateAll = true;} else toolTip("Clear all postprocessing settings");
   if (roundButton("Copy##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGCOPY",true)) {l->copyColorTransform();} else toolTip("Copy the postprocessing settings");
@@ -581,6 +583,21 @@ void drawToolMagicView() {
   ImGui::Separator();
 
   ImGui::BeginChild("DRAWTOOLMAGICVIEWCHILD",ImVec2(toolview_width, main_window_yres-ImGui::GetCursorScreenPos().y));
+
+  ImGui::Text("See through"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSETRANSPARENTCOLOR",&l->colorTransform.useTransparentColor)) {
+    shouldUpdateAll = true;
+  } else toolTip("Specify a color which will be treated as completely transparent");
+  if (l->colorTransform.useTransparentColor) {
+    ImVec4 chere = getImVec4Color(l->colorTransform.transparentColor);
+    ImGui::Text(" "); ImGui::SameLine();
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    if (colorItem("", "##DRAWTOOLMAGICVIEWTRANSPARENTCOLORCOLOR", &chere)) {l->colorTransform.transparentColor = getUIntColor(chere); shouldUpdateAll = true;}
+    ImGui::SetCursorScreenPos(cursor);
+    if (ImGui::InvisibleButton("##DRAWTOOLMAGICVIEWTRANSPARENTCOLORCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+      l->colorTransform.transparentColor = getUIntColor(foregroundColor);
+      shouldUpdateAll = true;
+    }
+  }
 
   ImGui::Text("Colorgrading"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSECOLORTRANSFORM",&l->colorTransform.useColorTransform)) {
     shouldUpdateAll = true;
@@ -733,7 +750,6 @@ void drawToolMagicView() {
     }
     ImGui::Separator();
   }
-
   ImGui::EndChild();
 }
 

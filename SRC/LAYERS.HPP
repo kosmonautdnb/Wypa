@@ -199,6 +199,7 @@ public:
     usePosterize = false;
     useThreshold = false;
     useLut = false;
+    useTransparentColor = false;
     lut = NULL;
     reset();
   }
@@ -261,6 +262,8 @@ public:
   int lutRSize;
   int lutGSize;
   int lutBSize;
+  bool useTransparentColor;
+  unsigned int transparentColor;
   float *processingGet();
   void fromProcessing(float *processing);
   unsigned int r[256];
@@ -270,6 +273,7 @@ public:
   bool shouldUpdate;
   void reset();
   void update();
+  unsigned int applyTransparentColor(unsigned int pixel);
   unsigned int applyColorTransform(unsigned int pixel);
   unsigned int applyLut(unsigned int pixel);
   unsigned int applyPosterize(unsigned int pixel);
@@ -337,6 +341,8 @@ public:
   S_INT("lutRSize",(__o__)->lutRSize);\
   S_INT("lutGSize",(__o__)->lutGSize);\
   S_INT("lutBSize",(__o__)->lutBSize);\
+  S_BOOL("useTransparentColor",(__o__)->useTransparentColor);\
+  S_UINT("transparentColor",(__o__)->transparentColor);\
   if (!save) (__o__)->shouldUpdate = true;\
   S_OBJECT_CLOSE();
 

@@ -79,8 +79,11 @@ bool toolBarButton(const char *svgName, int toolIndex) {
     }
 
     if (toolIndex == TOOL_MAGIC) {
+      if (l->colorTransform.useTransparentColor) highlighted = true;
       if (l->colorTransform.useColorTransform) highlighted = true;
+      if (l->colorTransform.useLut) highlighted = true;
       if (l->colorTransform.usePosterize) highlighted = true;
+      if (l->colorTransform.useThreshold) highlighted = true;
       if (l->colorTransform.useQuantization) highlighted = true;
     }
 
