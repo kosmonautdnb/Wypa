@@ -1829,7 +1829,7 @@ void exportTGA(const char *shortPath, const char *longFileName) {
   for (int i = 0; i < l->width * l->height; i++) {
     unsigned char c = 0;
     unsigned int col = l->pixels[i];
-    for (int j = 0; j < palette2.size(); j++) {
+    for (int j = 0; j < (int)palette2.size(); j++) {
       if (palette2[j] == col) {
         c = j;
         break;
@@ -1840,4 +1840,93 @@ void exportTGA(const char *shortPath, const char *longFileName) {
   writePalettedTGA(shortPath, longFileName, l->width, l->height, pixels, palette2);
   delete l;
   delete pixels;
+}
+
+bool getPaletteFromTGA(Array<unsigned int> &palette2, const String &dosFileName_) {
+  palette2.clear(); String fullFileName = shortFileName(dosFileName_); String extension = toLower(getExtension(fullFileName));
+  if (extension != ".tga") return false;
+  FILE *in = fopen(fullFileName.c_str(),"rb");
+  if (in == NULL) return false;
+  unsigned char header[18] = {
+    0, // ID length (a string after the header
+    0, // has color map
+    0, // image type = uncompressed color map
+    0,0, // first color map index
+    0,0, // color map length 
+    0, // palette bits
+    0,0,0,0, // x and y origins
+    0,0, // width
+    0,0, // height
+    0, // bits per pixel
+    0, // image descriptor
+  };
+  if (fread(header,1,18,in) != 18) {fclose(in); return false;}
+  int idLength = (int)header[0];
+  int hasColorMap = (int)header[1];
+  int imageBits = (int)header[16];
+  //int imageType = (int)header[2]; // not needed
+  int colorCount = (int)header[5]+(int)header[6]*256;
+  int colorBits = (int)header[7];
+  if (imageBits > 8) {fclose(in); return false;}
+  if (colorBits == 0 || colorBits > 32 || colorBits/8*8 != colorBits) {fclose(in); return false;}
+  if (hasColorMap != 1) {fclose(in); return false;}
+  if (colorCount > 256) {fclose(in); return false;}
+  fseek(in,ftell(in)+idLength,SEEK_SET); // overjump id
+  for (int i = 0; i < colorCount; i++) {
+    unsigned int col = 0;
+    unsigned int read[4];
+    for (int j = 0; j < colorBits/8; j++) {
+      unsigned char c = 0; fread(&c,1,1,in); read[j] = c;
+    }
+    switch(colorBits) {
+    case 16: {int r = ((read[1]>>2) & 31)*8; int g = (((read[1] & 3) << 3)+(read[0]>>5))*8; int b = (read[0] & 31)*8; col = r|(g<<8)|(b<<16)|0xff000000;} break;
+    case 24: {col = read[2]|(read[1]<<8)|(read[0]<<16)|0xff000000;} break;
+    case 32: {col = read[2]|(read[1]<<8)|(read[0]<<16)|(read[3]<<24);} break;
+    }
+    palette2.push_back(col);
+  }
+  fclose(in);
+  return true;
+}
+
+bool getPaletteFromPCX(Array<unsigned int> &palette2, const String &dosFileName_) {
+  palette2.clear(); String fullFileName = shortFileName(dosFileName_); String extension = toLower(getExtension(fullFileName));
+  if (extension != ".pcx") return false;
+  RGBAImage img; PCXLBM_U32 *getPalette = NULL; PCXLBM_S32 getPaletteSize = 0;
+  loadPCX(fullFileName.c_str(),(PCXLBM_U32**)&img.data,(PCXLBM_U32*)&img.width,(PCXLBM_U32*)&img.height, &getPalette, &getPaletteSize);
+  if (img.data != NULL) {
+    img.free();
+    if (getPalette != NULL && getPaletteSize > 0 && getPaletteSize <= 256) {
+      palette2.resize(getPaletteSize); memcpy(&palette2[0], getPalette, palette2.size() * sizeof(unsigned int));
+      return true;
+    }
+  }
+  return false;
+}
+
+bool getPaletteFromLBM(Array<unsigned int> &palette2, const String &dosFileName_) {
+  palette2.clear(); String fullFileName = shortFileName(dosFileName_); String extension = toLower(getExtension(fullFileName));
+  if (extension != ".lbm") return false;
+  RGBAImage img; PCXLBM_U32 *getPalette = NULL; PCXLBM_S32 getPaletteSize = 0;
+  loadLBM(fullFileName.c_str(),(PCXLBM_U32**)&img.data,(PCXLBM_U32*)&img.width,(PCXLBM_U32*)&img.height, &getPalette, &getPaletteSize);
+  if (img.data != NULL) {
+    img.free();
+    if (getPalette != NULL && getPaletteSize > 0 && getPaletteSize <= 256) {
+      palette2.resize(getPaletteSize); memcpy(&palette2[0], getPalette, palette2.size() * sizeof(unsigned int));
+      return true;
+    }
+  }
+  return false;
+}
+
+void paletteFromPicture(const char *shortPath, const char *longFileName) {
+  bool paletteFound = false; Array<unsigned int> palette2;
+  String dosFileName_ = dosFileName(String(shortPath)+String(longFileName));
+  if (!paletteFound) paletteFound = getPaletteFromTGA(palette2, dosFileName_);
+  if (!paletteFound) paletteFound = getPaletteFromPCX(palette2, dosFileName_);
+  if (!paletteFound) paletteFound = getPaletteFromLBM(palette2, dosFileName_);
+  if (!paletteFound) return;
+  loadedSomething();
+  palette.resize(palette2.size()); for (int i2 = 0; i2 < (int)palette2.size(); i2++) palette[i2] = getImVec4Color(palette2[i2]);
+  showPalette = true;
 }

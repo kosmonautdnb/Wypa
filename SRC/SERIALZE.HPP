@@ -104,5 +104,6 @@ void getLines(Array<String> &ret, const char *string);
 void getFileArray(Array<unsigned char> *arr,const String &maybeExtendedFileName);
 
 void exportTGA(const char *shortPath, const char *longFileName);
+void paletteFromPicture(const char *shortPath, const char *longFileName);
 
 #endif //__SERIALZE_HPP__

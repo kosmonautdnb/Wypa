@@ -149,10 +149,11 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Export png")) {dialogLoadSave(true,DIALOG_EXPORTPNG);}
       if (ImGui::MenuItem("Save selected layer(s) as single png")) {dialogLoadSave(true,DIALOG_EXPORTLAYERS);}
       if (ImGui::MenuItem("Save selected layer(s) as multiple pngs")) {dialogLoadSave(true,DIALOG_EXPORTLAYERSRAW);}
+      ImGui::Separator();
       if (palette.size()>0 && palette.size()<=256) {
-        ImGui::Separator();
         if (ImGui::MenuItem("Export tga (paletted)")) {dialogLoadSave(true,DIALOG_EXPORTTGA);}
       }
+      if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
       ImGui::Separator();
       if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
       ImGui::Separator();
