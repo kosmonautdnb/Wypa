@@ -20,6 +20,8 @@ Cube luts (lookup tables) and a wide range of color grading options are also ava
 
 You can create tilesets and **tilemaps** with it and export the tilemaps to simple/readable formats. There is also a seamless mode to have the pencil go out on the left and enter at the right in order to paint seamless tiles.
 
+You can edit and play **sprite animations** with it.  
+
 And you can add a mirror tool, to paint two times with the same pen, but mirrored somewhere in your image.
 
 There is a inapp help available if you have questions to the functionality of any part of Wypa.
