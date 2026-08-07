@@ -9,3 +9,6 @@ It is completely OpenSource under the MIT license.
 Featuring a large range of graphics formats. Even some 256 color formats, however Wypa is intended to do 32bit true color editing of pictures.  
 
 
+It also supports TTF truetype fonts with its text layers.  
+
+
