@@ -19,6 +19,6 @@ And you can add a mirror tool, to paint two times with the same pen, but mirrore
 
 There is a inapp help available if you have questions to the functionality of any part in Wypa.
 
-(c)2026 by Stefan Mader
+## (c)2026 by Stefan Mader
 
 
