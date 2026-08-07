@@ -9,6 +9,8 @@ It is completely **OpenSource** under the **MIT license**.
 
 Featuring a large range of graphics formats. Even some 256 color formats, however Wypa is intended to do **32bit true color** editing of pictures. You can use a palette(realtime quantitation) whilst painting and save the pictures to 256 color tgas, whatsoever.
 
+There is an internal aspect ratio correction, if you use a 16:9 monitor with Wypas native resolution if 1024x768.
+
 
 It also supports TTF truetype fonts with its text layers.  
 
