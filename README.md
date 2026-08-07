@@ -15,4 +15,6 @@ Cube luts (lookup tables) and a wide range of color grading options are also ava
 
 You can create tilesets and tilemaps with it and export them to simple/readable formats.
 
+And you can add a mirror tool, to paint two times with the same pen, but mirrored somewhere in your image.
+
 
