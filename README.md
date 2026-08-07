@@ -36,7 +36,7 @@ Please be aware that Wypa needs a lot of memory, as stated in the inapp document
 
 ## DosBOX and DosBOX-X
 
-Generally it is not suitable to run Wypa in an emulation like DosBOX since it will be much too slow.
+Generally it is not suitable to run Wypa in an emulation like DosBOX (or DosBOX-X) since it will be much too slow.
 
 ### (c)2026 by Stefan Mader
 
