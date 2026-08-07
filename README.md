@@ -13,4 +13,6 @@ It also supports TTF truetype fonts with its text layers.
 
 Cube luts (lookup tables) and a wide range of color grading options are also available whilst painting.
 
+You can create tilesets and tilemaps with it and export them to simple/readable formats.
+
 
