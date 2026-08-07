@@ -11,4 +11,6 @@ Featuring a large range of graphics formats. Even some 256 color formats, howeve
 
 It also supports TTF truetype fonts with its text layers.  
 
+Cube luts (lookup tables) and a wide range of color grading options are also available whilst painting.
+
 
