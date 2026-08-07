@@ -1999,16 +1999,18 @@ void dialogBlur(bool openIt) {
   static int maxMedianPixels = 30;
   static bool medianCircular = false;
   static bool highPass = false;
+  static bool updatedValues = false;
 
   if (openIt) {
     beforeUndoPoint();
     if (clone != NULL) {delete clone; clone = NULL;}
     clone = l->clone();
+    updatedValues = true;
   }
   DIALOGSTART("Blur");
 
   ImGui::PushItemWidth(7*15);
-  ImGui::Text("Type");ImGui::SameLine(); if (ImGui::Combo("##DIALOGBLURTYPE",&blurType, blurTypes, BLURTYPE_COUNT)) {;} else toolTip("The type of blur to apply");
+  ImGui::Text("Type");ImGui::SameLine(); if (ImGui::Combo("##DIALOGBLURTYPE",&blurType, blurTypes, BLURTYPE_COUNT)) {updatedValues = true;} else toolTip("The type of blur to apply");
   ImGui::PopItemWidth();
 
   ImGui::PushItemWidth(64);
@@ -2018,34 +2020,34 @@ void dialogBlur(bool openIt) {
   switch(blurType) {
     case BLURTYPE_BOX: {
       ImGui::Text("Box blur settings");
-      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXWIDTH",&boxWidth,0,0)) {;} else toolTip("The rectangular blur width/2"); if (boxWidth<0) boxWidth = 0; if (boxWidth>maxBlurPixels) boxWidth = maxBlurPixels;
-      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXHEIGHT",&boxHeight,0,0)) {;} else toolTip("The rectangular blur height/2"); if (boxHeight<0) boxHeight = 0; if (boxHeight>maxBlurPixels) boxHeight = maxBlurPixels;
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXWIDTH",&boxWidth,0,0)) {updatedValues = true;} else toolTip("The rectangular blur width/2"); if (boxWidth<0) boxWidth = 0; if (boxWidth>maxBlurPixels) boxWidth = maxBlurPixels;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURBOXHEIGHT",&boxHeight,0,0)) {updatedValues = true;} else toolTip("The rectangular blur height/2"); if (boxHeight<0) boxHeight = 0; if (boxHeight>maxBlurPixels) boxHeight = maxBlurPixels;
     } break;
     case BLURTYPE_RADIAL: {
       ImGui::Text("Radial blur settings");
       ImGui::PushItemWidth(360);
-      ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGBLURRADIALANGLE",&radialAngle,0,360)) {;} else toolTip("The direction in which to blur"); if (radialAngle<0) radialAngle = 0; if (radialAngle>360) radialAngle = 360;
+      ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGBLURRADIALANGLE",&radialAngle,0,360)) {updatedValues = true;} else toolTip("The direction in which to blur"); if (radialAngle<0) radialAngle = 0; if (radialAngle>360) radialAngle = 360;
       ImGui::PopItemWidth();
-      ImGui::Text("Radius"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURRADIALRADIUS",&radialSize,0,0,0)) {;} else toolTip("The length of one streak of the blur"); if (radialSize<0) radialSize = 0; if (radialSize>maxBlurPixels) radialSize = maxBlurPixels;
+      ImGui::Text("Radius"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURRADIALRADIUS",&radialSize,0,0,0)) {updatedValues = true;} else toolTip("The length of one streak of the blur"); if (radialSize<0) radialSize = 0; if (radialSize>maxBlurPixels) radialSize = maxBlurPixels;
     } break;
     case BLURTYPE_GAUSS: {
       ImGui::Text("Gauss blur settings");
-      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSX",&gaussX,0,0,2)) {;} else toolTip("The width of the gaussian blur cell"); if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
-      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSY",&gaussY,0,0,2)) {;} else toolTip("The height of the gaussian blur cell"); if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSX",&gaussX,0,0,2)) {updatedValues = true;} else toolTip("The width of the gaussian blur cell"); if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSY",&gaussY,0,0,2)) {updatedValues = true;} else toolTip("The height of the gaussian blur cell"); if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
     } break;
     case BLURTYPE_ITERATIVE: {
       ImGui::Text("Iterative blur settings");
-      ImGui::Text("Steps"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURITERATIVE",&iterativeSteps,0,0)) {;} else toolTip("How many steps of pixel merging"); if (iterativeSteps<0) iterativeSteps = 0; if (iterativeSteps>32) iterativeSteps = 32;
+      ImGui::Text("Steps"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURITERATIVE",&iterativeSteps,0,0)) {updatedValues = true;} else toolTip("How many steps of pixel merging"); if (iterativeSteps<0) iterativeSteps = 0; if (iterativeSteps>32) iterativeSteps = 32;
     } break;
     case BLURTYPE_MEDIAN: {
       ImGui::Text("Median blur settings");
-      ImGui::Text("Circular"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGBLURMEDIANCIRCULAR",&medianCircular)) {;} else toolTip("This changes from box filter to some sort of round shape, maybe smoother.");
-      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANWIDTH",&medianWidth,0,0)) {;} else toolTip("The rectangular blur width/2"); if (medianWidth<0) medianWidth = 0; if (medianWidth>maxMedianPixels) medianWidth = maxMedianPixels;
-      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANHEIGHT",&medianHeight,0,0)) {;} else toolTip("The rectangular blur height/2"); if (medianHeight<0) medianHeight = 0; if (medianHeight>maxMedianPixels) medianHeight = maxMedianPixels;
+      ImGui::Text("Circular"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGBLURMEDIANCIRCULAR",&medianCircular)) {updatedValues = true;} else toolTip("This changes from box filter to some sort of round shape, maybe smoother.");
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANWIDTH",&medianWidth,0,0)) {updatedValues = true;} else toolTip("The rectangular blur width/2"); if (medianWidth<0) medianWidth = 0; if (medianWidth>maxMedianPixels) medianWidth = maxMedianPixels;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANHEIGHT",&medianHeight,0,0)) {updatedValues = true;} else toolTip("The rectangular blur height/2"); if (medianHeight<0) medianHeight = 0; if (medianHeight>maxMedianPixels) medianHeight = maxMedianPixels;
     } break;
   }
   ImGui::Separator();
-  ImGui::Text("Just get the highpass"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGBLURHIGHPASS",&highPass)) {;} else toolTip("Gets the highpass (range -128..127) instead of the blur. Use layer mode \"Addsub\" to add it to the blur again.");
+  ImGui::Text("Just get the highpass"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGBLURHIGHPASS",&highPass)) {updatedValues = true;} else toolTip("Gets the highpass (range -128..127) instead of the blur. Use layer mode \"Addsub\" to add it to the blur again.");
   ImGui::PopItemWidth();
 
   bool apply = false;
@@ -2053,8 +2055,9 @@ void dialogBlur(bool openIt) {
     apply = true;
   } else toolTip("Apply this blur to the layer");
 
-  if (test||apply) {
+  if (test||(apply && updatedValues)) {
     if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
+      updatedValues = false;
       switch(blurType) {
         case BLURTYPE_BOX: {filterBoxBlur(l->pixels,clone->pixels, l->width, l->height, boxWidth, boxHeight,l->pixelStates,l->hasSelection());} break;
         case BLURTYPE_RADIAL: {filterRadialBlur(l->pixels,clone->pixels, l->width, l->height, radialAngle, radialSize,l->pixelStates,l->hasSelection());} break;
