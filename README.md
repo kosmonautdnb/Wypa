@@ -19,6 +19,13 @@ And you can add a mirror tool, to paint two times with the same pen, but mirrore
 
 There is a inapp help available if you have questions to the functionality of any part of Wypa.
 
+## Compilation
+
+you need Djgpp or Watcom C++11 or OpenWatcom in order to get you Dos exe file.  
+
+With Djgpp: just run !DJGPP.BAT  
+With WatcomC/Openwatcom: run !WATCOM.BAT  
+
 ### (c)2026 by Stefan Mader
 
 
