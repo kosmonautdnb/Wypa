@@ -1997,6 +1997,7 @@ void dialogBlur(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static int maxBlurPixels = 100;
   static int maxMedianPixels = 30;
+  static bool highPass = false;
 
   static bool updateBlur = false;
 
@@ -2005,6 +2006,7 @@ void dialogBlur(bool openIt) {
     if (clone != NULL) {delete clone; clone = NULL;}
     clone = l->clone();
     blurType = BLURTYPE_GAUSS;
+    highPass = false;
     updateBlur = true;
   }
   DIALOGSTART("Blur");
@@ -2043,7 +2045,7 @@ void dialogBlur(bool openIt) {
       ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANHEIGHT",&medianHeight,0,0)) {updateBlur = true;} else toolTip("The rectangular blur height/2"); if (medianHeight<0) medianHeight = 0; if (medianHeight>maxMedianPixels) medianHeight = maxMedianPixels;
     } break;
   }
-  
+  ImGui::Text("Just get the highpass"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGBLURHIGHPASS",&highPass)) {updateBlur = true;} else toolTip("Gets the highpass (range -128..127) instead of the blur. Use layer mode \"Addsub\" to add it to the blur again.");
   ImGui::PopItemWidth();
 
   bool apply = false;
@@ -2062,6 +2064,10 @@ void dialogBlur(bool openIt) {
           case BLURTYPE_GAUSS: {filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());} break;
           case BLURTYPE_ITERATIVE: {filterIterativeBlur(l->pixels,clone->pixels, l->width, l->height, iterativeSteps, l->pixelStates,l->hasSelection());} break;
           case BLURTYPE_MEDIAN: {filterMedianBlur(l->pixels,clone->pixels, l->width, l->height, medianWidth, medianHeight,l->pixelStates,l->hasSelection());} break;
+        }
+        if (highPass) {
+          filterSubtract(l->pixels,clone->pixels,l->pixels,l->width,l->height);
+          filterSetAlpha(l->pixels,l->width,l->height,255);
         }
         repaintLayer(l,true);
       }

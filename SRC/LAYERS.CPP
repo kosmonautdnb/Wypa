@@ -103,8 +103,8 @@ Matrix inverse2(const Matrix &a) {
   return inverse(a); // maybe this inverse is too simple
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Trans"};
-const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Screen","Additive","Subtractive","Multiplicative","Multiplicative*2","Maximum","Minimum","Color hue","Luminance","Soft light","Hard light","Linear light","Pin light","Difference","Copy","Modify above layers opacity"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub"};
+const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Screen","Additive","Subtractive","Multiplicative","Multiplicative*2","Maximum","Minimum","Color hue","Luminance","Soft light","Hard light","Linear light","Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Lanczos2","Lanczos3"};
 void LayerState::clear() {
@@ -3116,6 +3116,22 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int k = (r + g + b)/3 * alpha;
           canvas->opacityMod[x+y*canvas->width] = (unsigned char)k;
           col = canvas->pixels[x+y*canvas->width];
+        } break;
+      case LAYERMODE_ADDSUB: {
+          int a = alpha * (int)(rgb1>>24); 
+          if (a == 0) {col = rgb0; break;}
+          float alpha2 = a/255.f;
+          int r = (int)(rgb0 & 255)+((int)(rgb1 & 255)-128)*alpha2;
+          int g = (int)((rgb0>>8) & 255)+((int)((rgb1>>8) & 255)-128)*alpha2;
+          int b = (int)((rgb0>>16) & 255)+((int)((rgb1>>16) & 255)-128)*alpha2;
+          if (r < 0) r = 0;
+          if (g < 0) g = 0;
+          if (b < 0) b = 0;
+          if (r > 255) r = 255;       
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          if (a>0) a = 255; else a = (rgb0>>24);
+          col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       }
       if (darken) {col = ((col>>3) & 0x001f1f1f)|(col & 0xff000000);}

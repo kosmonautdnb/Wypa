@@ -55,6 +55,8 @@ void filterSoften();
 void filterBlackWhiteOCR();
 void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float displacement1, float displacement2, int type, unsigned char *pixelStates, bool usePixelStates, class Layer *displace);
 void filterWatershed(class Layer *layer);
+void filterSubtract(unsigned int *dest, unsigned int *minuend, unsigned int *subtrahend, unsigned int width, unsigned int height);
+void filterSetAlpha(unsigned int *dest, unsigned int width, unsigned int height, int alpha);
 
 #define S_FILTER_CPP()
 

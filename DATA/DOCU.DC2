@@ -1273,8 +1273,9 @@
     "PINLIGHT =  Pin light maybe like in Photoshop." _N_
     "DIFFERENCE = The difference of layer and background." _N_
     "COPY = Does a one on one copy. (No alpha etc.)" _N_
-    "TRANS = Apply the grey value as opacity to one layer above." _N_
+    "MASK = Apply the grey value as opacity to one layer above." _N_
     "            Black = opaque, white = transparent." _N_
+    "ADDSUB = Adds the current layers RGB but also adds -128, too." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_

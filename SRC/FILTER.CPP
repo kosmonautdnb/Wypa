@@ -2087,3 +2087,35 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
   updatedPixelStates(l);
   afterUndoPoint();
 }
+
+void filterSubtract(unsigned int *dest, unsigned int *minuend, unsigned int *subtrahend, unsigned int width, unsigned int height) {
+  for (int i = 0; i < (int)(width * height); i++) {
+    unsigned int col0 = minuend[i];
+    unsigned int col1 = subtrahend[i];
+    int r = (int)(col0 & 255) - (int)(col1 & 255);
+    int g = (int)((col0>>8) & 255) - (int)((col1>>8) & 255);
+    int b = (int)((col0>>16) & 255) - (int)((col1>>16) & 255);
+    int a = (int)((col0>>24) & 255) - (int)((col1>>24) & 255);
+    r += 128;
+    g += 128;
+    b += 128;
+    a += 128;
+    if (r < 0) r = 0;
+    if (g < 0) g = 0;
+    if (b < 0) b = 0;
+    if (a < 0) a = 0;
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+    if (a > 255) a = 255;
+    dest[i] = r|(g<<8)|(b<<16)|(a<<24);
+  }
+}
+
+void filterSetAlpha(unsigned int *dest, unsigned int width, unsigned int height, int alpha) {
+  if (alpha < 0) alpha = 0;
+  if (alpha > 255) alpha = 255;
+  for (int i = 0; i < (int)(width * height); i++) {
+    dest[i] = (dest[i] & 0x00ffffff)|(alpha<<24);
+  }
+}
