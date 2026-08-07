@@ -29,7 +29,7 @@ With WatcomC/Openwatcom: run !WATCOM.BAT
 
 If you use DJGPP, be aware, that more recent DJGPPs may bring a lot more of performance to Wypa.
 
-The newest DJGPP here is around 3 times faster than WatcomC++11.  
+The newest **DJGPP** here is around **3 times** faster than WatcomC++11.  
 
 ## Memory and performance
 
