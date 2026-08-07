@@ -21,12 +21,14 @@ There is a inapp help available if you have questions to the functionality of an
 
 ## Compilation
 
-you need Djgpp or Watcom C++11 or OpenWatcom in order to get your Dos exe file.  
+You need Djgpp or Watcom C++11 or OpenWatcom in order to get your Dos exe file.  
 
 With Djgpp: just run !DJGPP.BAT  
 With WatcomC/Openwatcom: run !WATCOM.BAT  
 
-if you use DJGPP be aware, that more recent DJGPPs may bring a lot more of performance to Wypa.
+If you use DJGPP, be aware, that more recent DJGPPs may bring a lot more of performance to Wypa.
+
+The newest DJGPP here is around 3 times faster than WatcomC++11.  
 
 ### (c)2026 by Stefan Mader
 
