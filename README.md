@@ -14,6 +14,8 @@ There is an internal **aspect ratio correction**, if you use a 16:9 monitor with
 
 It also supports TTF truetype fonts with its text layers.  
 
+There are adjustment layers for on the fly post processing of the whole image.  
+
 Cube luts (lookup tables) and a wide range of color grading options are also available whilst painting.
 
 You can create tilesets and **tilemaps** with it and export the tilemaps to simple/readable formats. There is also a seamless mode to have the pencil go out on the left and enter at the right in order to paint seamless tiles.
