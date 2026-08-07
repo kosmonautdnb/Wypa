@@ -24,8 +24,8 @@ There is a inapp help available if you have questions to the functionality of an
 
 You need Djgpp or Watcom C++11 or OpenWatcom in order to get your Dos exe file.  
 
-With Djgpp: just run !DJGPP.BAT  
-With WatcomC/Openwatcom: run !WATCOM.BAT  
+With Djgpp: just run **!DJGPP.BAT**  
+With WatcomC/Openwatcom: run **!WATCOM.BAT**  
 
 If you use DJGPP, be aware, that more recent DJGPPs may bring a lot more of performance to Wypa.
 
