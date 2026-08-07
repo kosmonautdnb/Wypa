@@ -7,7 +7,7 @@ A paintprogram, you can use to paint pictures like in Photoshop, Clipstudio pain
 
 It is completely **OpenSource** under the **MIT license**.  
 
-Featuring a large range of graphics formats. Even some 256 color formats, however Wypa is intended to do 32bit true color editing of pictures.  
+Featuring a large range of graphics formats. Even some 256 color formats, however Wypa is intended to do 32bit true color editing of pictures. You can use a palette(realtime quantitation) whilst painting and save the pictures to 256 color tgas, whatsoever.
 
 
 It also supports TTF truetype fonts with its text layers.  
