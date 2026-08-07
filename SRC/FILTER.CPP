@@ -761,7 +761,7 @@ int medianIntSort(const void *p, const void *q)
   return 0;
 }
 
-void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates) {
+void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates, bool circular) {
   if (medianW < 1 || medianH < 1 || medianW >= width*1.5 || medianH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
   // dest and source are different here
   const int mw = (medianW*2+1) * (medianH*2+1);
@@ -797,9 +797,24 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
           int m[3]; for (int i = 0; i < 3; i++) {
             int lk = i * 8;
             memset(&countSort[0],0,sizeof(int)*countSort.size());
-            for (int j = 0; j < mw; j++) countSort2[(medianx2[j]>>lk)&255]++;
+            int all = 0;
+            if (!circular) {
+              all = mw;
+              for (int j = 0; j < all; j++) countSort2[(medianx2[j]>>lk)&255]++;
+            } else {
+              int j = 0;
+              for (int y2 = -medianH; y2 <= medianH; y2++) { float yd = (float)y2 / medianH; yd *= yd;
+                for (int x2 = -medianW; x2 <= medianW; x2++) { float xd = (float)x2 / medianW;
+                  if (xd*xd+yd <= 1) {
+                    countSort2[(medianx2[j]>>lk)&255]++;
+                    all++;
+                  }
+                  j++;
+                }
+              }
+            }
             int countHere = 0; int overAllCount = 0;
-            int k = 0; for (k = 0; k < 256; k++) {countHere = countSort2[k]; overAllCount += countHere; if (overAllCount>mw/2) break;}
+            int k = 0; for (k = 0; k < 256; k++) {countHere = countSort2[k]; overAllCount += countHere; if (overAllCount>all/2) break;}
             m[i] = k < 256 ? k : 255;
           }
           int r = m[0]; int g = m[1]; int b = m[2];
@@ -808,7 +823,13 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
           // slow but fully working version
           int siz = 0;
           for (int y2 = -medianH; y2 <= medianH; y2++) {
+            float yd = (float)y2 / medianH;
             for (int x2 = -medianW; x2 <= medianW; x2++) {
+              if (circular) {
+                float xd = (float)x2 / medianW;
+                float d = xd*xd+yd*yd;
+                if (d > 1) continue;
+              }
               int x3 = x + x2;
               int y3 = y + y2;
               if ((unsigned int)x3<(unsigned int)width&&(unsigned int)y3<(unsigned int)height) {
@@ -1949,7 +1970,7 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
   if (locked(l,LOCK_ANY)) return;
    
   Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
-  int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false);
+  int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false);
 
   // calculate the gradient in values
   float *lumis = luminanceValues;
