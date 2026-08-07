@@ -1,13 +1,6 @@
-# Wypa
-### If you are using Dos and need a freeware alternative to "Photoshop" or "Clipstudio paint". It may have some problems left, however it's already useful for image manipulations on Dos.  
-
-### It is meant to be used with a real Dos environment and with a fast computer (maybe 1600Mhz or more), since emulations like DosBOX and so on are much too slow for it, even on fast computers. The DJGPP build is much faster than a Watcom build currently.
-
-Tiny usage video here:  
-https://www.youtube.com/watch?v=420j0mS6s1w&pp  
-
-
 ![ScreenShot](https://raw.github.com/kosmonautdnb/Wypa/main/GITHUB.PNG)
+
+#Wypa
 
 ## "WYPA" is an easy-to-use graphics program.. if you know how.  
 
