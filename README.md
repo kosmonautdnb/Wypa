@@ -22,7 +22,7 @@ There is a inapp help available if you have questions to the functionality of an
 
 ## Compilation
 
-You need Djgpp or Watcom C++11 or OpenWatcom in order to get your Dos exe file.  
+You need Djgpp or Watcom C++11 or OpenWatcom in order to get your **Dos exe** file.  
 
 With Djgpp: just run **!DJGPP.BAT**  
 With WatcomC/Openwatcom: run **!WATCOM.BAT**  
