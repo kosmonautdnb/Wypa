@@ -122,7 +122,7 @@ ImVec4 getImVec4Color(unsigned int v) {
   return r;
 }
 
-unsigned int colorTraceBacks[COLORTRACEBACKS] = {0};
+unsigned int colorTraceBacks[COLORTRACEBACKS] = {0xffffffff,0xff000000,0};
 
 void addUsedColor(const ImVec4 &color) {
   if (getUIntColor(color) != colorTraceBacks[0]) {

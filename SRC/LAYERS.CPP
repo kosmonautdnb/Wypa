@@ -106,7 +106,9 @@ Matrix inverse2(const Matrix &a) {
 const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub"};
 const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Screen","Additive","Subtractive","Multiplicative","Multiplicative*2","Maximum","Minimum","Color hue","Luminance","Soft light","Hard light","Linear light","Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
-const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Lanczos2","Lanczos3"};
+const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3"};
+const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image"};
+
 void LayerState::clear() {
   active = false;
   selected = false;
@@ -1409,6 +1411,83 @@ static __inline void lookupInterpolated2(unsigned int *colors, int width, int he
   alpha = (ab - at) * fy + at;
 }
 
+static __inline float catmulRom(float p0, float p1, float p2, float p3, float t) {
+  float a0 = -0.5f*p0+1.5f*p1-1.5f*p2+0.5f*p3;
+  float a1 = p0-2.5f*p1+2.f*p2-0.5f*p3;
+  float a2 = -0.5f*p0+0.5f*p2;
+  float a3 = p1;
+  return ((a0 * t + a1)*t + a2)*t+a3;
+}
+
+static __inline void lookupBicubic(unsigned int *colors, int width, int height, float x, float y, float &red, float &green, float &blue, float &alpha) {
+  if (width<1||height<1) return;
+  int xi = (int)floor(x);
+  int yi = (int)floor(y);
+  float xf = x - (float)xi;
+  float yf = y - (float)yi;
+  static float p[4][4];
+  static float cols[4];
+  for (int q = 0; q < 4; q++) {
+    int l8 = q * 8;
+    for (int y2 = -1; y2 < 3; y2++) {
+      int y3 = y2 + yi;
+      if (y3 < 0) y3 = 0;
+      if (y3 > height-1) y3 = height-1;
+      for (int x2 = -1; x2 < 3; x2++) {
+        int x3 = x2 + xi;
+        if (x3 < 0) x3 = 0;
+        if (x3 > width-1) x3 = width-1;
+        p[y2+1][x2+1] = (colors[x3+y3*width]>>l8) & 255;
+      }
+    }
+    for (int row = 0; row < 4; row++) cols[row] = catmulRom(p[row][0],p[row][1],p[row][2],p[row][3],xf);
+    float val = catmulRom(cols[0],cols[1],cols[2],cols[3],yf);
+    switch(q) {
+      case 0: {red = val;} break;
+      case 1: {green = val;} break;
+      case 2: {blue = val;} break;
+      case 3: {alpha = val;}
+    }
+  }
+}
+
+static __inline float quadraticKernel(float d) {
+  if (d <= 0.5) return 0.75-d*d;
+  if (d <= 1.5) return 0.5*(1.5-d)*(1.5-d);
+  return 0;
+}
+
+static __inline void lookupQuadratic(unsigned int *colors, int width, int height, float x, float y, float &red, float &green, float &blue, float &alpha) {
+  if (width<1||height<1) return;
+  int xi = (int)floor(x);
+  int yi = (int)floor(y);
+  for (int q = 0; q < 4; q++) {
+    int l8 = q * 8;
+    float w = 0;
+    float val = 0;
+    for (int dy = -1; dy <= 1; dy++) {
+      int y3 = yi + dy;
+      if ((unsigned int)y3>=(unsigned int)height) continue;
+      float distY = fabs(y-y3);
+      for (int dx = -1; dx <= 1; dx++) {
+        int x3 = xi + dx;
+        if ((unsigned int)x3>=(unsigned int)width) continue;
+        float distX = fabs(x-x3);
+        float weight = quadraticKernel(distX)*quadraticKernel(distY);
+        val += weight * ((colors[x3+y3*width]>>l8) & 255);
+        w += weight;
+      }
+    }
+    if (w != 0) val /= w;
+    switch(q) {
+      case 0: {red = val;} break;
+      case 1: {green = val;} break;
+      case 2: {blue = val;} break;
+      case 3: {alpha = val;}
+    }
+  }
+}
+
 void Layer::bakeLayer(int interpolation) {
   if (locked(this,LOCK_ANY)) return;
   if (locked(this,LOCK_SIZECHANGE)) return;
@@ -1502,6 +1581,44 @@ void Layer::bakeLayer(int interpolation) {
             if (a < 0) a = 0;
             if ((unsigned int)lx<(unsigned int)ow && (unsigned int)ly<(unsigned int)oh) pixelStates[(x-x0)+(y-y0)*this->width] = beforeS[lx+ly*ow];
             pixels[(x-x0)+(y-y0)*this->width] = (r)|(g<<8)|(b<<16)|(a<<24);
+        } break;
+        case INTERPOLATION_QUADRATIC: {
+          lx3 -= 0.5;
+          ly3 -= 0.5;
+          float r2=0,g2=0,b2=0,a2=0;
+          lookupQuadratic(beforeP, ow, oh, lx3, ly3, r2, g2, b2, a2);
+          int r = floor(r2);
+          int g = floor(g2);
+          int b = floor(b2);
+          int a = floor(a2);
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          if (a > 255) a = 255;
+          if (r < 0) r = 0;
+          if (g < 0) g = 0;
+          if (b < 0) b = 0;
+          if (a < 0) a = 0;
+          pixels[(x-x0)+(y-y0)*this->width] = (r)|(g<<8)|(b<<16)|(a<<24);
+        } break;
+        case INTERPOLATION_BICUBIC: {
+          lx3 -= 0.5;
+          ly3 -= 0.5;
+          float r2=0,g2=0,b2=0,a2=0;
+          lookupBicubic(beforeP, ow, oh, lx3, ly3, r2, g2, b2, a2);
+          int r = floor(r2);
+          int g = floor(g2);
+          int b = floor(b2);
+          int a = floor(a2);
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          if (a > 255) a = 255;
+          if (r < 0) r = 0;
+          if (g < 0) g = 0;
+          if (b < 0) b = 0;
+          if (a < 0) a = 0;
+          pixels[(x-x0)+(y-y0)*this->width] = (r)|(g<<8)|(b<<16)|(a<<24);
         } break;
         case INTERPOLATION_LANCZOS2:
         case INTERPOLATION_LANCZOS3: {

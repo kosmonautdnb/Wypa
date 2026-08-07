@@ -1025,6 +1025,7 @@ void dialogImageResize(bool openIt) {
   ImGui::Text("Quantize/bake all");ImGui::SameLine();ImGui::Checkbox("##DIALOGIMAGERESIZEQUANTIZE",&quantize); toolTip("All layers loose their rotations and so on");
   ImGui::PushItemWidth(7*12);
   ImGui::Text("Interpolation");ImGui::SameLine();ImGui::Combo("##DIALOGIMAGERESIZEINTERPOLATION",&interpolation, interpolationNames, INTERPOLATION_COUNT); toolTip("The smoothing mode used at rescaling");
+  ImGui::SameLine(); ImGui::Text("%s",interpolationDescs[interpolation]);
   ImGui::PopItemWidth();
 
   if (ImGui::Button("Resize##DIALOGIMAGERESIZEESIZE")) {
@@ -2015,7 +2016,7 @@ void dialogBlur(bool openIt) {
 
   ImGui::PushItemWidth(64);
 
-  bool test = roundButton("Test##DIALOGBLURTEST",true);
+  bool test = roundButton("Preview##DIALOGBLURTEST",true);
 
   switch(blurType) {
     case BLURTYPE_BOX: {
@@ -2848,6 +2849,7 @@ void dialogBakeLayers(bool openIt) {
     ImGui::EndChild();
     ImGui::PushItemWidth(7*12);
     ImGui::Text("Interpolation");ImGui::SameLine();ImGui::Combo("##DIALOGBAKELAYERSINTERPOLATION",&interpolation, interpolationNames, INTERPOLATION_COUNT);
+  ImGui::SameLine(); ImGui::Text("%s",interpolationDescs[interpolation]);
     ImGui::PopItemWidth();
   }
 
