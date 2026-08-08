@@ -208,11 +208,11 @@ public:
     reset();
   }
   float colorMatrix[4*5];
+  bool channelR,channelG,channelB,channelA;
   float hue;
   float saturation;
   float lightness;
   float brightness;
-  bool removeGreen;
   float contrast;
   float gamma;
   bool gammaInvert;
@@ -292,7 +292,10 @@ public:
   S_FLOAT("lightness",(__o__)->lightness);\
   S_FLOAT("brightness",(__o__)->brightness);\
   S_FLOAT("contrast",(__o__)->contrast);\
-  S_BOOL("removeGreen",(__o__)->removeGreen);\
+  S_BOOL("channelR",(__o__)->channelR);\
+  S_BOOL("channelG",(__o__)->channelG);\
+  S_BOOL("channelB",(__o__)->channelB);\
+  S_BOOL("channelA",(__o__)->channelA);\
   S_FLOAT("gamma",(__o__)->gamma);\
   S_BOOL("gammaInvert",(__o__)->gammaInvert);\
   S_FLOAT("pictureGamma",(__o__)->pictureGamma);\

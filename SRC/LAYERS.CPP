@@ -275,7 +275,9 @@ float *ColorTransform::processingGet() {
       if (c2.x > 1) c2.x = 1;
       if (c2.y > 1) c2.y = 1;
       if (c2.z > 1) c2.z = 1;
-      if (removeGreen) c2.y = 0;
+      if (!channelR) c2.x = 0;
+      if (!channelG) c2.y = 0;
+      if (!channelB) c2.z = 0;
       float h2,s2,l2; getHsl(c2,&h2,&s2,&l2); h2 = (h2 * 360 + h)/360.0;
       if (h2 < 0) h2 = 0;
       h2 = fmod(h2,1);
@@ -358,6 +360,7 @@ float *ColorTransform::processingGet() {
 
     if (component == 3) {
       af = value;
+      if (!channelA) af = 0;
       float af2 = af * colorMatrix[3*4+3] + colorMatrix[4*4+3];
       af = af2;
       af *= sa;
@@ -585,7 +588,10 @@ void ColorTransform::reset() {
   lightness = 0.5;
   brightness = 0;
   contrast = 1;
-  removeGreen = false;
+  channelR = true;
+  channelG = true;
+  channelB = true;
+  channelA = true;
   gamma = 1;
   gammaInvert = false;
   pictureGamma = 1;

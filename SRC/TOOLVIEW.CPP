@@ -281,14 +281,25 @@ void drawToolMoveView() {
         l->quantizeBoundingBox();
       } else toolTip("Put layer on straight coordinates");
       ImGui::Separator();
+      if (roundButton("Snap to grid##DRAWTOOLMOVEVIEWSNAPTOGRID",currentCanvas->gridOn)) {
+        l->snapToGrid(currentCanvas);
+      } else toolTip("Arange in grid");
+      ImGui::Separator();
       if (roundButton("Reset transform##DRAWTOOLMOVEVIEWRESETLAYERTRANSFORM",true)) {
         l->transform.fresh();
         l->transform.translate(-b.x,-b.y);
         shouldUpdateAll = true;
       } else toolTip("Layer with initial size and transform");
-      if (roundButton("Snap to grid##DRAWTOOLMOVEVIEWSNAPTOGRID",currentCanvas->gridOn)) {
-        l->snapToGrid(currentCanvas);
-      } else toolTip("Arange in grid");
+      static Matrix copied; static bool hasCopy = false;
+      if (roundButton("Copy transform##DRAWTOOLMOVEVIEWCOPYTRANSFORM",true)) {
+        copied = l->transform.transformation;
+        hasCopy = true;
+      } else toolTip("Copy this layers rotation,position and scalings");
+      if (roundButton("Paste transform##DRAWTOOLMOVEVIEWPASTETRANSFORM",hasCopy)) {
+        l->transform.transformation = copied;
+        l->transform.update();
+        shouldUpdateAll = true;
+      } else toolTip("Paste rotation,position and scalings to this layer");
     } else {
       k = x0; ImGui::Text("Bounding pos x"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGPOSX",&k)) {currentCanvas->setBoundingPos(k,y0); shouldUpdateAll = true;} if (notIntPosX(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers x position");
       k = y0; ImGui::Text("Bounding pos y"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGPOSY",&k)) {currentCanvas->setBoundingPos(x0,k); shouldUpdateAll = true;} if (notIntPosY(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers y position");
@@ -565,6 +576,12 @@ void drawToolGradientView() {
   ImGui::EndChild();
 }
 
+void cursorLeft(int left = 1) {
+  ImVec2 cursor = ImGui::GetCursorScreenPos();
+  cursor.x -= left;
+  ImGui::SetCursorScreenPos(cursor);
+}
+
 void drawToolMagicView() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
@@ -606,6 +623,12 @@ void drawToolMagicView() {
 
     ImGui::BeginChild("DRAWTOOLMAGICCHILDCOLORTRANSFORM",ImVec2(0,200));
 
+    ImGui::Text("R"); ImGui::SameLine(); cursorLeft(1); if (ImGui::Checkbox("##DRAWTOOLMAGICCHANNELR",&t->channelR)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Enables the red input channel");
+    ImGui::SameLine(); cursorLeft(2); ImGui::Text("G"); ImGui::SameLine(); cursorLeft(1); if (ImGui::Checkbox("##DRAWTOOLMAGICCHANNELG",&t->channelG)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Enables the green input channel");
+    ImGui::SameLine(); cursorLeft(2); ImGui::Text("B"); ImGui::SameLine(); cursorLeft(1); if (ImGui::Checkbox("##DRAWTOOLMAGICCHANNELB",&t->channelB)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Enables the blue input channel");
+    ImGui::SameLine(); cursorLeft(2); ImGui::Text("A"); ImGui::SameLine(); cursorLeft(1); if (ImGui::Checkbox("##DRAWTOOLMAGICCHANNELA",&t->channelA)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Enables the alpha input channel");
+
+
     ImGui::Text("Picture Gamma");
     v = &t->pictureGamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPICTUREGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Apply this gamma before the colorgrading starts");
     ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWGAPICTUREGAMMAINVERT",&t->pictureGammaInvert)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Invert the gamma here gamma=(1.0/gamma)");
@@ -614,8 +637,6 @@ void drawToolMagicView() {
     v = &t->contrast; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWCONTRAST",v,0,2)) {if (*v<0) *v = 0; if (*v>2) *v = 2; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("The less contrast the more grey");
     ImGui::Text("Brightness");
     v = &t->brightness; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWBRIGHTNESS",v,-1,1)) {if (*v<-1) *v = -1; if (*v>1) *v = 1; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Change the brightness");
-
-    ImGui::Text("Remove green"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICREMOVEGREEN",&t->removeGreen)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Set green channel to 0 in order to e.g. change the hue of grey");
 
     ImGui::Text("Hue");
     v = &t->hue; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWHUE",v,0,360)) {if (*v<0) *v = 0; if (*v>360) *v = 360; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Change the hue of the layer");
