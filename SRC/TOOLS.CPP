@@ -1622,14 +1622,18 @@ void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, d
   }
 }
 
-void mirrorPoint(double &x, double &y) {
+void mirrorPoint(double &x, double &y, float rounding = 0.5) {
   double ax = cos(mirrorToolAngle*PI/180.0);
   double ay = sin(mirrorToolAngle*PI/180.0);
+  x += rounding;
+  y += rounding;
   double x2 = x - mirrorToolPoint.x;
   double y2 = y - mirrorToolPoint.y;
   double d = x2 * ay + y2 * -ax;
   x = x - 2 * d * ay;
   y = y - 2 * d * -ax;
+  x -= rounding;
+  y -= rounding;
 }
 
 void drawLine2(Layer *layer, double canvasX0, double canvasY0, double canvasX1, double canvasY1, bool justSelection) {
@@ -2573,7 +2577,7 @@ void toolCanvasStuff() {
   }
   if (mirrorToolEnabled) {
     double lx = mouseX, ly = mouseY; currentCanvas->getCanvasPos(lx,ly,lx,ly);
-    mirrorPoint(lx,ly);
+    mirrorPoint(lx,ly, 0);
     currentCanvas->getScreenPos(lx,ly,lx,ly);
     drawMouseArrow2(lx,ly);
   }
