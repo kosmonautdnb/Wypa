@@ -42,7 +42,7 @@ The newest **DJGPP** here is around **3 times** faster than WatcomC++11.
 
 ## Memory and performance
 
-Please be aware that Wypa needs a lot of memory, as stated in the inapp documentation and needs a fairly fast PC. It may already run well with an around 1600Mhz setup.
+Please be aware that Wypa needs a lot of memory, as stated in the inapp documentation and needs a fairly fast PC. It may already run well with an **around 1600Mhz** setup.
 
 ## DosBOX and DosBOX-X
 
