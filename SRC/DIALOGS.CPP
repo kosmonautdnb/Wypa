@@ -1687,6 +1687,7 @@ void dialogGradiationCurves(bool openIt) {
   static bool showCurveBetter = false;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   if (openIt) {
+    showCurveCVs = false;
     beforeUndoPoint();
     gradiationChannel = 0;
     if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
