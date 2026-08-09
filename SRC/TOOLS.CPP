@@ -1639,8 +1639,8 @@ void mirrorPoint(double &x, double &y, float rounding = 0.5) {
 void drawLine2(Layer *layer, double canvasX0, double canvasY0, double canvasX1, double canvasY1, bool justSelection) {
   drawLine(layer, canvasX0, canvasY0, canvasX1, canvasY1, justSelection);
   if (mirrorToolEnabled) {
-    mirrorPoint(canvasX0,canvasY0);
-    mirrorPoint(canvasX1,canvasY1);
+    mirrorPoint(canvasX0,canvasY0,0);
+    mirrorPoint(canvasX1,canvasY1,0);
     drawLine(layer, canvasX0, canvasY0, canvasX1, canvasY1, justSelection);
   }
 }

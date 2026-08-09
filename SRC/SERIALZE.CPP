@@ -387,9 +387,10 @@ void fileError(const char *fileName) {
   errorWindow(true);
 }
 
-void verifyFile(const char *longFileName, bool additionalSucceed = true) {
+void verifyFile(const char *shortPath, const char *longFileName, bool additionalSucceed = true) {
   UNUSED(additionalSucceed);
-  FILE *in = fopen(dosFileName(shortFileName(dosFileName(longFileName))).c_str(),"rb");
+  String fullName = String(shortPath) + longFileName;
+  FILE *in = fopen(dosFileName(shortFileName(dosFileName(fullName))).c_str(),"rb");
   if (in == NULL) {
     fileError(longFileName);
     return;
@@ -430,7 +431,7 @@ void putStringToFile(const String &string, const char *shortPath, const char *lo
   if (!string.empty()) fwrite(&string[0],1,string.size(),out);
   fclose(out);
   renameTempFile(shortPath, longFileName);
-  verifyFile(longFileName, true);
+  verifyFile(shortPath, longFileName, true);
   savedSomething();
 }
 
@@ -555,7 +556,7 @@ void exportLayers(const char *shortPath, const char *longFileName) {
   img.savePNG(tempName.c_str());
   renameTempFile(shortPath, longFileName);
   savedSomething();
-  verifyFile(longFileName, true);
+  verifyFile(shortPath, longFileName, true);
   delete l;
 }
 
@@ -571,7 +572,7 @@ void exportPNG(const char *shortPath, const char *longFileName) {
   img.savePNG(tempName.c_str());
   renameTempFile(shortPath, longFileName);
   savedSomething();
-  verifyFile(longFileName, true);
+  verifyFile(shortPath, longFileName, true);
   delete l;
 }
 
@@ -604,7 +605,7 @@ void exportLayersRaw(const char *shortPath, const char *longFileName, bool apply
       String ext = getExtension(longName);
       longName = name + String::fromInt(k) + ext; k++;
       renameTempFile(shortPath, longName.c_str());
-      verifyFile(longName.c_str(), true);
+      verifyFile(shortPath, longName.c_str(), true);
       updateStatusBar();
     }
   }
@@ -795,7 +796,7 @@ void savePalette(const char *shortPath, const char *longFileName) {
   fprintf(out,"%s",string.c_str());
   fclose(out);
   renameTempFile(shortPath, longFileName);
-  verifyFile(longFileName, true);
+  verifyFile(shortPath, longFileName, true);
   savedSomething();
 }
 
@@ -863,7 +864,7 @@ void saveGradient(const char *shortPath, const char *longFileName) {
 
   fclose(out);
   renameTempFile(shortPath, longFileName);
-  verifyFile(longFileName, true);
+  verifyFile(shortPath, longFileName, true);
   savedSomething();
 }
 
@@ -906,7 +907,7 @@ void saveColorMatrix(const char *shortPath, const char *longFileName) {
       } 
       fclose(out);
       renameTempFile(shortPath, longFileName);
-      verifyFile(longFileName, true);
+      verifyFile(shortPath,longFileName, true);
       savedSomething();
     }
   }
@@ -941,7 +942,7 @@ bool writeZippedFiles(const Array<ZipDesc> &desc, const char *shortPath, const c
   if (!mz_zip_writer_finalize_archive(&zip)) return false;
   if (!mz_zip_writer_end(&zip)) return false;
   renameTempFile(shortPath, longFileName);
-  verifyFile(longFileName, true);
+  verifyFile(shortPath, longFileName, true);
   savedSomething();
   return true;
 }
@@ -1022,7 +1023,7 @@ void saveBrush(const char *shortPath, const char *longFileName) {
     putBrushesArray(brushesHere, shortPath, longFileName);
   }
   savedSomething();
-  verifyFile(longFileName, true);
+  verifyFile(shortPath, longFileName, true);
 }
 
 void loadBrushes(const char *shortPath, const char *longFileName) {
@@ -1302,7 +1303,7 @@ void saveImage(const char *shortPath, const char *longFileName) {
   // finished
   if (allWentWell) {currentCanvas->signSave(); signSaveForUndo();}
   savedSomething();
-  verifyFile(longFileName, allWentWell);
+  verifyFile(shortPath, longFileName, allWentWell);
 }
 
 void loadFont(const char *shortPath, const char *longFileName) {
@@ -1585,7 +1586,7 @@ void saveText(const char *shortPath, const char *longFileName) {
   fclose(out);
   renameTempFile(shortPath, longFileName);
   savedSomething();
-  verifyFile(longFileName, true);
+  verifyFile(shortPath, longFileName, true);
 }
 
 void loadText(const char *shortPath, const char *longFileName) {
@@ -1813,7 +1814,7 @@ bool writePalettedTGA(const char *shortPath, const char *longFileName, int width
   }
   fclose(out);
   renameTempFile(shortPath, longFileName);
-  verifyFile(longFileName,true);
+  verifyFile(shortPath, longFileName,true);
   return true;
 }
 
