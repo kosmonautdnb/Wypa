@@ -146,7 +146,7 @@ void drawToolBar() {
     points[2].x = toolbar_width*k*aspect; points[2].y = main_window_yres;
     ImGui::GetWindowDrawList()->AddConvexPolyFilled(points, 3, 0xff7c5b87, true);
     static bool here = false;
-    if (ImGui::IsMouseHoveringRect(points[0],points[2])) {
+    if (ImGui::IsMouseHoveringRect(points[0],points[2]) && ImGui::IsWindowHovered()) {
       toolTip2("Click for screen saver");
       if (ImGui::IsMouseDown(0)) here = true;
       if (!ImGui::IsMouseDown(0) && here){here = false;turnOnScreenSaver();}

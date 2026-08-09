@@ -124,7 +124,7 @@ void drawMenuBar() {
     if (ImGui::IsItemHovered()&&ImGui::IsMouseClicked(0)) {dialogAbout(true);}
     cursor.y += 1;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
-    toolTip("Wypa version %d.%02d", version / 100, version % 100);
+    toolTip("Info: Wypa version %d.%02d", version / 100, version % 100);
     ImGui::SameLine();
     cursor2.x += svg->w+3;
 
