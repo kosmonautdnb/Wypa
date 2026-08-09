@@ -29,11 +29,6 @@ And you can add a mirror tool, to paint two times with the same pen, but mirrore
 
 There is a inapp help available if you have questions to the functionality of any part of Wypa.
 
-## Introduction video
-
-Somehow a very down to earth usage video on Youtube.   
-https://youtu.be/7sWV9KbLBxo?is=uI2an6Mxr4ll4f8G
-
 ## Compilation
 
 You need Djgpp or Watcom C++11 or OpenWatcom in order to get your **Dos exe** file.  
