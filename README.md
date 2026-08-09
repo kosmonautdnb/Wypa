@@ -12,6 +12,8 @@ Featuring a large range of graphics formats. Even some 256 color formats, howeve
 
 There is an internal **aspect ratio correction**, if you use a 16:9 monitor with Wypas native resolution of 1024x768.
 
+You can have uneven pixel sizes (like 2:1) to support the oldschool communities.
+
 
 It also supports TTF truetype fonts with its text layers.  
 
