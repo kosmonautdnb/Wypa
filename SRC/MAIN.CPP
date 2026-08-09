@@ -102,7 +102,9 @@ void turnOnScreenSaver() {
 }
 
 void screenSaver() {
+  static int screenSaverStartMouseX = 0, screenSaverStartMouseY = 0; static bool screenSaverOn = false;
   if (glSeconds()-screenSaverStartTime >= SCREENSAVERTIMEINSECONDS) {
+    screenSaverOn = true;
     static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
     static ImVec2 textPos(0,0);
     static ImVec2 textDir = normalize(ImVec2(1,1));
@@ -139,6 +141,14 @@ void screenSaver() {
     }
     ImGui::End();
     ImGui::PopStyleColor();
+  } else {
+    if (screenSaverOn) {
+      screenSaverOn = false;
+      mouseX = screenSaverStartMouseX;
+      mouseY = screenSaverStartMouseY;
+    }
+    screenSaverStartMouseX = mouseX;
+    screenSaverStartMouseY = mouseY;
   }
 }
 
