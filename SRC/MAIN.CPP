@@ -101,24 +101,25 @@ void turnOnScreenSaver() {
   screenSaverStartTime = glSeconds()-SCREENSAVERTIMEINSECONDS;
 }
 
+void drawText(float scale, int xp, int yp, const char *text, uint32_t color, float anchorX, float anchorY);
+void textWidthHeight(const char *text, int *w, int *h);
+
 void screenSaver() {
-  static int screenSaverStartMouseX = 0, screenSaverStartMouseY = 0; static bool screenSaverOn = false;
   if (glSeconds()-screenSaverStartTime >= SCREENSAVERTIMEINSECONDS) {
-    screenSaverOn = true;
+    for (int i = 0; i < glFrameBufferWidth*glFrameBufferHeight; i++) {
+      unsigned int col = glFrameBuffer[i]; glFrameBuffer[i] = ((col >> 5) & 0x00070707) | (col & 0xff000000);
+    }
     static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
+    String date = "Date " + timeDescString(); if ((((k2/3)%2) < 1) && date.length()>3) {date[date.length()-3] = '.';}
     static ImVec2 textPos(0,0);
     static ImVec2 textDir = normalize(ImVec2(1,1));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0,0,0,1));
-    ImGui::SetNextWindowPos(ImVec2(0,0));
-    ImGui::Begin("SCREENSAVER", NULL, ImVec2(main_window_xres,main_window_yres),0.95,FROZENWINDOW);
-    String date = "Date " + timeDescString();float fontSize = 2.0;
-    if ((((k2/3)%2) < 1) && date.length()>3) {date[date.length()-3] = ' ';}
-    ImVec2 textSize = ImGui::CalcTextSize(date.c_str()); textSize.x *= fontSize; textSize.y *= fontSize;
-    ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),ImGui::GetWindowFontSize()*fontSize,ImVec2(textPos.x,textPos.y),0xffffffff,date.c_str());
+    float textScale = 4.f;
+    int w, h; textWidthHeight(date.c_str(),&w,&h);
+    ImVec2 textSize;
+    textSize.x = w * textScale;
+    textSize.y = h * textScale;
     textPos.x += textDir.x * timeDelta * main_window_xres / 10;
     textPos.y += textDir.y * timeDelta * main_window_xres / 10;
-    mouseX = textPos.x;
-    mouseY = textPos.y;
     if (textPos.x > main_window_xres-textSize.x) {
       textDir.x = -(double)rand()/RAND_MAX-1.1;
       textDir.y = (double)rand()/RAND_MAX*2-1;
@@ -139,16 +140,7 @@ void screenSaver() {
       textDir.y = (double)rand()/RAND_MAX+1.1;
       textDir = normalize(textDir);
     }
-    ImGui::End();
-    ImGui::PopStyleColor();
-  } else {
-    if (screenSaverOn) {
-      screenSaverOn = false;
-      mouseX = screenSaverStartMouseX;
-      mouseY = screenSaverStartMouseY;
-    }
-    screenSaverStartMouseX = mouseX;
-    screenSaverStartMouseY = mouseY;
+    drawText(textScale, textPos.x, textPos.y, date.c_str(), 0xffffffff,0,0);
   }
 }
 
@@ -444,9 +436,10 @@ int main(int argc, const char *argv[]) {
     drawToolView();
     drawDialogs();
     showDebugWindow();
-    screenSaver();
     splashScreen();
     ImGui::Render();
+
+    screenSaver();
     
     lastActiveLayerSwitchIndex = activeLayerSwitchIndex;
       

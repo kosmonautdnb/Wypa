@@ -102,10 +102,13 @@ void drawText(float scale, int xp, int yp, const char *text, uint32_t color, flo
           int x1 = (int)floor((x3+1) * scale);
           int y1 = (int)floor((y3+1) * scale);
           for (int y4 = y0; y4 < y1; y4++) {
-            for (int x4 = x0; x4 < x1; x4++) {
-              int x5 = xp + x4;
-              int y5 = yp + y4;
-              if ((unsigned int)x5<(unsigned int)glFrameBufferWidth && (unsigned int)y5<(unsigned int)glFrameBufferHeight) glFrameBuffer[x5+y5*glFrameBufferWidth] = color;
+            int y5 = yp + y4;
+            if ((unsigned int)y5<(unsigned int)glFrameBufferHeight) {
+              int y6 = y5 * glFrameBufferWidth;
+              for (int x4 = x0; x4 < x1; x4++) {
+                int x5 = xp + x4;
+                if ((unsigned int)x5<(unsigned int)glFrameBufferWidth) glFrameBuffer[x5+y6] = color;
+              }
             }
           }
         }
@@ -114,6 +117,25 @@ void drawText(float scale, int xp, int yp, const char *text, uint32_t color, flo
     x2 += l->preAddX + l->width + l->postAddX + 1;
     s++;
   }
+}
+
+void textWidthHeight(const char *text, int *w, int *h) {
+  if (text == NULL) return;
+  int width2 = 0;
+  int width = 0;
+  int height = 6;
+  const char *s2 = text;
+  while(*s2!=0) {
+    if (*s2 == '\n') {height += 6;width2=0;}
+    Letter *l = getLetter(*s2);
+    width2 += l->preAddX + l->width + l->postAddX;
+    if (width2 > width) width = width2;
+    s2++;
+    if (*s2 == 0) break;
+    width2 += 1;
+  }
+  if (*w != NULL) *w = width;
+  if (*h != NULL) *h = height;
 }
 
 double scrollborderSize = 10;
