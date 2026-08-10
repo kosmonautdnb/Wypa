@@ -34,7 +34,7 @@ There is a inapp help available if you have questions to the functionality of an
 You need Djgpp or Watcom C++11 or OpenWatcom in order to get your **Dos exe** file.  
 
 With Djgpp: just run **!DJGPP.BAT**  
-With WatcomC/Openwatcom: run **!WATCOM.BAT**  
+With WatcomC/OpenWatcom: run **!WATCOM.BAT**  
 
 If you use DJGPP, be aware, that more recent DJGPPs may bring a lot more of performance to Wypa.
 
@@ -42,7 +42,7 @@ The newest **DJGPP** here is around **3 times** faster than WatcomC++11.
 
 ## Memory and performance
 
-Please be aware that Wypa needs a lot of memory, as stated in the inapp documentation and needs a fairly fast PC. It may already run well with an around 1600Mhz setup.
+Please be aware that Wypa needs a lot of memory, as stated in the inapp documentation and needs a fairly fast PC. It may already run well with an **around 1600Mhz** setup.
 
 ## DosBOX and DosBOX-X
 
