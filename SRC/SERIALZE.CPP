@@ -1308,6 +1308,7 @@ void saveImage(const char *shortPath, const char *longFileName) {
 
 void loadFont(const char *shortPath, const char *longFileName) {
   String fullFileName = String(shortPath)+String(longFileName);
+  if (!toLower(fullFileName).endsWith(".ttf")) return;
   Array<unsigned char> *arr = new Array<unsigned char>();
   getFileArray(arr, fullFileName);
   if (!arr->empty()) {

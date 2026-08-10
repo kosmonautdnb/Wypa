@@ -1162,11 +1162,11 @@ void drawToolTextView() {
   ImGui::Text("Font"); 
   ImGui::Text("Height"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSIZE",&ati->fontSize,0,0,2)) {} else toolTip("The selected font size in pixels in y"); if (ati->fontSize < 1) ati->fontSize = 1;
   ImVec2 cursor = ImGui::GetCursorScreenPos();
-  ImVec4 chere = getImVec4Color(ati->fontColor); colorItem("", "##DRAWTOOLTEXTUREVIEWFONTCOLOR", &chere);
+  ImVec4 chere = getImVec4Color(ati->fontColor); if (colorItem("", "##DRAWTOOLTEXTUREVIEWFONTCOLOR", &chere)) {ati->fontColor = getUIntColor(chere);}
   ImGui::SetCursorScreenPos(cursor);
   if (ImGui::InvisibleButton("##DRAWTOOLTEXTUREVIEWFONTCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
     ati->fontColor = getUIntColor(foregroundColor);
-  } else toolTip("The color the text is to be painted with");
+  } else toolTip("The color the text is to be painted with (click to set)");
   ImGui::Text("Scale x"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSCALEX",&ati->fontScaleX,0,0,2)) {} else toolTip("Scaling of the text in x"); if (ati->fontScaleX < 0) ati->fontScaleX = 0;
   ImGui::Text("Scale y"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSCALEY",&ati->fontScaleY,0,0,2)) {} else toolTip("Scaling of the text in y");; if (ati->fontScaleY < 0) ati->fontScaleY = 0;
   ImGui::Text("Space x"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSPACEX",&ati->fontSpaceX,0,0,2)) {} else toolTip("Letter spacing of the text in x");
@@ -1428,6 +1428,10 @@ void drawToolTileMapView() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
   if (l->type != LAYERTYPE_TILEMAP) return;
+
+  Layer *other = NULL; int count = 0; for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {count++; if (currentCanvas->layers[i] != l) other = currentCanvas->layers[i];}
+  if (roundButton("Set tileset##DRAWTOOLTILEMAPVIEWSETTILESET",count == 2 && other != NULL && other->type == LAYERTYPE_BASIC)) {l->tileSourceLayerId = other->id; shouldUpdateAll = true;} else toolTip("You have to select two layers to set the tileset");
+
   Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId);
   if (l2 != NULL && l2->width > 0 && l2->height > 0 && l2->toolInfo.tilingWidth > 0 && l2->toolInfo.tilingHeight > 0) {
     static unsigned int lastTextureUpdateCount = (unsigned int)((int)-1);

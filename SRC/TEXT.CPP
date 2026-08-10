@@ -37,6 +37,7 @@ void freeText() {
 }
 
 float FontSource::getScaleForPixelHeight(float pixels) {
+  if (data == NULL) return pixels;
   return stbtt_ScaleForPixelHeight(&font, pixels);
 }
 void FontSource::getBoundsForChar(int c, float scaleX, float scaleY, float shiftX, int &x0, int &y0, int &x1, int &y1) {
@@ -86,8 +87,10 @@ int fromHex(char c) {
   return 0;
 }
 
-unsigned short *unicodeTextLine(const String &text) {
-  unsigned short *t = new unsigned short[text.length()+1];
+#define NOFONTCOLOR 0x00010302
+
+unsigned short *unicodeTextLine(const String &text, Array<unsigned int> *cols = NULL) {
+  unsigned short *t = new unsigned short[text.length()+1]; if (cols != NULL) {cols->resize(text.length()+1); cols->fill(NOFONTCOLOR);}
   int i = 0;
   int j = 0;
   for (; i < text.length(); i++) {
@@ -97,7 +100,23 @@ unsigned short *unicodeTextLine(const String &text) {
       unsigned int h = fromHex(text[i+1])*0x1000+fromHex(text[i+2])*0x100+fromHex(text[i+3])*0x10+fromHex(text[i+4]);
       t[j] = (unsigned short)h;  
       i += 4;
-    } else t[j] = c;
+    } else {
+      if (c == '^' && i < text.length()-9 && text[i+1] == '#')  {
+        unsigned int col = 0;
+        i += 2;
+        for (int k = 0; k < 4; k++) {
+          col <<= 8;
+          col |= fromHex(text[i+0])*16 + fromHex(text[i+1]);
+          i += 2;
+        }
+        col = ((col & 0x00ff0000)>>16)|((col & 0x000000ff)<<16)|(col & 0xff00ff00);
+        if (cols != NULL) (*cols)[j] = col;
+        i--;
+        j--;
+      } else {
+        t[j] = c;
+      }
+    }
     j++;
   }
   t[j] = 0;
@@ -111,6 +130,7 @@ void FontSource::getBounds(const String &text, float scaleX, float scaleY, int &
 }
 
 bool FontSource::hasGlyph(unsigned short uniCodeCodePoint) {
+  if (data == NULL) return false;
   int glyph = stbtt_FindGlyphIndex(&font, uniCodeCodePoint);
   return glyph != 0;
 }
@@ -187,10 +207,12 @@ GLuint FontSource::createTexture(const String &text, int fontSize, float aspect,
 void addFontSource(Array<unsigned char> *data, const String &fileName) {
   if (data == NULL) return;
   FontSource *f = new FontSource(data,fileName);
-  fonts.push_back(f);
-  Layer *l = currentCanvas->getActiveLayer();
-  if (l != NULL) {
-    l->toolInfo.fontId = f->id;
+  if (f->data != NULL) {
+    fonts.push_back(f);
+    Layer *l = currentCanvas->getActiveLayer();
+    if (l != NULL) {
+      l->toolInfo.fontId = f->id;
+    }
   }
 }
 
@@ -254,9 +276,11 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
   int lw = 0;
   float lastLineWidth = 0;
 
-  unsigned short *textEditText2 = unicodeTextLine(l->toolInfo.textEditText);
+  Array<unsigned int> cols; unsigned short *textEditText2 = unicodeTextLine(l->toolInfo.textEditText, &cols);
 
+  unsigned int col3 = col2;
   while (textEditText2[ch]) {
+    if (cols[ch] != NOFONTCOLOR) {col2 = cols[ch]; if (col2 == 0x00000000) col2 = col3;}
     int advance,lsb,cx0=0,cy0=0,cx1=0,cy1=0; float shiftX = xpos - (float)floor(xpos);
     if (textEditText2[ch] == '\n') {
       if (!andDraw) {lineWidths.push_back(lastLineWidth);} else {lw++;}
@@ -309,9 +333,10 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
             int xd = x + px;
             int yd = y + py;
             if ((unsigned int)xd < (unsigned int)l->width && (unsigned int)yd < (unsigned int)l->height) {
+              int val2 = (int)val * ((int)(col2>>24) & 255) / 255;
               unsigned int col = l->pixels[xd+yd*l->width];
               unsigned int a = (col >> 24) & 255;
-              a = 255-(255-a)*(255-val)/255;
+              a = 255-(255-a)*(255-val2)/255;
               col = 0x00000000; if (a != 0x00) {
                 int r = (col2 & 0xff)*a/255;
                 int g = ((col2>>8) & 0xff)*a/255;
@@ -344,6 +369,7 @@ void paintTextIntoLayer(class Layer *l) {
     }
   }
   if (f == NULL) return;
+  if (f->data == NULL) return;
   shouldUpdateAll = true;
   int x0=0,y0=0,x1=0,y1=0;
   Array<float> lineWidths;

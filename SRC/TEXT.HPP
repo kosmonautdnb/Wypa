@@ -55,7 +55,9 @@ public:
     glHeight = 0;
   }
   void prepareFont() {
-    stbtt_InitFont(&font, &((*data)[0]), stbtt_GetFontOffsetForIndex(&((*data)[0]),0));
+    if (!stbtt_InitFont(&font, &((*data)[0]), stbtt_GetFontOffsetForIndex(&((*data)[0]),0))) {
+      if (data != NULL) {delete data; data = NULL;}
+    }
   }
   ~FontSource() {
     if (data != NULL) {delete data; data = NULL;}

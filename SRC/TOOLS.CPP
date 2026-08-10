@@ -134,8 +134,8 @@ void textWidthHeight(const char *text, int *w, int *h) {
     if (*s2 == 0) break;
     width2 += 1;
   }
-  if (*w != NULL) *w = width;
-  if (*h != NULL) *h = height;
+  if (w != NULL) *w = width;
+  if (h != NULL) *h = height;
 }
 
 double scrollborderSize = 10;

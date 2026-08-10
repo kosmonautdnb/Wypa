@@ -1761,6 +1761,17 @@ Layer *Layer::clone() {
   return ret;
 }
 
+void resolveLayerIds(Layer *layer, const Array<Layer*> &newLayers, const Array<Layer*> &oldLayers) {
+  if (layer == NULL || newLayers.size() != oldLayers.size()) return;
+  bool found0 = false, found1 = false;
+  for (int i = 0; i < oldLayers.size(); i++) {
+    if (layer->sourceLayerId == oldLayers[i]->id) {found0 = true; layer->sourceLayerId = newLayers[i]->id;}
+    if (layer->tileSourceLayerId == oldLayers[i]->id) {found1 = true; layer->tileSourceLayerId = newLayers[i]->id;}
+  }
+  if (!found0) layer->sourceLayerId = 0;
+  if (!found1) layer->tileSourceLayerId = 0;
+}
+
 void Layer::convertToPremul() {
   if (mode != LAYERMODE_ALPHA) return;
   for (int i = 0; i < width * height; i++) {
@@ -5016,9 +5027,10 @@ void insertPicture(String fileName) {
     Canvas *loaded = currentCanvas;
     currentCanvas = canvas[before-1];
     int p2 = pos;
+    Array<Layer*> newLayers; for (int j = 0; j < (int)loaded->layers.size(); j++) {newLayers.push_back(loaded->layers[j]->clone());}
     for (int i = 0; i < (int)loaded->layers.size(); i++) {
-      Layer *l = loaded->layers[i];
-      currentCanvas->layers.insert(l->clone(),pos);
+      resolveLayerIds(newLayers[i], newLayers, loaded->layers); // this works, even if newLayers[i] is updated by that
+      currentCanvas->layers.insert(newLayers[i],pos);
       pos++;
     }
     currentCanvas->setActiveLayer(p2);

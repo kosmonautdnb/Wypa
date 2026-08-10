@@ -105,19 +105,20 @@ void drawText(float scale, int xp, int yp, const char *text, uint32_t color, flo
 void textWidthHeight(const char *text, int *w, int *h);
 
 void screenSaver() {
+  static ImVec2 textPos(0,0);
+  static ImVec2 textDir = normalize(ImVec2(1,1));
+
   if (glSeconds()-screenSaverStartTime >= SCREENSAVERTIMEINSECONDS) {
-    for (int i = 0; i < glFrameBufferWidth*glFrameBufferHeight; i++) {
-      unsigned int col = glFrameBuffer[i]; glFrameBuffer[i] = ((col >> 5) & 0x00070707) | (col & 0xff000000);
-    }
     static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
     String date = "Date " + timeDescString(); if ((((k2/3)%2) < 1) && date.length()>3) {date[date.length()-3] = '.';}
-    static ImVec2 textPos(0,0);
-    static ImVec2 textDir = normalize(ImVec2(1,1));
     float textScale = 4.f;
     int w, h; textWidthHeight(date.c_str(),&w,&h);
     ImVec2 textSize;
     textSize.x = w * textScale;
     textSize.y = h * textScale;
+    for (int i = 0; i < glFrameBufferWidth*glFrameBufferHeight; i++) {
+      unsigned int col = glFrameBuffer[i]; glFrameBuffer[i] = ((col >> 5) & 0x00070707) | (col & 0xff000000);
+    }
     textPos.x += textDir.x * timeDelta * main_window_xres / 10;
     textPos.y += textDir.y * timeDelta * main_window_xres / 10;
     if (textPos.x > main_window_xres-textSize.x) {
@@ -141,6 +142,9 @@ void screenSaver() {
       textDir = normalize(textDir);
     }
     drawText(textScale, textPos.x, textPos.y, date.c_str(), 0xffffffff,0,0);
+  } else {
+    textDir = normalize(ImVec2(1,1));
+    textPos = ImVec2(0,0);
   }
 }
 
