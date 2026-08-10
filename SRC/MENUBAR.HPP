@@ -29,6 +29,7 @@
 extern int menuBar_height;
 extern String hex2_(int v);
 String timeDescString();
+String extensiveTimeDescString();
 extern unsigned int undoBlink;
 extern unsigned int selectionBlink;
 extern unsigned int picturesBlink;

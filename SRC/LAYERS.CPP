@@ -1764,7 +1764,7 @@ Layer *Layer::clone() {
 void resolveLayerIds(Layer *layer, const Array<Layer*> &newLayers, const Array<Layer*> &oldLayers) {
   if (layer == NULL || newLayers.size() != oldLayers.size()) return;
   bool found0 = false, found1 = false;
-  for (int i = 0; i < oldLayers.size(); i++) {
+  for (int i = 0; i < (int)oldLayers.size(); i++) {
     if (layer->sourceLayerId == oldLayers[i]->id) {found0 = true; layer->sourceLayerId = newLayers[i]->id;}
     if (layer->tileSourceLayerId == oldLayers[i]->id) {found1 = true; layer->tileSourceLayerId = newLayers[i]->id;}
   }

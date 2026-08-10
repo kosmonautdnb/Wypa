@@ -68,6 +68,20 @@ String timeDescString() {
   return hex2_(rtc_day)+"."+hex2_(rtc_month)+"."+hex2_(rtc_year)+" "+String(day[(rtc_weekday-2)&7])+" "+hex2_(rtc_hours)+":"+hex2_(rtc_minutes);
 }
 
+String extensiveTimeDescString() {
+  int rtc_seconds = rtcRead(0);
+  int rtc_minutes = rtcRead(2);
+  int rtc_hours   = rtcRead(4);
+  int rtc_weekday = rtcRead(6);
+  int rtc_day     = rtcRead(7);
+  int rtc_month   = rtcRead(8);
+  int rtc_year    = rtcRead(9);
+  const char *day[8] ={"Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Sunday"};
+  const char *months[12] = {"January","February","March","April","May","June","July","August","September","October","November","December"};
+  int k = ((rtc_month & 15)+(rtc_month/16*10)); if (k > 0) k--;
+  return String(day[(rtc_weekday-2)&7]) + "," + hex2_(rtc_day)+"."+months[k % 12]+" 20"+hex2_(rtc_year)+","+hex2_(rtc_hours)+":"+hex2_(rtc_minutes) + ":" + hex2_(rtc_seconds);
+}
+
 void setMouseSensitivity() {
   mouseSpeed = pow(1.1,mouseSensitivity)-0.1-0.75;
 }
@@ -416,7 +430,7 @@ void drawMenuBar() {
     ImVec2 cursorScreen = ImGui::GetCursorScreenPos();
     cursorScreen.x = main_window_xres - timeDesc.length()*7;
     ImGui::SetCursorScreenPos(cursorScreen);
-    ImGui::Text("%s",timeDesc.c_str()); toolTip("Current date and time");
+    ImGui::Text("%s",timeDesc.c_str()); toolTip("Info: %s", extensiveTimeDescString().c_str());
     cursorScreen.x -= 7 + 3;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);

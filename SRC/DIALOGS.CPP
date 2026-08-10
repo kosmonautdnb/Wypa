@@ -176,8 +176,11 @@ void dialogAbout(bool openIt) {
   ImGui::Text(
     "WYPA - A SIMPLE PAINT PROGRAM FOR DOS\n"
     "------------------------------------\n"
-    "Coded in early 2026 by\n"
+    "Coded in early 2026 including\n"
+    "all design by\n"
     "Stefan Mader of Puls4r\n"
+    "------------------------------------\n"
+    "Icons (license CC0) by Rainer Muehr\n"
     "------------------------------------\n"
     "Source is released under the most\n"
     "common: MIT License. (open source)\n"

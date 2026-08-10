@@ -1833,7 +1833,7 @@ void exportTGA(const char *shortPath, const char *longFileName) {
     unsigned int col = l->pixels[i];
     for (int j = 0; j < (int)palette2.size(); j++) {
       if (palette2[j] == col) {
-        c = j;
+        c = (unsigned char)j;
         break;
       }
     }

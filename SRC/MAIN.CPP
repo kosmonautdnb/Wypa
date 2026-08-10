@@ -110,7 +110,7 @@ void screenSaver() {
 
   if (glSeconds()-screenSaverStartTime >= SCREENSAVERTIMEINSECONDS) {
     static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
-    String date = "Date " + timeDescString(); if ((((k2/3)%2) < 1) && date.length()>3) {date[date.length()-3] = '.';}
+    String date = extensiveTimeDescString(); if ((((k2/3)%2) < 1) && date.length()>3) {date[date.length()-3] = '.';}
     float textScale = 4.f;
     int w, h; textWidthHeight(date.c_str(),&w,&h);
     ImVec2 textSize;
@@ -141,6 +141,14 @@ void screenSaver() {
       textDir.y = (double)rand()/RAND_MAX+1.1;
       textDir = normalize(textDir);
     }
+    static int xr = 0; static int yr = 0; static double l = glSeconds(); double l2 = glSeconds();
+    if ((int)(l/8) != (int)(l2/8)) {
+      int w, h; textWidthHeight("WYPA",&w,&h);
+      xr = rand() % (main_window_xres-(int)(w * textScale));
+      yr = rand() % (main_window_yres-(int)(h * textScale));
+    }
+    l = l2;
+    drawText(textScale, xr, yr, "WYPA", 0xffffffff,0,0);
     drawText(textScale, textPos.x, textPos.y, date.c_str(), 0xffffffff,0,0);
   } else {
     textDir = normalize(ImVec2(1,1));
