@@ -275,8 +275,8 @@ void dialogDocumentation(bool openIt) {
     for (int i = 0; i < (int)lineIsOpen.size(); i++) lineIsOpen[i] = true;
   }
 
-  int width = main_window_xres/2;
-  int height = main_window_yres/3;
+  int width = 101*7;
+  int height = main_window_yres/2;
   ImGui::Text("The documentation maybe, or is more or less incorrect, but wth.");
   ImGui::Text("This docu is done by a german, so don't be too angry");
   ImGui::Text("about the style/content.");

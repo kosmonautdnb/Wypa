@@ -1286,3 +1286,253 @@
   "Move down - moves the selected layers down in the hierarchy." _N_
   "Merge - merges the layers onto the lowest and remove (NO UNDO)" _N_
 "}" _N_
+"" _N_
+"If you need the authorship of the libraries used with Wypa:" _N_
+"Third party / legal{" _N_
+  "The program Wypa itself has the following license:" _N_
+  "" _N_
+  "MIT License" _N_
+  "" _N_
+  "Copyright (c) 2026 Stefan Mader" _N_
+  "" _N_
+  "Permission is hereby granted, free of charge, to any person obtaining a copy" _N_
+  "of this software and associated documentation files (the \"Software\"), to deal" _N_
+  "in the Software without restriction, including without limitation the rights" _N_
+  "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell" _N_
+  "copies of the Software, and to permit persons to whom the Software is" _N_
+  "furnished to do so, subject to the following conditions:" _N_
+  "" _N_
+  "The above copyright notice and this permission notice shall be included in all" _N_
+  "copies or substantial portions of the Software." _N_
+  "" _N_
+  "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR" _N_
+  "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY," _N_
+  "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE" _N_
+  "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER" _N_
+  "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM," _N_
+  "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE" _N_
+  "SOFTWARE." _N_
+  "" _N_
+  "The third party libraries used with Wypa have the following licenses:" _N_
+  "ImGui{" _N_
+    "The MIT License (MIT)" _N_
+    "" _N_
+    "Copyright (c) 2014-2015 Omar Cornut and ImGui contributors" _N_
+    "" _N_
+    "Permission is hereby granted, free of charge, to any person obtaining a copy" _N_
+    "of this software and associated documentation files (the \"Software\"), to deal" _N_
+    "in the Software without restriction, including without limitation the rights" _N_
+    "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell" _N_
+    "copies of the Software, and to permit persons to whom the Software is" _N_
+    "furnished to do so, subject to the following conditions:" _N_
+    "" _N_
+    "The above copyright notice and this permission notice shall be included in all" _N_
+    "copies or substantial portions of the Software." _N_
+    "" _N_
+    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR" _N_
+    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY," _N_
+    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE" _N_
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER" _N_
+    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM," _N_
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE" _N_
+    "SOFTWARE." _N_
+  "}" _N_
+  "Delaunator{" _N_
+    "MIT License" _N_
+    "" _N_
+    "Copyright (c) 2018 Volodymyr Bilonenko" _N_
+    "" _N_
+    "Permission is hereby granted, free of charge, to any person obtaining a copy" _N_
+    "of this software and associated documentation files (the \"Software\"), to deal" _N_
+    "in the Software without restriction, including without limitation the rights" _N_
+    "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell" _N_
+    "copies of the Software, and to permit persons to whom the Software is" _N_
+    "furnished to do so, subject to the following conditions:" _N_
+    "" _N_
+    "The above copyright notice and this permission notice shall be included in all" _N_
+    "copies or substantial portions of the Software." _N_
+    "" _N_
+    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR" _N_
+    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY," _N_
+    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE" _N_
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER" _N_
+    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM," _N_
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE" _N_
+    "SOFTWARE." _N_
+  "}" _N_
+  "Tiny-json{" _N_
+    "//" _N_
+    "Licensed under the MIT License <http://opensource.org/licenses/MIT>." _N_
+    "SPDX-License-Identifier: MIT" _N_
+    "Copyright (c) 2018 Rafa Garcia <rafagarcia77@gmail.com>." _N_
+    "Permission is hereby  granted, free of charge, to any  person obtaining a copy" _N_
+    "of this software and associated  documentation files (the \"Software\"), to deal" _N_
+    "in the Software  without restriction, including without  limitation the rights" _N_
+    "to  use, copy,  modify, merge,  publish, distribute,  sublicense, and/or  sell" _N_
+    "copies  of  the Software,  and  to  permit persons  to  whom  the Software  is" _N_
+    "furnished to do so, subject to the following conditions:" _N_
+    "The above copyright notice and this permission notice shall be included in all" _N_
+    "copies or substantial portions of the Software." _N_
+    "THE SOFTWARE  IS PROVIDED \"AS  IS\", WITHOUT WARRANTY  OF ANY KIND,  EXPRESS OR" _N_
+    "IMPLIED,  INCLUDING BUT  NOT  LIMITED TO  THE  WARRANTIES OF  MERCHANTABILITY," _N_
+    "FITNESS FOR  A PARTICULAR PURPOSE AND  NONINFRINGEMENT. IN NO EVENT  SHALL THE" _N_
+    "AUTHORS  OR COPYRIGHT  HOLDERS  BE  LIABLE FOR  ANY  CLAIM,  DAMAGES OR  OTHER" _N_
+    "LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM," _N_
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE" _N_
+    "SOFTWARE." _N_
+  "}" _N_
+  "MiniZ{" _N_
+    "Copyright 2013-2014 RAD Game Tools and Valve Software" _N_
+    "Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC" _N_
+    "All Rights Reserved." _N_
+    "" _N_
+    "Permission is hereby granted, free of charge, to any person obtaining a copy" _N_
+    "of this software and associated documentation files (the \"Software\"), to deal" _N_
+    "in the Software without restriction, including without limitation the rights" _N_
+    "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell" _N_
+    "copies of the Software, and to permit persons to whom the Software is" _N_
+    "furnished to do so, subject to the following conditions:" _N_
+    "" _N_
+    "The above copyright notice and this permission notice shall be included in" _N_
+    "all copies or substantial portions of the Software." _N_
+    "" _N_
+    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR" _N_
+    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY," _N_
+    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE" _N_
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER" _N_
+    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM," _N_
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN" _N_
+    "THE SOFTWARE." _N_
+  "}" _N_
+  "NanoSVG{" _N_
+    "Copyright (c) 2013-14 Mikko Mononen memon@inside.org" _N_
+    "" _N_
+    "This software is provided 'as-is', without any express or implied" _N_
+    "warranty.  In no event will the authors be held liable for any damages" _N_
+    "arising from the use of this software." _N_
+    "" _N_
+    "Permission is granted to anyone to use this software for any purpose," _N_
+    "including commercial applications, and to alter it and redistribute it" _N_
+    "freely, subject to the following restrictions:" _N_
+    "" _N_
+    "1. The origin of this software must not be misrepresented; you must not" _N_
+    "claim that you wrote the original software. If you use this software" _N_
+    "in a product, an acknowledgment in the product documentation would be" _N_
+    "appreciated but is not required." _N_
+    "2. Altered source versions must be plainly marked as such, and must not be" _N_
+    "misrepresented as being the original software." _N_
+    "3. This notice may not be removed or altered from any source distribution." _N_
+    "" _N_
+    "The SVG parser is based on Anti-Grain Geometry 2.4 SVG example" _N_
+    "Copyright (C) 2002-2004 Maxim Shemanarev (McSeem) (http://www.antigrain.com/)" _N_
+  "}" _N_
+  "Parson{" _N_
+    "Parson ( http://kgabis.github.com/parson/ )" _N_
+    "Copyright (c) 2012 - 2017 Krzysztof Gabis" _N_
+    "" _N_
+    "Permission is hereby granted, free of charge, to any person obtaining a copy" _N_
+    "of this software and associated documentation files (the \"Software\"), to deal" _N_
+    "in the Software without restriction, including without limitation the rights" _N_
+    "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell" _N_
+    "copies of the Software, and to permit persons to whom the Software is" _N_
+    "furnished to do so, subject to the following conditions:" _N_
+    ""  _N_
+    "The above copyright notice and this permission notice shall be included in" _N_
+    "all copies or substantial portions of the Software." _N_
+    "" _N_
+    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR" _N_
+    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY," _N_
+    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE" _N_
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER" _N_
+    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM," _N_
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN" _N_
+    "THE SOFTWARE." _N_
+  "}" _N_
+  "PCX/LBM decoding{" _N_
+    "Copyright (c) 2023 Ryandracus Chapman (@RyandracusCodesGames)" _N_
+    "" _N_
+    "This software is provided \"as-is\", without any express or implied warranty. In no event" _N_
+    "will the authors be held liable for any damages arising from the use of this software." _N_
+    "" _N_
+    "Permission is granted to anyone to use this software for any purpose, including commercial" _N_
+    "applications, and to alter it and redistribute it freely, subject to the following restrictions:" _N_
+    "1. The origin of this software must not be misrepresented; you must not claim that you" _N_
+    "wrote the original software. If you use this software in a product, an acknowledgment" _N_
+    "in the product documentation would be appreciated but is not required." _N_
+    "2. Altered source versions must be plainly marked as such, and must not be misrepresented" _N_
+    "as being the original software." _N_
+    "3. This notice may not be removed or altered from any source distribution." _N_
+  "}" _N_
+  "PSDimage{" _N_
+    "PSD image loader by DrPetter" _N_
+    "" _N_
+    "Work in progress, no guarantees but it seems to work." _N_
+    "Use it for anything, but do so at your own risk." _N_
+    "" _N_
+    "(published so that I can use this in LD48#11 without cheating)" _N_
+    "(\"Ludum dare\" game creation contest?)" _N_
+  "}" _N_
+  "STB libraries{" _N_
+    "stb-image - v2.30 - public domain" _N_
+    "stb-image-resize2 - v2.13 - public domain" _N_
+    "stb-image-write - v1.16 - public domain" _N_
+    "stb-rect-pack.h - v0.05 - public domain" _N_
+    "stb-textedit.h - v1.3  - public domain" _N_
+    "stb-truetype.h - v1.06 - public domain" _N_
+  "}" _N_
+  "SupeXBR{" _N_
+    "Copyright (c) 2016 Hyllian - sergiogdb@gmail.com" _N_
+    "" _N_
+    "Permission is hereby granted, free of charge, to any person obtaining a copy" _N_
+    "of this software and associated documentation files (the \"Software\"), to deal" _N_
+    "in the Software without restriction, including without limitation the rights" _N_
+    "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell" _N_
+    "copies of the Software, and to permit persons to whom the Software is" _N_
+    "furnished to do so, subject to the following conditions:" _N_
+    "" _N_
+    "The above copyright notice and this permission notice shall be included in" _N_
+    "all copies or substantial portions of the Software." _N_
+    "" _N_
+    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR" _N_
+    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY," _N_
+    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE" _N_
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER" _N_
+    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM," _N_
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN" _N_
+    "THE SOFTWARE." _N_
+    "" _N_
+    "" _N_
+    "Adapted from " _N_
+    "    https://pastebin.com/cbH8ZQQT" _N_
+    "and mated to a driver based on " _N_
+    "    https://github.com/brunexgeek/hqx" _N_
+    "by Philipp K. Janert, September 2022" _N_
+  "}" _N_
+  "UTF8{" _N_
+    "This is free and unencumbered software released into the public domain." _N_
+    "" _N_
+    "Anyone is free to copy, modify, publish, use, compile, sell, or" _N_
+    "distribute this software, either in source code form or as a compiled" _N_
+    "binary, for any purpose, commercial or non-commercial, and by any" _N_
+    "means." _N_
+    "" _N_
+    "In jurisdictions that recognize copyright laws, the author or authors" _N_
+    "of this software dedicate any and all copyright interest in the" _N_
+    "software to the public domain. We make this dedication for the benefit" _N_
+    "of the public at large and to the detriment of our heirs and" _N_
+    "successors. We intend this dedication to be an overt act of" _N_
+    "relinquishment in perpetuity of all present and future rights to this" _N_
+    "software under copyright law." _N_
+    "" _N_
+    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND," _N_
+    "EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF" _N_
+    "MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT." _N_
+    "IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR" _N_
+    "OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE," _N_
+    "ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR" _N_
+    "OTHER DEALINGS IN THE SOFTWARE." _N_
+    "" _N_
+    "For more information, please refer to <http://unlicense.org/> */" _N_
+    "//" _N_
+  "}" _N_
+"}" _N_
