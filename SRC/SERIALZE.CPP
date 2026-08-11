@@ -55,6 +55,7 @@
 #define __PCXLBMLOAD_IMPLEMENTATION__
 #define __PCXLBMLOAD_MALLOCINSTEADOFNEW__
 #include "STL/PCXLBML.HPP"
+#include "STL/STBIMGWR.HPP"
 
 
 #define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
@@ -82,6 +83,19 @@ String toLocalFileName(const String &str) {
   if (ret.startsWith(appFolder)) ret = String("./") + ret.substr(appFolder.length());
   return ret;
 }
+
+#ifdef __DJGPP__
+#include <unistd.h>
+static void write_fclose(FILE *out) {
+  fflush(out);
+  fsync(fileno(out));
+  fclose(out);
+}
+#else
+static void write_fclose(FILE *out) {
+  fclose(out);
+}
+#endif
 
 enum JSONTYPE {
   JSONTYPE_NULL = 0,
@@ -429,7 +443,7 @@ String getStringFromFile(const char *shortPath, const char *longFileName) {
 void putStringToFile(const String &string, const char *shortPath, const char *longFileName) {
   FILE *out = createTempFile(shortPath,"wb");
   if (!string.empty()) fwrite(&string[0],1,string.size(),out);
-  fclose(out);
+  write_fclose(out);
   renameTempFile(shortPath, longFileName);
   verifyFile(shortPath, longFileName, true);
   savedSomething();
@@ -794,7 +808,7 @@ void savePalette(const char *shortPath, const char *longFileName) {
   FILE *out = createTempFile(shortPath,"w");
   String string = getPaletteString(*paletteToSave,paletteColorsPerRow);
   fprintf(out,"%s",string.c_str());
-  fclose(out);
+  write_fclose(out);
   renameTempFile(shortPath, longFileName);
   verifyFile(shortPath, longFileName, true);
   savedSomething();
@@ -862,7 +876,7 @@ void saveGradient(const char *shortPath, const char *longFileName) {
   String gradientString = getGradientString(gradient);
   fprintf(out,"%s",gradientString.c_str());
 
-  fclose(out);
+  write_fclose(out);
   renameTempFile(shortPath, longFileName);
   verifyFile(shortPath, longFileName, true);
   savedSomething();
@@ -905,7 +919,7 @@ void saveColorMatrix(const char *shortPath, const char *longFileName) {
           ,l->colorTransform.colorMatrix[i*4+2]
           ,l->colorTransform.colorMatrix[i*4+3]);
       } 
-      fclose(out);
+      write_fclose(out);
       renameTempFile(shortPath, longFileName);
       verifyFile(shortPath,longFileName, true);
       savedSomething();
@@ -931,20 +945,23 @@ public:
 };
 
 bool writeZippedFiles(const Array<ZipDesc> &desc, const char *shortPath, const char *longFileName) {
+  bool ret = false;
   mz_zip_archive zip;
   mz_zip_zero_struct(&zip);
-  String zipName = getTempFileName(shortPath);
-  if (!mz_zip_writer_init_file(&zip, zipName.c_str(), 0)) return false;
+  FILE *out = createTempFile(shortPath, "wb");
+  if (out == NULL) return false;
+  if (!mz_zip_writer_init_cfile(&zip, out, 0)) return ret;
+  ret = true;
   for (int i = 0; i < (int)desc.size(); i++) {
-    if (!mz_zip_writer_add_mem(&zip, desc[i].fileName, desc[i].data, desc[i].dataSize, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME)) {
-    }
+    if (!mz_zip_writer_add_mem(&zip, desc[i].fileName, desc[i].data, desc[i].dataSize, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME)) ret = false;
   }
-  if (!mz_zip_writer_finalize_archive(&zip)) return false;
-  if (!mz_zip_writer_end(&zip)) return false;
+  if (!mz_zip_writer_finalize_archive(&zip)) ret = false;
+  if (!mz_zip_writer_end(&zip)) ret = false;
+  write_fclose(out);
   renameTempFile(shortPath, longFileName);
   verifyFile(shortPath, longFileName, true);
   savedSomething();
-  return true;
+  return ret;
 }
 
 bool readZippedFile(const char *shortPath, const char *longFileName, const char *inZipFileName, Array<unsigned char> &array) {
@@ -1061,6 +1078,14 @@ mz_zip_archive globalZip;
 const char *readZipShortPath = "";
 const char *readZipLongFileName = "";
 
+void stbi_write_func_array(void *context, void *data, int size) {
+  Array<unsigned char> *arr = (Array<unsigned char> *)context;
+  if (arr != NULL) {
+    arr->resize(size);
+    memcpy(&((*arr)[0]),data,size);
+  }
+}
+
 void zipLayerData(const String &layerName, Layer *layer, bool save) {
   updateStatusBar();
   mz_zip_archive &zip = globalZip;
@@ -1071,13 +1096,8 @@ void zipLayerData(const String &layerName, Layer *layer, bool save) {
     w2.width = layer->width;
     w2.height = layer->height;
     if (w2.data != NULL && w2.width>0 && w2.height>0) {
-      dosRemoveFile(fileName.c_str());
-      updateStatusBar();
-      w2.savePNG(fileName.c_str());
-      updateStatusBar();
-      mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
-      updateStatusBar();
-      dosRemoveFile(fileName.c_str());
+      Array<unsigned char> pngData; stbi_write_png_to_func(stbi_write_func_array, &pngData, w2.width, w2.height, 4, w2.data, w2.width*4);
+      mz_zip_writer_add_mem(&zip, fileName.c_str(), &pngData[0], pngData.size(), MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
       updateStatusBar();
     }
   } else {
@@ -1103,7 +1123,7 @@ void zipData(bool save,const String &fileName, void *data, unsigned int byteCoun
     String pal = getPaletteString(palette,paletteColorsPerRow);
     FILE *out = fopen(fileName.c_str(),"wb");
     fwrite(data,1,byteCount,out);
-    fclose(out);
+    write_fclose(out);
     updateStatusBar();
     mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
     updateStatusBar();
@@ -1130,7 +1150,7 @@ void zipPalette(const Array<ImVec4> &palette, int colorsPerRow, bool save) {
     String pal = getPaletteString(palette,colorsPerRow);
     FILE *out = fopen(fileName.c_str(),"wb");
     fwrite(&pal[0],1,pal.size(),out);
-    fclose(out);
+    write_fclose(out);
     updateStatusBar();
     mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
     updateStatusBar();
@@ -1155,7 +1175,7 @@ void zipGradient(const Gradient &gradient, bool save) {
     String grad = getGradientString(gradient);
     FILE *out = fopen(fileName.c_str(),"wb");
     fwrite(&grad[0],1,grad.size(),out);
-    fclose(out);
+    write_fclose(out);
     updateStatusBar();
     mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
     updateStatusBar();
@@ -1232,8 +1252,9 @@ void saveImage(const char *shortPath, const char *longFileName) {
   mz_zip_archive &zip = globalZip;
   mz_zip_zero_struct(&zip);
 
-  String zipName = getTempFileName(shortPath);
-  if (!mz_zip_writer_init_file(&zip, zipName.c_str(), 0)) return;
+  FILE *out = createTempFile(shortPath,"wb");
+  if (out == NULL) return;
+  if (!mz_zip_writer_init_cfile(&zip, out, 0)) return;
 
   String string; 
   bool allWentWell = true;
@@ -1264,19 +1285,13 @@ void saveImage(const char *shortPath, const char *longFileName) {
   }
  
   if (l != NULL) {
-    updateStatusBar();
     String fileName = "image.png";
     RGBAImage img;
     img.data = l->pixels;
     img.width = l->width;
     img.height = l->height;
-    dosRemoveFile(fileName.c_str());
-    updateStatusBar();
-    img.savePNG(fileName.c_str());
-    updateStatusBar();
-    mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
-    updateStatusBar();
-    dosRemoveFile(fileName.c_str());
+    Array<unsigned char> pngData; stbi_write_png_to_func(stbi_write_func_array, &pngData, img.width, img.height, 4, img.data, img.width*4);
+    if (!mz_zip_writer_add_mem(&zip, fileName.c_str(), &pngData[0], pngData.size(), MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME)) allWentWell = false;
     updateStatusBar();
     delete l;
   }
@@ -1284,13 +1299,8 @@ void saveImage(const char *shortPath, const char *longFileName) {
   if (thumb.data != NULL) {
     if (thumb.width >= 1 && thumb.height >= 1) {
       String fileName = "thumb.png";
-      dosRemoveFile(fileName.c_str());
-      updateStatusBar();
-      thumb.savePNG(fileName.c_str());
-      updateStatusBar();
-      mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
-      updateStatusBar();
-      dosRemoveFile(fileName.c_str());
+      Array<unsigned char> pngData; stbi_write_png_to_func(stbi_write_func_array, &pngData, thumb.width, thumb.height, 4, thumb.data, thumb.width*4);
+      if (!mz_zip_writer_add_mem(&zip, fileName.c_str(), &pngData[0], pngData.size(), MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME)) allWentWell = false;
       updateStatusBar();
     }
     thumb.free();
@@ -1298,6 +1308,7 @@ void saveImage(const char *shortPath, const char *longFileName) {
 
   if (!mz_zip_writer_finalize_archive(&zip)) allWentWell = false;
   if (!mz_zip_writer_end(&zip)) allWentWell = false;
+  write_fclose(out);
   renameTempFile(shortPath, longFileName);
 
   // finished
@@ -1330,7 +1341,7 @@ void saveFont(const char *shortPath, const char *longFileName) {
   if (font->data->size() == 0) return;
   FILE *out = createTempFile(shortPath,"wb");
   fwrite(&((*(font->data))[0]),1,font->data->size(),out);
-  fclose(out);
+  write_fclose(out);
   renameTempFile(shortPath, longFileName);
 }
 
@@ -1475,7 +1486,7 @@ void saveTileMap(const char *shortPath, const char *longFileName) {
         fprintf(out,"%d,",l->pixels[x+y*l->width]);
       }
     }
-    fclose(out);
+    write_fclose(out);
     renameTempFile(shortPath, longFileName);
   }
 }
@@ -1584,7 +1595,7 @@ void saveText(const char *shortPath, const char *longFileName) {
   if (textToSave == NULL) return;
   FILE *out = createTempFile(shortPath,"w");
   fprintf(out,"%s",textToSave);
-  fclose(out);
+  write_fclose(out);
   renameTempFile(shortPath, longFileName);
   savedSomething();
   verifyFile(shortPath, longFileName, true);
@@ -1813,7 +1824,7 @@ bool writePalettedTGA(const char *shortPath, const char *longFileName, int width
   for (int y = height-1; y >= 0; y--) {
     fwrite(&pixels[y*width],1,width,out);
   }
-  fclose(out);
+  write_fclose(out);
   renameTempFile(shortPath, longFileName);
   verifyFile(shortPath, longFileName,true);
   return true;
