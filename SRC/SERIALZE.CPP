@@ -1118,16 +1118,7 @@ void zipData(bool save,const String &fileName, void *data, unsigned int byteCoun
   updateStatusBar();
   mz_zip_archive &zip = globalZip;
   if (save) {
-    dosRemoveFile(fileName.c_str());
-    updateStatusBar();
-    String pal = getPaletteString(palette,paletteColorsPerRow);
-    FILE *out = fopen(fileName.c_str(),"wb");
-    fwrite(data,1,byteCount,out);
-    write_fclose(out);
-    updateStatusBar();
-    mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
-    updateStatusBar();
-    dosRemoveFile(fileName.c_str());
+    mz_zip_writer_add_mem(&zip, fileName.c_str(), data, byteCount, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
     updateStatusBar();
   } else {
     Array<unsigned char> array;
@@ -1145,16 +1136,8 @@ void zipPalette(const Array<ImVec4> &palette, int colorsPerRow, bool save) {
   mz_zip_archive &zip = globalZip;
   String fileName = "palette.pa2";
   if (save) {
-    dosRemoveFile(fileName.c_str());
-    updateStatusBar();
     String pal = getPaletteString(palette,colorsPerRow);
-    FILE *out = fopen(fileName.c_str(),"wb");
-    fwrite(&pal[0],1,pal.size(),out);
-    write_fclose(out);
-    updateStatusBar();
-    mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
-    updateStatusBar();
-    dosRemoveFile(fileName.c_str());
+    mz_zip_writer_add_mem(&zip, fileName.c_str(), &pal[0], pal.size(), MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
     updateStatusBar();
   } else {
     Array<unsigned char> array;
@@ -1170,16 +1153,8 @@ void zipGradient(const Gradient &gradient, bool save) {
   mz_zip_archive &zip = globalZip;
   String fileName = "gradient.gr2";
   if (save) {
-    dosRemoveFile(fileName.c_str());
-    updateStatusBar();
     String grad = getGradientString(gradient);
-    FILE *out = fopen(fileName.c_str(),"wb");
-    fwrite(&grad[0],1,grad.size(),out);
-    write_fclose(out);
-    updateStatusBar();
-    mz_zip_writer_add_file(&zip, fileName.c_str(), fileName.c_str(), "", 0, MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
-    updateStatusBar();
-    dosRemoveFile(fileName.c_str());
+    mz_zip_writer_add_mem(&zip, fileName.c_str(), &grad[0], grad.size(), MZ_BEST_COMPRESSION|MZ_ZIP_FLAG_ASCII_FILENAME);
     updateStatusBar();
   } else {
     Array<unsigned char> array;
