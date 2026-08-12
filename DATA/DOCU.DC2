@@ -1535,4 +1535,7 @@
     "For more information, please refer to <http://unlicense.org/> */" _N_
     "//" _N_
   "}" _N_
+  "FXAA{" _N_
+    "Originally by Timothy Lottes of NVidia. Reimplemented in C++ by me." _N_
+  "}" _N_
 "}" _N_

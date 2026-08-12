@@ -2850,7 +2850,9 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                     a += (((col>>24) & 255)+0.5f)*where;
                     w += where;
                   }
-                  //d = 0;
+                  d = 1-d;
+                  d *= d;
+                  d = 1-d;
                 } break;
               }
               if (w != 0) {
