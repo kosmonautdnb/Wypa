@@ -275,11 +275,19 @@ void freeTools();
 void useTool();
 void toolCanvasStuff();
 
+enum BLURTOOL {
+  BLURTOOL_NONE = 0,
+  BLURTOOL_BLUR = 1,
+  BLURTOOL_ANTIALIAS = 2
+};
+extern int blurTool;
+
 void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask);
 
 #define S_TOOLS_CPP()\
   S_INT("currentBrush",currentBrush);\
   zipGradient(gradient,save);\
+  S_INT("blurTool",blurTool);\
   S_INT("blurCircleSize",blurCircleSize);\
   S_DOUBLE("wandAlphaDistance",wandAlphaDistance);\
   S_DOUBLE("wandColorDistance",wandColorDistance);\

@@ -1129,6 +1129,9 @@ void drawToolBlurView() {
   if (l != NULL) {
     ImGui::Text("Size");
     float k = blurCircleSize; ImGui::SameLine();if (ImGui::SliderFloat("##DRAWTOOLBLURSIZE",&k,1,128)) {if (k<1) k = 1; if (k>128) k = 128; blurCircleSize = k;}
+    ImGui::Text("Blur type");
+    ImGui::RadioButton("Blur##DRAWTOOLBLURVIEWTYPEBLUR",&blurTool,BLURTOOL_BLUR); toolTip("A simple blur");
+    ImGui::RadioButton("Antialias##DRAWTOOLBLURVIEWTYPEANTIALIAS",&blurTool,BLURTOOL_ANTIALIAS); toolTip("FXAA antialiasing");
   }
 }
 

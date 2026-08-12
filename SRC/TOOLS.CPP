@@ -2091,24 +2091,78 @@ __inline unsigned int tex(unsigned int *source, const int width, const int heigh
   if (ity<0) ity = 0;
   if (itx>=width-1) itx = width-2;
   if (ity>=height-1) ity = height-2;
-  const int p1v = ((256-txf)*(256-tyf))>>8; 
-  const int p2v = ((txf)*(256-tyf))>>8; 
-  const int p3v = ((txf)*(tyf))>>8; 
-  const int p4v = ((256-txf)*(tyf))>>8;
+  const float p1v = ((256-txf)*(256-tyf))/256.f/256.f; 
+  const float p2v = ((txf)*(256-tyf))/256.f/256.f; 
+  const float p3v = ((txf)*(tyf))/256.f/256.f; 
+  const float p4v = ((256-txf)*(tyf))/256.f/256.f;
   const unsigned int rgba00 = source[itx+ity*width];
   const unsigned int rgba10 = source[itx+1+ity*width];
   const unsigned int rgba01 = source[itx+(ity+1)*width];
   const unsigned int rgba11 = source[itx+1+(ity+1)*width];
-  unsigned int rgba1 = (rgba00 & 0x0000ff00)*p1v;
-  rgba1 += (rgba10 & 0x0000ff00)*p2v;
-  rgba1 += (rgba11 & 0x0000ff00)*p3v;
-  rgba1 += (rgba01 & 0x0000ff00)*p4v;
-  unsigned int rgba2 = (rgba00 & 0x00ff00ff)*p1v;
-  rgba2 += (rgba10 & 0x00ff00ff)*p2v;
-  rgba2 += (rgba11 & 0x00ff00ff)*p3v;
-  rgba2 += (rgba01 & 0x00ff00ff)*p4v;
-  return ((rgba1 & 0x00ff0000)+(rgba2 & 0xff00ff00))>>8;
+  const float r = (rgba00 & 255)*p1v + (rgba10 & 255)*p2v + (rgba11 & 255)*p3v + (rgba01 & 255)*p4v;
+  const float g = ((rgba00>>8) & 255)*p1v + ((rgba10>>8) & 255)*p2v + ((rgba11>>8) & 255)*p3v + ((rgba01>>8) & 255)*p4v;
+  const float b = ((rgba00>>16) & 255)*p1v + ((rgba10>>16) & 255)*p2v + ((rgba11>>16) & 255)*p3v + ((rgba01>>16) & 255)*p4v;
+  const float a = ((rgba00>>24) & 255)*p1v + ((rgba10>>24) & 255)*p2v + ((rgba11>>24) & 255)*p3v + ((rgba01>>24) & 255)*p4v;
+  const int ri = (int)r;
+  const int gi = (int)g;
+  const int bi = (int)b;
+  const int ai = (int)a;
+  return ri|(gi<<8)|(bi<<16)|(ai<<24);
 }
+
+unsigned int doFXAASinglePixel(int x, int y, unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask) {
+  const float fy = y; const float fx = x;
+  const float lumaNW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy-0.5f));
+  const float lumaSW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy+0.5f));
+  const float lumaM = luma(tex(sourceBuffer,width,height,fx,fy));
+  const float lumaNE = luma(tex(sourceBuffer,width,height,fx+0.5f,fy-0.5f));
+  const float lumaSE = luma(tex(sourceBuffer,width,height,fx+0.5f,fy+0.5f));
+  if (maskBuffer == NULL || (maskBuffer[x+y*width] & mask)==mask) {
+    const float lumaMin = minf(lumaM, minf(minf(lumaNW, lumaNE), minf(lumaSW,lumaSE)));
+    const float lumaMax = maxf(lumaM, maxf(maxf(lumaNW, lumaNE), maxf(lumaSW,lumaSE)));
+    const float dx = -((lumaNW+lumaNE)-(lumaSW+lumaSE));
+    const float dy = ((lumaNW+lumaSW)-(lumaNE+lumaSE));
+    const float dirReduce = maxf((lumaNW+lumaNE+lumaSW+lumaSE)*(0.25f*FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
+    const float rcpDirMin=1.0/(minf(fabs(dx),fabs(dy))+dirReduce);
+    const float dirx = minf(FXAA_SPAN_MAX,maxf(-FXAA_SPAN_MAX,dx*rcpDirMin));
+    const float diry = minf(FXAA_SPAN_MAX,maxf(-FXAA_SPAN_MAX,dy*rcpDirMin));
+    const float da1 = 1.0/3.0-0.5;
+    const float da2 = 2.0/3.0-0.5;
+    const float db1 = 0.0/3.0-0.5;
+    const float db2 = 3.0/3.0-0.5;
+    const unsigned int rgbA1 = tex(sourceBuffer,width,height,fx+dirx*da1,fy+diry*da1);
+    const unsigned int rgbA2 = tex(sourceBuffer,width,height,fx+dirx*da2,fy+diry*da2);
+    const unsigned int rgbB1 = tex(sourceBuffer,width,height,fx+dirx*db1,fy+diry*db1);
+    const unsigned int rgbB2 = tex(sourceBuffer,width,height,fx+dirx*db2,fy+diry*db2);
+    const float rgbAr = ((rgbA1 & 255) + (rgbA2 & 255))/2.f;
+    const float rgbAg = (((rgbA1>>8) & 255) + ((rgbA2>>8) & 255))/2.f;
+    const float rgbAb = (((rgbA1>>16) & 255) + ((rgbA2>>16) & 255))/2.f;
+    const float rgbAa = (((rgbA1>>24) & 255) + ((rgbA2>>24) & 255))/2.f;
+    const float rgbBr = (rgbAr*2 + ((rgbB1 & 255) + (rgbB2 & 255)))/4.f;
+    const float rgbBg = (rgbAg*2 + (((rgbB1>>8) & 255) + ((rgbB2>>8) & 255)))/4.f;
+    const float rgbBb = (rgbAb*2 + (((rgbB1>>16) & 255) + ((rgbB2>>16) & 255)))/4.f;
+    const float rgbBa = (rgbAa*2 + (((rgbB1>>24) & 255) + ((rgbB2>>24) & 255)))/4.f;
+    const float k = 0.5;
+    const int ar = (int)(rgbAr+k);
+    const int ag = (int)(rgbAg+k);
+    const int ab = (int)(rgbAb+k);
+    const int aa = (int)(rgbAa+k);
+    const int br = (int)(rgbBr+k);
+    const int bg = (int)(rgbBg+k);
+    const int bb = (int)(rgbBb+k);
+    const int ba = (int)(rgbBa+k);
+    const unsigned int rgbA = ar|(ag<<8)|(ab<<16)|(aa<<24);
+    const unsigned int rgbB = br|(bg<<8)|(bb<<16)|(ba<<24);
+    const float lumaB = luma(rgbB);
+    if ((lumaB<lumaMin)||(lumaB>lumaMax)) {
+      return rgbA;
+    } else {
+      return rgbB;
+    }
+  }
+  return 0x00000000;
+}
+
 
 void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask) {
   unsigned int *tempBuffer = sourceBuffer;
@@ -2124,7 +2178,7 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
     unsigned int *source = &sourceBuffer[y*width];
     unsigned int *dest = &tempBuffer[y*width];
     const float fy = y;
-    const float fx = 1;
+    const float fx = 1; // why 1?
     float lumaNW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy-0.5f));
     float lumaSW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy+0.5f));
     k = tr;
@@ -2135,7 +2189,7 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
       const float lumaNE = *k;
       const float lumaSE = luma(tex(sourceBuffer,width,height,fx+0.5f,fy+0.5f));
 
-      if ((maskBuffer[x+y*width] & mask)==mask) {
+      if (maskBuffer == NULL || (maskBuffer[x+y*width] & mask)==mask) {
         const float lumaMin = minf(lumaM, minf(minf(lumaNW, lumaNE), minf(lumaSW,lumaSE)));
         const float lumaMax = maxf(lumaM, maxf(maxf(lumaNW, lumaNE), maxf(lumaSW,lumaSE)));
         const float dx = -((lumaNW+lumaNE)-(lumaSW+lumaSE));
@@ -2153,20 +2207,30 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
         const unsigned int rgbA2 = tex(sourceBuffer,width,height,fx+dirx*da2,fy+diry*da2);
         const unsigned int rgbB1 = tex(sourceBuffer,width,height,fx+dirx*db1,fy+diry*db1);
         const unsigned int rgbB2 = tex(sourceBuffer,width,height,fx+dirx*db2,fy+diry*db2);
-        unsigned int rgbA = ((rgbA1 & 0x00fefefe)+(rgbA2 & 0x00fefefe))>>1;
-        unsigned int rgbB = ((rgbA & 0x00fefefe)>>1)+(((rgbB1 & 0x00fcfcfc)+(rgbB2 & 0x00fcfcfc))>>2);
-        int a1 = (rgbA1>>24) & 0xff;
-        int a2 = (rgbA2>>24) & 0xff;
-        int a = ((a1+a2)>>1);
-        int b1 = (rgbB1>>24) & 0xff;
-        int b2 = (rgbB2>>24) & 0xff;
-        rgbA |= a<<24;
-        rgbB |= ((a>>1)+((b1+b2)>>2))<<24;
+        const float rgbAr = ((rgbA1 & 255) + (rgbA2 & 255))/2.f;
+        const float rgbAg = (((rgbA1>>8) & 255) + ((rgbA2>>8) & 255))/2.f;
+        const float rgbAb = (((rgbA1>>16) & 255) + ((rgbA2>>16) & 255))/2.f;
+        const float rgbAa = (((rgbA1>>24) & 255) + ((rgbA2>>24) & 255))/2.f;
+        const float rgbBr = (rgbAr*2 + ((rgbB1 & 255) + (rgbB2 & 255)))/4.f;
+        const float rgbBg = (rgbAg*2 + (((rgbB1>>8) & 255) + ((rgbB2>>8) & 255)))/4.f;
+        const float rgbBb = (rgbAb*2 + (((rgbB1>>16) & 255) + ((rgbB2>>16) & 255)))/4.f;
+        const float rgbBa = (rgbAa*2 + (((rgbB1>>24) & 255) + ((rgbB2>>24) & 255)))/4.f;
+        const float k = 0.5;
+        const int ar = (int)(rgbAr+k);
+        const int ag = (int)(rgbAg+k);
+        const int ab = (int)(rgbAb+k);
+        const int aa = (int)(rgbAa+k);
+        const int br = (int)(rgbBr+k);
+        const int bg = (int)(rgbBg+k);
+        const int bb = (int)(rgbBb+k);
+        const int ba = (int)(rgbBa+k);
+        const unsigned int rgbA = ar|(ag<<8)|(ab<<16)|(aa<<24);
+        const unsigned int rgbB = br|(bg<<8)|(bb<<16)|(ba<<24);
         const float lumaB = luma(rgbB);
         if ((lumaB<lumaMin)||(lumaB>lumaMax)) {
-          *dest = rgbA|(*dest & 0xff000000);
+          *dest = rgbA;
         } else {
-          *dest = rgbB|(*dest & 0xff000000);
+          *dest = rgbB;
         }
       }
 
@@ -2676,6 +2740,7 @@ void toolCanvasStuff() {
 }
 
 int blurCircleSize = 64;
+int blurTool = BLURTOOL_BLUR;
 
 void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection, bool paintJustIntoOutline) {
   if (layer == NULL) return;
@@ -2753,24 +2818,40 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
               int b = 0;
               int a = 0;
               float w = 0;
-              for (int ky = -1; ky <= 1; ky++) {
-                int y2 = by+ky;
-                for (int kx = -1; kx <= 1; kx++) {
-                  int x2 = bx+kx;
-                  if ((unsigned int)x2<(unsigned int)blurCircleSize && (unsigned int)y2<(unsigned int)blurCircleSize) {
-                    if (paintValues[x2+y2*blurCircleSize] != 0) {
-                      float where = 1000.0;
-                      if (where > 0) {
-                        unsigned int col = paintBackground[x2+y2*blurCircleSize];
-                        r += ((col & 255)+0.5f)*where;
-                        g += (((col>>8) & 255)+0.5f)*where;
-                        b += (((col>>16) & 255)+0.5f)*where;
-                        a += (((col>>24) & 255)+0.5f)*where;
-                        w += where;
+              switch(blurTool) {
+                case BLURTOOL_BLUR: {
+                  for (int ky = -1; ky <= 1; ky++) {
+                    int y2 = by+ky;
+                    for (int kx = -1; kx <= 1; kx++) {
+                      int x2 = bx+kx;
+                      if ((unsigned int)x2<(unsigned int)blurCircleSize && (unsigned int)y2<(unsigned int)blurCircleSize) {
+                        if (paintValues[x2+y2*blurCircleSize] != 0) {
+                          float where = 1000.0;
+                          if (where > 0) {
+                            unsigned int col = paintBackground[x2+y2*blurCircleSize];
+                            r += ((col & 255)+0.5f)*where;
+                            g += (((col>>8) & 255)+0.5f)*where;
+                            b += (((col>>16) & 255)+0.5f)*where;
+                            a += (((col>>24) & 255)+0.5f)*where;
+                            w += where;
+                          }
+                        }
                       }
                     }
                   }
-                }
+                } break;
+                case BLURTOOL_ANTIALIAS: {
+                  if ((unsigned int)bx<(unsigned int)blurCircleSize && (unsigned int)by<(unsigned int)blurCircleSize) {
+                    unsigned int col = doFXAASinglePixel(bx, by, &paintBackground[0], blurCircleSize, blurCircleSize, NULL, 0);
+                    float where = 1;
+                    r += ((col & 255)+0.5f)*where;
+                    g += (((col>>8) & 255)+0.5f)*where;
+                    b += (((col>>16) & 255)+0.5f)*where;
+                    a += (((col>>24) & 255)+0.5f)*where;
+                    w += where;
+                  }
+                  //d = 0;
+                } break;
               }
               if (w != 0) {
                 r /= w;
@@ -2812,12 +2893,12 @@ void useToolBlur() {
   blurToolLayer = activeLayer;
   if (blurToolLayer != NULL && blurToolLayer->width * blurToolLayer->height == 0) return;
 
+  double toolWidth =  blurCircleSize * toolAspectX;
+  double toolHeight =  blurCircleSize * toolAspectY;
   if (blurToolLayer != NULL && isPaintAreaActive() && (!ImGui::IsMouseDown(0))) {
     double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
     blurToolLayer->updatePixelStates(~PIXELSTATE_OUTLINE,0,0); reverseLastUpdatedPixelStates(blurToolLayer);
     drawCircle(blurToolLayer,cx,cy,false,true);
-    double toolWidth =  blurCircleSize * toolAspectX;
-    double toolHeight =  blurCircleSize * toolAspectY;
     updateUpdateFlagByBrushLine(blurToolLayer,cx,cy,cx,cy,toolWidth,toolHeight);
     repaintLayer(blurToolLayer,false);
     blurToolLayer->hasOutline = true;
@@ -2827,9 +2908,10 @@ void useToolBlur() {
   if (blurToolLayer != NULL && isPaintAreaActive() && ImGui::IsMouseDown(0)) {
     double cx,cy; currentCanvas->getCanvasPos(mouseX,mouseY,cx,cy);
     drawCircle(blurToolLayer,cx,cy,blurToolLayer->hasSelection(),false);
+    updateUpdateFlagByBrushLine(blurToolLayer,cx,cy,cx,cy,toolWidth,toolHeight);
     tinyWait();
-    repaintLayer(blurToolLayer,false);
     updatedPixels(blurToolLayer);
+    repaintLayer(blurToolLayer,false);
   }
 }
 

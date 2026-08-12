@@ -4998,6 +4998,8 @@ void addPicture(String fileName) {
   Layer *l = loadImage("",fileName);
   if (l == NULL) return;
   currentCanvas = new Canvas();
+  static unsigned short counter = 0; counter++;
+  sprintf(currentCanvas->pictureName,"loaded %d",counter);
   canvas.push_back(currentCanvas);
   canvasDefault(currentCanvas);
   currentCanvas->addLayer(l);
