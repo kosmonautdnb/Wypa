@@ -1536,6 +1536,31 @@
     "//" _N_
   "}" _N_
   "FXAA{" _N_
-    "Originally by Timothy Lottes of NVidia. Reimplemented in C++ by me." _N_
+    "Copyright (c)2014-2015, NVIDIA CORPORATION. All rights reserved." _N_
+    "" _N_
+    "Redistribution and use in source and binary forms, with or without" _N_
+    "modification, are permitted provided that the following conditions" _N_
+    "are met:" _N_
+    "" _N_
+    "* Redistributions of source code must retain the above copyright" _N_
+    "notice, this list of conditions and the following disclaimer." _N_
+    "* Redistributions in binary form must reproduce the above copyright" _N_
+    "notice, this list of conditions and the following disclaimer in the" _N_
+    "documentation and/or other materials provided with the distribution." _N_
+    "* Neither the name of NVIDIA CORPORATION nor the names of its" _N_
+    "contributors may be used to endorse or promote products derived" _N_
+    "from this software without specific prior written permission." _N_
+    "" _N_
+    "THIS SOFTWARE BY THE COPYRIGHT HOLDERS IS PROVIDED \"AS IS\" AND ANY" _N_
+    "EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE" _N_
+    "IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR" _N_
+    "PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR" _N_
+    "CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL," _N_
+    "EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING BUT NOT LIMITED TO," _N_
+    "PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA OR" _N_
+    "PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY" _N_
+    "OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT" _N_
+    "(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE" _N_
+    "OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE." _N_
   "}" _N_
 "}" _N_

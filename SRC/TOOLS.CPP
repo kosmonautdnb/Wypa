@@ -2077,7 +2077,7 @@ float FXAA_REDUCE_MUL = 1.f/(8.f*(1.f/2.f));
 float FXAA_SPAN_MAX = 8.f;
 
 static __inline float luma(const unsigned int rgba) {
-  return (float)((rgba & 255)*25+(float)((rgba>>8) & 255)*60+(float)((rgba>>16) & 255)*15)*(1.f/255.f/100.f);
+  return (float)((rgba & 255)*luminanceValues[0]+(float)((rgba>>8) & 255)*luminanceValues[1]+(float)((rgba>>16) & 255)*luminanceValues[2])*(1.f/255.f);
 }
 
 __inline unsigned int tex(unsigned int *source, const int width, const int height, const float tx, const float ty) {
@@ -2110,59 +2110,54 @@ __inline unsigned int tex(unsigned int *source, const int width, const int heigh
   return ri|(gi<<8)|(bi<<16)|(ai<<24);
 }
 
-unsigned int doFXAASinglePixel(int x, int y, unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask) {
-  const float fy = y; const float fx = x;
-  const float lumaNW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy-0.5f));
-  const float lumaSW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy+0.5f));
-  const float lumaM = luma(tex(sourceBuffer,width,height,fx,fy));
-  const float lumaNE = luma(tex(sourceBuffer,width,height,fx+0.5f,fy-0.5f));
-  const float lumaSE = luma(tex(sourceBuffer,width,height,fx+0.5f,fy+0.5f));
-  if (maskBuffer == NULL || (maskBuffer[x+y*width] & mask)==mask) {
-    const float lumaMin = minf(lumaM, minf(minf(lumaNW, lumaNE), minf(lumaSW,lumaSE)));
-    const float lumaMax = maxf(lumaM, maxf(maxf(lumaNW, lumaNE), maxf(lumaSW,lumaSE)));
-    const float dx = -((lumaNW+lumaNE)-(lumaSW+lumaSE));
-    const float dy = ((lumaNW+lumaSW)-(lumaNE+lumaSE));
-    const float dirReduce = maxf((lumaNW+lumaNE+lumaSW+lumaSE)*(0.25f*FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
-    const float rcpDirMin=1.0/(minf(fabs(dx),fabs(dy))+dirReduce);
-    const float dirx = minf(FXAA_SPAN_MAX,maxf(-FXAA_SPAN_MAX,dx*rcpDirMin));
-    const float diry = minf(FXAA_SPAN_MAX,maxf(-FXAA_SPAN_MAX,dy*rcpDirMin));
-    const float da1 = 1.0/3.0-0.5;
-    const float da2 = 2.0/3.0-0.5;
-    const float db1 = 0.0/3.0-0.5;
-    const float db2 = 3.0/3.0-0.5;
-    const unsigned int rgbA1 = tex(sourceBuffer,width,height,fx+dirx*da1,fy+diry*da1);
-    const unsigned int rgbA2 = tex(sourceBuffer,width,height,fx+dirx*da2,fy+diry*da2);
-    const unsigned int rgbB1 = tex(sourceBuffer,width,height,fx+dirx*db1,fy+diry*db1);
-    const unsigned int rgbB2 = tex(sourceBuffer,width,height,fx+dirx*db2,fy+diry*db2);
-    const float rgbAr = ((rgbA1 & 255) + (rgbA2 & 255))/2.f;
-    const float rgbAg = (((rgbA1>>8) & 255) + ((rgbA2>>8) & 255))/2.f;
-    const float rgbAb = (((rgbA1>>16) & 255) + ((rgbA2>>16) & 255))/2.f;
-    const float rgbAa = (((rgbA1>>24) & 255) + ((rgbA2>>24) & 255))/2.f;
-    const float rgbBr = (rgbAr*2 + ((rgbB1 & 255) + (rgbB2 & 255)))/4.f;
-    const float rgbBg = (rgbAg*2 + (((rgbB1>>8) & 255) + ((rgbB2>>8) & 255)))/4.f;
-    const float rgbBb = (rgbAb*2 + (((rgbB1>>16) & 255) + ((rgbB2>>16) & 255)))/4.f;
-    const float rgbBa = (rgbAa*2 + (((rgbB1>>24) & 255) + ((rgbB2>>24) & 255)))/4.f;
-    const float k = 0.5;
-    const int ar = (int)(rgbAr+k);
-    const int ag = (int)(rgbAg+k);
-    const int ab = (int)(rgbAb+k);
-    const int aa = (int)(rgbAa+k);
-    const int br = (int)(rgbBr+k);
-    const int bg = (int)(rgbBg+k);
-    const int bb = (int)(rgbBb+k);
-    const int ba = (int)(rgbBa+k);
-    const unsigned int rgbA = ar|(ag<<8)|(ab<<16)|(aa<<24);
-    const unsigned int rgbB = br|(bg<<8)|(bb<<16)|(ba<<24);
-    const float lumaB = luma(rgbB);
-    if ((lumaB<lumaMin)||(lumaB>lumaMax)) {
-      return rgbA;
-    } else {
-      return rgbB;
-    }
-  }
-  return 0x00000000;
+#define FXAA_EDGE_SHARPNESS 8 // 2,4,8 are proposed whilst 8 is sharper and 2 is softer (proposed are 4,8)
+#define FXAA_EDGE_THRESHOLD 0.125 // you need atleast this luma difference for the algorithm to apply
+#define FXAA_EDGE_THRESHOLD_MIN 0.05 // algorithms doesn't process any darker colors
+
+static __inline unsigned int combineColor(unsigned int c1, unsigned int c2) {
+  int r = ((c1 & 255) + (c2 & 255))/2;
+  int g = (((c1>>8) & 255) + ((c2>>8) & 255))/2;
+  int b = (((c1>>16) & 255) + ((c2>>16) & 255))/2;
+  int a = (((c1>>24) & 255) + ((c2>>24) & 255))/2;
+  return r|(g<<8)|(b<<16)|(a<<24);
 }
 
+// to be found on github (original algorithm is by Timothy Lottes for NVIDIA):
+// NVIDIAGameWorks-GraphicsSamples/samples/es3-kepler/FXAA/FXAA3_11.h
+// license in the documentation file of this program
+unsigned int doFXAASinglePixel(int x, int y, unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask) {
+  UNUSED(maskBuffer);
+  UNUSED(mask);
+  const float fy = y; const float fx = x;
+  const unsigned int rgbaM = tex(sourceBuffer,width,height,fx,fy); 
+  const float lumaM = luma(rgbaM);
+  const float lumaNW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy-0.5f));
+  const float lumaSW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy+0.5f));
+  const float lumaNE = luma(tex(sourceBuffer,width,height,fx+0.5f,fy-0.5f));
+  const float lumaSE = luma(tex(sourceBuffer,width,height,fx+0.5f,fy+0.5f));
+  float lumaMin = minf( minf(lumaNW,lumaSW), minf(lumaNE,lumaSE) );
+  float lumaMax = maxf( minf(lumaNW,lumaSW), maxf(lumaNE,lumaSE) );
+  if ((maxf(lumaMax, lumaM)-minf(lumaMin, lumaM)) < maxf(FXAA_EDGE_THRESHOLD_MIN, lumaMax * FXAA_EDGE_THRESHOLD)) {
+    return rgbaM;
+  }
+  float ndirx = -lumaNE + lumaSW - lumaNW + lumaSE;
+  float ndiry = -lumaNE + lumaSW + lumaNW - lumaSE;
+  float dirxyzl = sqrt(ndirx*ndirx+ndiry*ndiry); if (dirxyzl != 0) dirxyzl = 1.f / dirxyzl;
+  ndirx *= dirxyzl, ndiry *= dirxyzl;
+  float dirAbsMinTimesC = minf(fabs(ndirx), fabs(ndiry)) * FXAA_EDGE_SHARPNESS; if (dirAbsMinTimesC < 0.0001f) dirAbsMinTimesC = 0.0001f;
+  const float udirx = clampf(ndirx / dirAbsMinTimesC, -2.f, 2.f); const float udiry = clampf(ndiry / dirAbsMinTimesC, -2.f, 2.f);
+  const unsigned int rgbn1 = tex(sourceBuffer, width, height, x - ndirx * 0.5f, y - ndiry * 0.5f);
+  const unsigned int rgby1 = combineColor(tex(sourceBuffer, width, height, x + ndirx * 0.5f, y + ndiry * 0.5f), rgbn1);
+  const unsigned int rgbn2 = tex(sourceBuffer, width, height, x - udirx * 0.5f, y - udiry * 0.5f);
+  const unsigned int rgby2 = combineColor(tex(sourceBuffer, width, height, x + udirx * 0.5f, y + udiry * 0.5f), rgbn2);
+  const float lumaRgby2 = (luma(rgby1) + luma(rgby2)) * 0.5f;
+  if ((lumaRgby2 < lumaMin) || (lumaRgby2 > lumaMax)) return rgby1;
+  const int r2 = ((rgby1 & 255) + (rgby2 & 255))/2;
+  const int g2 = (((rgby1>>8) & 255) + ((rgby2>>8) & 255))/2;
+  const int b2 = (((rgby1>>16) & 255) + ((rgby2>>16) & 255))/2;
+  const int a2 = (((rgby1>>24) & 255) + ((rgby2>>24) & 255))/2;
+  return (r2)|(g2<<8)|(b2<<16)|(a2<<24);
+}
 
 void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask) {
   unsigned int *tempBuffer = sourceBuffer;
@@ -2174,7 +2169,10 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
     const float fx = x;
     *k++=luma(tex(sourceBuffer,width,height,fx+0.5f,fy-0.5f));
   }
+  initStatusBar();
+  int portionSize = height / 16; if (portionSize<1) portionSize = 1;
   for (int y = 0; y < height; y++) {
+    if ((y % portionSize)==0) updateStatusBar();
     unsigned int *source = &sourceBuffer[y*width];
     unsigned int *dest = &tempBuffer[y*width];
     const float fy = y;
@@ -2190,47 +2188,32 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
       const float lumaSE = luma(tex(sourceBuffer,width,height,fx+0.5f,fy+0.5f));
 
       if (maskBuffer == NULL || (maskBuffer[x+y*width] & mask)==mask) {
-        const float lumaMin = minf(lumaM, minf(minf(lumaNW, lumaNE), minf(lumaSW,lumaSE)));
-        const float lumaMax = maxf(lumaM, maxf(maxf(lumaNW, lumaNE), maxf(lumaSW,lumaSE)));
-        const float dx = -((lumaNW+lumaNE)-(lumaSW+lumaSE));
-        const float dy = ((lumaNW+lumaSW)-(lumaNE+lumaSE));
-        const float dirReduce = maxf((lumaNW+lumaNE+lumaSW+lumaSE)*(0.25f*FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
-        const float rcpDirMin=1.0/(minf(fabs(dx),fabs(dy))+dirReduce);
-        const float dirx = minf(FXAA_SPAN_MAX,maxf(-FXAA_SPAN_MAX,dx*rcpDirMin));
-        const float diry = minf(FXAA_SPAN_MAX,maxf(-FXAA_SPAN_MAX,dy*rcpDirMin));
-    
-        const float da1 = 1.0/3.0-0.5;
-        const float da2 = 2.0/3.0-0.5;
-        const float db1 = 0.0/3.0-0.5;
-        const float db2 = 3.0/3.0-0.5;
-        const unsigned int rgbA1 = tex(sourceBuffer,width,height,fx+dirx*da1,fy+diry*da1);
-        const unsigned int rgbA2 = tex(sourceBuffer,width,height,fx+dirx*da2,fy+diry*da2);
-        const unsigned int rgbB1 = tex(sourceBuffer,width,height,fx+dirx*db1,fy+diry*db1);
-        const unsigned int rgbB2 = tex(sourceBuffer,width,height,fx+dirx*db2,fy+diry*db2);
-        const float rgbAr = ((rgbA1 & 255) + (rgbA2 & 255))/2.f;
-        const float rgbAg = (((rgbA1>>8) & 255) + ((rgbA2>>8) & 255))/2.f;
-        const float rgbAb = (((rgbA1>>16) & 255) + ((rgbA2>>16) & 255))/2.f;
-        const float rgbAa = (((rgbA1>>24) & 255) + ((rgbA2>>24) & 255))/2.f;
-        const float rgbBr = (rgbAr*2 + ((rgbB1 & 255) + (rgbB2 & 255)))/4.f;
-        const float rgbBg = (rgbAg*2 + (((rgbB1>>8) & 255) + ((rgbB2>>8) & 255)))/4.f;
-        const float rgbBb = (rgbAb*2 + (((rgbB1>>16) & 255) + ((rgbB2>>16) & 255)))/4.f;
-        const float rgbBa = (rgbAa*2 + (((rgbB1>>24) & 255) + ((rgbB2>>24) & 255)))/4.f;
-        const float k = 0.5;
-        const int ar = (int)(rgbAr+k);
-        const int ag = (int)(rgbAg+k);
-        const int ab = (int)(rgbAb+k);
-        const int aa = (int)(rgbAa+k);
-        const int br = (int)(rgbBr+k);
-        const int bg = (int)(rgbBg+k);
-        const int bb = (int)(rgbBb+k);
-        const int ba = (int)(rgbBa+k);
-        const unsigned int rgbA = ar|(ag<<8)|(ab<<16)|(aa<<24);
-        const unsigned int rgbB = br|(bg<<8)|(bb<<16)|(ba<<24);
-        const float lumaB = luma(rgbB);
-        if ((lumaB<lumaMin)||(lumaB>lumaMax)) {
-          *dest = rgbA;
+
+        float lumaMin = minf( minf(lumaNW,lumaSW), minf(lumaNE,lumaSE) );
+        float lumaMax = maxf( minf(lumaNW,lumaSW), maxf(lumaNE,lumaSE) );
+        if ((maxf(lumaMax, lumaM)-minf(lumaMin, lumaM)) < maxf(FXAA_EDGE_THRESHOLD_MIN, lumaMax * FXAA_EDGE_THRESHOLD)) {
+          *dest = *source;
         } else {
-          *dest = rgbB;
+          float ndirx = -lumaNE + lumaSW - lumaNW + lumaSE;
+          float ndiry = -lumaNE + lumaSW + lumaNW - lumaSE;
+          float dirxyzl = sqrt(ndirx*ndirx+ndiry*ndiry); if (dirxyzl != 0) dirxyzl = 1.f / dirxyzl;
+          ndirx *= dirxyzl, ndiry *= dirxyzl;
+          float dirAbsMinTimesC = minf(fabs(ndirx), fabs(ndiry)) * FXAA_EDGE_SHARPNESS; if (dirAbsMinTimesC < 0.0001f) dirAbsMinTimesC = 0.0001f;
+          const float udirx = clampf(ndirx / dirAbsMinTimesC, -2.f, 2.f); const float udiry = clampf(ndiry / dirAbsMinTimesC, -2.f, 2.f);
+          const unsigned int rgbn1 = tex(sourceBuffer, width, height, x - ndirx * 0.5f, y - ndiry * 0.5f);
+          const unsigned int rgby1 = combineColor(tex(sourceBuffer, width, height, x + ndirx * 0.5f, y + ndiry * 0.5f), rgbn1);
+          const unsigned int rgbn2 = tex(sourceBuffer, width, height, x - udirx * 0.5f, y - udiry * 0.5f);
+          const unsigned int rgby2 = combineColor(tex(sourceBuffer, width, height, x + udirx * 0.5f, y + udiry * 0.5f), rgbn2);
+          const float lumaRgby2 = (luma(rgby1) + luma(rgby2)) * 0.5f;
+          if ((lumaRgby2 < lumaMin) || (lumaRgby2 > lumaMax)) {
+            *dest = rgby1;
+          } else {
+            const int r2 = ((rgby1 & 255) + (rgby2 & 255))/2;
+            const int g2 = (((rgby1>>8) & 255) + ((rgby2>>8) & 255))/2;
+            const int b2 = (((rgby1>>16) & 255) + ((rgby2>>16) & 255))/2;
+            const int a2 = (((rgby1>>24) & 255) + ((rgby2>>24) & 255))/2;
+            *dest =  (r2)|(g2<<8)|(b2<<16)|(a2<<24);
+          }
         }
       }
 
