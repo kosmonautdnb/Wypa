@@ -902,6 +902,10 @@ void useToolFill() {
   
   fillAcceptedHasSelection = l->hasSelection();
 
+  if (fillAcceptedHasSelection) {
+    if ((l->pixelStates[lx+ly*l->width] & PIXELSTATE_SELECTED) == 0) return;
+  }
+
   initStatusBar();
   for (int i2 = 0; i2 < l->width*l->height; i2++) l->pixelStates[i2] &= ~PIXELSTATE_TEMP;
   l->pixelStates[lx+ly*l->width] |= PIXELSTATE_TEMP;
@@ -2085,16 +2089,14 @@ __inline unsigned int tex(unsigned int *source, const int width, const int heigh
   int ity = (int)(ty);
   const float fx = tx - (float)itx;
   const float fy = ty - (float)ity;
-  const int txf = (int)(fx * 256.0); // fx,fy not below 0 (trunc)
-  const int tyf = (int)(fy * 256.0);
   if (itx<0) itx = 0;
   if (ity<0) ity = 0;
   if (itx>=width-1) itx = width-2;
   if (ity>=height-1) ity = height-2;
-  const float p1v = ((256-txf)*(256-tyf))/256.f/256.f; 
-  const float p2v = ((txf)*(256-tyf))/256.f/256.f; 
-  const float p3v = ((txf)*(tyf))/256.f/256.f; 
-  const float p4v = ((256-txf)*(tyf))/256.f/256.f;
+  const float p1v = (1-fx)*(1-fy); 
+  const float p2v = fx*(1-fy); 
+  const float p3v = fx*fy; 
+  const float p4v = (1-fx)*fy;
   const unsigned int rgba00 = source[itx+ity*width];
   const unsigned int rgba10 = source[itx+1+ity*width];
   const unsigned int rgba01 = source[itx+(ity+1)*width];
@@ -2725,6 +2727,17 @@ void toolCanvasStuff() {
 int blurCircleSize = 64;
 int blurTool = BLURTOOL_BLUR;
 
+int medianRGBASort(const void *p, const void *q)
+{
+  const unsigned int a = *((const unsigned int*)p);
+  const unsigned int b = *((const unsigned int*)q);
+  float a_ = luma(a);
+  float b_ = luma(b);
+  if (a_ > b_) return 1;
+  if (a_ < b_) return -1;
+  return 0;
+}
+
 void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection, bool paintJustIntoOutline) {
   if (layer == NULL) return;
   if (locked(layer,LOCK_PIXELS)) return;
@@ -2777,6 +2790,9 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
       }
     }
   }
+
+  Array<unsigned int> medians; medians.resize(3*3); unsigned int *medians_ = &medians[0];
+
 
   for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
     for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
@@ -2837,26 +2853,77 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                   d *= d;
                   d = 1-d;
                 } break;
+                case BLURTOOL_MEDIAN: {
+                  int currentMedian = 0;
+                  for (int ky = -1; ky <= 1; ky++) {
+                    int y2 = by+ky;
+                    for (int kx = -1; kx <= 1; kx++) {
+                      int x2 = bx+kx;
+                      if ((unsigned int)x2<(unsigned int)blurCircleSize && (unsigned int)y2<(unsigned int)blurCircleSize) {
+                        if (paintValues[x2+y2*blurCircleSize] != 0) {
+                          medians_[currentMedian] = paintBackground[x2+y2*blurCircleSize];
+                          currentMedian++;
+                        }
+                      }
+                    }
+                  }
+                  if (currentMedian>1) {
+                    qsort(medians_, currentMedian, sizeof(unsigned int), medianRGBASort);
+                  }
+                  if (currentMedian>0) {
+                    unsigned int col = medians_[currentMedian/2];
+                    r = col & 255;
+                    g = (col>>8) & 255;
+                    b = (col>>16) & 255;
+                    a = (col>>24) & 255;
+                    w = 1;
+                  }
+                } break;
+                case BLURTOOL_PULL: {
+                  float distanceFromCenterX = (bx+0.5f)/blurCircleSize*2.f-1.f;
+                  float distanceFromCenterY = (by+0.5f)/blurCircleSize*2.f-1.f;
+                  float distanceFromCenter = sqrt(distanceFromCenterX*distanceFromCenterX+distanceFromCenterY*distanceFromCenterY);
+                  float mdx = mouseDX;
+                  float mdy = mouseDY;
+                  float mDistance = sqrt(mdx*mdx+mdy*mdy);
+                  if (mDistance>blurCircleSize) {
+                    float mAngle = atan2(mdx,mdy);
+                    mdx = sin(mAngle) * blurCircleSize;
+                    mdy = cos(mAngle) * blurCircleSize;
+                  }
+                  float d = 1-distanceFromCenter; 
+                  if (d < 0) d = 0;
+                  if (d > 1) d = 1;
+                  d = d * d * d * d * d;
+                  float newX = (bx - mdx)*d + bx * (1-d);
+                  float newY = (by - mdy)*d + by * (1-d);
+                  unsigned int col = tex(&paintBackground[0], blurCircleSize, blurCircleSize, newX, newY);
+                  r = col & 255;
+                  g = (col>>8) & 255;
+                  b = (col>>16) & 255;
+                  a = (col>>24) & 255;
+                  w = 1;
+                } break;
               }
               if (w != 0) {
                 r /= w;
                 g /= w;
                 b /= w;
                 a /= w;
-              }
-              unsigned int col = layer->pixels[p];
-              int r2 = col & 255;
-              int g2 = (col>>8) & 255;
-              int b2 = (col>>16) & 255;
-              int a2 = (col>>24) & 255;
-              float f = 1-d;
-              if (f > 0) {
-                if (f > 1) f = 1;
-                r = (r - r2)*f+r2;
-                g = (g - g2)*f+g2;
-                b = (b - b2)*f+b2;
-                a = (a - a2)*f+a2;
-                layer->pixels[p] = r|(g<<8)|(b<<16)|(a<<24);
+                unsigned int col = layer->pixels[p];
+                int r2 = col & 255;
+                int g2 = (col>>8) & 255;
+                int b2 = (col>>16) & 255;
+                int a2 = (col>>24) & 255;
+                float f = 1-d;
+                if (f > 0) {
+                  if (f > 1) f = 1;
+                  r = (r - r2)*f+r2;
+                  g = (g - g2)*f+g2;
+                  b = (b - b2)*f+b2;
+                  a = (a - a2)*f+a2;
+                  layer->pixels[p] = r|(g<<8)|(b<<16)|(a<<24);
+                }
               }
             }
           }

@@ -1132,6 +1132,8 @@ void drawToolBlurView() {
     ImGui::Text("Blur type");
     ImGui::RadioButton("Blur##DRAWTOOLBLURVIEWTYPEBLUR",&blurTool,BLURTOOL_BLUR); toolTip("A simple blur");
     ImGui::RadioButton("Antialias##DRAWTOOLBLURVIEWTYPEANTIALIAS",&blurTool,BLURTOOL_ANTIALIAS); toolTip("FXAA antialiasing");
+    ImGui::RadioButton("Remove dirt##DRAWTOOLBLURVIEWTYPEMEDIAN",&blurTool,BLURTOOL_MEDIAN); toolTip("Removes cracks and dirt");
+    ImGui::RadioButton("Drag##DRAWTOOLBLURVIEWTYPEPULL",&blurTool,BLURTOOL_PULL); toolTip("Pulls the area in the mouse direction");
   }
 }
 

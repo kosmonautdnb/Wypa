@@ -761,11 +761,13 @@ int medianIntSort(const void *p, const void *q)
   return 0;
 }
 
-void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates, bool circular) {
+void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates, bool circular, bool keepSelection) {
   if (medianW < 1 || medianH < 1 || medianW >= width*1.5 || medianH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
   // dest and source are different here
+  memcpy(dest,source,width*height*sizeof(unsigned int));
   const int mw = (medianW*2+1) * (medianH*2+1);
   Array<unsigned int> medianx; medianx.resize(mw); unsigned int *medianx2 = &medianx[0];
+  Array<unsigned char> medianxs; medianxs.resize(mw); unsigned char *medianxs2 = &medianxs[0];
   Array<int> medians; medians.resize(mw*3); int *medians2 = &medians[0];
   Array<int> countSort; countSort.resize(256); int *countSort2 = &countSort[0];
   initStatusBar();
@@ -779,8 +781,10 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
             for (int x2 = 0; x2 < medianW*2+1-1; x2++) {
               int siz2 = x2 + y2 * (medianW*2+1);
               medianx2[siz2] = medianx2[siz2+1];
+              if (keepSelection) medianxs2[siz2] = medianxs2[siz2+1];
             }
             medianx2[medianW*2+y2*(medianW*2+1)] = source[x+medianW+(y+y2-medianH)*width];
+            if (keepSelection) medianxs2[medianW*2+y2*(medianW*2+1)] = pixelStates[x+medianW+(y+y2-medianH)*width];
           }
         } else scanned = false;
       }
@@ -788,37 +792,58 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
         reScan = false; scanned = true; int siz2 = 0;
         for (int y2 = -medianH; y2 <= medianH; y2++) {
           for (int x2 = -medianW; x2 <= medianW; x2++) {
-            medianx2[siz2++] = source[x2+x+(y2+y)*width];
+            medianx2[siz2] = source[x2+x+(y2+y)*width];
+            if (keepSelection) medianxs2[siz2] = pixelStates[x2+x+(y2+y)*width];
+            siz2++;
           }
         }
       }
       if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
+        bool some = false;
         if (scanned) {
           int m[3]; for (int i = 0; i < 3; i++) {
             int lk = i * 8;
             memset(&countSort[0],0,sizeof(int)*countSort.size());
             int all = 0;
             if (!circular) {
-              all = mw;
-              for (int j = 0; j < all; j++) countSort2[(medianx2[j]>>lk)&255]++;
+              if (keepSelection) {
+                for (int j = 0; j < mw; j++) if (medianxs2[j] & PIXELSTATE_SELECTED) {countSort2[(medianx2[j]>>lk)&255]++; all++;}
+              } else {
+                all = mw;
+                for (int j = 0; j < all; j++) countSort2[(medianx2[j]>>lk)&255]++;
+              }
             } else {
               int j = 0;
-              for (int y2 = -medianH; y2 <= medianH; y2++) { float yd = (float)y2 / medianH; yd *= yd;
-                for (int x2 = -medianW; x2 <= medianW; x2++) { float xd = (float)x2 / medianW;
-                  if (xd*xd+yd <= 1) {
-                    countSort2[(medianx2[j]>>lk)&255]++;
-                    all++;
+              if (keepSelection) {
+                for (int y2 = -medianH; y2 <= medianH; y2++) { float yd = (float)y2 / medianH; yd *= yd;
+                  for (int x2 = -medianW; x2 <= medianW; x2++) { float xd = (float)x2 / medianW;
+                    if (xd*xd+yd <= 1) {
+                      if (medianxs2[j] & PIXELSTATE_SELECTED) { countSort2[(medianx2[j]>>lk)&255]++; all++;}
+                    }
+                    j++;
                   }
-                  j++;
+                }
+              } else {
+                for (int y2 = -medianH; y2 <= medianH; y2++) { float yd = (float)y2 / medianH; yd *= yd;
+                  for (int x2 = -medianW; x2 <= medianW; x2++) { float xd = (float)x2 / medianW;
+                    if (xd*xd+yd <= 1) {
+                      countSort2[(medianx2[j]>>lk)&255]++;
+                      all++;
+                    }
+                    j++;
+                  }
                 }
               }
             }
             int countHere = 0; int overAllCount = 0;
             int k = 0; for (k = 0; k < 256; k++) {countHere = countSort2[k]; overAllCount += countHere; if (overAllCount>all/2) break;}
             m[i] = k < 256 ? k : 255;
+            if (all > 0) some = true;
           }
-          int r = m[0]; int g = m[1]; int b = m[2];
-          dest[x+y*width] = r | (g<<8) | (b<<16) | (source[x+y*width] & 0xff000000);
+          if (some) {
+            int r = m[0]; int g = m[1]; int b = m[2];
+            dest[x+y*width] = r | (g<<8) | (b<<16) | (source[x+y*width] & 0xff000000);
+          }
         } else {
           // slow but fully working version
           int siz = 0;
@@ -833,22 +858,26 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
               int x3 = x + x2;
               int y3 = y + y2;
               if ((unsigned int)x3<(unsigned int)width&&(unsigned int)y3<(unsigned int)height) {
-                unsigned int col = source[x3+y3*width];
-                int r = col & 255;
-                int g = (col>>8) & 255;
-                int b = (col>>16) & 255;
-                medians2[siz+mw*0] = r;
-                medians2[siz+mw*1] = g;
-                medians2[siz+mw*2] = b;
-                siz++;
+                if ((!keepSelection) || (!usePixelStates) || (pixelStates[x3+y3*width] & PIXELSTATE_SELECTED)) {
+                  unsigned int col = source[x3+y3*width];
+                  int r = col & 255;
+                  int g = (col>>8) & 255;
+                  int b = (col>>16) & 255;
+                  medians2[siz+mw*0] = r;
+                  medians2[siz+mw*1] = g;
+                  medians2[siz+mw*2] = b;
+                  siz++;
+                }
               }
             }
           }
-          if (siz > 2) for (int i = 0; i < 3; i++) qsort(&medians[mw*i], siz, sizeof(int), medianIntSort);
-          int r = medians[siz/2+mw*0];
-          int g = medians[siz/2+mw*1];
-          int b = medians[siz/2+mw*2];
-          dest[x+y*width] = r | (g<<8) | (b<<16) | (source[x+y*width] & 0xff000000);
+          if (siz > 2) for (int i = 0; i < 3; i++) qsort(&medians2[mw*i], siz, sizeof(int), medianIntSort);
+          if (siz > 0) {
+            int r = medians2[siz/2+mw*0];
+            int g = medians2[siz/2+mw*1];
+            int b = medians2[siz/2+mw*2];
+            dest[x+y*width] = r | (g<<8) | (b<<16) | (source[x+y*width] & 0xff000000);
+          }
         }
       }
     }
@@ -1970,7 +1999,7 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
   if (locked(l,LOCK_ANY)) return;
    
   Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
-  int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false);
+  int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
 
   // calculate the gradient in values
   float *lumis = luminanceValues;

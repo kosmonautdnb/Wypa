@@ -278,7 +278,9 @@ void toolCanvasStuff();
 enum BLURTOOL {
   BLURTOOL_NONE = 0,
   BLURTOOL_BLUR = 1,
-  BLURTOOL_ANTIALIAS = 2
+  BLURTOOL_ANTIALIAS = 2,
+  BLURTOOL_MEDIAN = 3,
+  BLURTOOL_PULL = 4
 };
 extern int blurTool;
 
