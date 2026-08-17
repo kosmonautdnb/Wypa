@@ -158,10 +158,11 @@ void screenSaver() {
 }
 
 void whiteFade() {
+  static bool whiteFadeOff = false; if (whiteFadeOff) return;
   static double start = glSeconds();
   double duration = 0.25;
   double ratio = fabs(glSeconds() - start) / duration;
-  if (ratio > 1) return;
+  if (ratio > 1) {whiteFadeOff = true; return;}
   int white = 255 - ratio * 255;
   for (int i = 0; i < glFrameBufferWidth*glFrameBufferHeight; i++) {
     unsigned int col = glFrameBuffer[i]; int r = col & 255; int g = (col>>8) & 255; int b = (col>>16) & 255; int a = (col>>24) & 255;
@@ -281,6 +282,24 @@ void tinyWait() {
   waitTiny = 2;
 }
 
+int graphicsMode = 0;
+
+void dosShell() {
+  if (!system(NULL)) return;
+  switch(graphicsMode) {
+    case 16:
+    case 32: {glDone();} break;
+    default: return;
+  }
+  printf(">>> Be aware that this shell may crash the program.\n");
+  printf(">>> To return to Wypa type: exit\n");
+  int result = system("command"); UNUSED(result);
+  switch(graphicsMode) {
+    case 32: {glVesa(main_window_xres,main_window_yres,32); glRefresh();} break;
+    default: {glVesa(main_window_xres,main_window_yres,16); glRefresh();}
+  }
+}
+  
 int main(int argc, const char *argv[]) {
 
   appFolder = unixFileName(getPath(argv[0]));
@@ -295,7 +314,9 @@ int main(int argc, const char *argv[]) {
 #ifndef OTHERPLATFORM
   checkMemory();
   glWatcomPrecisionTimer(GL_TRUE);
+  graphicsMode = 32;
   if (!glVesa(main_window_xres,main_window_yres,32)) {
+    graphicsMode = 16;
     printf("Could not initialize video: %d %d %dbit\n",(int)main_window_xres,(int)main_window_yres,32);
     double w;
     w = glSeconds(); while(fabs(w-glSeconds())<1) {;}

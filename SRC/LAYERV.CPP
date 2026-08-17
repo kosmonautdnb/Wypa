@@ -60,10 +60,34 @@ bool blinkingRoundButton(const char *name, bool enabled) {
 
 unsigned int scrollToLayerId = 0;
 
+const int layerThumbWidth = 16;
+const int layerThumbHeight = 16;
+Array<unsigned int> layerTextureIds;
+
 void initLayerView() {
 }
 
 void freeLayerView() {
+  for (int i = 0; i < layerTextureIds.size(); i++) {glDeleteTextures(1,&layerTextureIds[i]);} layerTextureIds.clear();
+}
+
+
+void updateLayerTexture(Layer *l, unsigned int layerTexture) {
+  unsigned int *dest = glGetTexturePointer(layerTexture);
+  unsigned int width = glGetTextureWidth(layerTexture);
+  unsigned int height = glGetTextureHeight(layerTexture);
+  for (int y = 0; y < (int)height; y++) {
+    for (int x = 0; x < (int)width; x++) {
+      unsigned int col = 0xff000000;
+      if (l != NULL) {
+        int sx = x * l->width / width;
+        int sy = y * l->height / height;
+        if (sx >= 0 && sx < l->width && sy >= 0 && sy < l->height) 
+          col = l->pixels[sx+sy*l->width];
+      }
+      dest[x+y*width] = gammaCorrect(col);
+    }
+  }
 }
 
 void drawLayerView() {
@@ -128,9 +152,24 @@ void drawLayerView() {
 #define CELLSIZE 24
 #define CELLPRE 4
   ImGui::BeginChild("LAYERVIEWCHILD",ImVec2(sidebar_width,main_window_yres-ImGui::GetCursorScreenPos().y-20));
+
+  if (layerTextureIds.size() < currentCanvas->layers.size()) {
+    for (int i = layerTextureIds.size(); i < currentCanvas->layers.size(); i++) {
+      unsigned int id; glGenTextures(1,&id); 
+      glBindTexture(GL_TEXTURE_2D,id); glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, layerThumbWidth, layerThumbHeight, 0, GL_RGBA, GL_BYTE, NULL);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glBindTexture(GL_TEXTURE_2D,0);
+      layerTextureIds.push_back(id);
+    }
+  }
+
   for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
     Layer *l = currentCanvas->layers[i];
+
     ImVec2 cursor = ImGui::GetCursorScreenPos();
+
+    if ( (cursor.y > ImGui::GetWindowPos().y) && (cursor.y - 64 < ImGui::GetWindowPos().y + ImGui::GetWindowSize().y)) updateLayerTexture(l, layerTextureIds[i]);
 
     if (scrollToLayerId != 0) {
       if (l->id == scrollToLayerId) {ImGui::SetScrollPosHere(); scrollToLayerId = 0;}
@@ -185,6 +224,10 @@ void drawLayerView() {
       l->toolInfo.blink = false;
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x8000ff00);
     }
+    ImVec2 p0; p0.x = cursor.x+sidebar_width-16-layerThumbWidth; p0.y = cursor.y; 
+    ImVec2 p1; p1.x = cursor.x+sidebar_width-16; p1.y = cursor.y + CELLSIZE;
+    ImGui::GetWindowDrawList()->AddImage((ImTextureID)layerTextureIds[i],p0,p1,ImVec2(0,0),ImVec2(1,1));
+
     //ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLSIZE));
     ImGui::Separator();
   }

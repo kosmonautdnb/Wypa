@@ -56,6 +56,8 @@ String hex2_(int v) {
   return r;
 }
 
+void dosShell();
+
 String timeDescString() {
   //int rtc_seconds = rtcRead(0);
   int rtc_minutes = rtcRead(2);
@@ -200,6 +202,16 @@ void drawMenuBar() {
         }
         if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
         ImGui::Separator();
+        bool hasShell = false;
+#ifdef __DJGPP__
+        hasShell = true;
+#endif // __DJGPP__
+#ifdef __WATCOMC__
+#if __WATCOMC__ >= 1200
+        hasShell = true;
+#endif
+#endif // __DJGPP__
+        if (hasShell && ImGui::MenuItem("Open a shell")) {dosShell();}
         if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}

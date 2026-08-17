@@ -47,25 +47,10 @@ int navigatorWidth = navigator_height - 10;
 int navigatorHeight = navigatorWidth;
 Canvas *navigatorCanvas = NULL;
 
-GLuint layerTexture = 0;
-int layerTextureWidth = 32;
-int layerTextureHeight = 32;
-int layerTextureSizeX = 32;
-int layerTextureSizeY = 32;
-
 void initNavigator() {
   glGenTextures(1,&navigatorTexture);
   glBindTexture(GL_TEXTURE_2D,navigatorTexture);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, navigatorX, navigatorY, 0, GL_RGBA, GL_BYTE, NULL);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glBindTexture(GL_TEXTURE_2D,0);
-
-  glGenTextures(1,&layerTexture);
-  glBindTexture(GL_TEXTURE_2D,layerTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, layerTextureWidth, layerTextureHeight, 0, GL_RGBA, GL_BYTE, NULL);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -105,25 +90,6 @@ void updateNavigatorImage() {
       int sy = y;
       if (sx >= 0 && sx < navigatorCanvas->width && sy >= 0 && sy < navigatorCanvas->height) 
         col = navigatorCanvas->pixels[sx+sy*navigatorCanvas->width];
-      dest[x+y*width] = gammaCorrect(col);
-    }
-  }
-}
-
-void updateLayerImage() {
-  Layer *l = currentCanvas->getActiveLayer();
-  unsigned int *dest = glGetTexturePointer(layerTexture);
-  unsigned int width = glGetTextureWidth(layerTexture);
-  unsigned int height = glGetTextureHeight(layerTexture);
-  for (int y = 0; y < (int)height; y++) {
-    for (int x = 0; x < (int)width; x++) {
-      unsigned int col = 0xff000000;
-      if (l != NULL) {
-        int sx = x * l->width / width;
-        int sy = y * l->height / height;
-        if (sx >= 0 && sx < l->width && sy >= 0 && sy < l->height) 
-          col = l->pixels[sx+sy*l->width];
-      }
       dest[x+y*width] = gammaCorrect(col);
     }
   }
@@ -192,12 +158,6 @@ void drawNavigator() {
 #endif
   ImGui::GetWindowDrawList()->AddRect(c0,c1,0xff0000ff);
 
-  c0.x = cursor3.x + sidebar_width - navigatorWidth - 10 - layerTextureSizeX;
-  c0.y = cursor3.y + navigatorHeight - layerTextureSizeY - 8;
-  ImGui::SetCursorScreenPos(c0);
-  ImGui::Image((ImTextureID)layerTexture,ImVec2(layerTextureSizeX,layerTextureSizeY)); toolTip("Current layer (no aspect ratio)");
-
-  updateLayerImage();
   updateNavigatorImage();
 
   ImGui::End();
