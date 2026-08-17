@@ -1456,6 +1456,8 @@ void drawToolTileMapView() {
     if (roundButton("Load tilemap##DRAWTOOLTILEMAPVIEWLOADTILEMAP",true)) {
       dialogLoadSave(true, DIALOG_LOADTILEMAP);
     }
+    bool deletion = l->toolInfo.tileMapSelectedTile == NOTILEMAPPIXEL; ImGui::Text("Delete tiles"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWDELETETILES",&deletion)) {l->toolInfo.tileMapSelectedTile = NOTILEMAPPIXEL;}
+
     ImGui::Text("Exclude empty"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWEXCLUDEEMPTY",&excludeEmptyTiles)) {scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile;}
 
     int tileWidth = l2->toolInfo.tilingWidth;

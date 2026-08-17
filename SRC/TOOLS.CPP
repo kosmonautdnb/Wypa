@@ -1074,7 +1074,8 @@ bool useToolSelectionMove(Layer *activeLayer) {
 void useToolSelection() {
   if (wasActiveLayerSwitched()) {selectionToolActive = false; selectionToolMoveActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
 
-  if (ImGui::IsMouseClicked(1) && isPaintAreaActive() && (selectionTool != SELECTIONTOOL_POLYGON)) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+  bool polygonSpanning = selectionTool == SELECTIONTOOL_POLYGON && selectionToolActive;
+  if (ImGui::IsMouseClicked(1) && isPaintAreaActive() && (!polygonSpanning)) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
 
   Layer *activeLayer = currentCanvas->getActiveLayer(); 
   if (activeLayer == NULL) return; 

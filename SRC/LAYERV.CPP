@@ -120,7 +120,7 @@ void drawLayerView() {
     shouldUpdateAll = true;
   } else toolTip("Show only the selected layer");
   ImGui::SameLine();
-  if (roundButton(currentCanvas->hilightSelection?"No highlight##LAYERVIEWHILIGHT":"Hilight layers##LAYERVIEWHILIGHT",true)) {
+  if (roundButton(currentCanvas->hilightSelection?"Don't darken##LAYERVIEWHILIGHT":"Darken others##LAYERVIEWHILIGHT",true)) {
     currentCanvas->hilightSelection = !currentCanvas->hilightSelection;
     shouldUpdateAll = true;
   } else toolTip("Darken all non selected layer(s)");

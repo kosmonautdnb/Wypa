@@ -156,6 +156,22 @@ void screenSaver() {
   }
 }
 
+void whiteFade() {
+  static double start = glSeconds();
+  double duration = 0.25;
+  double ratio = fabs(glSeconds() - start) / duration;
+  if (ratio > 1) return;
+  int white = 255 - ratio * 255;
+  for (int i = 0; i < glFrameBufferWidth*glFrameBufferHeight; i++) {
+    unsigned int col = glFrameBuffer[i]; int r = col & 255; int g = (col>>8) & 255; int b = (col>>16) & 255; int a = (col>>24) & 255;
+    r += white; g += white; b += white;
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+    glFrameBuffer[i] = r|(g<<8)|(b<<16)|(a<<24);
+  }
+}
+
 void splashScreen() {
   static bool splashScreenOn = true;
   static Layer *splash = NULL;
@@ -452,6 +468,7 @@ int main(int argc, const char *argv[]) {
     ImGui::Render();
 
     screenSaver();
+    whiteFade();
     
     lastActiveLayerSwitchIndex = activeLayerSwitchIndex;
       

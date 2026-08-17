@@ -31,6 +31,8 @@
 #include "TOOLVIEW.HPP"
 #include "LAYERS.HPP"
 #include "TOOLS.HPP"
+#include "COLORFLD.HPP"
+#include "IMGUI/IMGUIGL.HPP"
 
 int toolbar_width = 32;
 int tool = TOOL_NONE;
@@ -114,11 +116,30 @@ bool toolBarButton(const char *svgName, int toolIndex) {
 
 void turnOnScreenSaver();
 
+int additionalQuadHeight = 24;
+void drawAdditionalQuad() {
+  unsigned int col = getUIntColor(ImVec4(0.7,0.7,0.7,1));
+  unsigned int col2 = 0xff7c5b87;
+  double aspect = 1.0/aspectRatio * main_window_xres / main_window_yres;
+  for (int y = 0; y < additionalQuadHeight; y++) {
+    for (int x = 0; x < toolbar_width; x++) {
+      bool marked = x < y * aspect;
+      glFrameBuffer[x+(y+glFrameBufferHeight-additionalQuadHeight)*glFrameBufferWidth] = marked ? col2 : col;
+    }
+  }
+  static bool here = false;
+  if (mouseY >= glFrameBufferHeight-additionalQuadHeight && mouseX < toolbar_width) {
+    toolTip2("Click for screen saver");
+    if (ImGui::IsMouseDown(0)) here = true;
+    if (!ImGui::IsMouseDown(0) && here) {here = false; turnOnScreenSaver();}
+  } else here = false;
+}
+
 void drawToolBar() {
   if (!fullScreen) {
     ImGui::SetNextWindowPos(ImVec2(0,menuBar_height));
     ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.7,0.7,0.7,1));
-    ImGui::Begin("TOOLBAR", NULL, ImVec2(toolbar_width,main_window_yres-menuBar_height),1.0,FROZENWINDOW);
+    ImGui::Begin("TOOLBAR", NULL, ImVec2(toolbar_width,main_window_yres-menuBar_height-additionalQuadHeight),1.0,FROZENWINDOW);
     toolBarButton("selectionTool",TOOL_SELECTION); toolTip("Selection tool");
     toolBarButton("moveTool",TOOL_MOVE); toolTip("Move tool");
     toolBarButton("wandTool",TOOL_WAND); toolTip("Magic wand tool");
@@ -138,19 +159,7 @@ void drawToolBar() {
     toolBarButton("tilemapTool",TOOL_TILEMAP); toolTip("Tilemap tool");
     toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
     toolBarButton("mirrorTool",TOOL_MIRROR); toolTip("Mirror tool");
-    float k = 0.75;
-    ImVec2 points[3];
-    double aspect = 1.0/aspectRatio * main_window_xres / main_window_yres;
-    points[0].x = 0; points[0].y = main_window_yres-toolbar_width*k;
-    points[1].x = 0; points[1].y = main_window_yres;
-    points[2].x = toolbar_width*k*aspect; points[2].y = main_window_yres;
-    ImGui::GetWindowDrawList()->AddConvexPolyFilled(points, 3, 0xff7c5b87, true);
-    static bool here = false;
-    if (ImGui::IsMouseHoveringRect(points[0],points[2]) && ImGui::IsWindowHovered()) {
-      toolTip2("Click for screen saver");
-      if (ImGui::IsMouseDown(0)) here = true;
-      if (!ImGui::IsMouseDown(0) && here){here = false;turnOnScreenSaver();}
-    } else here = false;
+    drawAdditionalQuad();
     ImGui::End();
     ImGui::PopStyleColor();
   }

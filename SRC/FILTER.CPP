@@ -136,16 +136,32 @@ void filterDifferenceClouds() {
   afterUndoPoint();
 }
 
+// KISS (Keep it simple stupid) random numbers by George Marsaglia
+unsigned int noise_x = 123456789; unsigned int noise_y = 362436000; unsigned int noise_z = 521288629; unsigned int noise_c = 7654321;
+void initNoise32() {noise_x = 123456789; noise_y = 362436000; noise_z = 521288629; noise_c = 7654321;}
+unsigned int noise32() {
+  noise_x = 69069 * noise_x + 12345;
+  noise_y ^= noise_y << 13; noise_y ^= noise_y >> 17; noise_y ^= noise_y << 5;
+  unsigned int t_0 = (698769069 & 0xffff) * (noise_z & 0xffff);
+  unsigned int t_1 = (698769069 & 0xffff) * ((noise_z >> 16) & 0xffff);
+  unsigned int t_2 = (698769069 >> 16) * (noise_z & 0xffff);
+  unsigned int t_3 = (698769069 >> 16) * ((noise_z >> 16) & 0xffff);
+  noise_z = t_0 + (t_1<<16) + (t_2<<16) + noise_c;
+  noise_c = ((t_0 + (t_1<<16) + (t_2<<16))>>16)+(t_3<<16);
+  return noise_x + noise_y + noise_z;
+}
+
 void filterNoise() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
   if (locked(l,LOCK_ANY)) return;
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
-  srand(0);
+  //srand(0);
+  initNoise32();
   for (int i3 = 0; i3 < l->width*l->height; i3++) {
     if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
-      int grey = rand() & 255;
+      int grey = noise32() & 255; //rand() & 255;
       l->pixels[i3] = grey|(grey<<8)|(grey<<16)|(255<<24);
     }
   }

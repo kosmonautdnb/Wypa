@@ -1276,6 +1276,10 @@
     "MASK = Apply the grey value as opacity to one layer above." _N_
     "            Black = opaque, white = transparent." _N_
     "ADDSUB = Adds the current layers RGB but also adds -128, too." _N_
+    "OVERLAY = Like Photoshop Overlay." _N_
+    "BURN = Like Photoshop Linear Burn." _N_
+    "COLBURN = Like Photoshop Color Burn." _N_
+    "COLDODGE = Like Photoshop Color Dodge." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_
@@ -1562,5 +1566,11 @@
     "OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT" _N_
     "(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE" _N_
     "OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE." _N_
+  "}" _N_
+  "KISS random{" _N_
+    "Developed by George Marsaglia and adapted by me." _N_
+  "}" _N_
+  "Photoshop blendmode formulas{" _N_
+    "Deciphered by deepskycolors.com" _N_
   "}" _N_
 "}" _N_
