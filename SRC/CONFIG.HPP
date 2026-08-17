@@ -53,6 +53,7 @@
 #endif
 
 #define MEMWARNINGMB 16
+//#define OTHERPLATFORM
 
 extern double fps;
 extern double timeDelta;
@@ -95,5 +96,9 @@ extern char tempBuffer[256];
 float getFreeMemoryInKb();
 
 extern float luminanceValues[3];
+
+#ifdef OTHERPLATFORM
+bool initOtherPlatform();
+#endif // OTHERPLATFORM
 
 #endif //__CONFIG_H__

@@ -23,6 +23,9 @@
 */
 #include "CONFIG.HPP"
 #include "IMGUI/IMGUI.H"
+#ifdef OTHERPLATFORM
+#define WATCOMGLAPI
+#endif //OTHERPLATFORM
 #include "STL/GL.H"
 #include "STL/STRING.HPP"
 #include "LAYERS.HPP"
@@ -194,3 +197,76 @@ void toolTip2(const char *fmt, ...) {
 }
 
 float luminanceValues[3] = {0.2126,0.7152,0.0722}; //{0.25,0.6,.15};
+
+// if you want to port Wypa to another platform than DOS, you could start here
+//--
+#ifdef OTHERPLATFORM
+#include <time.h>
+#ifdef __DJGPP__
+#include <sys/nearptr.h>
+#endif // __DJGPP__
+#include <dos.h>
+#include <string.h>
+unsigned short oldMode;
+void setDosBiosGraphicsMode(unsigned short mode) {union REGS regs; memset(&regs,0,sizeof(regs)); regs.w.ax = mode; int386(0x10, &regs, &regs);}
+unsigned short getDosBiosGraphicsMode() {union REGS regs; memset(&regs,0,sizeof(regs)); regs.w.ax = 0x0f00; int386(0x10, &regs, &regs); return regs.h.al;}
+GLdouble glStartClockX;
+GLdouble glSecondsX() {return (GLdouble)(clock() - glStartClockX) / CLOCKS_PER_SEC;}
+GLvoid glSetTimeX(GLdouble seconds) {glStartClockX = clock() - seconds * CLOCKS_PER_SEC;}
+#ifdef __WATCOMC__
+GLuint int16_1x();
+#pragma aux int16_1x="mov ah,0x01""int 0x16""jz do""mov eax,0""jmp dont""do:""mov eax,1""dont:" value[eax] modify[eax ebx ecx edx]
+#endif
+#ifdef __DJGPP__
+GLuint int16_1x() {
+  GLuint ret;
+  __asm__ __volatile__("\tmovb $1,%%ah\n""\tint $0x16\n""\tjz 1f\n""\tmovl $0,%%eax\n""\tjmp 2f\n""1:\n""\tmovl $1,%%eax\n""2:\n" : "=a" (ret));
+  return ret;
+}
+#endif
+// some special keys like GL_VK_UP and so on must also be supported (look into hotkeys.hpp for instance)
+GLushort glNextKeyX() {if (int16_1x()) return 0; union REGS regs; memset(&regs,0,sizeof(regs)); regs.w.ax = 0x0000; int386(0x16, &regs, &regs); int k = regs.w.ax; if ((k & 0xff) != 0x00) k &= 0xff; return (GLushort)k;}
+GLvoid glSetMousePosX(GLint x, GLint y) {union REGS regs; memset(&regs,0,sizeof(regs)); regs.w.ax = 0x04; regs.w.cx = (uint16_t)(x & 0xffff); regs.w.dx = (uint16_t)(y & 0xffff); int386(0x33, &regs, &regs);}
+int glMouseX_ = 0, glMouseY_ = 0, glLastMouseX_ = 0, glLastMouseY_ = 0;
+GLvoid glNextMouseDeltaX(GLdouble *deltaX, GLdouble *deltaY) {
+  union REGS regs; memset(&regs,0,sizeof(regs)); regs.w.ax = 0x03; int386(0x33, &regs, &regs); glLastMouseX_ = glMouseX_; glLastMouseY_ = glMouseY_;
+  glMouseX_ = regs.w.cx & 0xffff; glMouseY_ = regs.w.dx & 0xffff; *deltaX = glMouseX_ - glLastMouseX_; *deltaY = glMouseY_ - glLastMouseY_;
+  glSetMousePosX(320/2, 200/2); glMouseX_ = 320/2; glMouseY_ = 200/2;
+}
+GLushort glMouseButtonsX() {union REGS regs; memset(&regs,0,sizeof(regs)); regs.w.ax = 0x03; int386(0x33, &regs, &regs); return (GLushort)(regs.w.bx & 0xffff);}
+GLvoid glSpecialKeysX(GLboolean *shiftKey, GLboolean *ctrlKey, GLboolean *altKey) {
+  union REGS regs; memset(&regs,0,sizeof(regs)); regs.w.ax = 0x0200; int386(0x16, &regs, &regs); uint8_t keyState = (uint8_t)(regs.w.ax & 0xff);
+  *shiftKey = ((keyState & 0x03) != 0) ? GL_TRUE : GL_FALSE; *ctrlKey = ((keyState & 0x04) != 0) ? GL_TRUE : GL_FALSE; *altKey = ((keyState & 0x08) != 0) ? GL_TRUE : GL_FALSE;
+}
+GLvoid glRefreshX() {
+#ifdef __DJGPP__
+    __djgpp_nearptr_enable(); for (int y = 0; y < 200; y++) { for (int x = 0; x < 320; x++) {
+      unsigned int col = glFrameBuffer[x*glFrameBufferWidth/320+(y*glFrameBufferHeight/200)*glFrameBufferWidth]; unsigned int r = col & 255; unsigned int g = (col>>8) & 255; unsigned int b = (col >>16) & 255;
+      ((unsigned char*)(0xa0000+__djgpp_conventional_base))[x+y*320] = (unsigned char)((r+g+b)/3/16+16);
+    }} __djgpp_nearptr_disable();
+#endif // __DJGPP__
+#ifdef __WATCOMC__
+    for (int y = 0; y < 200; y++) { for (int x = 0; x < 320; x++) {
+      unsigned int col = glFrameBuffer[x*glFrameBufferWidth/320+(y*glFrameBufferHeight/200)*glFrameBufferWidth]; unsigned int r = col & 255; unsigned int g = (col>>8) & 255; unsigned int b = (col >>16) & 255;
+      ((unsigned char*)0xa0000)[x+y*320] = (unsigned char)((r+g+b)/3/16+16);
+    }}
+#endif // __WATCOMC__
+}
+GLvoid glDoneX() {setDosBiosGraphicsMode(oldMode);}
+//
+bool initOtherPlatform() {
+  glSetSecondsCallback(glSecondsX);
+  glSetSetTimeCallback(glSetTimeX);
+  glSetNextKeyCallback(glNextKeyX);
+  glSetNextMouseDeltaCallback(glNextMouseDeltaX);
+  glSetMouseButtonsCallback(glMouseButtonsX);
+  glSetSpecialKeysCallback(glSpecialKeysX);
+  glSetRefreshNotification(glRefreshX);
+  glSetDoneNotification(glDoneX);
+  int w = main_window_xres; int h = main_window_yres;
+  unsigned int *frameBuffer = (unsigned int*)malloc(w*h*sizeof(unsigned int)); float *depthBuffer = (float*)malloc(w*h*sizeof(float));
+  glDirect(frameBuffer, depthBuffer, NULL, w, h); oldMode = getDosBiosGraphicsMode(); setDosBiosGraphicsMode(0x13);
+  return true;
+}
+#endif //OTHERPLATFORM
+//--

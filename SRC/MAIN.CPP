@@ -46,6 +46,7 @@
 #include <math.h>
 #include <conio.h>
 
+
 bool roundButton(const char *name, bool enabled) {
   ImVec4 color_button_off_bg = ImVec4(0.7,0.7,0.7,1);
   ImVec4 color_button_on_bg = ImVec4(0.0,0.0,0.0,1);
@@ -291,10 +292,9 @@ int main(int argc, const char *argv[]) {
   printf("www.github.com/kosmonautdnb/wypa\n");
   printf("\n");
 
+#ifndef OTHERPLATFORM
   checkMemory();
-
   glWatcomPrecisionTimer(GL_TRUE);
-
   if (!glVesa(main_window_xres,main_window_yres,32)) {
     printf("Could not initialize video: %d %d %dbit\n",(int)main_window_xres,(int)main_window_yres,32);
     double w;
@@ -306,6 +306,9 @@ int main(int argc, const char *argv[]) {
       exit(0);
     }
   }
+#else
+  if (!initOtherPlatform()) {printf("Could not initialize.\n"); exit(0);}
+#endif
 
   glClearColor(0,0,0,0);
   glClear(GL_COLOR_BUFFER_BIT);
