@@ -57,18 +57,28 @@ bool blinkingRoundButton(const char *name, bool enabled) {
   return ret;
 }
 
-
 unsigned int scrollToLayerId = 0;
 
 const int layerThumbWidth = 16;
 const int layerThumbHeight = 16;
 Array<unsigned int> layerTextureIds;
 
+unsigned int layerPreview = 0;
+int layerPreviewWidth = 64;
+int layerPreviewHeight = 64;
+
 void initLayerView() {
+  glGenTextures(1,&layerPreview); 
+  glBindTexture(GL_TEXTURE_2D,layerPreview); 
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, layerPreviewWidth, layerPreviewHeight, 0, GL_RGBA, GL_BYTE, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glBindTexture(GL_TEXTURE_2D,0);
 }
 
 void freeLayerView() {
   for (int i = 0; i < layerTextureIds.size(); i++) {glDeleteTextures(1,&layerTextureIds[i]);} layerTextureIds.clear();
+  glDeleteTextures(1,&layerPreview);
 }
 
 
@@ -87,6 +97,17 @@ void updateLayerTexture(Layer *l, unsigned int layerTexture) {
       }
       dest[x+y*width] = gammaCorrect(col);
     }
+  }
+}
+
+void toolTipLayerPreview(Layer *l) {
+  if (!showToolTips) return;
+  if (l->width > 0 && l->height > 0) {
+    double layerPreviewAspect = (double)l->width / l->height;
+    updateLayerTexture(l, layerPreview);
+    ImGui::BeginTooltip();
+    ImGui::Image((ImTextureID)layerPreview,ImVec2(layerPreviewWidth,layerPreviewHeight*aspectRatio*main_window_yres/main_window_xres/layerPreviewAspect));
+    ImGui::EndTooltip();
   }
 }
 
@@ -169,7 +190,7 @@ void drawLayerView() {
 
     ImVec2 cursor = ImGui::GetCursorScreenPos();
 
-    if ( (cursor.y > ImGui::GetWindowPos().y) && (cursor.y - 64 < ImGui::GetWindowPos().y + ImGui::GetWindowSize().y)) updateLayerTexture(l, layerTextureIds[i]);
+    if ( (cursor.y + 64 >= ImGui::GetWindowPos().y) && (cursor.y - 64 < ImGui::GetWindowPos().y + ImGui::GetWindowSize().y))  updateLayerTexture(l, layerTextureIds[i]);
 
     if (scrollToLayerId != 0) {
       if (l->id == scrollToLayerId) {ImGui::SetScrollPosHere(); scrollToLayerId = 0;}
@@ -227,6 +248,7 @@ void drawLayerView() {
     ImVec2 p0; p0.x = cursor.x+sidebar_width-16-layerThumbWidth; p0.y = cursor.y; 
     ImVec2 p1; p1.x = cursor.x+sidebar_width-16; p1.y = cursor.y + CELLSIZE;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)layerTextureIds[i],p0,p1,ImVec2(0,0),ImVec2(1,1));
+    if (ImGui::IsMouseHoveringRect(p0,p1)) toolTipLayerPreview(l);
 
     //ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLSIZE));
     ImGui::Separator();

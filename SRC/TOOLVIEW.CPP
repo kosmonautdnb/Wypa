@@ -142,6 +142,8 @@ void drawToolWandView() {
       k = wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
     }
     ImGui::Text("Surrounding"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors)) {} else toolTip("Use only surrounding areas");
+    ImGui::Separator();
+    ImGui::Text("By selecting:");
     if (roundButton("Segmentation",true)) {
       watershed = true;
     }
