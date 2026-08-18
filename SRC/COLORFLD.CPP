@@ -511,7 +511,7 @@ void drawColorField() {
     if (roundButton("Save palette##DRAWCOLORFIELDPALETTESAVE",!palette.empty())) {
       paletteToSave = &palette; dialogLoadSave(true,DIALOG_SAVEPALETTE);
     } else toolTip("Save as palette .pa2 file");
-    ImGui::Text("Palette colors"); int cols = (int)palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; if (cols < 0) cols = 0; palette.resize(cols); updatePalette();} else toolTip("Color count in current palette");
+    ImGui::Text("Color count"); int cols = (int)palette.size(); ImGui::SameLine(); if (ImGui::InputInt("##DRAWCOLORFIELDCOLORCOUNT",&cols,1,1)) {if (cols>2048) cols = 2048; if (cols < 0) cols = 0; palette.resize(cols); updatePalette();} else toolTip("Color count in current palette");
     ImGui::Text("Colors per row"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWPALETTECOLORFIELDROWCOLS",&paletteColorsPerRow, 1, 1)) {} else toolTip("Display column count");
     if (paletteColorsPerRow > 16) paletteColorsPerRow = 16;
     if (paletteColorsPerRow < 1) paletteColorsPerRow = 1;
