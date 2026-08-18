@@ -917,6 +917,8 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_FITLAYER
   HOTKEY_MOUSETOGRID
   HOTKEY_SAVEIMAGE
+  HOTKEY_RESTORESCROLL
+  HOTKEY_LAYERORIGIN
   ImGui::Text("You can press <CTRL> on sliders to enter a value");
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {

@@ -60,6 +60,8 @@
 #define HOTKEY_FITLAYER HOTKEY('k',false,false,"<k> Fit layer coordinates")
 #define HOTKEY_MOUSETOGRID HOTKEY('n',false,false,"<n> Mouse to grid")
 #define HOTKEY_SAVEIMAGE HOTKEY(GL_VK_S_CTRL,true,false,"CTRL<s> Save image")
+#define HOTKEY_RESTORESCROLL HOTKEY('R',false,false,"SHIFT<R> Restore scroll")
+#define HOTKEY_LAYERORIGIN HOTKEY('L',false,false,"SHIFT<L> Scroll to layer origin")
 
 void initHotkeys();
 void freeHotkeys();

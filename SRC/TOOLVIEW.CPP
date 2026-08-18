@@ -1469,7 +1469,10 @@ void drawToolTileMapView() {
     if (roundButton("Load tilemap##DRAWTOOLTILEMAPVIEWLOADTILEMAP",true)) {
       dialogLoadSave(true, DIALOG_LOADTILEMAP);
     }
-    bool deletion = l->toolInfo.tileMapSelectedTile == NOTILEMAPPIXEL; ImGui::Text("Delete tiles"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWDELETETILES",&deletion)) {l->toolInfo.tileMapSelectedTile = NOTILEMAPPIXEL;}
+    ImGui::Separator();
+    ImGui::Text("Show tile"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWDARKENSELECTED",&darkenSelectedTiles)) {shouldUpdateAll = true;} else toolTip("Reddens all the selected tiles");
+    ImGui::Separator();
+    bool deletion = l->toolInfo.tileMapSelectedTile == NOTILEMAPPIXEL; ImGui::Text("Delete tiles"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWDELETETILES",&deletion)) {l->toolInfo.tileMapSelectedTile = NOTILEMAPPIXEL;} else toolTip("Sets the current tile to an tile erasing tile");
 
     ImGui::Text("Exclude empty"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLTILEMAPVIEWEXCLUDEEMPTY",&excludeEmptyTiles)) {scrollToTileMapIndex = l->toolInfo.tileMapSelectedTile;}
 
@@ -1559,7 +1562,7 @@ void drawToolTileMapView() {
         ImGui::SetCursorScreenPos(ImVec2(posX,posY)); ImGui::Image((ImTextureID)tileMapTexture,ImVec2(tw-border,th-border),tx0,tx1); posX += tw;
         ImVec2 v0 = ImGui::GetItemRectMin();
         ImVec2 v1 = ImGui::GetItemRectMax();
-        if (ImGui::IsMouseHoveringRect(v0,v1) && ImGui::IsMouseClicked(0)) l->toolInfo.tileMapSelectedTile = tileIndices[index];
+        if (ImGui::IsMouseHoveringRect(v0,v1) && ImGui::IsMouseClicked(0)) {l->toolInfo.tileMapSelectedTile = tileIndices[index]; if (darkenSelectedTiles) shouldUpdateAll = true;}
         v0.x -= 1;
         v0.y -= 1;
         if (tileIndices[index] == l->toolInfo.tileMapSelectedTile) {

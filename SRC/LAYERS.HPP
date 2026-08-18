@@ -932,6 +932,9 @@ public:
   void snapToGrid();
   void centerCanvas();
   void fitCanvas();
+  void scrollToLayerOrigin();
+  void storeScroll();
+  void restoreScroll();
 
   void cropLayersByAlpha(double alpha);
   bool isOnlyActiveLayerActive();
@@ -990,6 +993,8 @@ extern float monitorGamma;
 extern bool shouldRecreateQuantization;
 extern bool showOnlyActiveLayersSelection;
 extern bool blitOutlineSolidOneFrame;
+extern bool showCanvasDarkened;
+extern bool darkenSelectedTiles;
 
 Layer *layerFromCanvas(Canvas *canvas);
 void repaintLayer(Layer *layer, bool fullUpdate);

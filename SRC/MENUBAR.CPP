@@ -354,6 +354,8 @@ void drawMenuBar() {
       if (ImGui::BeginMenu("View")) {
         on = true;
         bool selected;
+        int count = 0;
+        for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {count++;}
         if (ImGui::MenuItem("Gallery",NULL,galleryVisible)) {galleryVisible = !galleryVisible;}
         ImGui::Separator();
         if (ImGui::MenuItem("Monitor gamma",NULL,monitorGamma != 1.0)) {dialogMonitorGamma(true);}
@@ -366,6 +368,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
         ImGui::Separator();
         if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Show canvas darkened",NULL,showCanvasDarkened)) {showCanvasDarkened = !showCanvasDarkened; shouldUpdateAll = true;}
         ImGui::Separator();
         if (ImGui::MenuItem("Show skin tone range in hue",NULL,showSkinTone)) {showSkinTone = !showSkinTone;}
         ImGui::Separator();
@@ -373,8 +376,11 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Visible undo/redo",NULL,visibleUndo)) {visibleUndo = !visibleUndo; shouldUpdateAll = true;}
         ImGui::Separator();
+        if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll();}
+        if (ImGui::MenuItem("Restore scroll")) {currentCanvas->restoreScroll(); shouldUpdateAll = true;}
         if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
         if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Scroll to layer origin",NULL, false, count == 1)) {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;}
         ImGui::Separator();
         bool lockedMouse = lockedMouseX||lockedMouseY||tilingOn;
         if (lockedMouse) ImGui::PushStyleColor(ImGuiCol_Text,(k2 & 1) ? ImVec4(1,0,0,1) : ImVec4(0.5,0,0,1));

@@ -112,5 +112,7 @@ void applyHotKeys() {
     case HOTKEY_FITLAYER: {if (currentCanvas->getActiveLayer() != NULL) {beforeUndoPoint(); currentCanvas->getActiveLayer()->quantizeBoundingBox(); afterUndoPoint();}} break;
     case HOTKEY_MOUSETOGRID: {mouseToGrid();} break;
     case HOTKEY_SAVEIMAGE: {dialogLoadSave(true,DIALOG_SAVEIMAGE);} break;
+    case HOTKEY_RESTORESCROLL: {currentCanvas->restoreScroll(); shouldUpdateAll = true;} break;
+    case HOTKEY_LAYERORIGIN: {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;} break;
   }
 }

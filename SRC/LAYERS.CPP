@@ -87,6 +87,8 @@ bool clearOutlineAfterNextPaint = false;
 bool shouldRecreateQuantization = true;
 bool showOnlyActiveLayersSelection = true;
 bool blitOutlineSolidOneFrame = false;
+bool showCanvasDarkened = true;
+bool darkenSelectedTiles = false;
 
 void initLayers() {
   selectionPlane = new Layer();
@@ -2694,6 +2696,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   // tilemap layer
   bool tiles = layer->type == LAYERTYPE_TILEMAP;
   unsigned int *tileSource = NULL;
+  int selectedTile = layer->toolInfo.tileMapSelectedTile;
   int tileSourceWidth = 0;
   int tileSourceHeight = 0;
   int tileOffsetX = 0;
@@ -2784,6 +2787,13 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
         rgb1 = 0xffff00ff;
         if ((unsigned int)tx < (unsigned int)tileSourceWidth && (unsigned int)ty < (unsigned int)tileSourceHeight) {
           rgb1 = tileSource[tx+ty*tileSourceWidth];
+          if (darkenSelectedTiles && tile == selectedTile) {
+            int r = rgb1 & 255;
+            int g = (rgb1>>8) & 255;
+            int b = (rgb1>>16) & 255;
+            int grey = (r + g + b) / 3;
+            rgb1 = grey|(rgb1 & 0xff000000);
+          }
         }
       }
 
@@ -4745,6 +4755,32 @@ void Canvas::fitCanvas() {
   control.zoomTo(this,screenPosX+width*0.5,screenPosY+height*0.5,scale*100.f);
 }
 
+void Canvas::scrollToLayerOrigin() {
+  for (int i = 0; i < layers.size(); i++) {
+    Layer *l = layers[i];
+    if (l->state.selected || l->state.active) {
+      double lx = 0,ly = 0; getCanvasPosFromLayerPos(l,lx,ly,lx,ly); getScreenPos(lx,ly,lx,ly);
+      double lx0 = 0, ly0 = 0; getScreenPos(lx0,ly0,lx0,ly0);
+      control.scrollX = lx-lx0;
+      control.scrollY = ly-ly0;
+      control.setCanvasTransform(this);
+      break;
+    }
+  }
+}
+
+CanvasControl savedControl;
+bool savedControlBool = false;
+
+void Canvas::storeScroll() {
+  savedControl = control;
+  savedControlBool = true;
+}
+
+void Canvas::restoreScroll() {
+  if (savedControlBool) control = savedControl;
+}
+
 bool Canvas::isOnlyActiveLayerActive() {
   if (getActiveLayer()==NULL) return false;
   int count = 0;
@@ -4945,10 +4981,12 @@ void blitCanvas() {
       }
       if (lx3 < currentCanvas->canvasX0 || ly3 < currentCanvas->canvasY0 || lx3 >= currentCanvas->canvasX1 || ly3 >= currentCanvas->canvasY1) {
         if (!(currentCanvas->pixelStates[x+y*currentCanvas->width] & PIXELSTATE_CANVAS_OVERLAY)) {
-          col >>= 3;
-          col &= 0x1f1f1f1f;
-          col |= 0x20202020;
-          if (fullScreen) col = 0x00000000;
+          if (showCanvasDarkened) {
+            col >>= 3;
+            col &= 0x1f1f1f1f;
+            col |= 0x20202020;
+            if (fullScreen) col = 0x00000000;
+          }
         }
       }
       if (currentCanvas->gridOn) {
