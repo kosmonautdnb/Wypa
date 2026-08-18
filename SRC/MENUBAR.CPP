@@ -367,6 +367,8 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
         ImGui::Separator();
+        if (ImGui::MenuItem("Show skin tone range in hue",NULL,showSkinTone)) {showSkinTone = !showSkinTone;}
+        ImGui::Separator();
         if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Visible undo/redo",NULL,visibleUndo)) {visibleUndo = !visibleUndo; shouldUpdateAll = true;}

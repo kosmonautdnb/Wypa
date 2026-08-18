@@ -142,7 +142,6 @@ void drawToolWandView() {
       k = wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
     }
     ImGui::Text("Surrounding"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors)) {} else toolTip("Use only surrounding areas");
-    ImGui::Text("Slow:");
     if (roundButton("Segmentation",true)) {
       watershed = true;
     }
@@ -599,6 +598,18 @@ void drawToolMagicView() {
   if (roundButton("Paste##DRAWTOOLMAGICVIEWAPPLYCOLORGRADINGPASTE",true)) {l->pasteColorTransform();} else toolTip("Paste the postprocessing settings");
   ImGui::Separator();
 
+  colorItem("","##DRAWTOOLMAGICVIEWFGCOLOR",&foregroundColor);
+  unsigned int col = getUIntColor(foregroundColor);
+  if (l->colorTransform.useTransparentColor) col = l->colorTransform.applyTransparentColor(col);
+  if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
+  if (l->colorTransform.useLut) col = l->colorTransform.applyLut(col);
+  if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
+  if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
+  if (l->colorTransform.useQuantization) col = quantizeFast(col, l->colorTransform.ditherStrength, 0, 0, l->colorTransform.paletteShift);
+  ImVec4 prColor = getImVec4Color(col);
+  colorItem("","##DRAWTOOLMAGICVIEWPRCOLOR",&prColor);
+  ImGui::Separator();
+
   ImGui::BeginChild("DRAWTOOLMAGICVIEWCHILD",ImVec2(toolview_width, main_window_yres-ImGui::GetCursorScreenPos().y));
 
   ImGui::Text("See through"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSETRANSPARENTCOLOR",&l->colorTransform.useTransparentColor)) {
@@ -740,7 +751,7 @@ void drawToolMagicView() {
     shouldUpdateAll = true;
   } else toolTip("Make all values above threshold white, the others black (or transparent)");
   if (l->colorTransform.useThreshold) {
-    ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEBLACKWHITE",&t->thresholdBlackWhite)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Use black/white instead of transparent/white");
+    ImGui::Text("Black&white");ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSEBLACKWHITE",&t->thresholdBlackWhite)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Use black/white instead of transparent/white");
     ImGui::BeginChild("DRAWTOOLMAGICCHILDTHRESHOLD",ImVec2(0,50));
     ImGui::Text("Threshold RGBA");
     v = &t->thresholdLuma; if (ImGui::SliderFloat("##DRAWTOOLMAGICVIEWTHRESHOLDLUMA",v,0,255)) {if (*v<0) *v = 0; if (*v>255) *v = 255; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Threshold on red,green,blue (or maybe alpha)");

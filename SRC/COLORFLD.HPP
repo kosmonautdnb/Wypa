@@ -35,6 +35,7 @@ extern int paletteColorsPerRow;
 extern Array<ImVec4> palette;
 extern Array<ImVec4> *paletteToSave;
 extern bool showPalette;
+extern bool showSkinTone;
 
 extern unsigned char gammaTable[256*3];
 void reGenMonitorGamma();

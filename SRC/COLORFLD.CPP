@@ -184,6 +184,7 @@ unsigned int colorWheelTexture = 0;
 bool roundButton(const char *name, bool enabled);
 
 bool showPalette = false;
+bool showSkinTone = false;
 int paletteColorsPerRow = 16;
 Array<ImVec4> palette;
 Array<ImVec4> *paletteToSave;
@@ -360,6 +361,20 @@ void blitColorSliderBackground(const ImVec2 &before, int slider, int sliderWidth
   ImGui::SetCursorScreenPos(a);
 }
 
+void blitSkinToneRange(const ImVec2 &before, int sliderWidth) {
+  float sliderSize = ImGui::GetStyle().GrabMinSize;
+  ImVec2 a = ImGui::GetCursorScreenPos();
+  ImVec2 b = before;
+  b.x += 2;
+  b.y += 2;
+  ImVec2 c = b;
+  c.y += 13;
+  b.x += sliderSize * 0.5 + (sliderWidth-sliderSize*0.5) * 20 / 360;
+  c.x += sliderSize * 0.5 + (sliderWidth-sliderSize*0.5) * 30 / 360;
+  ImGui::GetWindowDrawList()->AddRectFilled(b, c, 0x80ffffff);
+  ImGui::SetCursorScreenPos(a);
+}
+
 void colorDisplay(ImVec4 *c) {
   float k;
   ImVec2 before;
@@ -376,7 +391,7 @@ void colorDisplay(ImVec4 *c) {
   if (update) {
     updateColorWheel(h,0,0,NULL,NULL,NULL);
   }
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,3,sw); k = h*360.0;  if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {double w = c->w; h = k/360.0; updateColorWheel(h,0,0,&h,&s,&l); *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);updateColorSlidersTexture();} else toolTip("Hue of color");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,3,sw); ImVec4 col(0,0,0,1);  k = h*360.0; if (showSkinTone) {blitSkinToneRange(before, sw); if (k>=20&&k<=30) col = ImVec4(1,0,0,1);} ImGui::PushStyleColor(ImGuiCol_Text,col); if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {double w = c->w; h = k/360.0; updateColorWheel(h,0,0,&h,&s,&l); *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);updateColorSlidersTexture();} else toolTip("Hue of color"); ImGui::PopStyleColor();
   before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,4,sw); k = s;  if (ImGui::SliderFloat("Sat.##DIALOGCOLORCOLORSAT",&k,0,1)) {double w = c->w; s = k; *c = hsl(h,s,l); c->w = w;updateColorSlidersTexture();} else toolTip("Saturation of color");
   before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,5,sw); k = l;  if (ImGui::SliderFloat("Light.##DIALOGCOLORCOLORLIT",&k,0,1)) {double w = c->w; l = k; *c = hsl(h,s,l); c->w = w;updateColorSlidersTexture();} else toolTip("Lightness of color");
   ImGui::PopStyleColor();
@@ -458,19 +473,18 @@ void insertColor() {
   foregroundColor = palette[(int)palette.size()-1];
 }
 
-void displayPostProcessedColorItem() {
+void displayPostProcessedColorItem(const char *id) {
   Layer *l = currentCanvas->getActiveLayer();
   if (l != NULL && (l->colorTransform.useColorTransform||l->colorTransform.useLut)) {//||l->colorTransform.useQuantization||l->colorTransform.usePosterize||l->colorTransform.useThreshold)) {
     ImGui::SameLine();
-    ImGui::PushID("##DRAWCOLORITEMPOSTPROCESSCOLOR");
-    //bool quantize = l->colorTransform.useQuantization && ((int)quantization.size() == 64*64*64);
+    ImGui::PushID(id);
     unsigned int col = getUIntColor(foregroundColor);
     if (l->colorTransform.useTransparentColor) col = l->colorTransform.applyTransparentColor(col);
     if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
     if (l->colorTransform.useLut) col = l->colorTransform.applyLut(col);
     //if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
     //if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
-    //if (quantize) col = quantizeFast(col, l->colorTransform.ditherStrength, 0, 0);
+    //if (l->colorTransform.useQuantization) col = quantizeFast(col, l->colorTransform.ditherStrength, 0, 0, l->colorTransform.paletteShift);
     ImVec4 c2 = getImVec4Color(col);
     ImGui::Image((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(c2)); toolTip("Postprocessed color");
     ImGui::PopID();
@@ -487,7 +501,7 @@ void drawColorField() {
       showPalette = false;
     } else toolTip("Show color selector");
     ImGui::PushItemWidth(7*4+16*2);
-    displayPostProcessedColorItem(); ImGui::SameLine();colorItem("","##DRAWCOLORFIELDPALETTEPALETTEHEX",&foregroundColor);
+    displayPostProcessedColorItem("##DRAWCOLORITEMPOSTPROCESSCOLOR"); ImGui::SameLine();colorItem("","##DRAWCOLORFIELDPALETTEPALETTEHEX",&foregroundColor);
     if (paletteColorsPerRow<1) paletteColorsPerRow = 1;
     if (paletteColorsPerRow>32) paletteColorsPerRow = 32;
     if (roundButton("Load palette##DRAWCOLORFIELDPALETTELOAD",true)) {
@@ -562,7 +576,7 @@ void drawColorField() {
       showPalette = true;
     } else toolTip("Display palette view");
 
-    displayPostProcessedColorItem();
+    displayPostProcessedColorItem("##DRAWCOLORITEMPOSTPROCESSCOLOR");
     ImGui::SameLine();
     ImVec4 *c = &foregroundColor;
     if (colorItem("","##DIALOGCOLORCOLORHEX",c)) {
