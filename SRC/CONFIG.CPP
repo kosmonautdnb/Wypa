@@ -252,7 +252,13 @@ GLvoid glRefreshX() {
     }}
 #endif // __WATCOMC__
 }
-GLvoid glDoneX() {setDosBiosGraphicsMode(oldMode);}
+unsigned int *frameBufferX = NULL;
+float *depthBufferX = NULL;
+GLvoid glDoneX() {
+  setDosBiosGraphicsMode(oldMode); 
+  if (frameBufferX != NULL) {free(frameBufferX); frameBufferX = NULL;}
+  if (depthBufferX != NULL) {free(depthBufferX); depthBufferX = NULL;}
+}
 //
 bool initOtherPlatform() {
   glSetSecondsCallback(glSecondsX);
@@ -264,8 +270,8 @@ bool initOtherPlatform() {
   glSetRefreshNotification(glRefreshX);
   glSetDoneNotification(glDoneX);
   int w = main_window_xres; int h = main_window_yres;
-  unsigned int *frameBuffer = (unsigned int*)malloc(w*h*sizeof(unsigned int)); float *depthBuffer = (float*)malloc(w*h*sizeof(float));
-  glDirect(frameBuffer, depthBuffer, NULL, w, h); oldMode = getDosBiosGraphicsMode(); setDosBiosGraphicsMode(0x13);
+  frameBufferX = (unsigned int*)malloc(w*h*sizeof(unsigned int)); depthBufferX = (float*)malloc(w*h*sizeof(float));
+  glDirect(frameBufferX, depthBufferX, NULL, w, h); oldMode = getDosBiosGraphicsMode(); setDosBiosGraphicsMode(0x13);
   return true;
 }
 #endif //OTHERPLATFORM
