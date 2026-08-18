@@ -157,7 +157,7 @@ void showDebugWindow() {
   ImGui::Text("Framebuffer %.02fkb",getWatcomGLBytes()/1024.f);
   ImGui::Text("Additional memory %.02fkb",additionalSize/1024.f);
   ImGui::Text("Maybe free memory %.04fmb", getAdditionalMemoryFreeBytes()/1024.f/1024.f);
-  ImGui::Text("FPS %.02f (please use the newest DJGPP if that's a problem)",fps);
+  ImGui::Text("FPS %.02f (please compile with the newest DJGPP if that's a problem)",fps);
   ImGui::PopStyleColor();
   ImGui::End();
   ImGui::PopStyleColor();

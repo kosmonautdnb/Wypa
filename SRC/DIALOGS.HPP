@@ -92,6 +92,7 @@ void dialogUpdateLayer(bool openIt);
 void dialogAbout(bool openIt);
 void dialogDocumentation(bool openIt);
 void dialogNewHere(bool openIt);
+void dialogWhatFor(bool openIt);
 void dialogSuite(bool openIt);
 void dialogExit(bool openIt);
 void dialogDuplicate(bool openIt);

@@ -127,6 +127,7 @@ void dialogs() {
   dialogAbout(false);
   dialogDocumentation(false);
   dialogNewHere(false);
+  dialogWhatFor(false);
   dialogSuite(false);
   dialogExit(false);
   dialogDuplicate(false);
@@ -419,7 +420,28 @@ void dialogNewHere(bool openIt) {
     "<Alt> and mouse pans the image plane.\n"
   );
   ImGui::Separator();
-  if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+  if (ImGui::Button("Close##DIALOGNEWHERECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogWhatFor(bool openIt) {
+  DIALOGSTART("What's Wypa for?")
+  ImGui::Text(
+    "Wypa is just a simple paint program\n"
+    "intended to create games on DOS.\n"
+    "Mainly it's destination was pixelling for\n"
+    "games, like doing tilemaps and simple\n"
+    "graphics manipulations.\n"
+    "On DOS there aren't other paint programs\n"
+    "that do all of this kind of stuff currently.\n"
+    "So be aware that Wypa is not a replacement\n"
+    "for a propper graphics suite on other operating\n"
+    "systems.\n"
+  );
+  ImGui::Separator();
+  if (ImGui::Button("Close##DIALOGWHATFORCLOSE")) {
     ImGui::CloseCurrentPopup();
   }
   DIALOGEND()
@@ -465,7 +487,7 @@ void dialogSuite(bool openIt) {
     "stuff on DOS/FreeDOS.\n"
   );
   ImGui::Separator();
-  if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
+  if (ImGui::Button("Close##DIALOGSUITECLOSE")) {
     ImGui::CloseCurrentPopup();
   }
   DIALOGEND()

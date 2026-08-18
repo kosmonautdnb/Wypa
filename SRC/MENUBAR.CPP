@@ -454,6 +454,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
       if (ImGui::MenuItem("Puls4r game creation suite")) {dialogSuite(true);}
       if (ImGui::MenuItem("Tiny documentation")) {dialogDocumentation(true);}
+      if (ImGui::MenuItem("What's Wypa for?")) {dialogWhatFor(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Show tooltips",NULL,showToolTips,true)) {showToolTips = !showToolTips;}
       if (ImGui::MenuItem("Status window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
