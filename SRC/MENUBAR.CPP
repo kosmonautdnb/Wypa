@@ -376,8 +376,9 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Visible undo/redo",NULL,visibleUndo)) {visibleUndo = !visibleUndo; shouldUpdateAll = true;}
         ImGui::Separator();
-        if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll();}
-        if (ImGui::MenuItem("Restore scroll")) {currentCanvas->restoreScroll(); shouldUpdateAll = true;}
+        static bool wasStored = false;
+        if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll(); wasStored = true;}
+        if (ImGui::MenuItem("Restore scroll",NULL,false,wasStored)) {currentCanvas->restoreScroll(); shouldUpdateAll = true;}
         if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
         if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
         if (ImGui::MenuItem("Scroll to layer origin",NULL, false, count == 1)) {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;}
