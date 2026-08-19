@@ -156,7 +156,7 @@ void drawMenuBar() {
     cursor2.x += 4+2+2+1+2;
     ImGui::SetCursorScreenPos(cursor2);
 
-    static bool loadedAnything = false; if (!loadedAnything) {for (int i1 = 0; i1 < canvas.size(); i1++) {if (canvas[i1]->layers.size() > 0) loadedAnything = true;}}
+    static bool loadedAnything = false; if (!loadedAnything) {for (int i1 = 0; i1 < (int)canvas.size(); i1++) {if (canvas[i1]->layers.size() > 0) loadedAnything = true;}}
     static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
 
     if (!loadedAnything) {

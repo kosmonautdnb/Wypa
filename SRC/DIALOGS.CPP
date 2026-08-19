@@ -920,6 +920,7 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_RESTORESCROLL
   HOTKEY_LAYERORIGIN
   HOTKEY_REFRESH
+  HOTKEY_LAYERVISIBLE
   ImGui::Text("You can press <CTRL> on sliders to enter a value");
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {

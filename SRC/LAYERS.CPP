@@ -2696,7 +2696,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   // tilemap layer
   bool tiles = layer->type == LAYERTYPE_TILEMAP;
   unsigned int *tileSource = NULL;
-  int selectedTile = layer->toolInfo.tileMapSelectedTile;
+  unsigned int selectedTile = layer->toolInfo.tileMapSelectedTile;
   int tileSourceWidth = 0;
   int tileSourceHeight = 0;
   int tileOffsetX = 0;
@@ -4756,7 +4756,7 @@ void Canvas::fitCanvas() {
 }
 
 void Canvas::scrollToLayerOrigin() {
-  for (int i = 0; i < layers.size(); i++) {
+  for (int i = 0; i < (int)layers.size(); i++) {
     Layer *l = layers[i];
     if (l->state.selected || l->state.active) {
       double lx = 0,ly = 0; getCanvasPosFromLayerPos(l,lx,ly,lx,ly); getScreenPos(lx,ly,lx,ly);

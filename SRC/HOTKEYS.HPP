@@ -63,6 +63,7 @@
 #define HOTKEY_RESTORESCROLL HOTKEY('R',false,false,"SHIFT<R> Restore scroll")
 #define HOTKEY_LAYERORIGIN HOTKEY('L',false,false,"SHIFT<L> Scroll to layer origin")
 #define HOTKEY_REFRESH HOTKEY(' ',false,false,"SPACE refresh whole paint area")
+#define HOTKEY_LAYERVISIBLE HOTKEY('v',false,false,"<v> Toggle visibility of active layer")
 
 void initHotkeys();
 void freeHotkeys();

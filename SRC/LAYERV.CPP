@@ -77,7 +77,7 @@ void initLayerView() {
 }
 
 void freeLayerView() {
-  for (int i = 0; i < layerTextureIds.size(); i++) {glDeleteTextures(1,&layerTextureIds[i]);} layerTextureIds.clear();
+  for (int i = 0; i < (int)layerTextureIds.size(); i++) {glDeleteTextures(1,&layerTextureIds[i]);} layerTextureIds.clear();
   glDeleteTextures(1,&layerPreview);
 }
 
@@ -175,7 +175,7 @@ void drawLayerView() {
   ImGui::BeginChild("LAYERVIEWCHILD",ImVec2(sidebar_width,main_window_yres-ImGui::GetCursorScreenPos().y-20));
 
   if (layerTextureIds.size() < currentCanvas->layers.size()) {
-    for (int i = layerTextureIds.size(); i < currentCanvas->layers.size(); i++) {
+    for (int i = layerTextureIds.size(); i < (int)currentCanvas->layers.size(); i++) {
       unsigned int id; glGenTextures(1,&id); 
       glBindTexture(GL_TEXTURE_2D,id); glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, layerThumbWidth, layerThumbHeight, 0, GL_RGBA, GL_BYTE, NULL);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
