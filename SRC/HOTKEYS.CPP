@@ -114,5 +114,6 @@ void applyHotKeys() {
     case HOTKEY_SAVEIMAGE: {dialogLoadSave(true,DIALOG_SAVEIMAGE);} break;
     case HOTKEY_RESTORESCROLL: {currentCanvas->restoreScroll(); shouldUpdateAll = true;} break;
     case HOTKEY_LAYERORIGIN: {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;} break;
+    case HOTKEY_REFRESH: {shouldUpdateAll = true;} break;
   }
 }

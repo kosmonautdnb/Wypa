@@ -62,6 +62,7 @@
 #define HOTKEY_SAVEIMAGE HOTKEY(GL_VK_S_CTRL,true,false,"CTRL<s> Save image")
 #define HOTKEY_RESTORESCROLL HOTKEY('R',false,false,"SHIFT<R> Restore scroll")
 #define HOTKEY_LAYERORIGIN HOTKEY('L',false,false,"SHIFT<L> Scroll to layer origin")
+#define HOTKEY_REFRESH HOTKEY(' ',false,false,"SPACE refresh whole paint area")
 
 void initHotkeys();
 void freeHotkeys();
