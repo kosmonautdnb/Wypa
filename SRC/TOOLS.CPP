@@ -3413,17 +3413,20 @@ void useToolTileMap() {
         first = false;
         double xa = d == 0 ? 0 : (double)dx / d;
         double ya = d == 0 ? 0 : (double)dy / d;
+        bool hasSelection = l->hasSelection();
         for (int i = 0; i < d+1; i++) {
           txi = (int)floor(px);
           tyi = (int)floor(py);
           if ((unsigned int)txi < (unsigned int)l->width && (unsigned int)tyi < (unsigned int)l->height) {
-            l->pixels[txi+tyi*l->width] = l->toolInfo.tileMapSelectedTile;
-            double cx0 = txi, cy0 = tyi; currentCanvas->getCanvasPosFromLayerPos(l,cx0,cy0,cx0,cy0);
-            double cx1 = txi+1, cy1 = tyi+1; currentCanvas->getCanvasPosFromLayerPos(l,cx1,cy1,cx1,cy1);
-            for (int y = (int)cy0; y < (int)cy1; y++) {
-              for (int x = (int)cx0; x < (int)cx1; x++) {
-                if ((unsigned int)x < (unsigned int)currentCanvas->width && (unsigned int)y < (unsigned int)currentCanvas->height) {
-                  currentCanvas->pixelStates[x+y*currentCanvas->width] |= PIXELSTATE_UPDATED;
+            if ( (!hasSelection) || (l->pixelStates[txi+tyi*l->width] & PIXELSTATE_SELECTED)) {
+              l->pixels[txi+tyi*l->width] = l->toolInfo.tileMapSelectedTile;
+              double cx0 = txi, cy0 = tyi; currentCanvas->getCanvasPosFromLayerPos(l,cx0,cy0,cx0,cy0);
+              double cx1 = txi+1, cy1 = tyi+1; currentCanvas->getCanvasPosFromLayerPos(l,cx1,cy1,cx1,cy1);
+              for (int y = (int)cy0; y < (int)cy1; y++) {
+                for (int x = (int)cx0; x < (int)cx1; x++) {
+                  if ((unsigned int)x < (unsigned int)currentCanvas->width && (unsigned int)y < (unsigned int)currentCanvas->height) {
+                    currentCanvas->pixelStates[x+y*currentCanvas->width] |= PIXELSTATE_UPDATED;
+                  }
                 }
               }
             }

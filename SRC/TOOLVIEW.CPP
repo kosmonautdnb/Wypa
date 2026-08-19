@@ -1480,8 +1480,8 @@ void drawToolTileMapView() {
     int tileHeight = l2->toolInfo.tilingHeight;
     //int tileOffsetX = l2->toolInfo.tilingOffsetX;
     //int tileOffsetY = l2->toolInfo.tilingOffsetY;
-    int width = toolview_width; int height = 600;
     ImVec2 cursor0 = ImGui::GetCursorScreenPos();
+    int width = toolview_width; int height = main_window_yres - cursor0.y;
     ImGui::BeginChild("DRAWTOOLTILEMAPVIEWCHILD", ImVec2(width,height));
     int border = 2;
     int tw = 16 + border;
@@ -1576,8 +1576,8 @@ void drawToolTileMapView() {
       }
       index++;
     }
-    posY = index / k * th - ImGui::GetScrollY();
-    ImGui::SetCursorScreenPos(ImVec2(posX,posY));
+    posY = tileIndices.size() / k * th - ImGui::GetScrollY();
+    ImGui::SetCursorPos(ImVec2(posX,posY));
     ImGui::Text(""); // ScrollBar
     ImGui::EndChild();
   }
