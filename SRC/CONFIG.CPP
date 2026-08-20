@@ -199,6 +199,9 @@ void toolTip2(const char *fmt, ...) {
 float luminanceValues[3] = {0.2126,0.7152,0.0722}; //{0.25,0.6,.15};
 
 // if you want to port Wypa to another platform than DOS, you could start here
+// you need the #define __GLDISABLEDOSFUNCTIONS__ 1 at compiletime like gcc -D__GLDISABLEDOSFUNCTIONS__
+// and maybe you need to update STL/DOS.HPP for dos functions.
+// maybe you need to update case sensitivity for includes, maybe #include "STL/DOS.HPP" has to get #include "stl/dos.hpp"
 //--
 #ifdef OTHERPLATFORM
 #include <time.h>

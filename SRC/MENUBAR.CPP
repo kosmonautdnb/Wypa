@@ -38,6 +38,7 @@
 #include "HOTKEYS.HPP"
 #include "STL/IMAGE.HPP"
 #include "GALLERY.HPP"
+#include "LAYERV.HPP"
 #include <math.h>
 
 int menuBar_height = 17;
@@ -375,6 +376,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Visible undo/redo",NULL,visibleUndo)) {visibleUndo = !visibleUndo; shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Visible layer switch",NULL,visibleLayerSwitch)) {visibleLayerSwitch = !visibleLayerSwitch; shouldUpdateAll = true;}
         ImGui::Separator();
         static bool wasStored = false;
         if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll(); wasStored = true;}

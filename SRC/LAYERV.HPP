@@ -27,6 +27,7 @@
 void initLayerView();
 void freeLayerView();
 
+extern bool visibleLayerSwitch;
 void drawLayerView();
 
 extern unsigned int scrollToLayerId;

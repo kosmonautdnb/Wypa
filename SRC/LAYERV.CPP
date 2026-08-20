@@ -57,6 +57,7 @@ bool blinkingRoundButton(const char *name, bool enabled) {
   return ret;
 }
 
+void tinyWait();
 unsigned int scrollToLayerId = 0;
 
 const int layerThumbWidth = 16;
@@ -109,6 +110,15 @@ void toolTipLayerPreview(Layer *l) {
     ImGui::Image((ImTextureID)layerPreview,ImVec2(layerPreviewWidth,layerPreviewHeight*aspectRatio*main_window_yres/main_window_xres/layerPreviewAspect));
     ImGui::EndTooltip();
   }
+}
+
+bool visibleLayerSwitch = false;
+void maybeBlinkLayer(Layer *l) {
+  if (!visibleLayerSwitch) return;
+  if (l == NULL || l->width < 1 || l->height < 1) return;
+  for (int i = 0; i < l->width*l->height; i++) l->pixelStates[i] |= PIXELSTATE_OUTLINE;
+  l->hasOutline = true; blitOutlineSolidOneFrame = true; tinyWait();
+  clearOutlineAfterNextPaint = true;
 }
 
 void drawLayerView() {
@@ -217,9 +227,9 @@ void drawLayerView() {
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y));
 
     ImGui::InvisibleButton("##LAYERVIEWINVISIBLEBUTTON",ImVec2(sidebar_width,CELLSIZE));
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_NONE) {currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_CTRL) {currentCanvas->copyActiveSelectionToLayer(currentCanvas->getActiveLayerIndex(),i);currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_SHIFT) {l->state.selected = !l->state.selected;Layer *k = currentCanvas->getActiveLayer(); if (k != NULL) k->state.selected = true; shouldUpdateAll = true;}// currentCanvas->setActiveLayer(-1);}
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_NONE) {maybeBlinkLayer(l); currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_CTRL) {maybeBlinkLayer(l); currentCanvas->copyActiveSelectionToLayer(currentCanvas->getActiveLayerIndex(),i);currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_SHIFT) {maybeBlinkLayer(l); l->state.selected = !l->state.selected;Layer *k = currentCanvas->getActiveLayer(); if (k != NULL) k->state.selected = true; shouldUpdateAll = true;}// currentCanvas->setActiveLayer(-1);}
     if (l->type == LAYERTYPE_ADJUSTMENT) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ff00ff);
     }
