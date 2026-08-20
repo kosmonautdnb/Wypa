@@ -53,6 +53,7 @@ Generally it is not suitable to run Wypa in an emulation like DosBOX (or DosBOX-
 Wypa is written in a most simple C++ dialect. It even runs with compilers from the 90s (WatcomC11). It should be no problem to port it to any platform you like. There is a simple demo of porting it already included in main.cpp. Mainly the file operations may need another porting (dos.cpp). If you need a tiny/lightweight paint program for your platform, maybe Wypa is worth a look. Actually it is not only restricted to FreeDOS.
 
 #  
+The original WatcomGL repository lives at: https://github.com/kosmonautdnb/Wypa.git
 ### (c)2026 by Stefan Mader of Puls4r
 
 
