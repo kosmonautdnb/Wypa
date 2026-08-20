@@ -551,7 +551,15 @@ void drawColorField() {
           updatePalette();
         } else {
           foregroundColor = c3;
+          addUsedColor(foregroundColor);
         }
+      }
+      if (getUIntColor(palette[i])==colorTraceBacks[1]) {
+        ImVec2 p00 = ImGui::GetItemRectMin();
+        ImVec2 p11 = ImGui::GetItemRectMax();
+        p00.x -= 1;
+        p00.y -= 1;
+        ImGui::GetWindowDrawList()->AddRect(p00,p11,0xffffff00);
       }
       if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
         ImVec2 p00 = ImGui::GetItemRectMin();
