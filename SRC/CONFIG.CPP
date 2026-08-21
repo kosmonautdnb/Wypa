@@ -141,6 +141,16 @@ int getWatcomGLBytes() {
   return ret;
 }
 
+int getUsedTextureCount() {
+  int count = 0; for (int i = 0; i < GLMAXTEXTURES; i++) if (glGetTexturePointer(i) != NULL) count++;
+  return count;
+}
+
+int getUsedTextureBytes() {
+  int bytes = 0; for (int i = 0; i < GLMAXTEXTURES; i++) if (glGetTexturePointer(i) != NULL) bytes += glGetTextureWidth(i)*glGetTextureHeight(i)*4;
+  return bytes;
+}
+
 void showDebugWindow() {
   if (!debugWindowOn) return;
   int additionalSize = 0;
@@ -158,6 +168,8 @@ void showDebugWindow() {
   ImGui::Text("Additional memory %.02fkb",additionalSize/1024.f);
   ImGui::Text("Maybe free memory %.04fmb", getAdditionalMemoryFreeBytes()/1024.f/1024.f);
   ImGui::Text("FPS %.02f (please compile with the newest DJGPP if that's a problem)",fps);
+  ImGui::Text("Used WatcomGL textures: %d of %d\n", getUsedTextureCount(), GLMAXTEXTURES);
+  ImGui::Text("WatcomGL texture memory: %.02fmb\n", (float)getUsedTextureBytes()/1024.f/1024.f);
   ImGui::PopStyleColor();
   ImGui::End();
   ImGui::PopStyleColor();
