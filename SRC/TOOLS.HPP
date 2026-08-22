@@ -240,7 +240,7 @@ extern bool modifyFiltered;
 extern bool modifyOutlined;
 extern bool modifyPerspective;
 void createModifyTriangles();
-void bakeModify(bool justCreateSelection);
+void bakeModify(bool justCreateSelection, bool createNewLayer);
 
 extern bool mirrorToolEnabled;
 extern bool mirrorToolSideA;

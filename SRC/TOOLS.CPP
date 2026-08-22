@@ -2993,7 +2993,7 @@ void createModifyTriangles() {
   for (int i2 = 0; i2 < (int)delau.triangles.size(); i2++) modifyTriangles.push_back(delau.triangles[i2]);
 }
 
-void bakeModify(bool justCreateSelection) {
+void bakeModify(bool justCreateSelection, bool createNewLayer) {
   Layer *l = currentCanvas->getActiveLayer();
 
   if (l != NULL && justCreateSelection) {
@@ -3142,6 +3142,8 @@ void bakeModify(bool justCreateSelection) {
     }
   }
 
+  Layer *destLayer = l; if (createNewLayer) {destLayer = l->clone(); destLayer->clear();}
+
   // meanValueCoordinates (don't work for inner latice points)
   double bary[3];
   int baryTriangle = 0;
@@ -3258,7 +3260,7 @@ void bakeModify(bool justCreateSelection) {
         if ((unsigned int)txi<(unsigned int)clone->width&&(unsigned int)tyi<(unsigned int)clone->height) {
           if (!modifyFiltered) {
             unsigned int col = clone->pixels[txi+tyi*clone->width];
-            l->pixels[x+y*l->width] = col;
+            destLayer->pixels[x+y*destLayer->width] = col;
           } else {
             double fx = tx-txi;
             double fy = ty-tyi;
@@ -3286,7 +3288,7 @@ void bakeModify(bool justCreateSelection) {
             if (g < 0) g = 0;
             if (b < 0) b = 0;
             if (a < 0) a = 0;
-            l->pixels[x+y*l->width] = r|(g<<8)|(b<<16)|(a<<24);
+            destLayer->pixels[x+y*destLayer->width] = r|(g<<8)|(b<<16)|(a<<24);
           }
         }
       }
@@ -3299,6 +3301,14 @@ void bakeModify(bool justCreateSelection) {
   delete clone;
   repaintLayer(l,true);
   afterUndoPoint();
+
+  if (createNewLayer) {
+    destLayer->cropByAlpha(1); sprintf(destLayer->name,"modify"); destLayer->state.active = false; destLayer->state.selected = false;
+    int pos = 0; for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.active || currentCanvas->layers[i]->state.selected) {pos = i; break;}
+    currentCanvas->insertLayer(destLayer,pos);
+    updatedPixels(destLayer);
+    repaintLayer(destLayer,true);
+  }
 }
 
 void useToolModify() {

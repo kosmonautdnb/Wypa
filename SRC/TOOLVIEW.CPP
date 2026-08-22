@@ -1382,12 +1382,16 @@ void drawToolModifyView() {
       for (int i = 0; i < (int)modifyPointsSource.size(); i++) modifyPointsDest.push_back(modifyPointsSource[i]);
     }
   } else toolTip("Switch between source and destination polygon/shape");
-  bool hasWarp = currentCanvas->getActiveLayer()!=NULL;
+  ImGui::Separator();
+  bool hasWarp = currentCanvas->getActiveLayer()!=NULL; if (modifyPointsSource.size()==0||modifyPointsDest.size()!=modifyPointsSource.size()) hasWarp = false;
   if (roundButton("Bake into##DRAWTOOLMODIFYBAKE",hasWarp)) {
-    bakeModify(false);
+    bakeModify(false, false);
   } else toolTip("Apply the warp to the current layer");
-  if (roundButton("Make selection##DRAWTOOLMODIFYCREATESELECTION",hasWarp)) {
-    bakeModify(true);
+  if (roundButton("Bake new layer##DRAWTOOLMODIFYBAKELAYER",hasWarp)) {
+    bakeModify(false, true);
+  } else toolTip("Create a new layer with the warp");
+  if (roundButton("Make selection##DRAWTOOLMODIFYCREATESELECTION",currentCanvas->getActiveLayer()!=NULL)) {
+    bakeModify(true, false);
   } else toolTip("Select the background of the current warp");
   int k;
   ImGui::Separator();
