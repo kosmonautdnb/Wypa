@@ -2185,3 +2185,100 @@ void filterSetAlpha(unsigned int *dest, unsigned int width, unsigned int height,
     dest[i] = (dest[i] & 0x00ffffff)|(alpha<<24);
   }
 }
+
+void filterSelectionDistanceField(Layer *layer) {
+  Layer *l = layer;
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  if (!l->hasSelection()) return;
+
+  beforeUndoPoint();
+
+  initStatusBar();
+
+  Array<unsigned int> astar; astar.resize(layer->width*layer->height); memset(&astar[0],0xff,astar.size() * sizeof(unsigned int));
+  unsigned int *astar_ = &astar[0];
+
+  for (int y = 0; y < layer->height; y++) {
+    for (int x = 0; x < layer->width; x++) {
+      unsigned char here = layer->pixelStates[x+y*layer->width];
+      if (here & PIXELSTATE_SELECTED) {
+        bool found = false;
+        for (int y2 = -1; y2 <= 1; y2++) {
+          for (int x2 = -1; x2 <= 1; x2++) {
+            if ((unsigned int)(x+x2) >= (unsigned int)layer->width || (unsigned int)(y+y2) >= (unsigned int)layer->height) {found = true; break;}
+            unsigned char there = layer->pixelStates[(x+x2)+(y+y2)*layer->width];
+            if (!(there & PIXELSTATE_SELECTED)) {found = true; break;}
+          }
+        }
+        if (found) {
+          astar_[x+y*layer->width] = (x & 0xffff) + ((y & 0xffff)<<16);
+        }
+      }
+    }
+  }
+
+  bool somethingUpdated = true;
+  unsigned int counter = 0;
+  int maxDist = 0;
+  while(somethingUpdated) {
+    somethingUpdated = false;
+    counter++; counter &= 15; if (counter == 0) updateStatusBar();
+    maxDist = 0;
+    for (int y = 0; y < layer->height; y++) {
+      for (int x = 0; x < layer->width; x++) {
+        unsigned int here = astar_[x+y*layer->width];
+        if (here != 0xffffffff) {
+          int dx0 = (int)(here & 0xffff) - x;
+          int dy0 = (int)((here>>16) & 0xffff) - y;
+          int d0 = dx0*dx0 + dy0*dy0;
+          if (d0 > maxDist) maxDist = d0;
+          for (int y2 = -1; y2 <= 1; y2++) {
+            for (int x2 = -1; x2 <= 1; x2++) {
+              if ((unsigned int)(x+x2) >= (unsigned int)layer->width || (unsigned int)(y+y2) >= (unsigned int)layer->height) continue;
+              unsigned char therep = layer->pixelStates[(x+x2)+(y+y2)*layer->width];
+              if (therep & PIXELSTATE_SELECTED) {
+                unsigned int therea = astar_[(x+x2)+(y+y2)*layer->width];
+                if (therea == 0xffffffff) {
+                  astar_[(x+x2)+(y+y2)*layer->width] = here;
+                  somethingUpdated = true;
+                } else {
+                  int dx1 = (int)(therea & 0xffff) - (x+x2);
+                  int dy1 = (int)((therea>>16) & 0xffff) - (y+y2);
+                  int d1 = dx1*dx1 + dy1*dy1;
+                  int dx2 = (int)(here & 0xffff) - (x+x2);
+                  int dy2 = (int)((here>>16) & 0xffff) - (y+y2);
+                  int d2 = dx2*dx2 + dy2*dy2;
+                  if (d2 < d1) {
+                    astar_[(x+x2)+(y+y2)*layer->width] = here;
+                    somethingUpdated = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  double md = sqrt(maxDist); if (md == 0) md = 1;
+  for (int y2 = 0; y2 < layer->height; y2++) {
+    for (int x2 = 0; x2 < layer->width; x2++) {
+      unsigned char here = layer->pixelStates[x2+y2*layer->width];
+      if (here & PIXELSTATE_SELECTED) {
+        int dx = (int)(astar_[x2+y2*layer->width] & 0xffff)-x2;
+        int dy = (int)((astar_[x2+y2*layer->width]>>16) & 0xffff)-y2;
+        double d = sqrt(dx*dx+dy*dy)/md;
+        int grey = (int)(d * 255);
+        if (grey < 0) grey = 0;
+        if (grey > 255) grey = 255;
+        layer->pixels[x2+y2*layer->width] = grey|(grey<<8)|(grey<<16)|0xff000000;
+      }
+    }
+  }
+
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}

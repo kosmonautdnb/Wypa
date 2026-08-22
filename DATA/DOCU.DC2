@@ -795,6 +795,9 @@
       "Actually not so useful for normal painting, but you may prepare." _N_
       "photographs of text for better readability with it." _N_
     "}" _N_
+    "Selection distance field{" _N_
+      "Makes a smooth black white gradient in the borders of the selection." _N_
+    "}" _N_
   "}" _N_
   "Pictures{" _N_
     "Here all the currently loaded pictures are visible." _N_
