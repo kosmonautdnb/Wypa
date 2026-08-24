@@ -561,6 +561,11 @@ void dialogMonitorGamma2(bool openIt) {
   if (ImGui::Button("Save##DIALOGMONITORGAMMASAVE")) {
     dialogLoadSave(true,DIALOG_SAVECALIBRATION);
   }
+  ImGui::SameLine();
+  static const char *lumaTexts[4] = {"NONE","RED","GREEN","BLUE"};
+  static int channelForLuma = 0;
+  ImGui::Text("For human eye by"); ImGui::SameLine();
+  if (ImGui::Combo("##DIALOGMONITORGAMMALUMINANCE",&channelForLuma,lumaTexts,4)) {;}
   ImGui::Separator();
 
   if (updateIt) {
@@ -573,7 +578,22 @@ void dialogMonitorGamma2(bool openIt) {
   ImVec2 cursor = ImGui::GetCursorScreenPos();
   cursor.x += border;
   cursor.y += border;
+  float lumas[3]; lumas[0] = luminanceValues[0]; lumas[1] = luminanceValues[1]; lumas[2] = luminanceValues[2];
+  switch(channelForLuma) {
+    case 0: {lumas[0] = 1; lumas[1] = 1; lumas[2] = 1;} break;
+    case 1:
+    case 2:
+    case 3: {
+      float maxl = lumas[channelForLuma-1];
+      if (maxl != 0) {lumas[0] /= maxl; lumas[1] /= maxl; lumas[2] /= maxl;}
+      if (lumas[0]!=0) lumas[0] = 1.f / lumas[0];
+      if (lumas[1]!=0) lumas[1] = 1.f / lumas[1];
+      if (lumas[2]!=0) lumas[2] = 1.f / lumas[2];
+    } break;
+  }
   for (int y = 0; y < 7; y++) {
+    float lr = lumas[0], lg = lumas[1], lb = lumas[2];
+    if (channelForLuma == 0 || y<3 || y >= 6) {lr = lg = lb = 1;}
     for (int x = 0; x < 16; x++) {
       if (x != 0) ImGui::SameLine();
       float k = (float)x / 15.f;
@@ -592,11 +612,12 @@ void dialogMonitorGamma2(bool openIt) {
       ImVec2 cursor2 = cursor;
       cursor2.x += x * 16;
       cursor2.y += y * 16;
+      unsigned int col0 = getUIntColor(ImVec4(r,g,b,1));
       for (int j = 0; j < 4; j++) {
         ImGui::SetCursorScreenPos(cursor2);
-        unsigned int col0 = getUIntColor(ImVec4(r,g,b,1));
-        unsigned int col = gammaCorrect(col0,j & 1, (j / 2) & 1);
-        ImGui::Image((ImTextureID)dotTextures16x16[j], ImVec2(16,16), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col));
+        unsigned int col = gammaCorrect(col0,j & 1, (j / 2) & 1); ImVec4 cx = getImVec4Color(col);
+        cx.x *= lr; cx.y *= lg; cx.z *= lb;
+        ImGui::Image((ImTextureID)dotTextures16x16[j], ImVec2(16,16), ImVec2(0,0), ImVec2(1,1), cx);
         if ((j == 0) && ImGui::IsItemHovered()) {
           toolTip("#%02x%02x%02x", col0 & 255, (col0>>8) & 255, (col0>>16) & 255);
           if (showToolTips) {
@@ -610,8 +631,9 @@ void dialogMonitorGamma2(bool openIt) {
                 c2.y += y2 * 16;
                 for (int j2 = 0; j2 < 4; j2++) {
                   ImGui::SetCursorScreenPos(c2);
-                  unsigned int col2 = gammaCorrect(col0,j2 & 1, (j2 / 2) & 1);
-                  ImGui::Image((ImTextureID)dotTextures16x16[j2], ImVec2(16,16), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col2));
+                  unsigned int col2 = gammaCorrect(col0,j2 & 1, (j2 / 2) & 1); ImVec4 cx2 = getImVec4Color(col2);
+                  cx2.x *= lr; cx2.y *= lg; cx2.z *= lb;
+                  ImGui::Image((ImTextureID)dotTextures16x16[j2], ImVec2(16,16), ImVec2(0,0), ImVec2(1,1), cx2);
                 }
               }
             }
