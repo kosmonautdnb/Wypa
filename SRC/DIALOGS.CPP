@@ -632,7 +632,7 @@ void dialogMonitorGamma2(bool openIt) {
                 for (int j2 = 0; j2 < 4; j2++) {
                   ImGui::SetCursorScreenPos(c2);
                   unsigned int col2 = gammaCorrect(col0,j2 & 1, (j2 / 2) & 1); ImVec4 cx2 = getImVec4Color(col2);
-                  cx2.x *= lr; cx2.y *= lg; cx2.z *= lb;
+                  //cx2.x *= lr; cx2.y *= lg; cx2.z *= lb; better no human eye correction here
                   ImGui::Image((ImTextureID)dotTextures16x16[j2], ImVec2(16,16), ImVec2(0,0), ImVec2(1,1), cx2);
                 }
               }
