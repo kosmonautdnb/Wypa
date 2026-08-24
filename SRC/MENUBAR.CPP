@@ -360,6 +360,9 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Gallery",NULL,galleryVisible)) {galleryVisible = !galleryVisible;}
         ImGui::Separator();
         if (ImGui::MenuItem("Monitor gamma",NULL,monitorGamma != 1.0)) {dialogMonitorGamma(true);}
+        if (monitorGamma != 1.0) {
+          if (ImGui::MenuItem("Dither adjusted monitor colors",NULL,monitorColorsDithered)) {monitorColorsDithered = !monitorColorsDithered; shouldUpdateAll = true; reGenMonitorGamma();}
+        }
         selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9",NULL,&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
         ImGui::Separator();
         if (ImGui::MenuItem("Zoom 100%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,100.f);}

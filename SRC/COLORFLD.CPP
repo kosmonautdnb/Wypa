@@ -39,8 +39,9 @@
 unsigned int colorField_height = 380;
 
 
-unsigned char gammaTable[256*3];
+unsigned short gammaTable[256*3];
 float monitorGamma = 1.f;
+bool monitorColorsDithered = true;
 
 bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv);
 void updateColorSlidersTexture();
@@ -51,26 +52,21 @@ void reGenMonitorGamma() {
   for (int i = 0; i < 256; i++) {
     float f = i / 255.f;
     f = powd(f,monitorGamma);
-    int v = (int)floor(f * 255.f);
+    int v = (int)floor(f * 65535.f);
     if (v < 0) v = 0;
-    if (v > 255) v = 255;
-    gammaTable[i] = (unsigned char)v;
-    gammaTable[i+256*1] = (unsigned char)v;
-    gammaTable[i+256*2] = (unsigned char)v;
+    if (v > 65535) v = 65535;
+    gammaTable[i] = (unsigned short)v;
+    gammaTable[i+256*1] = (unsigned short)v;
+    gammaTable[i+256*2] = (unsigned short)v;
   }
   float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);
   updateColorSlidersTexture();
   refreshToolViewTextures(); // maybe the textures are unitialized but whatever
 }
 
-unsigned int gammaCorrect(unsigned int col) {
-  if (monitorGamma == 1.f) return col;
-  return gammaTable[col & 255]|(gammaTable[((col>>8) & 255)+256*1]<<8)|(gammaTable[((col>>16) & 255)+256*2]<<16)|(col & 0xff000000);
-}
-
 ImVec4 gammaCorrect4(const ImVec4 &col) {
   if (monitorGamma == 1.f) return col;
-  return getImVec4Color(gammaCorrect(getUIntColor(col)));
+  return getImVec4Color(gammaCorrect(getUIntColor(col),0,0));
 }
 
 void updatePalette() {
@@ -164,7 +160,7 @@ void updateColorSlidersTexture() {
       if (ri > 255) ri = 255;
       if (gi > 255) gi = 255;
       if (bi > 255) bi = 255;
-      colorSliderTextureContent[x+y*colorSliderTextureWidth] = gammaCorrect(ri|(gi<<8)|(bi<<16)|0xff000000);
+      colorSliderTextureContent[x+y*colorSliderTextureWidth] = gammaCorrect(ri|(gi<<8)|(bi<<16)|0xff000000,x,0);
     }
   }
   glBindTexture(GL_TEXTURE_2D,colorSliderTexture);
@@ -275,7 +271,7 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
           if ((lv != NULL) && ((int)mx==x) && ((int)my==y)) {*lv = (float)(hy-0.5+0.5); ret = true;}
         }
       }
-      rgba[x+y*colorWheelX] = gammaCorrect(c);
+      rgba[x+y*colorWheelX] = gammaCorrect(c,x,y);
     }
   }
   return ret;

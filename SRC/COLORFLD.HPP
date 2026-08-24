@@ -37,9 +37,26 @@ extern Array<ImVec4> *paletteToSave;
 extern bool showPalette;
 extern bool showSkinTone;
 
-extern unsigned char gammaTable[256*3];
+extern unsigned short gammaTable[256*3];
 void reGenMonitorGamma();
-unsigned int gammaCorrect(unsigned int col);
+extern float monitorGamma;
+extern bool monitorColorsDithered;
+static __inline unsigned int gammaCorrect(unsigned int col, int x, int y) {
+  if (monitorGamma == 1.f) return col;
+  int r = gammaTable[col & 255];
+  int g = gammaTable[((col>>8) & 255)+256*1];
+  int b = gammaTable[((col>>16) & 255)+256*2];
+  if (monitorColorsDithered) {
+    int k;
+    if ((y & 1) == 0) k = (x & 1) ? 128 : 0;
+    if ((y & 1) != 0) k = (x & 1) ?  64 : 196;
+    r += k; if (r > 65535) r = 65535;
+    g += k; if (g > 65535) g = 65535;
+    b += k; if (b > 65535) b = 65535;
+  }
+  r >>= 8; g >>= 8; b >>= 8;
+  return r|(g<<8)|(b<<16)|(col & 0xff000000);
+}
 ImVec4 gammaCorrect4(const ImVec4 &col);
 
 unsigned int swapRB(unsigned int color);

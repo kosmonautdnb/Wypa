@@ -96,7 +96,7 @@ void updateLayerTexture(Layer *l, unsigned int layerTexture) {
         if (sx >= 0 && sx < l->width && sy >= 0 && sy < l->height) 
           col = l->pixels[sx+sy*l->width];
       }
-      dest[x+y*width] = gammaCorrect(col);
+      dest[x+y*width] = gammaCorrect(col,0,0);
     }
   }
 }

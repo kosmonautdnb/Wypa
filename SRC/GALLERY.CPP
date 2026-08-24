@@ -294,7 +294,7 @@ void blitGallery() {
     for (int y = top; y < bottom; y++) {
       for (int x = left; x < right; x++) {
         unsigned int col = glFrameBuffer[x+y*glFrameBufferWidth];
-        col = gammaTable[col & 255]|(gammaTable[((col>>8) & 255)+256*1]<<8)|(gammaTable[((col>>16) & 255)+256*2]<<16)|(col & 0xff000000);
+        col = gammaCorrect(col,x,y);
         glFrameBuffer[x+y*glFrameBufferWidth] = col;
       }
     }

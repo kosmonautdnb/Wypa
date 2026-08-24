@@ -4957,7 +4957,7 @@ void blitCanvas() {
       if ((unsigned int)dx >= (unsigned int)glFrameBufferWidth) continue;
       unsigned int col = currentCanvas->pixels[x+y*currentCanvas->width];
       if (monitorGamma != 1.f) {
-        col = gammaTable[col & 255]|(gammaTable[((col>>8) & 255)+256*1]<<8)|(gammaTable[((col>>16) & 255)+256*2]<<16)|(col & 0xff000000);
+        col = gammaCorrect(col,x,y);
       }
       double lx3 = x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4];
       double ly3 = x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4];

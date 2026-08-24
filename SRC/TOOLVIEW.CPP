@@ -117,7 +117,7 @@ void repaintGradientTexture(Gradient *gradient) {
           fy = fy * 2 - 1;
         }
         unsigned int col = gradient->getColor2D(fx,fy);
-        gradientTextureContent[x+y*gradientTextureWidth] = gammaCorrect(col);
+        gradientTextureContent[x+y*gradientTextureWidth] = gammaCorrect(col,0,0);
       }
     }
     glBindTexture(GL_TEXTURE_2D,gradientTexture);
@@ -951,7 +951,7 @@ void updateTilingImage(const RGBAImage &image) {
         int y3 = (int)floor(y2);
         if ((unsigned int)x3<(unsigned int)image.width&&(unsigned int)y3<(unsigned int)image.height) col = image.data[x3+y3*image.width];
       }
-      tilingTextureContent[x+y*tilingTextureWidth] = gammaCorrect(col);
+      tilingTextureContent[x+y*tilingTextureWidth] = gammaCorrect(col,0,0);
     }
   }
   updateTilingTexture();
@@ -986,7 +986,7 @@ void updateTilingImageAnim(const RGBAImage &image) {
             col = r|(g<<8)|(b<<16)|0xff000000;
           }
         }
-        tilingTextureContentAnim[x+y*tilingTextureWidth] = gammaCorrect(col);
+        tilingTextureContentAnim[x+y*tilingTextureWidth] = gammaCorrect(col,0,0);
       }
     }
     glBindTexture(GL_TEXTURE_2D,tilingTexture);

@@ -90,7 +90,7 @@ void updateNavigatorImage() {
       int sy = y;
       if (sx >= 0 && sx < navigatorCanvas->width && sy >= 0 && sy < navigatorCanvas->height) 
         col = navigatorCanvas->pixels[sx+sy*navigatorCanvas->width];
-      dest[x+y*width] = gammaCorrect(col);
+      dest[x+y*width] = gammaCorrect(col,0,0);
     }
   }
 }
