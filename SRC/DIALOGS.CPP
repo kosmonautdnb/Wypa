@@ -597,7 +597,27 @@ void dialogMonitorGamma2(bool openIt) {
         unsigned int col0 = getUIntColor(ImVec4(r,g,b,1));
         unsigned int col = gammaCorrect(col0,j & 1, (j / 2) & 1);
         ImGui::Image((ImTextureID)dotTextures16x16[j], ImVec2(16,16), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col));
-        if ((j == 0) && ImGui::IsItemHovered()) toolTip("#%02x%02x%02x", col0 & 255, (col0>>8) & 255, (col0>>16) & 255);
+        if ((j == 0) && ImGui::IsItemHovered()) {
+          toolTip("#%02x%02x%02x", col0 & 255, (col0>>8) & 255, (col0>>16) & 255);
+          if (showToolTips) {
+            ImGui::BeginTooltip();
+            ImVec2 c = ImGui::GetCursorScreenPos();
+            for (int y2 = 0; y2 < 8; y2++) {
+              for (int x2 = 0; x2 < 8; x2++) {
+                if (x2 != 0) ImGui::SameLine();
+                ImVec2 c2 = c;
+                c2.x += x2 * 16;
+                c2.y += y2 * 16;
+                for (int j2 = 0; j2 < 4; j2++) {
+                  ImGui::SetCursorScreenPos(c2);
+                  unsigned int col2 = gammaCorrect(col0,j2 & 1, (j2 / 2) & 1);
+                  ImGui::Image((ImTextureID)dotTextures16x16[j2], ImVec2(16,16), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col2));
+                }
+              }
+            }
+            ImGui::EndTooltip();
+          }
+        }
       }
     }
   }
