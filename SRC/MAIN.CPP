@@ -45,7 +45,7 @@
 #include "GALLERY.HPP"
 #include <math.h>
 #include <conio.h>
-
+#include "STL/STBIMGWR.HPP" // to patch SRGB gamma for PNG writes
 
 bool roundButton(const char *name, bool enabled) {
   ImVec4 color_button_off_bg = ImVec4(0.7,0.7,0.7,1);
@@ -330,6 +330,8 @@ int main(int argc, const char *argv[]) {
 #else
   if (!initOtherPlatform()) {printf("Could not initialize.\n"); exit(0);}
 #endif
+
+  imgWritePNGGamma = 1.0/2.2; // standard SRGB Gamma for PNG writes
 
   glClearColor(0,0,0,0);
   glClear(GL_COLOR_BUFFER_BIT);
