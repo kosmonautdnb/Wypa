@@ -290,7 +290,7 @@ void blitGallery() {
     }
   }
 
-  if (monitorGamma != 1) {
+  if (hasMonitorCalibration) {
     for (int y = top; y < bottom; y++) {
       for (int x = left; x < right; x++) {
         unsigned int col = glFrameBuffer[x+y*glFrameBufferWidth];

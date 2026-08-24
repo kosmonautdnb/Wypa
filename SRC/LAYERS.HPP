@@ -989,7 +989,6 @@ extern Layer *selectionPlane;
 extern bool showSelectionPlane;
 extern bool showSelectionPlaneBounding;
 extern bool clearOutlineAfterNextPaint;
-extern float monitorGamma;
 extern bool shouldRecreateQuantization;
 extern bool showOnlyActiveLayersSelection;
 extern bool blitOutlineSolidOneFrame;

@@ -40,9 +40,12 @@ extern bool showSkinTone;
 extern unsigned short gammaTable[256*3];
 void reGenMonitorGamma();
 extern float monitorGamma;
+extern float monitorMin[3];
+extern float monitorMax[3];
 extern bool monitorColorsDithered;
+extern bool hasMonitorCalibration;
 static __inline unsigned int gammaCorrect(unsigned int col, int x, int y) {
-  if (monitorGamma == 1.f) return col;
+  if (!hasMonitorCalibration) return col;
   int r = gammaTable[col & 255];
   int g = gammaTable[((col>>8) & 255)+256*1];
   int b = gammaTable[((col>>16) & 255)+256*2];

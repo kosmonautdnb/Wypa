@@ -55,6 +55,7 @@ double previewAspect = 1;
 String dialogShortPath;
 String dialogLongFileName;
 
+
 void updatePreview() {
   glBindTexture(GL_TEXTURE_2D,previewTexture);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, previewWidth, previewHeight, 0, GL_RGBA, GL_BYTE, preview);
@@ -81,6 +82,8 @@ GLuint dialogPreviewTexture[2] = {0,0};
 int dialogPreviewTextureWidth = 100;
 int dialogPreviewTextureHeight = 100;
 
+GLuint dotTextures16x16[4] = {0,0,0,0};
+
 void initDialogs() {
   glGenTextures(1,&previewTexture);
   glBindTexture(GL_TEXTURE_2D,previewTexture);
@@ -100,12 +103,34 @@ void initDialogs() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D,0);
   }
+
+  unsigned int *dots = new unsigned int[16*16];
+  for (int i2 = 0; i2 < 4; i2++) {
+    glGenTextures(1,&dotTextures16x16[i2]);
+    glBindTexture(GL_TEXTURE_2D,dotTextures16x16[i2]);
+    for (int y = 0; y < 16; y++) {
+      for (int x = 0; x < 16; x++) {
+        bool on = ((x & 1) + (y & 1)*2) == i2;
+        dots[x + y*16] = on ? 0xffffffff : 0x00000000;
+      }
+    }
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, 16, 16, 0, GL_RGBA, GL_BYTE, dots);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D,0);
+  }
+  delete[] dots;
 }
 
 void freeDialogs() {
   glDeleteTextures(1, &previewTexture);
   for (int i = 0; i < 2; i++) {
     glDeleteTextures(1, &dialogPreviewTexture[i]);
+  }
+  for (int i2 = 0; i2 < 4; i2++) {
+    glDeleteTextures(1,&dotTextures16x16[i2]);
   }
 }
 
@@ -493,22 +518,108 @@ void dialogSuite(bool openIt) {
   DIALOGEND()
 }
 
-void dialogMonitorGamma(bool openIt) {
-  DIALOGSTART("Monitor gamma")
+void dialogMonitorGamma2(bool openIt) {
+  DIALOGSTART("Monitor calibration")
+
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1,1,1,1)); 
+  dialogLoadSaveOff = true; dialogLoadSave(false,DIALOG_NONE);
+  ImGui::PopStyleColor();
+
+  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1,1,1,1));
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2,0.2,0.2,1));
   ImGui::PushItemWidth(7*9);
+
   bool updateIt = false;
+
+  ImGui::Separator();
   ImGui::Text("Monitor gamma"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAGAMMA",&monitorGamma)) {updateIt = true;} else toolTip("The monitors luminance curve"); if (monitorGamma<0.0001) monitorGamma = 0.0001; if (monitorGamma>400) monitorGamma = 400;
+  ImGui::Separator();
+  ImGui::Text("Min red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAMINR",&monitorMin[0])) {updateIt = true;} else toolTip("The value where to start with red (so to say black)");
+  ImGui::SameLine();ImGui::Text("Max red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAMAXR",&monitorMax[0])) {updateIt = true;} else toolTip("The value of full red visibility");
+  ImGui::Text("Min green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAMING",&monitorMin[1])) {updateIt = true;} else toolTip("The value where to start with green (so to say black)");
+  ImGui::SameLine();ImGui::Text("Max green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAMAXG",&monitorMax[1])) {updateIt = true;} else toolTip("The value of full green visibility");
+  ImGui::Text("Min blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAMINB",&monitorMin[2])) {updateIt = true;} else toolTip("The value where to start with blue (so to say black)");
+  ImGui::SameLine();ImGui::Text("Max blue"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAMAXB",&monitorMax[2])) {updateIt = true;} else toolTip("The value of full blue visibility");
+  for (int k = 0; k < 3; k++) {
+    if (monitorMin[k] < -512) monitorMin[k] = -512;
+    if (monitorMin[k] > 256) monitorMin[k] = 256;
+    if (monitorMax[k] < 0) monitorMax[k] = 0;
+    if (monitorMax[k] > 512) monitorMax[k] = 512;
+  }
+  ImGui::Separator();
+  if (ImGui::Button("Reset##DIALOGMONITORGAMMARESET")) {
+    monitorMin[0] = 0; monitorMin[1] = 0; monitorMin[2] = 0;
+    monitorMax[0] = 255; monitorMax[1] = 255; monitorMax[2] = 255;
+    monitorGamma = 1;
+    updateIt = true;
+  }
+  ImGui::SameLine();  
+  if (ImGui::Button("Load##DIALOGMONITORGAMMALOAD")) {
+    dialogLoadSave(true,DIALOG_LOADCALIBRATION);
+  }
+  ImGui::SameLine();  
+  if (ImGui::Button("Save##DIALOGMONITORGAMMASAVE")) {
+    dialogLoadSave(true,DIALOG_SAVECALIBRATION);
+  }
+  ImGui::Separator();
+
   if (updateIt) {
     updateIt = false;
     reGenMonitorGamma();
   }
-  ImGui::PopItemWidth();
+
+  int border = 32;
+  ImGui::BeginChild("DIALOGMONITORGAMMACHILD", ImVec2(16*16+border*2,7*16+border*2));
+  ImVec2 cursor = ImGui::GetCursorScreenPos();
+  cursor.x += border;
+  cursor.y += border;
+  for (int y = 0; y < 7; y++) {
+    for (int x = 0; x < 16; x++) {
+      if (x != 0) ImGui::SameLine();
+      float k = (float)x / 15.f;
+      float r = y == 1 ? 1 : 0;
+      float g = y == 2 ? 1 : 0;
+      float b = y == 0 ? 1 : 0;
+      r = (r * (1-k)) + k;
+      g = (g * (1-k)) + k;
+      b = (b * (1-k)) + k;
+      if (y >= 3) {
+        r = y == 4 ? k : 0;
+        g = y == 5 ? k : 0;
+        b = y == 3 ? k : 0;
+      }
+      if (y == 6) {r = g = b = k;}
+      ImVec2 cursor2 = cursor;
+      cursor2.x += x * 16;
+      cursor2.y += y * 16;
+      for (int j = 0; j < 4; j++) {
+        ImGui::SetCursorScreenPos(cursor2);
+        unsigned int col0 = getUIntColor(ImVec4(r,g,b,1));
+        unsigned int col = gammaCorrect(col0,j & 1, (j / 2) & 1);
+        ImGui::Image((ImTextureID)dotTextures16x16[j], ImVec2(16,16), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col));
+        if ((j == 0) && ImGui::IsItemHovered()) toolTip("#%02x%02x%02x", col0 & 255, (col0>>8) & 255, (col0>>16) & 255);
+      }
+    }
+  }
+  ImGui::EndChild();
+
   if (ImGui::Button("Close##DIALOGMONITORGAMMACLOSE")) {
     ImGui::CloseCurrentPopup();
   }
+
+  ImGui::PopItemWidth();
+  ImGui::PopStyleColor();
+  ImGui::PopStyleColor();
   DIALOGEND()
 }
 
+void dialogMonitorGamma(bool openIt) {
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0,0,0,1)); 
+  float before = ImGui::GetStyle().WindowFillAlphaDefault; ImGui::GetStyle().WindowFillAlphaDefault = 1.f;
+  dialogMonitorGamma2(openIt);
+  ImGui::GetStyle().WindowFillAlphaDefault = before; 
+  ImGui::PopStyleColor();
+}
 void dialogInsertTileMapLayer(bool openIt) {
 
   static char layerName[LAYERNAMEMAX];
@@ -3156,11 +3267,12 @@ const char *txt = "*.txt";
 const char *lut = "*.cube";
 const char *tga = "*.tga";
 const char *cmapped = ".tga,.pcx,.lbm";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text","Load UTF8 text","LUT Color lookup","Export (paletted) tga","Palette from (paletted) picture"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load","Load","Load","Save","Load"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt,txt,lut,tga,cmapped};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture};
+const char *calib = "*.cl2";
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text","Load UTF8 text","LUT Color lookup","Export (paletted) tga","Palette from (paletted) picture", "Load calibration", "Save calibration"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load","Load","Load","Save","Load","Load","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt,txt,lut,tga,cmapped,calib,calib};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga",".cl2",".cl2"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture,loadCalibration,saveCalibration};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < (int)files.size(); i++) {

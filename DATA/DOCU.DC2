@@ -585,7 +585,7 @@
       "The gallery shows just the single layer/preview for a picture." _N_
       "If the picture has transparencies, it is shown with \"Premul\"." _N_
     "}" _N_
-    "Monitor gamma{" _N_
+    "Monitor calibration{" _N_
       "Let's you enter a gamma value for the monitor." _N_
       "Gamma is actually the color value raised to the power of" _N_
       "the specified gamma value. This may help with editing non" _N_
@@ -593,8 +593,10 @@
       "maybe the visibility of the colors is hard to distinguish for" _N_
       "certain colors." _N_
       "A gamma of 2.2 almost looks like my android phones output here." _N_
+      "You can also adjust the min and max color levels, but that's" _N_
+      "more or less only for monitors that don't work 100% right." _N_
     "}" _N_
-    "Dither adjusted monitor colors{" _N_
+    "Dither calibrated monitor colors{" _N_
       "This option is only available if monitor calibration is enabled." _N_
       "Like e.g. monitor gamma is not 1.0." _N_
       "You get a simple dithering in the image layer which somehow" _N_

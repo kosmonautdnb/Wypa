@@ -1687,6 +1687,36 @@ void loadLUT(const char *shortPath, const char *longFileName) {
   shouldUpdateAll = true;
 }
 
+void loadCalibration(const char *shortPath, const char *longFileName) {
+  Array<unsigned char> arr;
+  getFileArray(&arr,String(shortPath)+String(longFileName));
+  if (!arr.empty()) {
+    const char *str = (char*)&arr[0];
+    Array<String> lines; getLines(lines, str);
+    if ((int)lines.size() >= 4) {
+      sscanf(lines[0].c_str(),"%f", &monitorGamma);
+      sscanf(lines[1].c_str(),"%f %f", &monitorMin[0], &monitorMax[0]);
+      sscanf(lines[2].c_str(),"%f %f", &monitorMin[1], &monitorMax[1]);
+      sscanf(lines[3].c_str(),"%f %f", &monitorMin[2], &monitorMax[2]);
+      loadedSomething();
+    }
+  }
+  reGenMonitorGamma();
+  shouldUpdateAll = true;
+}
+
+void saveCalibration(const char *shortPath, const char *longFileName) {
+  FILE *out = createTempFile(shortPath,"w");
+  fprintf(out,"%f\n",monitorGamma);
+  fprintf(out,"%f %f\n",monitorMin[0],monitorMax[0]);
+  fprintf(out,"%f %f\n",monitorMin[1],monitorMax[1]);
+  fprintf(out,"%f %f\n",monitorMin[2],monitorMax[2]);
+  write_fclose(out);
+  renameTempFile(shortPath, longFileName);
+  verifyFile(shortPath, longFileName, true);
+  savedSomething();
+}
+
 Layer *loadImage(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAIMAGEFROMFILE(img,filePath,fileName);

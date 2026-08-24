@@ -4956,7 +4956,7 @@ void blitCanvas() {
       int dx = x + currentCanvas->screenPosX;
       if ((unsigned int)dx >= (unsigned int)glFrameBufferWidth) continue;
       unsigned int col = currentCanvas->pixels[x+y*currentCanvas->width];
-      if (monitorGamma != 1.f) {
+      if (hasMonitorCalibration) {
         col = gammaCorrect(col,x,y);
       }
       double lx3 = x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4];

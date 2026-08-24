@@ -40,7 +40,10 @@ unsigned int colorField_height = 380;
 
 
 unsigned short gammaTable[256*3];
+bool hasMonitorCalibration = false;
 float monitorGamma = 1.f;
+float monitorMin[3] = {0,0,0};
+float monitorMax[3] = {255,255,255};
 bool monitorColorsDithered = true;
 
 bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv);
@@ -49,15 +52,21 @@ void updateColorSlidersTexture();
 void reGenMonitorGamma() {
   if (monitorGamma < 0.0001) monitorGamma = 0.0001;
   if (monitorGamma > 400) monitorGamma = 400;
+
+  hasMonitorCalibration = monitorGamma != 1.f || monitorMin[0] != 0 || monitorMin[1] != 0 || monitorMin[2] != 0 || monitorMax[0] != 255 || monitorMax[1] != 255 || monitorMax[2] != 255;
+
   for (int i = 0; i < 256; i++) {
     float f = i / 255.f;
     f = powd(f,monitorGamma);
-    int v = (int)floor(f * 65535.f);
-    if (v < 0) v = 0;
-    if (v > 65535) v = 65535;
-    gammaTable[i] = (unsigned short)v;
-    gammaTable[i+256*1] = (unsigned short)v;
-    gammaTable[i+256*2] = (unsigned short)v;
+    f = f * 255.f;
+    for (int j = 0; j < 3; j++) {
+      float scal = (float)(monitorMax[j] - monitorMin[j]) / 255.f; if (scal == 0) scal = 1;
+      float f2 = f * scal + monitorMin[j];
+      int v = (int)floor(f2 * 256.f);
+      if (v < 0) v = 0;
+      if (v > 65535) v = 65535;
+      gammaTable[i + j*256] = (unsigned short)v;
+    }
   }
   float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);
   updateColorSlidersTexture();
@@ -65,7 +74,7 @@ void reGenMonitorGamma() {
 }
 
 ImVec4 gammaCorrect4(const ImVec4 &col) {
-  if (monitorGamma == 1.f) return col;
+  if (!hasMonitorCalibration) return col;
   return getImVec4Color(gammaCorrect(getUIntColor(col),0,0));
 }
 
