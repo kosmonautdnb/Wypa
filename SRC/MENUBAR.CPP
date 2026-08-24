@@ -40,6 +40,7 @@
 #include "GALLERY.HPP"
 #include "LAYERV.HPP"
 #include <math.h>
+#include "STL/STBIMGWR.HPP" // to patch SRGB gamma for PNG writes
 
 int menuBar_height = 17;
 unsigned int undoBlink = 0;
@@ -362,6 +363,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Monitor calibration",NULL,hasMonitorCalibration)) {dialogMonitorGamma(true);}
         if (hasMonitorCalibration) if (ImGui::MenuItem("Dither calibrated monitor colors",NULL,monitorColorsDithered)) {monitorColorsDithered = !monitorColorsDithered; shouldUpdateAll = true; reGenMonitorGamma();}
         selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9",NULL,&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Export pngs with DOS gamma",NULL,imgWritePNGGamma==1.0)) {imgWritePNGGamma = imgWritePNGGamma == 1.0 ? 1.0/2.2 : 1.0;}
         ImGui::Separator();
         if (ImGui::MenuItem("Zoom 100%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,100.f);}
         if (ImGui::MenuItem("Zoom 200%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,200.f);}
