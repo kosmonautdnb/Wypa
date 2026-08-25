@@ -595,6 +595,13 @@
       "A gamma of 2.2 almost looks like my android phones output here." _N_
       "You can also adjust the min and max color levels, but that's" _N_
       "more or less only for monitors that don't work 100% right." _N_
+      "PNG exports should contain monitor gamma info{" _N_
+        "PNG files contain a section about their gamma value." _N_
+        "If you enable this option, the png file contains your" _N_
+        "monitor gamma  here. If it's disabled it's sRGB (2.2)." _N_
+        "Be aware that you need a special image viewer to see the" _N_
+        "difference.. E.g. a web browser would do this in most cases." _N_
+      "}" _N_
     "}" _N_
     "Dither calibrated monitor colors{" _N_
       "This option is only available if monitor calibration is enabled." _N_

@@ -36,6 +36,7 @@
 #include "GALLERY.HPP"
 #include "TEXT.HPP"
 #include <math.h>
+#include "STL/STBIMGWR.HPP" // to patch SRGB gamma for PNG writes
 
 bool reOpen = false;
 bool dialogNoMove = false;
@@ -533,6 +534,11 @@ void dialogMonitorGamma2(bool openIt) {
 
   ImGui::Separator();
   ImGui::Text("Monitor gamma"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAGAMMA",&monitorGamma)) {updateIt = true;} else toolTip("The monitors luminance curve"); if (monitorGamma<0.0001) monitorGamma = 0.0001; if (monitorGamma>400) monitorGamma = 400;
+  ImGui::Text("On a default operating system 1.0 is ~=2.2");
+  ImGui::Separator();
+  static bool useMonitorGammaInPngExports = false;
+  ImGui::Text("PNG exports should contain monitor gamma info"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGMONITORGAMMAPNGEXPORTS",&useMonitorGammaInPngExports)) {;} else toolTip("If you need to use other tools/programs but the same monitor.");
+  imgWritePNGGamma = useMonitorGammaInPngExports ? 1.0/(2.2*(monitorGamma==0?1:monitorGamma)) : 1.0/2.2;
   ImGui::Separator();
   ImGui::Text("Min red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAMINR",&monitorMin[0])) {updateIt = true;} else toolTip("The value where to start with red (so to say black)");
   ImGui::SameLine();ImGui::Text("Max red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAMAXR",&monitorMax[0])) {updateIt = true;} else toolTip("The value of full red visibility");
