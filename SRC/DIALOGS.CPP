@@ -207,8 +207,6 @@ void dialogAbout(bool openIt) {
     "all design by\n"
     "Stefan Mader of Puls4r\n"
     "------------------------------------\n"
-    "Icons (license CC0) by Rainer Muehr\n"
-    "------------------------------------\n"
     "Source is released under the most\n"
     "common: MIT License. (open source)\n"
     "------------------------------------\n"
