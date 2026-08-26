@@ -631,6 +631,14 @@
       "Zooms out by a small value, you can also use keys to do that" _N_
       "The zooming gets applied from the center of the \"screen\"" _N_
     "}" _N_
+    "Vintage color wheel{" _N_
+      "This option switches between an oldschool and a rather" _N_
+      "newschool color picker at the right part of the screen." _N_
+    "}" _N_
+    "Show skin tone range in hue{" _N_
+      "This option shows a skin tone mark in the hues." _N_
+      "Skin tones reside between hue 20 and hue 30 degrees." _N_
+    "}" _N_
     "Show layer shapes{" _N_
       "The layer size and position is painted as yellow rectangles also" _N_
       "to the screen." _N_
