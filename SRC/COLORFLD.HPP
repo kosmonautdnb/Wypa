@@ -36,6 +36,7 @@ extern Array<ImVec4> palette;
 extern Array<ImVec4> *paletteToSave;
 extern bool showPalette;
 extern bool showSkinTone;
+extern bool alternativeColorWheel;
 
 extern unsigned short gammaTable[256*3];
 void reGenMonitorGamma();
@@ -79,6 +80,8 @@ void getHsl(const ImVec4 &rgb, float *hv, float *sv, float *lv);
 void updatePalette();
 
 void sortPalette(Array<ImVec4> &pal);
+
+void reGenColorWheel();
 
 #define COLORTRACEBACKS 8
 extern unsigned int colorTraceBacks[COLORTRACEBACKS];

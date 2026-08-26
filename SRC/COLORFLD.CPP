@@ -39,6 +39,17 @@
 unsigned int colorField_height = 380;
 
 
+enum COLORSLIDER_TYPES {
+  COLORSLIDER_NONE = 0,
+  COLORSLIDER_RED = 1,
+  COLORSLIDER_GREEN = 2,
+  COLORSLIDER_BLUE = 3,
+  COLORSLIDER_HUE = 4,
+  COLORSLIDER_SATURATION = 5,
+  COLORSLIDER_LIGHTNESS = 6,
+};
+int lastColorSlider = COLORSLIDER_RED;
+
 unsigned short gammaTable[256*3];
 bool hasMonitorCalibration = false;
 float monitorGamma = 1.f;
@@ -190,6 +201,7 @@ bool roundButton(const char *name, bool enabled);
 
 bool showPalette = false;
 bool showSkinTone = false;
+bool alternativeColorWheel = false;
 int paletteColorsPerRow = 16;
 Array<ImVec4> palette;
 Array<ImVec4> *paletteToSave;
@@ -243,7 +255,46 @@ void getHsl(const ImVec4 &rgb, float *hv, float *sv, float *lv) {
   *lv = (float)l;
 }
 
+bool updateColorWheelOldStyle(int mx, int my, float *hv, float *sv, float *lv) {
+  bool ret = false;
+  unsigned int *rgba = glGetTexturePointer(colorWheelTexture);
+  ImVec4 color2;
+  float fh,fs,fl; getHsl(foregroundColor,&fh,&fs,&fl);
+  for (int y = 0; y < (int)colorWheelY; y++) {
+    double fy = (double)y / (colorWheelY-1);
+    for (int x = 0; x < (int)colorWheelX; x++) {
+      double fx = (double)x / (colorWheelX-1);
+      float h = 0, s = 0, l = 0;
+      bool skinDisp = false;
+      switch(lastColorSlider) {
+        case COLORSLIDER_RED: {color2.x = foregroundColor.x; color2.y = 1-fy; color2.z = fx; getHsl(color2,&h,&s,&l);} break;
+        case COLORSLIDER_GREEN: {color2.x = 1-fy; color2.y = foregroundColor.y; color2.z = fx; getHsl(color2,&h,&s,&l);} break;
+        case COLORSLIDER_BLUE: {color2.x = fx; color2.y = 1-fy; color2.z = foregroundColor.z; getHsl(color2,&h,&s,&l);} break;
+        case COLORSLIDER_HUE: {h = fh; s = fx; l = 1-fy;} break;
+        case COLORSLIDER_SATURATION: {h = fx; s = fs; l = 1-fy; skinDisp = true;} break;
+        case COLORSLIDER_LIGHTNESS: {h = fx; s = 1-fy; l = fl; skinDisp = true;} break;
+      }
+      ImVec4 c2 = hsl(h,s,l);
+      if ((hv != NULL) && ((int)mx==x) && ((int)my==y)) {*hv = h; ret = true;}
+      if ((sv != NULL) && ((int)mx==x) && ((int)my==y)) {*sv = s; ret = true;}
+      if ((lv != NULL) && ((int)mx==x) && ((int)my==y)) {*lv = l; ret = true;}
+      int ri = c2.x * 255.0; int gi = c2.y * 255.0; int bi = c2.z * 255.0;
+      if (showSkinTone && skinDisp && h >= 20.0/360.0 && h < 30.0/360.0) {
+        ri += 64; gi += 64; bi += 64;
+        if (ri > 255) ri = 255;
+        if (gi > 255) gi = 255;
+        if (bi > 255) bi = 255;
+      }
+      unsigned int c = ri|(gi<<8)|(bi<<16)|0xff000000; rgba[x+y*colorWheelX] = gammaCorrect(c,x,y);
+    }
+  }
+  return ret;
+}
+
 bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) {
+  if (alternativeColorWheel) {
+    return updateColorWheelOldStyle(mx, my, hv, sv, lv);
+  }
   bool ret = false;
   const double a = -h * 2 * PI;
   const double wheelPixels = 16.0;
@@ -258,6 +309,12 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
       if (d < 1.0 && d > 1.0 - wheelPixels/colorWheelX) {
         float h = atan2(fx,fy)/PI*0.5+0.5;
         ImVec4 c2 = hsl(h,1,0.5);
+        if (showSkinTone && h>=20.0/360 && h<30.0/360) {
+          c2.x *= 2; c2.y *= 2; c2.z *= 2;
+          if (c2.x > 1) c2.x = 1;
+          if (c2.y > 1) c2.y = 1;
+          if (c2.z > 1) c2.z = 1;
+        }
         int ri = c2.x * 255.0;
         int gi = c2.y * 255.0;
         int bi = c2.z * 255.0;
@@ -388,17 +445,18 @@ void colorDisplay(ImVec4 *c) {
   k = c->w * 255.0; if (ImGui::SliderFloat("Alpha##DIALOGCOLORCOLORALPHA",&k,0,255)) {c->w = k/255.0;} else toolTip("Transparency");
   ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0,0,0,0));
   bool update = false;
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,0,sw); k = c->x * 255.0; if (ImGui::SliderFloat("Red##DIALOGCOLORCOLORRED",&k,0,255)) {c->x = k/255.0;updateColorSlidersTexture();update = true;} else toolTip("Red part");
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,1,sw); k = c->y * 255.0; if (ImGui::SliderFloat("Green##DIALOGCOLORCOLORGREEN",&k,0,255)) {c->y = k/255.0;updateColorSlidersTexture();update = true;} else toolTip("Green part");
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,2,sw); k = c->z * 255.0; if (ImGui::SliderFloat("Blue##DIALOGCOLORCOLORBLUE",&k,0,255)) {c->z = k/255.0;updateColorSlidersTexture();update = true;} else toolTip("Blue part");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,0,sw); k = c->x * 255.0; if (ImGui::SliderFloat("Red##DIALOGCOLORCOLORRED",&k,0,255)) {lastColorSlider = COLORSLIDER_RED; c->x = k/255.0;updateColorSlidersTexture();update = true;} else toolTip("Red part");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,1,sw); k = c->y * 255.0; if (ImGui::SliderFloat("Green##DIALOGCOLORCOLORGREEN",&k,0,255)) {lastColorSlider = COLORSLIDER_GREEN; c->y = k/255.0;updateColorSlidersTexture();update = true;} else toolTip("Green part");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,2,sw); k = c->z * 255.0; if (ImGui::SliderFloat("Blue##DIALOGCOLORCOLORBLUE",&k,0,255)) {lastColorSlider = COLORSLIDER_BLUE;c->z = k/255.0; updateColorSlidersTexture();update = true;} else toolTip("Blue part");
   float h,s,l; 
+  getHsl(*c,&h,&s,&l);
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,3,sw); ImVec4 col(0,0,0,1);  k = h*360.0; if (showSkinTone) {blitSkinToneRange(before, sw); if (k>=20&&k<=30) col = ImVec4(1,0,0,1);} ImGui::PushStyleColor(ImGuiCol_Text,col); if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {lastColorSlider = COLORSLIDER_HUE; double w = c->w; h = k/360.0; *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorSlidersTexture(); update = true;} else toolTip("Hue of color"); ImGui::PopStyleColor();
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,4,sw); k = s;  if (ImGui::SliderFloat("Sat.##DIALOGCOLORCOLORSAT",&k,0,1)) {lastColorSlider = COLORSLIDER_SATURATION; double w = c->w; s = k; *c = hsl(h,s,l); c->w = w; updateColorSlidersTexture(); update = true;} else toolTip("Saturation of color");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,5,sw); k = l;  if (ImGui::SliderFloat("Light.##DIALOGCOLORCOLORLIT",&k,0,1)) {lastColorSlider = COLORSLIDER_LIGHTNESS; double w = c->w; l = k; *c = hsl(h,s,l); c->w = w; updateColorSlidersTexture(); update = true;} else toolTip("Lightness of color");
   getHsl(*c,&h,&s,&l);
   if (update) {
     updateColorWheel(h,0,0,NULL,NULL,NULL);
   }
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,3,sw); ImVec4 col(0,0,0,1);  k = h*360.0; if (showSkinTone) {blitSkinToneRange(before, sw); if (k>=20&&k<=30) col = ImVec4(1,0,0,1);} ImGui::PushStyleColor(ImGuiCol_Text,col); if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {double w = c->w; h = k/360.0; updateColorWheel(h,0,0,&h,&s,&l); *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);updateColorSlidersTexture();} else toolTip("Hue of color"); ImGui::PopStyleColor();
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,4,sw); k = s;  if (ImGui::SliderFloat("Sat.##DIALOGCOLORCOLORSAT",&k,0,1)) {double w = c->w; s = k; *c = hsl(h,s,l); c->w = w;updateColorSlidersTexture();} else toolTip("Saturation of color");
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,5,sw); k = l;  if (ImGui::SliderFloat("Light.##DIALOGCOLORCOLORLIT",&k,0,1)) {double w = c->w; l = k; *c = hsl(h,s,l); c->w = w;updateColorSlidersTexture();} else toolTip("Lightness of color");
   ImGui::PopStyleColor();
   ImGui::PopItemWidth();
   ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0,0,0,0));
@@ -494,6 +552,10 @@ void displayPostProcessedColorItem(const char *id) {
     ImGui::Image((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(c2)); toolTip("Postprocessed color");
     ImGui::PopID();
   }
+}
+
+void reGenColorWheel() {
+  float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);
 }
 
 void drawColorField() {

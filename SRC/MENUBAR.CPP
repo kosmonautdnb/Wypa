@@ -372,7 +372,8 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Show canvas darkened",NULL,showCanvasDarkened)) {showCanvasDarkened = !showCanvasDarkened; shouldUpdateAll = true;}
         ImGui::Separator();
-        if (ImGui::MenuItem("Show skin tone range in hue",NULL,showSkinTone)) {showSkinTone = !showSkinTone;}
+        if (ImGui::MenuItem("Vintage color wheel",NULL,alternativeColorWheel)) {alternativeColorWheel = !alternativeColorWheel;reGenColorWheel();}
+        if (ImGui::MenuItem("Show skin tone range in hue",NULL,showSkinTone)) {showSkinTone = !showSkinTone;reGenColorWheel();}
         ImGui::Separator();
         if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
