@@ -1509,13 +1509,13 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
           here = (bottom-top)*yf+top;
         }
         if (here >= 0) {
-          float value = paintValues[p];
-          value = 1-(1-here)*(1-value);
           if (!justSelection || (layer->pixelStates[p] & PIXELSTATE_SELECTED)) {
             if (paintJustIntoOutline) {
               layer->pixelStates[p] |= PIXELSTATE_OUTLINE;
             } else {
-              paintValues[p] = value;
+                float value = paintValues[p];
+                value = 1 - (1 - here) * (1 - value);
+                paintValues[p] = value;
             }
             layer->pixelStates[p] |= PIXELSTATE_TEMP;
           }

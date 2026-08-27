@@ -308,6 +308,9 @@ void dosShell() {
 int main(int argc, const char *argv[]) {
 
   appFolder = unixFileName(getPath(argv[0]));
+#ifdef _WIN32
+  appFolder = getCWD();
+#endif
   //appFolder = getCWD();
 
   printf("Wypa version: %d.%02d", version / 100, version % 100);

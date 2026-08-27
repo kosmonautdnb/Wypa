@@ -53,7 +53,11 @@
 #endif
 
 #define MEMWARNINGMB 16
+
 //#define OTHERPLATFORM
+#ifdef _WIN32
+#define OTHERPLATFORM
+#endif
 
 extern double fps;
 extern double timeDelta;
@@ -64,6 +68,7 @@ extern const char *appName;
 extern String appFolder;
 extern unsigned int controlKeyId;
 extern int version;
+extern bool captureMouse;
 
 extern uint32_t main_window_xres;
 extern uint32_t main_window_yres;

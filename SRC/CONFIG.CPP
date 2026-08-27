@@ -46,6 +46,7 @@ const char *logFileName = "WYPA.LOG";
 String appFolder;
 bool refreshMasked = true;
 int version = 95;
+bool captureMouse = true;
 double zoomStep = 1.25;
 double scrollKeyPixels = main_window_xres/20;
 unsigned int undoStageCount = 10;
@@ -110,7 +111,7 @@ int getAdditionalMemoryFreeBytes() {
   return mem;
 #endif // __DJGPP__
 #ifdef NOT_DOS
-  return 0;
+  return 256*1024*1024;
 #endif // NOT_DOS
 }
 
@@ -221,6 +222,140 @@ float luminanceValues[3] = {0.2126f,0.7152f,0.0722f}; //{0.25,0.6,.15};
 // maybe you need to update case sensitivity for includes, maybe #include "STL/DOS.HPP" has to get #include "stl/dos.hpp"
 //--
 #ifdef OTHERPLATFORM
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define WIN32_EXTRA_LEAN
+#include <windows.h>
+#include <mmsystem.h>
+static BITMAPINFO bmi = { {sizeof(BITMAPINFOHEADER),(LONG)main_window_xres,-(LONG)main_window_yres,1,32,BI_RGB,0,0,0,0,0},{0,0,0,0} };
+static DEVMODE screenSettings = { {0},
+    #if _MSC_VER < 1400
+    0,0,148,0,0x001c0000,{0},0,0,0,0,0,0,0,0,0,{0},0,32,XRES,YRES,0,0,      // Visual C++ 6.0
+    #else
+    0,0,156,0,0x001c0000,{0},0,0,0,0,0,{0},0,32,main_window_xres,main_window_yres,{0}, 0,           // Visuatl Studio 2005
+    #endif
+    #if(WINVER >= 0x0400)
+    0,0,0,0,0,0,
+    #if (WINVER >= 0x0500) || (_WIN32_WINNT >= 0x0400)
+    0,0
+    #endif
+    #endif
+};
+#include <time.h>
+#include <conio.h>
+unsigned int* frameBufferX = NULL;
+float* depthBufferX = NULL;
+GLdouble glStartClockX;
+GLdouble glSecondsX() { return (GLdouble)(clock() - glStartClockX) / CLOCKS_PER_SEC; }
+GLvoid glSetTimeX(GLdouble seconds) { glStartClockX = clock() - seconds * CLOCKS_PER_SEC; }
+GLushort glNextKeyX() { if (!_kbhit()) return 0; return _getch(); }
+double mouseDeltaX_X = 0; double mouseDeltaY_X = 0;
+GLvoid glNextMouseDeltaX(GLdouble* deltaX, GLdouble* deltaY) { 
+    *deltaX = mouseDeltaX_X; *deltaY = mouseDeltaY_X;
+    mouseDeltaX_X = mouseDeltaY_X = 0;
+}
+GLushort glMouseButtonsX() {
+    GLushort ret = GetAsyncKeyState(VK_LBUTTON) & 0x8000 ? GL_MOUSE_BUTTON_LEFT : 0;
+    ret |= GetAsyncKeyState(VK_MBUTTON) & 0x8000 ? GL_MOUSE_BUTTON_MIDDLE : 0;
+    ret |= GetAsyncKeyState(VK_RBUTTON) & 0x8000 ? GL_MOUSE_BUTTON_RIGHT : 0;
+    return ret;
+}
+GLvoid glSpecialKeysX(GLboolean* shiftKey, GLboolean* ctrlKey, GLboolean* altKey) {
+if (shiftKey != NULL) { *shiftKey = (GetAsyncKeyState(VK_LSHIFT) | GetAsyncKeyState(VK_RSHIFT)) & 0x8000 ? GL_TRUE : GL_FALSE; }
+if (ctrlKey != NULL) { *ctrlKey = (GetAsyncKeyState(VK_LCONTROL) | GetAsyncKeyState(VK_RCONTROL)) & 0x8000 ? GL_TRUE : GL_FALSE; }
+if (altKey != NULL) { *altKey = (GetAsyncKeyState(VK_LMENU) | GetAsyncKeyState(VK_RMENU)) & 0x8000 ? GL_TRUE : GL_FALSE; }
+}
+HDC hDC;
+__inline unsigned int ___swapRB(unsigned int k) {
+    return ((k & 0x00ff0000) >> 16) | ((k & 0x000000ff) << 16) | (k & 0xff00ff00);
+}
+bool lastMX = captureMouse;
+GLvoid glRefreshX() {
+    unsigned int* blitti = new unsigned int[glFrameBufferWidth * glFrameBufferHeight];
+    for (int i = 0; i < glFrameBufferWidth * glFrameBufferHeight; i++) blitti[i] = ___swapRB(glFrameBuffer[i]);
+    StretchDIBits(hDC, 0, 0, glFrameBufferWidth, glFrameBufferHeight, 0, 0, glFrameBufferWidth, glFrameBufferHeight, blitti, &bmi, DIB_RGB_COLORS, SRCCOPY);
+    delete[] blitti;
+    MSG msg;
+    while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+    {
+        //done |= (GetAsyncKeyState(VK_ESCAPE) != 0);
+        //if (msg.message == WM_QUIT) ..
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    Sleep(10);
+    if (lastMX != captureMouse) { lastMX = captureMouse; ShowCursor(!lastMX); }
+}
+GLvoid glDoneX() {
+    if (frameBufferX != NULL) { free(frameBufferX); frameBufferX = NULL; }
+    if (depthBufferX != NULL) { free(depthBufferX); depthBufferX = NULL; }
+}
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (msg == WM_INPUT) {
+        RAWINPUT raw;
+        UINT size = sizeof(raw);
+        if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER)) == size) {
+            if (raw.header.dwType == RIM_TYPEMOUSE) {
+                LONG dx = raw.data.mouse.lLastX;
+                LONG dy = raw.data.mouse.lLastY;
+                mouseDeltaX_X = dx;
+                mouseDeltaY_X = dy;
+                if (IsWindow(hwnd)) { // not reliable enough the cursor could move out of the window anyways
+                    RECT rect;
+                    if (GetClientRect(hwnd, &rect)) {
+                        int centerX = (rect.right - rect.left) / 2;
+                        int centerY = (rect.bottom - rect.top) / 2;
+                        POINT pt = { centerX, centerY };
+                        if (ClientToScreen(hwnd, &pt)) {
+                            if (captureMouse) SetCursorPos(pt.x, pt.y);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+bool initOtherPlatform() {
+    WNDCLASS wc = { 0 };
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = L"WypaWNDClass";
+    RegisterClass(&wc);
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN)-100; int screenHeight = GetSystemMetrics(SM_CYSCREEN)-100;
+    main_window_xres = screenWidth; main_window_yres = screenHeight;
+    bmi.bmiHeader.biHeight = -screenHeight; bmi.bmiHeader.biWidth = screenWidth;
+    screenSettings.dmPelsWidth = screenWidth;screenSettings.dmPelsHeight= screenHeight;
+    aspectRatio = (double)main_window_xres / main_window_yres;
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+    HWND hwnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, L"WypaWNDClass", L"Wypa", WS_VISIBLE | WS_POPUP | WS_BORDER, 0, 0, main_window_xres, main_window_yres, NULL, NULL, wc.hInstance, NULL);
+    hDC = GetDC(hwnd);
+    RAWINPUTDEVICE rid;
+    rid.usUsagePage = 0x01;
+    rid.usUsage = 0x02;
+    rid.dwFlags = RIDEV_INPUTSINK;
+    rid.hwndTarget = hwnd;
+    RegisterRawInputDevices(&rid, 1, sizeof(rid));
+    lastMX = captureMouse; ShowCursor(!lastMX);
+    ShowWindow(hwnd, SW_SHOW);
+    SetForegroundWindow(hwnd);
+    SetFocus(hwnd);
+    glSetSecondsCallback(glSecondsX);
+    glSetSetTimeCallback(glSetTimeX);
+    glSetNextKeyCallback(glNextKeyX);
+    glSetNextMouseDeltaCallback(glNextMouseDeltaX);
+    glSetMouseButtonsCallback(glMouseButtonsX);
+    glSetSpecialKeysCallback(glSpecialKeysX);
+    glSetRefreshNotification(glRefreshX);
+    glSetDoneNotification(glDoneX);
+    int w = main_window_xres; int h = main_window_yres;
+    frameBufferX = (unsigned int*)malloc(w * h * sizeof(unsigned int)); depthBufferX = (float*)malloc(w * h * sizeof(float));
+    glDirect(frameBufferX, depthBufferX, NULL, w, h);
+    return true;
+}
+
+#else // _WIN32
+
 #include <time.h>
 #ifdef __DJGPP__
 #include <sys/nearptr.h>
@@ -294,5 +429,6 @@ bool initOtherPlatform() {
   glDirect(frameBufferX, depthBufferX, NULL, w, h); oldMode = getDosBiosGraphicsMode(); setDosBiosGraphicsMode(0x13);
   return true;
 }
+#endif //_WIN32
 #endif //OTHERPLATFORM
 //--

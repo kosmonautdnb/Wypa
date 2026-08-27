@@ -87,7 +87,10 @@ String extensiveTimeDescString() {
 }
 
 void setMouseSensitivity() {
-  mouseSpeed = pow(1.1,mouseSensitivity)-0.1-0.75;
+    mouseSpeed = pow(1.1,mouseSensitivity)-0.1-0.75;
+#ifdef _WIN32
+    mouseSpeed *= 8;
+#endif // _WIN32
 }
 
 void initMenuBar() {
@@ -177,6 +180,8 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
         ImGui::Separator();
+        if (ImGui::MenuItem("Captured mouse", NULL, captureMouse)) { captureMouse = !captureMouse; }
+        ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
         ImGui::EndMenu();
       }
@@ -215,6 +220,7 @@ void drawMenuBar() {
 #endif // __DJGPP__
         if (hasShell && ImGui::MenuItem("Open a shell")) {dosShell();}
         if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
+        if (ImGui::MenuItem("Captured mouse", NULL, captureMouse)) { captureMouse = !captureMouse; }
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
         ImGui::EndMenu();
