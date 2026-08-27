@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "TOOLBAR.HPP"
 #include "IMGUI/IMGUI.H"
 #include "MENUBAR.HPP"
@@ -55,7 +56,7 @@ bool imageButton(const char *svgName, const char *id, bool selected, bool hiligh
   SVG *svg = &svgs[svgName];
   ImGui::PushID(id);
   ImVec4 col = selected ? ImVec4(0.5,0.5,0.5,1) : ImVec4(1,1,1,1);
-  bool ret = ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h),ImVec2(0,0),ImVec2(1,1),0,col);
+  bool ret = ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h),ImVec2(0,0),ImVec2(1,1),0,col);
   if (hilighted) {
     ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);
   }
@@ -118,7 +119,7 @@ void turnOnScreenSaver();
 
 int additionalQuadHeight = 24;
 void drawAdditionalQuad() {
-  unsigned int col = getUIntColor(ImVec4(0.7,0.7,0.7,1));
+  unsigned int col = getUIntColor(ImVec4(0.7f,0.7f,0.7f,1));
   unsigned int col2 = 0xff7c5b87;
   double aspect = 1.0/aspectRatio * main_window_xres / main_window_yres;
   for (int y = 0; y < additionalQuadHeight; y++) {
@@ -137,9 +138,9 @@ void drawAdditionalQuad() {
 
 void drawToolBar() {
   if (!fullScreen) {
-    ImGui::SetNextWindowPos(ImVec2(0,menuBar_height));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.7,0.7,0.7,1));
-    ImGui::Begin("TOOLBAR", NULL, ImVec2(toolbar_width,main_window_yres-menuBar_height-additionalQuadHeight),1.0,FROZENWINDOW);
+    ImGui::SetNextWindowPos(ImVec2(0,(float)menuBar_height));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.7f,0.7f,0.7f,1));
+    ImGui::Begin("TOOLBAR", NULL, ImVec2((float)toolbar_width,(float)(main_window_yres-menuBar_height-additionalQuadHeight)),1.0,FROZENWINDOW);
     toolBarButton("selectionTool",TOOL_SELECTION); toolTip("Selection tool");
     toolBarButton("moveTool",TOOL_MOVE); toolTip("Move tool");
     toolBarButton("wandTool",TOOL_WAND); toolTip("Magic wand tool");

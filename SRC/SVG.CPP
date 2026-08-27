@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "STL/GL.H"
 #include "SVG.HPP"
 
@@ -40,13 +41,13 @@ HashMap<String, SVG> svgs;
 #define ADDAPPICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,25,25,25.0/256.0,aspectRatio)
 
 #define ICONSCALE (16.0/11.0)
-#define ADDICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,11*ICONSCALE,11*ICONSCALE,1*ICONSCALE,aspectRatio)
+#define ADDICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,(int)(11*ICONSCALE),(int)(11*ICONSCALE),1*ICONSCALE,aspectRatio)
 
 #define ICON2SCALE (16.0/24.0)
-#define ADDICON2(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,24*ICON2SCALE,24*ICON2SCALE,1*ICON2SCALE,aspectRatio)
+#define ADDICON2(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,(int)(24*ICON2SCALE),(int)(24*ICON2SCALE),1*ICON2SCALE,aspectRatio)
 
-#define ADDTOOLBARICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/24.0),aspectRatio)
-#define ADDTOOLBARICONFROMSWIFE(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,toolbar_width2,toolbar_width2,((double)toolbar_width2/11.0),aspectRatio)
+#define ADDTOOLBARICON(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,(int)(toolbar_width2),(int)(toolbar_width2),((double)toolbar_width2/24.0),aspectRatio)
+#define ADDTOOLBARICONFROMSWIFE(__a__,__b__) addSVG(__a__,"./DATA/ICONS/" __b__,(int)(toolbar_width2),(int)(toolbar_width2),((double)toolbar_width2/11.0),aspectRatio)
 
 SVG *SVG::free() {
   if (rgba != NULL) {::free(rgba); rgba = NULL;}
@@ -85,7 +86,7 @@ void addSVG(const char *id, const char *fileName, int width, int height,double s
   int w = width;
   int h = height;
   unsigned int* img = (unsigned int*)malloc(w*h*4);
-  nsvgRasterize(rast, image, 0,0,scale, (unsigned char*)img, w, h, w*4);
+  nsvgRasterize(rast, image, 0,0,(float)scale, (unsigned char*)img, w, h, w*4);
   nsvgDelete(image);
   nsvgDeleteRasterizer(rast);
   RGBAImage img2;
@@ -93,7 +94,7 @@ void addSVG(const char *id, const char *fileName, int width, int height,double s
   img2.width = w;
   img2.height = h;
   RGBAImage img3;
-  img3 = img2.getResized(w/aspect*main_window_xres/main_window_yres,h); // this here somehow "blurs" the images, but is needed on FreeDOS
+  img3 = img2.getResized((int)(w/aspect*main_window_xres/main_window_yres),h); // this here somehow "blurs" the images, but is needed on FreeDOS
   img2.free();
   svgs[id].set(fileName,img3.data,img3.width,img3.height);
 }

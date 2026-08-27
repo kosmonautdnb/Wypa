@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "MENUBAR.HPP"
 #include "CONFIG.HPP"
 #include "STL/GL.H"
@@ -101,7 +102,7 @@ void takeScreenShot() {
   img.data = glFrameBuffer;
   img.width = glFrameBufferWidth;
   img.height = glFrameBufferHeight;
-  int newWidth = img.width * aspectRatio * main_window_yres/main_window_xres;
+  int newWidth = (int)(img.width * aspectRatio * main_window_yres/main_window_xres);
   img = img.getResized(newWidth,img.height);
   memset(glFrameBuffer,0xff,glFrameBufferWidth*glFrameBufferHeight*sizeof(unsigned int));
   if (refreshMasked) glRefreshMasked(); else glRefresh();
@@ -128,7 +129,7 @@ void drawMenuBar() {
   ImGui::PushStyleColor(ImGuiCol_MenuBarBg,ImVec4(0.f,0.f,0.f,1.f));
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1.f,1.f,1.f,1.f));
   ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(0.f,0.f,0.f,1.f));
-  ImGui::PushStyleColor(ImGuiCol_HeaderHovered,ImVec4(0.1,0.1,0.1,1));
+  ImGui::PushStyleColor(ImGuiCol_HeaderHovered,ImVec4(0.1f,0.1f,0.1f,1));
   double canvasPixelCenterX = currentCanvas->width/2 + currentCanvas->screenPosX;
   double canvasPixelCenterY = currentCanvas->height/2 + currentCanvas->screenPosY;
   if (ImGui::BeginMainMenuBar()) {
@@ -137,7 +138,7 @@ void drawMenuBar() {
     cursor.x -= 7-2+4;
     ImGui::SetCursorScreenPos(cursor); 
     ImVec2 cursor2 = cursor;
-    ImGui::Image((ImTextureID)0,ImVec2(svg->w+7*5,svg->h),ImVec2(0,0),ImVec2(0,0),ImVec4(0,0,0,0));
+    ImGui::Image((ImTextureID)0,ImVec2((float)(svg->w+7*5),(float)svg->h),ImVec2(0,0),ImVec2(0,0),ImVec4(0,0,0,0));
     if (ImGui::IsItemHovered()&&ImGui::IsMouseClicked(0)) {dialogAbout(true);}
     cursor.y += 1;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
@@ -432,7 +433,7 @@ void drawMenuBar() {
         if (canvas[i]->hasUpdates()) {hasUpdates = true; break;}
       }
   
-      if (ImGui::BeginMenu(combined(String(hasUpdates?".":"")+String("Pictures[")+String::fromInt(canvas.size()) + "]##MENUBARPICTURES").c_str())) {
+      if (ImGui::BeginMenu(combined(String(hasUpdates?".":"")+String("Pictures[")+String::fromInt((int)canvas.size()) + "]##MENUBARPICTURES").c_str())) {
         on = true;
         for (int i = 0; i < (int)canvas.size(); i++) {
           bool isIt = canvas[i] == currentCanvas;
@@ -479,7 +480,7 @@ void drawMenuBar() {
     String timeDesc = timeDescString();
     if (((k2%10) < 1) && timeDesc.length()>3) {timeDesc[timeDesc.length()-3] = ' ';}
     ImVec2 cursorScreen = ImGui::GetCursorScreenPos();
-    cursorScreen.x = main_window_xres - timeDesc.length()*7;
+    cursorScreen.x = (float)(main_window_xres - timeDesc.length()*7);
     ImGui::SetCursorScreenPos(cursorScreen);
     ImGui::Text("%s",timeDesc.c_str()); toolTip("Info: %s", extensiveTimeDescString().c_str());
     cursorScreen.x -= 7 + 3;
@@ -487,7 +488,7 @@ void drawMenuBar() {
     ImGui::SetCursorScreenPos(cursorScreen);
     horzSep();
 
-    cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 + 5;
+    cursorScreen.x = (float)(main_window_xres - timeDesc.length()*7 - 150 + 5);
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);
     ImGui::Text("Mouse rate");
@@ -503,7 +504,7 @@ void drawMenuBar() {
     ImGui::PopItemWidth();
 
 
-    cursorScreen.x = main_window_xres - timeDesc.length()*7 - 150 - 110 - 20-3;
+    cursorScreen.x = (float)(main_window_xres - timeDesc.length()*7 - 150 - 110 - 20-3);
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);
     horzSep();
@@ -514,9 +515,9 @@ void drawMenuBar() {
     ImGui::SameLine();
     ImGui::PushItemWidth(50);
     ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.125,0.125,0.125,1));
-    float zoom = currentCanvas->control.zoom;
+    float zoom = (float)(currentCanvas->control.zoom);
     if (ImGui::InputFloat("##DRAWMENUBARZOOM",&zoom,0,0,2)) {
-      if (zoom < 0.01) zoom = 0.01;
+      if (zoom < 0.01f) zoom = 0.01f;
       currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,zoom);
     } else toolTip("Zoom of the complete picture");
     ImGui::PopStyleColor();

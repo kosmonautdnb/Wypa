@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "CONFIG.HPP"
 #include "IMGUI/IMGUI.H"
 #ifdef OTHERPLATFORM
@@ -100,13 +101,17 @@ int getAdditionalMemoryFreeBytes() {
   int mem = 0;
   if (mem == 0 && MemInfo.LargestBlockAvail != 0xffffffff) mem = MemInfo.LargestBlockAvail;
   return mem;
-#else
+#endif // __WATCOMC__
+#ifdef __DJGPP__        
   __dpmi_free_mem_info memInfo;
   __dpmi_get_free_memory_information(&memInfo);
   int mem = 0;
   if (memInfo.largest_available_free_block_in_bytes  != 0xffffffff) mem = memInfo.largest_available_free_block_in_bytes;
   return mem;
-#endif
+#endif // __DJGPP__
+#ifdef NOT_DOS
+  return 0;
+#endif // NOT_DOS
 }
 
 float getFreeMemoryInKb() {
@@ -154,9 +159,9 @@ int getUsedTextureBytes() {
 void showDebugWindow() {
   if (!debugWindowOn) return;
   int additionalSize = 0;
-  additionalSize += paintValues.allocatedSize * sizeof(float);
-  additionalSize += paintBackground.allocatedSize * sizeof(unsigned int);
-  additionalSize += quantization.allocatedSize * sizeof(unsigned short);
+  additionalSize += (int)(paintValues.allocatedSize * sizeof(float));
+  additionalSize += (int)(paintBackground.allocatedSize * sizeof(unsigned int));
+  additionalSize += (int)(quantization.allocatedSize * sizeof(unsigned short));
 
   ImGui::PushStyleColor(ImGuiCol_TitleBg,ImVec4(0,0.75,0.75,0.5));
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1,1,1,1));
@@ -208,7 +213,7 @@ void toolTip2(const char *fmt, ...) {
   ImGui::EndTooltip();
 }
 
-float luminanceValues[3] = {0.2126,0.7152,0.0722}; //{0.25,0.6,.15};
+float luminanceValues[3] = {0.2126f,0.7152f,0.0722f}; //{0.25,0.6,.15};
 
 // if you want to port Wypa to another platform than DOS, you could start here
 // you need the #define __GLDISABLEDOSFUNCTIONS__ 1 at compiletime like gcc -D__GLDISABLEDOSFUNCTIONS__

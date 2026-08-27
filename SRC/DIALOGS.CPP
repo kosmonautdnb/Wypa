@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "STL/GL.H"
 #include "IMGUI/IMGUIGL.HPP"
 #include "CONFIG.HPP"
@@ -41,7 +42,7 @@
 bool reOpen = false;
 bool dialogNoMove = false;
 
-#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; UNUSED(keyboardFocusNew); static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize|(dialogNoMove?ImGuiWindowFlags_NoMove:0))) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4,0.4,0.4,1));disableNativeInput();
+#define DIALOGSTART(__name__) static int keyboardFocusNew = 0; UNUSED(keyboardFocusNew); static bool openItNextTime = false;  if (openIt) {openItNextTime = true; keyboardFocusNew = 2; return;}  if (openItNextTime) {openItNextTime = false; ImGui::OpenPopup(__name__); } ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1)); ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(1,1,1,1); if (ImGui::BeginPopupModal(__name__,NULL,ImGuiWindowFlags_AlwaysAutoResize|(dialogNoMove?ImGuiWindowFlags_NoMove:0))) { ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1); ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.4f,0.4f,0.4f,1));disableNativeInput();
 #define DIALOGEND() ImGui::PopStyleColor(); ImGui::EndPopup();} ImGui::PopStyleColor();
 #define DIALOGKEYSHERE() {if (keyboardFocusNew>0) {keyboardFocusNew--;ImGui::SetKeyboardFocusHere();}}
 
@@ -75,8 +76,8 @@ void clearPreview() {
 
 void noUndoMessage() {
   static double k = 0; k += timeDelta*2; k = fmod(k,100);
-  int t = k;
-  ImGui::TextColored(ImVec4(1,0,0,(t & 1)*0.5+0.5),"Be aware that there is no <undo> for this!!");
+  int t = (int)k;
+  ImGui::TextColored(ImVec4(1,0,0,(float)((t & 1)*0.5+0.5)),"Be aware that there is no <undo> for this!!");
 }
 
 GLuint dialogPreviewTexture[2] = {0,0};
@@ -184,7 +185,7 @@ void dialogs() {
 }
 
 void drawDialogs() {
-  ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
+  ImGui::SetNextWindowPos(ImVec2((float)(main_window_xres-64),0));
   ImGui::Begin("DRAWDIALOGS", NULL, ImVec2(0,0),0.0,FROZENWINDOW);
   dialogs();
   ImGui::End();
@@ -289,7 +290,7 @@ void dialogDocumentation(bool openIt) {
 
   DIALOGSTART("Tiny documentation")
   bool toFirst = false;
-  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine(); DIALOGKEYSHERE(); if (ImGui::InputText("##DIALOGDOCUMENTATIONFILTER",filter,FILTERNAMEMAX2)) {toFirst = true; index = 0;}
+  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h));ImGui::SameLine(); DIALOGKEYSHERE(); if (ImGui::InputText("##DIALOGDOCUMENTATIONFILTER",filter,FILTERNAMEMAX2)) {toFirst = true; index = 0;}
 
   ImGui::SameLine();
   if (ImGui::Button("Collapse all##DIALOGDOCUMENTATIONCOLLAPSEALL")) {
@@ -306,9 +307,9 @@ void dialogDocumentation(bool openIt) {
   ImGui::Text("This docu is done by a german, so don't be too angry");
   ImGui::Text("about the style/content.");
   ImGui::Separator();
-  ImGui::BeginChild("DIALOGDOCUMENTATIONCHILD",ImVec2(width,height));
-  if (currentKey == GL_VK_PAGEDOWN) ImGui::SetScrollY(ImGui::GetScrollY()+height*0.75);
-  if (currentKey == GL_VK_PAGEUP) ImGui::SetScrollY(ImGui::GetScrollY()-height*0.75);
+  ImGui::BeginChild("DIALOGDOCUMENTATIONCHILD",ImVec2((float)width,(float)height));
+  if (currentKey == GL_VK_PAGEDOWN) ImGui::SetScrollY((float)(ImGui::GetScrollY()+height*0.75));
+  if (currentKey == GL_VK_PAGEUP) ImGui::SetScrollY((float)(ImGui::GetScrollY()-height*0.75));
   if (currentKey == GL_VK_F3) {index++; toFirst = true;}
   const char *s = docuString;
   String currentLine = "";
@@ -344,7 +345,7 @@ void dialogDocumentation(bool openIt) {
           if (currentLine.empty()) continue;
         }
         float expandSize = 1;
-        int siz = ImGui::GetWindowFontSize()*(isExpanding?expandSize:1);
+        int siz = (int)(ImGui::GetWindowFontSize()*(isExpanding?expandSize:1));
         ImVec2 a = ImGui::CalcTextSize(currentLine.c_str());
         a.x *= expandSize; a.y *= expandSize; a.x += cursor.x; a.y += cursor.y;
 
@@ -355,7 +356,7 @@ void dialogDocumentation(bool openIt) {
           if (found) {
             ImGui::GetWindowDrawList()->AddRectFilled(cursor,a,index2==index?0xff8080ff:0xff0000ff);
           }
-          ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),siz,ImVec2(cursor.x,cursor.y),0xff000000, currentLine.c_str());
+          ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),(float)siz,ImVec2(cursor.x,cursor.y),0xff000000, currentLine.c_str());
           if (isExpanding) {
             if (ImGui::IsMouseHoveringRect(cursor,a)) {
               ImGui::GetWindowDrawList()->AddRectFilled(cursor,a,0x20ffffff);
@@ -525,13 +526,13 @@ void dialogMonitorGamma2(bool openIt) {
   ImGui::PopStyleColor();
 
   ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1,1,1,1));
-  ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2,0.2,0.2,1));
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f,0.2f,0.2f,1));
   ImGui::PushItemWidth(7*9);
 
   bool updateIt = false;
 
   ImGui::Separator();
-  ImGui::Text("Monitor gamma"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAGAMMA",&monitorGamma)) {updateIt = true;} else toolTip("The monitors luminance curve"); if (monitorGamma<0.0001) monitorGamma = 0.0001; if (monitorGamma>400) monitorGamma = 400;
+  ImGui::Text("Monitor gamma"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMONITORGAMMAGAMMA",&monitorGamma)) {updateIt = true;} else toolTip("The monitors luminance curve"); if (monitorGamma<0.0001f) monitorGamma = 0.0001f; if (monitorGamma>400) monitorGamma = 400;
   ImGui::Text("On a default operating system 1.0 is ~=2.2");
   ImGui::Separator();
   static bool useMonitorGammaInPngExports = false;
@@ -578,7 +579,7 @@ void dialogMonitorGamma2(bool openIt) {
   }
 
   int border = 32;
-  ImGui::BeginChild("DIALOGMONITORGAMMACHILD", ImVec2(16*16+border*2,7*16+border*2));
+  ImGui::BeginChild("DIALOGMONITORGAMMACHILD", ImVec2((float)(16*16+border*2),(float)(7*16+border*2)));
   ImVec2 cursor = ImGui::GetCursorScreenPos();
   cursor.x += border;
   cursor.y += border;
@@ -601,9 +602,9 @@ void dialogMonitorGamma2(bool openIt) {
     for (int x = 0; x < 16; x++) {
       if (x != 0) ImGui::SameLine();
       float k = (float)x / 15.f;
-      float r = y == 1 ? 1 : 0;
-      float g = y == 2 ? 1 : 0;
-      float b = y == 0 ? 1 : 0;
+      float r = (float)(y == 1 ? 1 : 0);
+      float g = (float)(y == 2 ? 1 : 0);
+      float b = (float)(y == 0 ? 1 : 0);
       r = (r * (1-k)) + k;
       g = (g * (1-k)) + k;
       b = (b * (1-k)) + k;
@@ -780,7 +781,7 @@ void dialogClahe(bool openIt) {
   }
   DIALOGSTART("Clahe lighting")
   ImGui::PushItemWidth(7*9);
-  ImGui::Text("Clahe damping"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGCLAHEVALUE",&clahe,0); toolTip("Lesser values add more light"); if (clahe < 0.05) clahe = 0.05; if (clahe > 4) clahe = 4;
+  ImGui::Text("Clahe damping"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGCLAHEVALUE",&clahe,0); toolTip("Lesser values add more light"); if (clahe < 0.05f) clahe = 0.05f; if (clahe > 4) clahe = 4;
   ImGui::Text("Clahe cell size"); ImGui::SameLine(); ImGui::InputInt("##DIALOGCLAHECELLSIZE",&cellSize,0,0); toolTip("The less the more positional difference in lighting"); if (cellSize < 8) cellSize = 8;
   ImGui::PopItemWidth();
   if (ImGui::Button("Apply##DIALOGCLAHEAPPLY")) {
@@ -872,20 +873,20 @@ void dialogFontGlyphs(bool openIt, const char *fontFileName) {
   int glyphXRes = (w-16) / (countX > 0 ? countX : 1);
   int glyphYRes = glyphXRes;
   if (fontSource != NULL) {
-    ImGui::BeginChild("DIALOGFONTGLYPHSCHILD",ImVec2(w,h));
-    double aspect = 1.0/aspectRatio * main_window_xres / main_window_yres;
+    ImGui::BeginChild("DIALOGFONTGLYPHSCHILD",ImVec2((float)w,(float)h));
+    double aspect = 1.0 / aspectRatio * main_window_xres / main_window_yres; if (aspect == 0) aspect = 1;
     ImVec2 c = ImGui::GetCursorScreenPos();
-    ImGui::Image((ImTextureID)glyphTexture, ImVec2(glyphTextureWidth, glyphTextureHeight/aspect));
+    ImGui::Image((ImTextureID)glyphTexture, ImVec2((float)glyphTextureWidth, (float)(glyphTextureHeight/aspect)));
     int count = 0;
     for (int k = 0; k < 0x10000; k++) {
       if (fontSource->hasGlyph((unsigned short)k)) {
         int cx = count % countX;
         int cy = count / countX;
         int sx = cx * glyphXRes;
-        int sy = ((cy+1) * glyphYRes)/aspect-13;
-        sx += c.x; sy += c.y;
+        int sy = (int)(((cy+1) * glyphYRes)/aspect-13);
+        sx += (int)c.x; sy += (int)c.y;
         if (sx >= 0 && sy >= 0 && sx < (int)main_window_xres && sy < (int)main_window_yres) {
-          ImGui::SetCursorScreenPos(ImVec2(sx,sy));
+          ImGui::SetCursorScreenPos(ImVec2((float)sx,(float)sy));
           ImGui::TextColored(ImVec4(1,0,0,0.75),"^%04x",k);
         }
         count++;
@@ -940,7 +941,7 @@ void dialogCopyPasteLoadedText(bool openIt) {
   }
   DIALOGSTART("Copy paste text")
   ImGui::Text("Text from loaded file");
-  ImVec2 boxSize(main_window_xres*5/6,main_window_yres/3);
+  ImVec2 boxSize((float)(main_window_xres*5/6),(float)(main_window_yres/3));
   DIALOGKEYSHERE();
   ImGui::InputTextMultiline("##DIALOGCOPYPASTELOADEDTEXTFROMFILE", &loadedText[0], loadedTextLength, boxSize); toolTip("The file you have loaded");
   ImGui::Text("Text to be pasted to");
@@ -953,7 +954,7 @@ void dialogCopyPasteLoadedText(bool openIt) {
 
 void dialogEditText(bool openIt) {
   DIALOGSTART("Edit text")
-  ImVec2 boxSize(main_window_xres*5/6,main_window_yres*2/3);
+  ImVec2 boxSize((float)(main_window_xres*5/6),(float)(main_window_yres*2/3));
   DIALOGKEYSHERE();
   ImGui::InputTextMultiline("##DIALOGEDITTEXTTEXTTOEDIT", textToSave, textToSaveLength, boxSize); toolTip("The text to be edited");
   if (ImGui::Button("Close##DIALOGEDITTEXTCLOSE")) {
@@ -988,7 +989,7 @@ void dialogDisplacementMap(bool openIt) {
   ImGui::Text("The green channel is for y displacement");
   ImGui::Text("");
   ImGui::Text("Select a layer as displacement source"); toolTip("This will be the graphical source for the displacement per pixel");
-  ImGui::BeginChild("DIALOGDISPLACEMENTMAPCHILD", ImVec2(main_window_xres/2,main_window_yres/3));
+  ImGui::BeginChild("DIALOGDISPLACEMENTMAPCHILD", ImVec2((float)(main_window_xres/2),(float)(main_window_yres/3)));
   for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
     if (currentCanvas->layers[i] != l) {
       String buttonName = (layer == i ? ">" : " ") + String("Layer") + String::fromInt(i) + ":\"" + currentCanvas->layers[i]->name + "\"##" + String::fromInt(i);
@@ -1123,26 +1124,26 @@ void dialogCanvas(bool openIt) {
   double h = currentCanvas->canvasY1-currentCanvas->canvasY0;
   if (w < 1) w = 1;
   if (h < 1) h = 1;
-  if (ImGui::Button("tl##DIALOGCANVASTL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = y0;} else toolTip("Canvas is at the upper left of the current canvas");
+  if (ImGui::Button("tl##DIALOGCANVASTL")) {currentCanvas->canvasX0 = (int)x0;currentCanvas->canvasY0 = (int)y0;} else toolTip("Canvas is at the upper left of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("tc##DIALOGCANVASTC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = y0;} else toolTip("Canvas is at the upper center of the current canvas");
+  if (ImGui::Button("tc##DIALOGCANVASTC")) {currentCanvas->canvasX0 = (int)((x0+x1)/2-w/2);currentCanvas->canvasY0 = (int)y0;} else toolTip("Canvas is at the upper center of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("tr##DIALOGCANVASTR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = y0;} else toolTip("Canvas is at the upper right of the current canvas");
+  if (ImGui::Button("tr##DIALOGCANVASTR")) {currentCanvas->canvasX0 = (int)(x1-w);currentCanvas->canvasY0 = (int)(y0);} else toolTip("Canvas is at the upper right of the current canvas");
 
-  if (ImGui::Button("cl##DIALOGCANVASCL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = (y0+y1)/2-h/2;} else toolTip("Canvas is at the mid left of the current canvas");
+  if (ImGui::Button("cl##DIALOGCANVASCL")) {currentCanvas->canvasX0 = (int)(x0);currentCanvas->canvasY0 = (int)((y0+y1)/2-h/2);} else toolTip("Canvas is at the mid left of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("cc##DIALOGCANVASCC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = (y0+y1)/2-h/2;} else toolTip("Canvas is at the center of the current canvas");
+  if (ImGui::Button("cc##DIALOGCANVASCC")) {currentCanvas->canvasX0 = (int)((x0+x1)/2-w/2);currentCanvas->canvasY0 = (int)((y0+y1)/2-h/2);} else toolTip("Canvas is at the center of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("cr##DIALOGCANVASCR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = (y0+y1)/2-h/2;} else toolTip("Canvas is at the mid right of the current canvas");
+  if (ImGui::Button("cr##DIALOGCANVASCR")) {currentCanvas->canvasX0 = (int)(x1-w);currentCanvas->canvasY0 = (int)((y0+y1)/2-h/2);} else toolTip("Canvas is at the mid right of the current canvas");
 
-  if (ImGui::Button("bl##DIALOGCANVASBL")) {currentCanvas->canvasX0 = x0;currentCanvas->canvasY0 = y1-h;} else toolTip("Canvas is at the bottom left of the current canvas");
+  if (ImGui::Button("bl##DIALOGCANVASBL")) {currentCanvas->canvasX0 = (int)x0;currentCanvas->canvasY0 = (int)(y1-h);} else toolTip("Canvas is at the bottom left of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("bc##DIALOGCANVASBC")) {currentCanvas->canvasX0 = (x0+x1)/2-w/2;currentCanvas->canvasY0 = y1-h;} else toolTip("Canvas is at the bottom center of the current canvas");
+  if (ImGui::Button("bc##DIALOGCANVASBC")) {currentCanvas->canvasX0 = (int)((x0+x1)/2-w/2);currentCanvas->canvasY0 = (int)(y1-h);} else toolTip("Canvas is at the bottom center of the current canvas");
   ImGui::SameLine();
-  if (ImGui::Button("br##DIALOGCANVASBR")) {currentCanvas->canvasX0 = x1-w;currentCanvas->canvasY0 = y1-h;} else toolTip("Canvas is at the bottom right of the current canvas");
+  if (ImGui::Button("br##DIALOGCANVASBR")) {currentCanvas->canvasX0 = (int)(x1-w);currentCanvas->canvasY0 = (int)(y1-h);} else toolTip("Canvas is at the bottom right of the current canvas");
 
-  currentCanvas->canvasX1 = currentCanvas->canvasX0+w;
-  currentCanvas->canvasY1 = currentCanvas->canvasY0+h;
+  currentCanvas->canvasX1 = (int)(currentCanvas->canvasX0+w);
+  currentCanvas->canvasY1 = (int)(currentCanvas->canvasY0+h);
 
   ImGui::PushItemWidth(64+16*2);
 
@@ -1346,7 +1347,7 @@ void dialogDeleteLayers(bool openIt) {
   } else {
     noUndoMessage();
     ImGui::Text("Layers to delete");
-    ImGui::BeginChild("DELETELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
+    ImGui::BeginChild("DELETELAYERSCHILD",ImVec2((float)(main_window_xres/2),(float)(main_window_yres/3)));
     for (int i = 0; i < (int)layers.size(); i++) {
       ImGui::Text("\"%s\" %s",layers[i]->name,layers[i]->sourceLayerId != 0 ? "it's a REFERENCE":"");
     }
@@ -1382,7 +1383,7 @@ void dialogMergeDown(bool openIt) {
   } else {
     noUndoMessage();
     ImGui::Text("Layers to merge");
-    ImGui::BeginChild("MERGEDOWNLAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
+    ImGui::BeginChild("MERGEDOWNLAYERSCHILD",ImVec2((float)(main_window_xres/2),(float)(main_window_yres/3)));
     for (int i = 0; i < (int)layers.size(); i++) {
       ImGui::Text("\"%s\"",layers[i]->name);
     }
@@ -1458,8 +1459,8 @@ void dialogPictureInfo(bool openIt) {
   }
   DIALOGSTART("Picture info");
   int nameSize = 7*(PICTURENAMEMAX);
-  ImGui::PushItemWidth(nameSize);
-  ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9,0.9,0.9,1));
+  ImGui::PushItemWidth((float)nameSize);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9f,0.9f,0.9f,1));
   ImGui::Text("Name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGPICTUREINFOPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX); toolTip("The name of the picture");
   ImGui::Text("Author"); ImGui::SameLine(); ImGui::InputText("##DIALOGPICTUREINFOAUTHOR",currentCanvas->author, PICTURENAMEMAX); toolTip("The author of that picture");
   ImGui::PopStyleColor();
@@ -1562,11 +1563,11 @@ public:
       }
     }
     if (found < 0) return 0;
-    float deltaX = x - points[found].x;
-    float deltaXF = points[found+1].x - points[found].x;
+    float deltaX = (float)(x - points[found].x);
+    float deltaXF = (float)(points[found+1].x - points[found].x);
     if (deltaXF == 0) return points[found].x;
     if (points[found].dx[1]==0&&points[found].dy[1]==0&&points[found+1].dx[0]==0&&points[found+1].dy[0]==0)
-      return (points[found+1].y - points[found].y)*deltaX/deltaXF + points[found].y;
+      return (int)((points[found+1].y - points[found].y)*deltaX/deltaXF + points[found].y);
     return bezierY[x];
   } 
 
@@ -1606,10 +1607,10 @@ public:
         int dx = bxi-lxi;
         int dy = byi-lyi;
         int d = abs(dx);
-        float xp = lxi;
-        float yp = lyi;
-        float xa = 1;
-        float ya = d>0?dy/d:0;
+        float xp = (float)lxi;
+        float yp = (float)lyi;
+        float xa = (float)1;
+        float ya = (float)(d>0?(float)dy/d:0);
         for (int k = 0; k < d+1; k++) {
           int xpi = (int)floor(xp);
           int ypi = (int)floor(yp);
@@ -1634,8 +1635,8 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c, int histogramCou
   bool mouseLeft = ImGui::IsMouseDown(0);
   bool toolTipShown = false;
   for (int i = 0; i < (int)c.points.size()-1; i++) {
-    ImVec2 p0 = ImVec2(c.points[i].x,255-c.points[i].y);
-    ImVec2 p1 = ImVec2(c.points[i+1].x,255-c.points[i+1].y);
+    ImVec2 p0 = ImVec2((float)(c.points[i].x), (float)(255-c.points[i].y));
+    ImVec2 p1 = ImVec2((float)(c.points[i+1].x), (float)(255-c.points[i+1].y));
     p0.x += minB.x;
     p0.y += minB.y;
     p1.x += minB.x;
@@ -1646,7 +1647,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c, int histogramCou
         if (!toolTipShown) {
           float dx = p1.x - p0.x;
           float py = p0.y;
-          if (dx != 0) py = (p1.y-p0.y)*(mouseX-p0.x)/dx+p0.y;
+          if (dx != 0) py = (float)((p1.y-p0.y)*(mouseX-p0.x)/dx+p0.y);
           py -= minB.y; py = 255 - py;
           toolTip("%d,%d\n%d", (int)(mouseX-minB.x),(int)py,histogramCount); toolTipShown = true;
         }
@@ -1654,7 +1655,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c, int histogramCou
     } else {
       ImVec2 last = p0;
       for (int x = c.points[i].x; x < c.points[i+1].x; x++) {
-        ImVec2 p = ImVec2(x,255-c.bezierY[x]);
+        ImVec2 p = ImVec2((float)x,(float)(255-c.bezierY[x]));
         p.x += minB.x;
         p.y += minB.y;
         ImGui::GetWindowDrawList()->AddLine(last,p,0xffffffff);
@@ -1675,7 +1676,7 @@ void drawCurve(const ImVec2 &minB,const ImVec2 &maxB, Curve &c, int histogramCou
     c.dragPoint = -1;
   }
   for (int i2 = 0; i2 < (int)c.points.size(); i2++) {
-    ImVec2 p0 = ImVec2(c.points[i2].x,255-c.points[i2].y);
+    ImVec2 p0 = ImVec2((float)(c.points[i2].x),(float)(255-c.points[i2].y));
     p0.x += minB.x;
     p0.y += minB.y;
     double dx = mouseX - p0.x;
@@ -1852,10 +1853,10 @@ void dialogPreview(Layer *l0, Layer *l1) {
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, dialogPreviewTextureWidth, dialogPreviewTextureHeight, 0, GL_RGBA, GL_BYTE, &image[0]);
   glBindTexture(GL_TEXTURE_2D,0);
   double a = main_window_yres == 0 || aspectRatio == 0 ? 1 : 1.0/aspectRatio * main_window_xres / main_window_yres;
-  int dialogPreviewTextureWidth2 = dialogPreviewTextureWidth * a;
-  ImGui::Image((ImTextureID)dialogPreviewTexture[0],ImVec2(dialogPreviewTextureWidth2,dialogPreviewTextureHeight));
+  int dialogPreviewTextureWidth2 = (int)(dialogPreviewTextureWidth * a);
+  ImGui::Image((ImTextureID)dialogPreviewTexture[0],ImVec2((float)dialogPreviewTextureWidth2, (float)dialogPreviewTextureHeight));
   ImGui::SameLine();
-  ImGui::Image((ImTextureID)dialogPreviewTexture[1],ImVec2(dialogPreviewTextureWidth2,dialogPreviewTextureHeight));
+  ImGui::Image((ImTextureID)dialogPreviewTexture[1],ImVec2((float)dialogPreviewTextureWidth2, (float)dialogPreviewTextureHeight));
 }
 
 #define DIALOGPREVIEW(__layerAfter__, __layerBefore__) dialogPreview(__layerAfter__,__layerBefore__);
@@ -1915,13 +1916,13 @@ void dialogGradiationCurves(bool openIt) {
   if (roundButton("Save##DIALOGGRADIATIONLOAD",true)) {
     dialogLoadSave(true,DIALOG_SAVEGRADIENTCURVES);
   } else toolTip("Save this curve");
-  ImGui::BeginChild("DIALOGGRADIENTCURVESCHILD",ImVec2(gradiationTextureWidth,gradiationTextureHeight));
-  ImGui::Image((ImTextureID)gradiationTexture,ImVec2(gradiationTextureWidth,gradiationTextureHeight));
+  ImGui::BeginChild("DIALOGGRADIENTCURVESCHILD",ImVec2((float)gradiationTextureWidth,(float)gradiationTextureHeight));
+  ImGui::Image((ImTextureID)gradiationTexture,ImVec2((float)gradiationTextureWidth,(float)gradiationTextureHeight));
   ImVec2 minB = ImGui::GetItemRectMin();
   ImVec2 maxB = ImGui::GetItemRectMax();
   int histo = 0;
   if (maxB.x - minB.x > 0) {
-    int mx2 = mouseX - minB.x;
+    int mx2 = (int)(mouseX - minB.x);
     if (mx2 >= 0 && mx2 < (int)histogram.size()) histo = histogram[mx2];
   }
   drawCurve(minB,maxB,curves[gradiationChannel],histo);
@@ -1934,8 +1935,8 @@ void dialogGradiationCurves(bool openIt) {
   minB2.y -= 1;
   ImGui::GetWindowDrawList()->AddRect(minB2,maxB,0xff808080);
   ImGui::PushItemWidth(64+16*2);
-  int colorIndex = (mouseX - minB.x)*256/(maxB.x-minB.x);
-  int colorValue = 255-(mouseY - minB.y)*256/(maxB.y-minB.y);
+  int colorIndex = (int)((mouseX - minB.x)*256/(maxB.x-minB.x));
+  int colorValue = (int)(255-(mouseY - minB.y)*256/(maxB.y-minB.y));
   if (colorIndex < 0) colorIndex = 0;
   if (colorValue < 0) colorValue = 0;
   if (colorIndex > 255) colorIndex = 255;
@@ -1985,14 +1986,14 @@ void dialogGradiationCurves(bool openIt) {
         p.y = colorValue;
       }
     } else {
-      p.dx[c.selectedCV] = colorIndex - p.x;
-      p.dy[c.selectedCV] = colorValue - p.y;
+      p.dx[c.selectedCV] = (float)(colorIndex - p.x);
+      p.dy[c.selectedCV] = (float)(colorValue - p.y);
     }
   }
 
   if (ImGui::IsMouseClicked(1)) {
     if (c.dragPoint<0&&(!showCurveCVs))
-      c.insertPoint(mouseX-minB.x);
+      c.insertPoint((int)(mouseX-minB.x));
   }
 
   dialogNoMove = false;
@@ -2091,10 +2092,10 @@ void dialogColorBalance(bool openIt) {
       for (int i = 0; i < l->width * l->height; i++) {
         if ((!hasSelection) || (l->pixelStates[i] & PIXELSTATE_SELECTED)) {
           unsigned int col = clone->pixels[i];
-          float r = col & 255;
-          float g = (col>>8) & 255;
-          float b = (col>>16) & 255;
-          float lumaStart = (r+g+b)/3.0;
+          float r = (float)(col & 255);
+          float g = (float)((col>>8) & 255);
+          float b = (float)((col>>16) & 255);
+          float lumaStart = (float)((r+g+b)/3.0);
           float rd = 0;
           float gd = 0;
           float bd = 0;
@@ -2106,9 +2107,9 @@ void dialogColorBalance(bool openIt) {
             s = colorBalanceB[j]; ba += b; if (s>0) {ra += b * s;} else {ga += b * -s;}
             float f = lumaStart/255.f;
             switch(j) {
-            case 0: {f = 1-f*2;} break;
-            case 1: {f = 1-fabs(f-0.5)*2;} break;
-            case 2: {f = 1-(1-f)*2;} break;
+            case 0: {f = (float)(1-f*2);} break;
+            case 1: {f = (float)(1-fabs(f-0.5)*2);} break;
+            case 2: {f = (float)(1-(1-f)*2);} break;
             }
             if (f < 0) f = 0;
             if (f > 1) f = 1;
@@ -2119,7 +2120,7 @@ void dialogColorBalance(bool openIt) {
           r = rd;
           g = gd;
           b = bd;
-          float lumaEnd =  (r+g+b)/3.0;
+          float lumaEnd =  (float)((r+g+b)/3.0);
           if (keepLuminance && lumaEnd != 0) {
             r *= lumaStart/lumaEnd;
             g *= lumaStart/lumaEnd;
@@ -2248,16 +2249,16 @@ void dialogBlur(bool openIt) {
       ImGui::PushItemWidth(360);
       ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGBLURRADIALANGLE",&radialAngle,0,360)) {updatedValues = true;} else toolTip("The direction in which to blur"); if (radialAngle<0) radialAngle = 0; if (radialAngle>360) radialAngle = 360;
       ImGui::PopItemWidth();
-      ImGui::Text("Radius"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURRADIALRADIUS",&radialSize,0,0,0)) {updatedValues = true;} else toolTip("The length of one streak of the blur"); if (radialSize<0) radialSize = 0; if (radialSize>maxBlurPixels) radialSize = maxBlurPixels;
-      increaseLayerWidth = radialSize;
-      increaseLayerHeight = radialSize;
+      ImGui::Text("Radius"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURRADIALRADIUS",&radialSize,0,0,0)) {updatedValues = true;} else toolTip("The length of one streak of the blur"); if (radialSize<0) radialSize = 0; if (radialSize>maxBlurPixels) radialSize = (float)maxBlurPixels;
+      increaseLayerWidth = (int)(radialSize+1);
+      increaseLayerHeight = (int)(radialSize+1);
     } break;
     case BLURTYPE_GAUSS: {
       ImGui::Text("Gauss blur settings");
       ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSX",&gaussX,0,0,2)) {updatedValues = true;} else toolTip("The width of the gaussian blur cell"); if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
       ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURGAUSSY",&gaussY,0,0,2)) {updatedValues = true;} else toolTip("The height of the gaussian blur cell"); if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
-      increaseLayerWidth = gaussX;
-      increaseLayerHeight = gaussY;
+      increaseLayerWidth = (int)(gaussX+1);
+      increaseLayerHeight = (int)(gaussY+1);
     } break;
     case BLURTYPE_ITERATIVE: {
       ImGui::Text("Iterative blur settings");
@@ -2489,7 +2490,7 @@ void dialogColorMatrix(bool openIt) {
     memset(l->colorTransform.colorMatrix,0,sizeof(l->colorTransform.colorMatrix));
     for (int y = 0; y < 3; y++) {
       for (int x = 0; x < 3; x++) {
-        l->colorTransform.colorMatrix[x*4+y] = 1.0/3.0;
+        l->colorTransform.colorMatrix[x*4+y] = (float)(1.0/3.0);
       }
     }
     l->colorTransform.colorMatrix[3*4+3] = 1;
@@ -2516,9 +2517,9 @@ void dialogColorMatrix(bool openIt) {
     update = true;
     Vector k(l->colorTransform.colorMatrix[0*4+0],l->colorTransform.colorMatrix[0*4+1],l->colorTransform.colorMatrix[0*4+2]);
     k = normalize(k);
-    l->colorTransform.colorMatrix[0*4+0] = k.x;
-    l->colorTransform.colorMatrix[0*4+1] = k.y;
-    l->colorTransform.colorMatrix[0*4+2] = k.z;
+    l->colorTransform.colorMatrix[0*4+0] = (float)k.x;
+    l->colorTransform.colorMatrix[0*4+1] = (float)k.y;
+    l->colorTransform.colorMatrix[0*4+2] = (float)k.z;
   } else toolTip("Final red of red,green,blue should sum up to one");
   v = &l->colorTransform.colorMatrix[0*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRR",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of red into red");
   v = &l->colorTransform.colorMatrix[0*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXRG",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of red into green");
@@ -2539,9 +2540,9 @@ void dialogColorMatrix(bool openIt) {
     update = true;
     Vector k(l->colorTransform.colorMatrix[1*4+0],l->colorTransform.colorMatrix[1*4+1],l->colorTransform.colorMatrix[1*4+2]);
     k = normalize(k);
-    l->colorTransform.colorMatrix[1*4+0] = k.x;
-    l->colorTransform.colorMatrix[1*4+1] = k.y;
-    l->colorTransform.colorMatrix[1*4+2] = k.z;
+    l->colorTransform.colorMatrix[1*4+0] = (float)k.x;
+    l->colorTransform.colorMatrix[1*4+1] = (float)k.y;
+    l->colorTransform.colorMatrix[1*4+2] = (float)k.z;
   } else toolTip("Final green of red,green,blue should sum up to one");
   v = &l->colorTransform.colorMatrix[1*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGR",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of green into red");
   v = &l->colorTransform.colorMatrix[1*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXGG",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of green into green");
@@ -2562,9 +2563,9 @@ void dialogColorMatrix(bool openIt) {
     update = true;
     Vector k(l->colorTransform.colorMatrix[2*4+0],l->colorTransform.colorMatrix[2*4+1],l->colorTransform.colorMatrix[2*4+2]);
     k = normalize(k);
-    l->colorTransform.colorMatrix[2*4+0] = k.x;
-    l->colorTransform.colorMatrix[2*4+1] = k.y;
-    l->colorTransform.colorMatrix[2*4+2] = k.z;
+    l->colorTransform.colorMatrix[2*4+0] = (float)k.x;
+    l->colorTransform.colorMatrix[2*4+1] = (float)k.y;
+    l->colorTransform.colorMatrix[2*4+2] = (float)k.z;
   } else toolTip("Final blue of red,green,blue should sum up to one");
   v = &l->colorTransform.colorMatrix[2*4+0]; ImGui::Text("Into red"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBR",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of blue into red");
   v = &l->colorTransform.colorMatrix[2*4+1]; ImGui::Text("Into green"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOLORMATRIXBG",v,0,0,4)) {update = true;} else toolTip("Transfer this amount of blue into green");
@@ -2705,18 +2706,18 @@ void getQuantizedPaletteKMeans(Array<unsigned int> &palette, int colorCount, Lay
 
     for (int i3 = 0; i3 < (int)colorsWithClusterId.size()/2; i3++) {
       unsigned int col = colorsWithClusterId[i3*2+0];
-      float r = col & 255;
-      float g = (col>>8) & 255;
-      float b = (col>>16) & 255;
+      float r = (float)(col & 255);
+      float g = (float)((col>>8) & 255);
+      float b = (float)((col>>16) & 255);
       r /= sr;
       g /= sg;
       b /= sb;
       float ld = 256*256*256;
       int cluster = 0;
       for (int i4 = 0; i4 < (int)clusterColorsRGBAW.size()/KMEANSCHANNELS; i4++) {
-        float r2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+0];
-        float g2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+1];
-        float b2 = clusterColorsRGBAW[i4*KMEANSCHANNELS+2];
+        float r2 = (float)clusterColorsRGBAW[i4*KMEANSCHANNELS+0];
+        float g2 = (float)clusterColorsRGBAW[i4*KMEANSCHANNELS+1];
+        float b2 = (float)clusterColorsRGBAW[i4*KMEANSCHANNELS+2];
         r2 /= sr;
         g2 /= sg;
         b2 /= sb;
@@ -2860,7 +2861,7 @@ void dialogDuplicate(bool openIt) {
   } else {
     noUndoMessage();
     ImGui::Text("Layers to duplicate");
-    ImGui::BeginChild("DUPLICATELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
+    ImGui::BeginChild("DUPLICATELAYERSCHILD",ImVec2((float)(main_window_xres/2),(float)(main_window_yres/3)));
     for (int i = 0; i < (int)layers.size(); i++) {
       ImGui::Text("\"%s\"",layers[i]->name);
     }
@@ -3078,7 +3079,7 @@ void dialogBakeLayers(bool openIt) {
     ImGui::Text("and the layers may be rotated/resized when saving the layers!");
     ImGui::Text("");
     ImGui::Text("Layers to bake");
-    ImGui::BeginChild("DIALOGBAKELAYERSCHILD",ImVec2(main_window_xres/2,main_window_yres/3));
+    ImGui::BeginChild("DIALOGBAKELAYERSCHILD",ImVec2((float)(main_window_xres/2),(float)(main_window_yres/3)));
     for (int i = 0; i < (int)layers.size(); i++) {
       ImGui::Text("\"%s\"",layers[i]->name);
     }
@@ -3125,9 +3126,9 @@ void dialogNewImage(bool openIt) {
   static int w = 1920,h = 1080;
   static int type = IMAGEMEASURE_PIXELS;
   static int dpi = 72;
-  static float wcm = 29.7; static float hcm = 21.0;
-  static float winches = 11; static float hinches = 8.5;
-  static float oneInch = 2.54;
+  static float wcm = 29.7f; static float hcm = 21.0f;
+  static float winches = 11; static float hinches = 8.5f;
+  static float oneInch = 2.54f;
   static char imageName[PICTURENAMEMAX];
   static double aspectPixels = 1;
   static double aspectCm = 1;
@@ -3147,23 +3148,23 @@ void dialogNewImage(bool openIt) {
   ImGui::PushItemWidth(64+16*2);
   switch(type) {
     case IMAGEMEASURE_PIXELS: {
-      ImGui::Text("Picture width"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w)) {if (keepAspect) h = w/aspectPixels;} else toolTip("The picture width in pixels");
-      ImGui::Text("Picture height"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h)) {if (keepAspect) w = h*aspectPixels;} else toolTip("The picture height in pixels");
+      ImGui::Text("Picture width"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGNEWIMAGEWIDTH",&w)) {if (keepAspect) h = (int)(w/aspectPixels);} else toolTip("The picture width in pixels");
+      ImGui::Text("Picture height"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGNEWIMAGEHEIGHT",&h)) {if (keepAspect) w = (int)(h*aspectPixels);} else toolTip("The picture height in pixels");
     } break;
     case IMAGEMEASURE_CM: {
       ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi); toolTip("The dots per inch (dpi) of the picture");
-      ImGui::Text("Picture width in cm"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHCM",&wcm,0,0,2)) {if (keepAspect) hcm = wcm/aspectCm;} toolTip("The width of the picture in centimeters");
-      ImGui::Text("Picture height in cm"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTCM",&hcm,0,0,2)) {if (keepAspect) wcm = hcm*aspectCm;} toolTip("The height of the picture in centimeters");
-      w = wcm / oneInch * dpi;
-      h = hcm / oneInch * dpi;
+      ImGui::Text("Picture width in cm"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHCM",&wcm,0,0,2)) {if (keepAspect) hcm = (float)(wcm/aspectCm);} toolTip("The width of the picture in centimeters");
+      ImGui::Text("Picture height in cm"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTCM",&hcm,0,0,2)) {if (keepAspect) wcm = (float)(hcm*aspectCm);} toolTip("The height of the picture in centimeters");
+      w = (int)(wcm / oneInch * dpi);
+      h = (int)(hcm / oneInch * dpi);
       ImGui::Text("Pixels width %d height %d",w,h);
     } break;
     case IMAGEMEASURE_INCHES: {
       ImGui::Text("Picture dpi"); ImGui::SameLine(); ImGui::InputInt("##DIALOGNEWIMAGEDPI",&dpi); toolTip("The dots per inch (dpi) of the picture");
-      ImGui::Text("Picture width in inches"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHINCHES",&winches,0,0,2)) {if (keepAspect) hinches = winches/aspectInches;} toolTip("The width of the picture in inch");
-      ImGui::Text("Picture height in inches"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTINCHES",&hinches,0,0,2)) {if (keepAspect) winches = hinches*aspectInches;} toolTip("The height of the picture in inch");
-      w = winches * dpi;
-      h = hinches * dpi;
+      ImGui::Text("Picture width in inches"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEWIDTHINCHES",&winches,0,0,2)) {if (keepAspect) hinches = (float)(winches/aspectInches);} toolTip("The width of the picture in inch");
+      ImGui::Text("Picture height in inches"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGNEWIMAGEHEIGHTINCHES",&hinches,0,0,2)) {if (keepAspect) winches = (float)(hinches*aspectInches);} toolTip("The height of the picture in inch");
+      w = (int)(winches * dpi);
+      h = (int)(hinches * dpi);
       ImGui::Text("Pixels width %d height %d",w,h);
     } break;
   }
@@ -3199,7 +3200,7 @@ void dialogGetLayersFromPicture(bool openIt) {
   } else {
     ImGui::Text("No other picture available.");
   }
-  ImGui::BeginChild("CHILDDIALOGGETLAYERSFROMPICTURE",ImVec2(main_window_xres/2,main_window_yres/3));
+  ImGui::BeginChild("CHILDDIALOGGETLAYERSFROMPICTURE",ImVec2((float)(main_window_xres/2),(float)(main_window_yres/3)));
   for (int i = 0; i < (int)canvas.size(); i++) {
     if (canvas[i] != currentCanvas) {
       int count = 0;
@@ -3376,7 +3377,7 @@ void dialogOverwrite(bool openIt) {
   }
   DIALOGSTART("Overwrite file")
   ImGui::Text("Overwrite old file?");
-  ImGui::BeginChild("##DIALOGOVERWRITECHILD",ImVec2(main_window_xres/2,64));
+  ImGui::BeginChild("##DIALOGOVERWRITECHILD",ImVec2((float)(main_window_xres/2),64));
   ImGui::TextWrapped("Filename:%s",loadSaveLongFileName.c_str());
   ImGui::TextWrapped("Path:%s",loadSaveShortPath.c_str());
   ImGui::EndChild();
@@ -3402,7 +3403,7 @@ void dialogCreateFolder(bool openIt) {
     sprintf(folderName,"%s","");
   }
   DIALOGSTART("Create a new folder")
-  ImGui::BeginChild("##DIALOGCREATEFOLDERCHILD",ImVec2(main_window_xres/2,64));
+  ImGui::BeginChild("##DIALOGCREATEFOLDERCHILD",ImVec2((float)(main_window_xres/2),64));
   String k = String(folderName);
   String f = loadSaveShortPath + k + String(k.empty() ? "" : "/");
   ImGui::TextWrapped("Short path:%s",shortFileName(f).c_str()); toolTip("The short DOS path");
@@ -3535,7 +3536,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   }
   ImGui::Text("%s",dialogFileTypes[mode]); TOOLTIP("The default filetypes for this");
   ImGui::Separator();
-  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h));ImGui::SameLine();ImGui::InputText("##DIALOGLOADSAVEFILTER",filter,FILTERNAMEMAX); TOOLTIP("You only see files with this in their name");
+  SVG *svg = &svgs["search"];ImGui::Image((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h));ImGui::SameLine();ImGui::InputText("##DIALOGLOADSAVEFILTER",filter,FILTERNAMEMAX); TOOLTIP("You only see files with this in their name");
   ImGui::SameLine();
   if (ImGui::Button("Create folder##DIALOGLOADSAVECREATEFOLDER")) {
       loadSaveShortPath = paths[mode]; 
@@ -3545,7 +3546,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   ImGui::Text("Preview"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGLOADSAVEPREVIEW",&previewOn)) {if (previewOn) clearPreview();} else TOOLTIP("Show a tiny preview of this in a box");
   if (previewOn && previewAspect != 0) {
     ImGui::BeginTooltip();
-    ImGui::Image((ImTextureID)previewTexture,ImVec2(previewWidth,previewHeight*aspectRatio*main_window_yres/main_window_xres/previewAspect));
+    ImGui::Image((ImTextureID)previewTexture,ImVec2((float)previewWidth,(float)(previewHeight*aspectRatio*main_window_yres/main_window_xres/previewAspect)));
     ImGui::EndTooltip();
   }
   ImGui::Separator();
@@ -3588,7 +3589,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
       needsRescanFiles = true;
     } else TOOLTIP("Click this to try again");
   } else {
-    ImGui::BeginChild("DIALOGLOADSAVECHILD",ImVec2(w,h));
+    ImGui::BeginChild("DIALOGLOADSAVECHILD",ImVec2((float)w,(float)h));
     if (setScrollY0) {setScrollY0 = false; ImGui::SetScrollY(0);}
     ImGui::Columns(4);
     String filter2 = toLower(filter);  
@@ -3642,7 +3643,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
               if (previewOn) {
                 String p = paths[mode]; 
                 String f = fileNames[mode];
-                f.resize(strlen(f.c_str()));
+                f.resize((int)strlen(f.c_str()));
                 previewAspect = updateToolTip(preview, previewWidth, previewHeight, p.c_str(), f.c_str());
                 updatePreview();
               }
@@ -3674,7 +3675,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
     ImGui::EndChild();
   }
   ImGui::Separator();
-  ImGui::PushItemWidth(w);
+  ImGui::PushItemWidth((float)w);
   ImGui::Text("Filename");
   DIALOGKEYSHERE(); ImGui::InputText("##DIALOGLOADSAVEFILENAME",&fileNames[mode][0],NAMEMAXHERE); TOOLTIP("The current filename")
   ImGui::PopItemWidth();
@@ -3684,7 +3685,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
     loadSaveFunc = NULL;
 
     String fileName = fileNames[mode];
-    fileName.resize(strlen(fileName.c_str()));
+    fileName.resize((int)strlen(fileName.c_str()));
 
     if (fileName.empty() && toLower(proceedButton[mode])!="select") {
       dialogOverwriteDone = true;
@@ -3729,15 +3730,15 @@ void errorWindow(bool openIt) {
   }
   if (windowOpen) {
     int w = currentCanvas->width; int h = currentCanvas->height;
-    ImGui::SetNextWindowPos(ImVec2(currentCanvas->screenPosX,currentCanvas->screenPosY));
+    ImGui::SetNextWindowPos(ImVec2((float)currentCanvas->screenPosX,(float)currentCanvas->screenPosY));
     ImGui::Begin(windowName,&windowOpen);
-    ImGui::SetWindowSize(ImVec2(w,h));
+    ImGui::SetWindowSize(ImVec2((float)w,(float)h));
     ImGui::TextColored(ImVec4(1,0,0,1), "!!Some errors occured!!");
     ImGui::Text("Here you see the files that caused problems when reloading them.");
     ImGui::Text("Most probably they wheren't saved rightly to the drive.");
     ImGui::Text("Failing files:");
     ImVec2 cursor = ImGui::GetCursorScreenPos();
-    ImGui::BeginChild("DIALOGFILEERRORSCHILD", ImVec2(w-40,main_window_yres-cursor.y-30));
+    ImGui::BeginChild("DIALOGFILEERRORSCHILD", ImVec2((float)(w-40),(float)(main_window_yres-cursor.y-30)));
     for (int i = 0; i < (int)fileErrors.size(); i++) {
       ImGui::TextColored(ImVec4(1,0,0,1),"%s",fileErrors[i].last(50).c_str());
     }
@@ -3748,7 +3749,7 @@ void errorWindow(bool openIt) {
     ImGui::End();
     if (!windowOpen) fileErrors.clear();
   } else {
-    ImGui::SetNextWindowPos(ImVec2(main_window_xres-64,0));
+    ImGui::SetNextWindowPos(ImVec2((float)(main_window_xres-64),0));
     ImGui::Begin(windowName, NULL, ImVec2(1,1),0.0,FROZENWINDOW);
     ImGui::SetWindowSize(ImVec2(1,1));
     ImGui::End();

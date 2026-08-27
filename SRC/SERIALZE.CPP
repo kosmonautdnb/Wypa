@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "STL/GL.H"
 #include "SERIALZE.HPP"
 #include "LAYERS.HPP"
@@ -58,7 +59,7 @@
 #include "STL/STBIMGWR.HPP"
 
 
-#define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), arr.size());
+#define RGBAIMAGEFROMFILE(__image__,__path__,__fileName__) String fullFileName = String(__path__) + String(__fileName__); Array<unsigned char> arr; getFileArray(&arr,fullFileName); RGBAImage __image__ = arr.empty() ? RGBAImage() : RGBAImage::fromMemory(&(arr[0]), (unsigned int)arr.size());
 
 #define LONGFILENAME(__str__) (longFileNames ? longFileName(__str__) : unixFileName(__str__))
 #define SHORTFILENAME(__str__) (longFileNames ? shortFileName(__str__) : unixFileName(__str__))
@@ -140,7 +141,7 @@ void readJson(Array<char> *arr, String *string) {
 }
 
 void writeJson(Array<char> *arr, String *string) {
-  string->resize(arr->size());
+  string->resize((int)arr->size());
   for (int i = 0; i < string->length(); i++) {
     (*string)[i] = (*arr)[i];
   }
@@ -359,7 +360,7 @@ void jsonSerialize(void *json, void **jsonPos, int type, const char *name, void 
       case JSONTYPE_DOUBLE: {if(!has)break;*((double*)data) = (double)json_value_get_number(val);} break;
       case JSONTYPE_STRING: {if(!has)break;*(String*)data = (const char *)json_value_get_string(val);} break;
       case JSONTYPE_NAME: {if(!has)break;sprintf((char*)data,"%s",(const char *)json_value_get_string(val));} break;
-      case JSONTYPE_ARRAY_OPEN: {jvals->push_back(val);arraySize=json_array_get_count(json_value_get_array(val));} break;
+      case JSONTYPE_ARRAY_OPEN: {jvals->push_back(val);arraySize=(int)json_array_get_count(json_value_get_array(val));} break;
       case JSONTYPE_ARRAY_CLOSE: {jvals->pop_back();} break;
       case JSONTYPE_OBJECT_OPEN: {jvals->push_back(val);} break;
       case JSONTYPE_OBJECT_CLOSE: {jvals->pop_back();} break;
@@ -415,7 +416,7 @@ void verifyFile(const char *shortPath, const char *longFileName, bool additional
   Array<unsigned char> buffer; int bucketMax = 256*1024; buffer.resize(bucketMax);
   while(fileSize>0) {
     int bucket = fileSize >= bucketMax ? bucketMax : fileSize;
-    int read = fread(&buffer[0],1,bucket,in);
+    int read = (int)fread(&buffer[0],1,bucket,in);
     if (read != bucket) {
       fileError(longFileName);
       break;
@@ -655,7 +656,7 @@ void insertPSD(const char *shortPath, const char *longFileName) {
         l->name[LAYERNAMEMAX-1] = 0;
         l->state.visible = k->hidden ? false : true;
         bool has_opacity = k->has_opacity ? true : false;
-        l->state.alpha = has_opacity ? k->opacity/255.0 : 1;
+        l->state.alpha = (float)(has_opacity ? k->opacity/255.0 : 1);
         currentCanvas->insertLayer(l,pos); pos++;
       }
     }
@@ -673,8 +674,8 @@ RGBAImage getSVGImage(const String &fullFileName, float scale) {
     return ret;
   }
   NSVGrasterizer* rast = nsvgCreateRasterizer();
-  int w = ceil(svg->width*scale);
-  int h = ceil(svg->height*scale);
+  int w = (int)ceil(svg->width*scale);
+  int h = (int)ceil(svg->height*scale);
   unsigned int* img = (unsigned int*)malloc(w*h*4);
   nsvgRasterize(rast, svg, 0,0,scale, (unsigned char*)img, w, h, w*4);
   nsvgDelete(svg);
@@ -702,8 +703,8 @@ void insertSVGResized(int layerWidth, int layerHeight, float scale)
 {
   if (image == NULL) return;
   NSVGrasterizer* rast = nsvgCreateRasterizer();
-  int w = ceil(layerWidth*scale);
-  int h = ceil(layerHeight*scale);
+  int w = (int)ceil(layerWidth*scale);
+  int h = (int)ceil(layerHeight*scale);
   unsigned int* img = (unsigned int*)malloc(w*h*4);
   nsvgRasterize(rast, image, 0,0,scale, (unsigned char*)img, w, h, w*4);
   nsvgDelete(image);
@@ -726,13 +727,13 @@ void insertSVG(const char *shortPath, const char *longFileName) {
   if (image == NULL) {
     return;
   }
-  dialogInsertSVG(true,image->width,image->height);
+  dialogInsertSVG(true,(int)image->width,(int)image->height);
   loadedSomething();
 }
 
 void getLines(Array<String> &ret, const char *string) {
   ret.clear();
-  int len = strlen(string);
+  int len = (int)strlen(string);
   String k="";
   for (int i = 0; i < len; i++) {
     char c = string[i];
@@ -999,7 +1000,7 @@ String getStringFromZippedFile(const char *shortPath, const char *longFileName, 
   array.clear();
   readZippedFile(shortPath, longFileName, inZipFileName, array);
   String ret = "";
-  ret.resize(array.size());
+  ret.resize((int)array.size());
   memcpy(&ret[0],&array[0],array.size()*sizeof(unsigned char));
   return ret;
 }
@@ -1104,7 +1105,7 @@ void zipLayerData(const String &layerName, Layer *layer, bool save) {
     Array<unsigned char> array;
     if (readZippedFile(readZipShortPath, readZipLongFileName, fileName.c_str(), array)) {
       updateStatusBar();
-      RGBAImage img = RGBAImage::fromMemory(&array[0],array.size());
+      RGBAImage img = RGBAImage::fromMemory(&array[0],(unsigned int)array.size());
       if (img.data != NULL && img.width>0 && img.height>0) {
         layer->init(img.width,img.height);
         memcpy(layer->pixels,img.data,img.width*img.height*sizeof(unsigned int));
@@ -1739,7 +1740,7 @@ Layer *loadImage(const String &filePath, const String &fileName) {
     if (toLower(getExtension(fileName)) == ".wyp") {
       Array<unsigned char> array;
       if (readZippedFile(filePath.c_str(), fileName.c_str(), "image.png", array)) {
-        img = RGBAImage::fromMemory(&array[0],array.size());
+        img = RGBAImage::fromMemory(&array[0],(unsigned int)array.size());
       }
     }
   }
@@ -1759,7 +1760,7 @@ Layer *loadThumb(const String &filePath, const String &fileName) {
   if (toLower(getExtension(fileName)) == ".wyp") {
     Array<unsigned char> array;
     if (readZippedFile(filePath.c_str(), fileName.c_str(), "thumb.png", array)) {
-      img = RGBAImage::fromMemory(&array[0],array.size());
+      img = RGBAImage::fromMemory(&array[0],(unsigned int)array.size());
     }
   }
   if (img.data != NULL) {
@@ -1784,7 +1785,7 @@ double updateToolTip(unsigned int *rgba, int width, int height, const char *path
       Array<unsigned char> *arr = new Array<unsigned char>();
       getFileArray(arr, fullFileName);
       if (!arr->empty()) {
-        l = getFontLayer("AB", height/2, arr); // this implicitely deletes arr
+        l = getFontLayer("AB", (float)height/2, arr); // this implicitely deletes arr
       } else {
         delete arr;
       }

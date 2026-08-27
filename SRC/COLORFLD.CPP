@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "COLORFLD.HPP"
 #include "NAVIGTOR.HPP"
 #include "MENUBAR.HPP"
@@ -61,14 +62,14 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv);
 void updateColorSlidersTexture();
 
 void reGenMonitorGamma() {
-  if (monitorGamma < 0.0001) monitorGamma = 0.0001;
+  if (monitorGamma < 0.0001f) monitorGamma = 0.0001f;
   if (monitorGamma > 400) monitorGamma = 400;
 
   hasMonitorCalibration = monitorGamma != 1.f || monitorMin[0] != 0 || monitorMin[1] != 0 || monitorMin[2] != 0 || monitorMax[0] != 255 || monitorMax[1] != 255 || monitorMax[2] != 255;
 
   for (int i = 0; i < 256; i++) {
     float f = i / 255.f;
-    f = powd(f,monitorGamma);
+    f = (float)powd(f,monitorGamma);
     f = f * 255.f;
     for (int j = 0; j < 3; j++) {
       float scal = (float)(monitorMax[j] - monitorMin[j]) / 255.f; if (scal == 0) scal = 1;
@@ -79,7 +80,7 @@ void reGenMonitorGamma() {
       gammaTable[i + j*256] = (unsigned short)v;
     }
   }
-  float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);
+  float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);
   updateColorSlidersTexture();
   refreshToolViewTextures(); // maybe the textures are unitialized but whatever
 }
@@ -114,10 +115,10 @@ void sortPalette(Array<ImVec4> &pal) {
 }
 
 unsigned int getUIntColor(const ImVec4 &k) {
-  int r = k.x * 255.f;
-  int g = k.y * 255.f;
-  int b = k.z * 255.f;
-  int a = k.w * 255.f;
+  int r = (int)(k.x * 255.f);
+  int g = (int)(k.y * 255.f);
+  int b = (int)(k.z * 255.f);
+  int a = (int)(k.w * 255.f);
   if (r < 0) r = 0;
   if (g < 0) g = 0;
   if (b < 0) b = 0;
@@ -209,9 +210,9 @@ Array<ImVec4> *paletteToSave;
 float hueToRgb(float p, float q, float t) {
   if (t < 0) t += 1;
   if (t > 1) t -= 1;
-  if (t < 1/6.0) return p + (q-p)*6*t;
-  if (t < 1/2.0) return q;
-  if (t < 2.0/3.0) return p + (q-p) * (2/3.0-t)*6;
+  if (t < 1/6.0f) return p + (q-p)*6*t;
+  if (t < 1/2.0f) return q;
+  if (t < 2.0f/3.0f) return p + (q-p) * (2/3.0f-t)*6;
   return p;
 }
 
@@ -223,11 +224,11 @@ ImVec4 hsl(double h,double s,double l) {
   } else {
     const double q = l < 0.5 ? l * (1+s) : l + s - l * s;
     const double p = 2 * l - q;
-    r = hueToRgb(p, q, h + 1 / 3.0);
-    g = hueToRgb(p, q, h);
-    b = hueToRgb(p, q, h - 1 / 3.0);
+    r = hueToRgb((float)p, (float)q, (float)(h + 1 / 3.0));
+    g = hueToRgb((float)p, (float)q, (float)(h));
+    b = hueToRgb((float)p, (float)q, (float)(h - 1 / 3.0));
   }
-  return ImVec4(r,g,b,1);
+  return ImVec4((float)r, (float)g, (float)b, 1);
 }
 
 void getHsl(const ImVec4 &rgb, float *hv, float *sv, float *lv) {
@@ -240,7 +241,7 @@ void getHsl(const ImVec4 &rgb, float *hv, float *sv, float *lv) {
   if (m == n) {
     *hv = 0;
     *sv = 0;
-    *lv = l;
+    *lv = (float)l;
     return;
   }
   double d = m - n;
@@ -261,9 +262,9 @@ bool updateColorWheelOldStyle(int mx, int my, float *hv, float *sv, float *lv) {
   ImVec4 color2;
   float fh,fs,fl; getHsl(foregroundColor,&fh,&fs,&fl);
   for (int y = 0; y < (int)colorWheelY; y++) {
-    double fy = (double)y / (colorWheelY-1);
+    float fy = (float)y / (colorWheelY-1);
     for (int x = 0; x < (int)colorWheelX; x++) {
-      double fx = (double)x / (colorWheelX-1);
+      float fx = (float)x / (colorWheelX-1);
       float h = 0, s = 0, l = 0;
       bool skinDisp = false;
       switch(lastColorSlider) {
@@ -278,7 +279,7 @@ bool updateColorWheelOldStyle(int mx, int my, float *hv, float *sv, float *lv) {
       if ((hv != NULL) && ((int)mx==x) && ((int)my==y)) {*hv = h; ret = true;}
       if ((sv != NULL) && ((int)mx==x) && ((int)my==y)) {*sv = s; ret = true;}
       if ((lv != NULL) && ((int)mx==x) && ((int)my==y)) {*lv = l; ret = true;}
-      int ri = c2.x * 255.0; int gi = c2.y * 255.0; int bi = c2.z * 255.0;
+      int ri = (int)(c2.x * 255.0); int gi = (int)(c2.y * 255.0); int bi = (int)(c2.z * 255.0);
       if (showSkinTone && skinDisp && h >= 20.0/360.0 && h < 30.0/360.0) {
         ri += 64; gi += 64; bi += 64;
         if (ri > 255) ri = 255;
@@ -307,7 +308,7 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
       double d = sqrt(fx*fx+fy*fy);
       unsigned int c = 0;
       if (d < 1.0 && d > 1.0 - wheelPixels/colorWheelX) {
-        float h = atan2(fx,fy)/PI*0.5+0.5;
+        float h = (float)(atan2(fx,fy)/PI*0.5+0.5);
         ImVec4 c2 = hsl(h,1,0.5);
         if (showSkinTone && h>=20.0/360 && h<30.0/360) {
           c2.x *= 2; c2.y *= 2; c2.z *= 2;
@@ -315,9 +316,9 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
           if (c2.y > 1) c2.y = 1;
           if (c2.z > 1) c2.z = 1;
         }
-        int ri = c2.x * 255.0;
-        int gi = c2.y * 255.0;
-        int bi = c2.z * 255.0;
+        int ri = (int)(c2.x * 255.0);
+        int gi = (int)(c2.y * 255.0);
+        int bi = (int)(c2.z * 255.0);
         c = ri|(gi<<8)|(bi<<16)|0xff000000;
         if ((hv != NULL) && ((int)mx==x) && ((int)my==y)) {*hv = h; ret = true;}
       }
@@ -329,9 +330,9 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
           double hx = fx2 * 0.5 + 0.5;
           double hy = fy2 * 0.5 + 0.5;
           ImVec4 c2 = hsl(h,1.0-hx,hy-0.5+0.5);
-          int ri = c2.x * 255.0;
-          int gi = c2.y * 255.0;
-          int bi = c2.z * 255.0;
+          int ri = (int)(c2.x * 255.0);
+          int gi = (int)(c2.y * 255.0);
+          int bi = (int)(c2.z * 255.0);
           c = ri|(gi<<8)|(bi<<16)|0xff000000;
           if ((sv != NULL) && ((int)mx==x) && ((int)my==y)) {*sv = (float)(1.0-hx); ret = true;}
           if ((lv != NULL) && ((int)mx==x) && ((int)my==y)) {*lv = (float)(hy-0.5+0.5); ret = true;}
@@ -345,7 +346,7 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
 
 void initColorField() {
   colorWheelAspectRatio = aspectRatio;
-  colorWheelY = colorWheelX*colorWheelAspectRatio*main_window_yres/main_window_xres;
+  colorWheelY = (int)(colorWheelX*colorWheelAspectRatio*main_window_yres/main_window_xres);
   if (colorWheelTexture != 0) {glDeleteTextures(1,&colorWheelTexture); colorWheelTexture = 0;}
   glGenTextures(1,&colorWheelTexture);
   glBindTexture(GL_TEXTURE_2D,colorWheelTexture);
@@ -377,7 +378,7 @@ unsigned int swapRB(unsigned int color) {
 bool colorItem(const String &name, const String &id, ImVec4 *color) {
   bool ret = false;
   ImGui::PushID("##DRAWCOLORITEMTEXBUTTON");
-  ImGui::Image((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(*color)); toolTip("Color");
+  ImGui::Image((ImTextureID)0, ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(*color)); toolTip("Color");
   if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {addUsedColor(*color); foregroundColor = *color;}
   ImGui::PopID();
   ImGui::SameLine();
@@ -417,8 +418,8 @@ void blitColorSliderBackground(const ImVec2 &before, int slider, int sliderWidth
   b.x += 2;
   b.y += 2;
   ImGui::SetCursorScreenPos(b);
-  float ty = slider / 6.0;
-  ImGui::Image((ImTextureID)colorSliderTexture,ImVec2(sliderWidth,13),ImVec2(0,ty),ImVec2(1,ty));
+  float ty = (float)(slider / 6.0);
+  ImGui::Image((ImTextureID)colorSliderTexture,ImVec2((float)sliderWidth,13),ImVec2(0,ty),ImVec2(1,ty));
   colorBorder();
   ImGui::SetCursorScreenPos(a);
 }
@@ -431,8 +432,8 @@ void blitSkinToneRange(const ImVec2 &before, int sliderWidth) {
   b.y += 2;
   ImVec2 c = b;
   c.y += 13;
-  b.x += sliderSize * 0.5 + (sliderWidth-sliderSize*0.5) * 20 / 360;
-  c.x += sliderSize * 0.5 + (sliderWidth-sliderSize*0.5) * 30 / 360;
+  b.x += (float)(sliderSize * 0.5 + (sliderWidth-sliderSize*0.5) * 20 / 360);
+  c.x += (float)(sliderSize * 0.5 + (sliderWidth-sliderSize*0.5) * 30 / 360);
   ImGui::GetWindowDrawList()->AddRectFilled(b, c, 0x80ffffff);
   ImGui::SetCursorScreenPos(a);
 }
@@ -441,18 +442,18 @@ void colorDisplay(ImVec4 *c) {
   float k;
   ImVec2 before;
   int sw = sidebar_width - 60;
-  ImGui::PushItemWidth(sw);
-  k = c->w * 255.0; if (ImGui::SliderFloat("Alpha##DIALOGCOLORCOLORALPHA",&k,0,255)) {c->w = k/255.0;} else toolTip("Transparency");
+  ImGui::PushItemWidth((float)sw);
+  k = (float)(c->w * 255.0); if (ImGui::SliderFloat("Alpha##DIALOGCOLORCOLORALPHA",&k,0,255)) {c->w = (float)(k/255.0);} else toolTip("Transparency");
   ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0,0,0,0));
   bool update = false;
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,0,sw); k = c->x * 255.0; if (ImGui::SliderFloat("Red##DIALOGCOLORCOLORRED",&k,0,255)) {lastColorSlider = COLORSLIDER_RED; c->x = k/255.0;updateColorSlidersTexture();update = true;} else toolTip("Red part");
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,1,sw); k = c->y * 255.0; if (ImGui::SliderFloat("Green##DIALOGCOLORCOLORGREEN",&k,0,255)) {lastColorSlider = COLORSLIDER_GREEN; c->y = k/255.0;updateColorSlidersTexture();update = true;} else toolTip("Green part");
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,2,sw); k = c->z * 255.0; if (ImGui::SliderFloat("Blue##DIALOGCOLORCOLORBLUE",&k,0,255)) {lastColorSlider = COLORSLIDER_BLUE;c->z = k/255.0; updateColorSlidersTexture();update = true;} else toolTip("Blue part");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,0,sw); k = (float)(c->x * 255.0); if (ImGui::SliderFloat("Red##DIALOGCOLORCOLORRED",&k,0,255)) {lastColorSlider = COLORSLIDER_RED; c->x = (float)(k/255.0);updateColorSlidersTexture();update = true;} else toolTip("Red part");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,1,sw); k = (float)(c->y * 255.0); if (ImGui::SliderFloat("Green##DIALOGCOLORCOLORGREEN",&k,0,255)) {lastColorSlider = COLORSLIDER_GREEN; c->y = (float)(k/255.0);updateColorSlidersTexture();update = true;} else toolTip("Green part");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,2,sw); k = (float)(c->z * 255.0); if (ImGui::SliderFloat("Blue##DIALOGCOLORCOLORBLUE",&k,0,255)) {lastColorSlider = COLORSLIDER_BLUE;c->z = (float)(k/255.0); updateColorSlidersTexture();update = true;} else toolTip("Blue part");
   float h,s,l; 
   getHsl(*c,&h,&s,&l);
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,3,sw); ImVec4 col(0,0,0,1);  k = h*360.0; if (showSkinTone) {blitSkinToneRange(before, sw); if (k>=20&&k<=30) col = ImVec4(1,0,0,1);} ImGui::PushStyleColor(ImGuiCol_Text,col); if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {lastColorSlider = COLORSLIDER_HUE; double w = c->w; h = k/360.0; *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorSlidersTexture(); update = true;} else toolTip("Hue of color"); ImGui::PopStyleColor();
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,4,sw); k = s;  if (ImGui::SliderFloat("Sat.##DIALOGCOLORCOLORSAT",&k,0,1)) {lastColorSlider = COLORSLIDER_SATURATION; double w = c->w; s = k; *c = hsl(h,s,l); c->w = w; updateColorSlidersTexture(); update = true;} else toolTip("Saturation of color");
-  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,5,sw); k = l;  if (ImGui::SliderFloat("Light.##DIALOGCOLORCOLORLIT",&k,0,1)) {lastColorSlider = COLORSLIDER_LIGHTNESS; double w = c->w; l = k; *c = hsl(h,s,l); c->w = w; updateColorSlidersTexture(); update = true;} else toolTip("Lightness of color");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,3,sw); ImVec4 col(0,0,0,1);  k = (float)(h*360.0); if (showSkinTone) {blitSkinToneRange(before, sw); if (k>=20&&k<=30) col = ImVec4(1,0,0,1);} ImGui::PushStyleColor(ImGuiCol_Text,col); if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {lastColorSlider = COLORSLIDER_HUE; double w = c->w; h = (float)(k/360.0); *c = hsl(h,s,l); c->w = (float)w; getHsl(*c,&h,&s,&l); updateColorSlidersTexture(); update = true;} else toolTip("Hue of color"); ImGui::PopStyleColor();
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,4,sw); k = s;  if (ImGui::SliderFloat("Sat.##DIALOGCOLORCOLORSAT",&k,0,1)) {lastColorSlider = COLORSLIDER_SATURATION; double w = c->w; s = k; *c = hsl(h,s,l); c->w = (float)w; updateColorSlidersTexture(); update = true;} else toolTip("Saturation of color");
+  before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,5,sw); k = l;  if (ImGui::SliderFloat("Light.##DIALOGCOLORCOLORLIT",&k,0,1)) {lastColorSlider = COLORSLIDER_LIGHTNESS; double w = c->w; l = k; *c = hsl(h,s,l); c->w = (float)w; updateColorSlidersTexture(); update = true;} else toolTip("Lightness of color");
   getHsl(*c,&h,&s,&l);
   if (update) {
     updateColorWheel(h,0,0,NULL,NULL,NULL);
@@ -463,26 +464,26 @@ void colorDisplay(ImVec4 *c) {
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered,ImVec4(0,0,0,0));
   ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImVec4(0,0,0,0));
   ImVec2 cursorHere = ImGui::GetCursorScreenPos();
-  if (ImGui::ImageButton((ImTextureID)colorWheelTexture,ImVec2(colorWheelX,colorWheelY)) || (ImGui::IsItemHovered()&&ImGui::IsMouseDown(0))) {
-    int mx = ImGui::GetMousePos().x-cursorHere.x;
-    int my = ImGui::GetMousePos().y-cursorHere.y;
+  if (ImGui::ImageButton((ImTextureID)colorWheelTexture,ImVec2((float)colorWheelX,(float)colorWheelY)) || (ImGui::IsItemHovered()&&ImGui::IsMouseDown(0))) {
+    int mx = (int)(ImGui::GetMousePos().x-cursorHere.x);
+    int my = (int)(ImGui::GetMousePos().y-cursorHere.y);
     bool update = updateColorWheel(h,mx,my,&h,&s,&l);
-    if (update) {double w = c->w; *c = hsl(h,s,l); c->w = w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL); updateColorSlidersTexture();}
+    if (update) {double w = c->w; *c = hsl(h,s,l); c->w = (float)w; getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL); updateColorSlidersTexture();}
   } else toolTip("Color selector");
   ImGui::PopStyleColor();
   ImGui::PopStyleColor();
   ImGui::PopStyleColor();
   ImGui::SameLine();
-  ImGui::BeginChild("COLORCHILD1",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,20*(COLORTRACEBACKS+1)+20));
-  ImGui::Image((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(*c)); toolTip("Current color");
+  ImGui::BeginChild("COLORCHILD1",ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),20*(COLORTRACEBACKS+1)+20));
+  ImGui::Image((ImTextureID)0, ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(*c)); toolTip("Current color");
   ImGui::Text("");
   for (int i = 0; i < COLORTRACEBACKS; i++) {
     unsigned int c2 = colorTraceBacks[i];
     ImVec4 c3 = ImVec4((c2&255)/255.f,((c2>>8)&255)/255.f,((c2>>16)&255)/255.f,((c2>>24)&255)/255.f);
     ImGui::PushID(combined(String("##COLORDISPLAYTRACEBACK")+String::fromInt(i)).c_str());
-    if (ImGui::ImageButton((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), 0, gammaCorrect4(c3), gammaCorrect4(c3))) {
+    if (ImGui::ImageButton((ImTextureID)0, ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),16), ImVec2(0,0), ImVec2(1,1), 0, gammaCorrect4(c3), gammaCorrect4(c3))) {
       *c = ImVec4(c3.x,c3.y,c3.z,c3.w);
-      getHsl(*c,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);updateColorSlidersTexture();
+      getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);updateColorSlidersTexture();
     } else toolTip("Past color");
     ImGui::PopID();
   }
@@ -494,7 +495,7 @@ void removeColor() {
     if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
       palette.erase(i,1); 
       int pos = i; 
-      if (pos>=(int)palette.size()) pos = palette.size()-1; 
+      if (pos>=(int)palette.size()) pos = (int)palette.size()-1; 
       if ((unsigned int)pos<palette.size()) foregroundColor = palette[pos];
       return;
     }
@@ -522,10 +523,10 @@ void insertColor() {
     if (getUIntColor(palette[i]) == getUIntColor(foregroundColor)) {
       ImVec4 c = getUnusedColor();
       if (i > 0 && i < (int)palette.size()) {
-        c.x = (palette[i].x - palette[i-1].x)*0.5 + palette[i-1].x;
-        c.y = (palette[i].y - palette[i-1].y)*0.5 + palette[i-1].y;
-        c.z = (palette[i].z - palette[i-1].z)*0.5 + palette[i-1].z;
-        c.w = (palette[i].w - palette[i-1].w)*0.5 + palette[i-1].w;
+        c.x = (float)((palette[i].x - palette[i-1].x)*0.5 + palette[i-1].x);
+        c.y = (float)((palette[i].y - palette[i-1].y)*0.5 + palette[i-1].y);
+        c.z = (float)((palette[i].z - palette[i-1].z)*0.5 + palette[i-1].z);
+        c.w = (float)((palette[i].w - palette[i-1].w)*0.5 + palette[i-1].w);
       }
       palette.insert(c,i); 
       foregroundColor = palette[i];
@@ -549,7 +550,7 @@ void displayPostProcessedColorItem(const char *id) {
     //if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
     //if (l->colorTransform.useQuantization) col = quantizeFast(col, l->colorTransform.ditherStrength, 0, 0, l->colorTransform.paletteShift);
     ImVec4 c2 = getImVec4Color(col);
-    ImGui::Image((ImTextureID)0, ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(c2)); toolTip("Postprocessed color");
+    ImGui::Image((ImTextureID)0, ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),16), ImVec2(0,0), ImVec2(1,1), gammaCorrect4(c2)); toolTip("Postprocessed color");
     ImGui::PopID();
   }
 }
@@ -561,8 +562,8 @@ void reGenColorWheel() {
 void drawColorField() {
   if (fullScreen) return;
   if (colorWheelAspectRatio != aspectRatio) initColorField();
-  ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height+navigator_height));
-  ImGui::Begin("COLORFIELD", NULL, ImVec2(sidebar_width,colorField_height),1.0,FROZENWINDOW);
+  ImGui::SetNextWindowPos(ImVec2((float)(main_window_xres-sidebar_width),(float)(menuBar_height+navigator_height)));
+  ImGui::Begin("COLORFIELD", NULL, ImVec2((float)sidebar_width,(float)colorField_height),1.0,FROZENWINDOW);
   if (showPalette) {
     if (roundButton("Color wheel##DRAWPALETTECOLORFIELDCOLORWHEEL",true)) {
       showPalette = false;
@@ -591,7 +592,7 @@ void drawColorField() {
       removeColor();
       updatePalette();
     } else toolTip("Remove a color");
-    ImGui::BeginChild("DRAWCOLORFIELDCHILD",ImVec2(sidebar_width,ImGui::GetWindowSize().y-(ImGui::GetCursorScreenPos().y-ImGui::GetWindowPos().y)));
+    ImGui::BeginChild("DRAWCOLORFIELDCHILD",ImVec2((float)sidebar_width,ImGui::GetWindowSize().y-(ImGui::GetCursorScreenPos().y-ImGui::GetWindowPos().y)));
     ImVec2 cursor = ImGui::GetCursorScreenPos();
     cursor.y += 3;
     ImGui::SetCursorScreenPos(cursor);
@@ -612,7 +613,7 @@ void drawColorField() {
       ImVec4 c3 = palette[i];
       bool a = ImGui::GetIO().MouseClicked[0];
       ImGui::GetIO().MouseClicked[0] = ImGui::GetIO().MouseClicked[0] || ImGui::GetIO().MouseClicked[1];
-      if (ImGui::ImageButton((ImTextureID)0, ImVec2(b,14), ImVec2(0,0), ImVec2(1,1), -1, gammaCorrect4(c3), gammaCorrect4(c3))) {
+      if (ImGui::ImageButton((ImTextureID)0, ImVec2((float)b,14), ImVec2(0,0), ImVec2(1,1), -1, gammaCorrect4(c3), gammaCorrect4(c3))) {
         if (ImGui::IsMouseDown(1)) {
           palette[i] = foregroundColor;
           updatePalette();
@@ -656,7 +657,7 @@ void drawColorField() {
     ImVec4 *c = &foregroundColor;
     if (colorItem("","##DIALOGCOLORCOLORHEX",c)) {
       float h,s,l;
-      getHsl(*c,&h,&s,&l); updateColorWheel(h,s,l,NULL,NULL,NULL);
+      getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);
     }
     colorDisplay(&foregroundColor);
   }

@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "STL/GL.H"
 #include "IMGUI/IMGUI.H"
 #include "IMGUI/IMGUIGL.HPP"
@@ -366,7 +367,7 @@ void calcUndoStackByteCount() {
     undoStackBytes += undoStages[i]->byteCount();
   }
   undoStackBytes += packetBeforeUndo.byteCount();
-  undoStackBytes += rleTemp.allocatedSize * sizeof(unsigned int);
+  undoStackBytes += (int)rleTemp.allocatedSize * sizeof(unsigned int);
 }
 
 int availableUndos = 0;
@@ -401,7 +402,7 @@ void afterUndoPoint() {
         delete undoStages[0];
         undoStages.erase(0,1);
       }
-      availableUndos = undoStages.size();
+      availableUndos = (int)undoStages.size();
     }
   }
 }
@@ -428,8 +429,8 @@ void undo() {
       if (a->undoCanvas != currentCanvas) picturesBlink++;
       a->apply(false);
       availableRedos++;
-      if (availableRedos > (int)undoStages.size()) availableRedos = undoStages.size();
-      availableUndos = undoStages.size() - availableRedos;
+      if (availableRedos > (int)undoStages.size()) availableRedos = (int)undoStages.size();
+      availableUndos = (int)undoStages.size() - availableRedos;
     }
   }
 }
@@ -438,8 +439,8 @@ void redo() {
   if (useUndo) {
     if (undoStages.size()>0) {
       availableUndos++;
-      if (availableUndos > (int)undoStages.size()) availableUndos = undoStages.size();
-      availableRedos = undoStages.size() - availableUndos;
+      if (availableUndos > (int)undoStages.size()) availableUndos = (int)undoStages.size();
+      availableRedos = (int)undoStages.size() - availableUndos;
       if (availableRedos > (int)undoStages.size()) return;
       UndoPacket *a = undoStages[undoStages.size()-1-availableRedos];
       if (a->undoCanvas != currentCanvas) picturesBlink++;

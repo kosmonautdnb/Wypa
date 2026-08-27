@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "LAYERS.HPP"
 #include "CONFIG.HPP"
 #include "STL/VECTOR.HPP"
@@ -240,9 +241,9 @@ float *ColorTransform::processingGet() {
   float sg = scaleGreen;
   float sb = scaleBlue;
   float sa = scaleAlpha;
-  float ar = addRed/3.0;
-  float ag = addGreen/3.0;
-  float ab = addBlue/3.0;
+  float ar = (float)(addRed/3.0);
+  float ag = (float)(addGreen/3.0);
+  float ab = (float)(addBlue/3.0);
   float aa = addAlpha;
   Vector a(luminanceValues[0],luminanceValues[1],luminanceValues[2]); a = normalize(a); // the normalize is just...
   Array<unsigned char> gradiation;
@@ -257,14 +258,14 @@ float *ColorTransform::processingGet() {
     int component = (i/256/4);
     float rf=0,gf=0,bf=0,af=0;
     if (component < 3) {
-      ImVec4 c2(component == 0?1:0,component == 1?1:0,component == 2?1:0,1); 
+      ImVec4 c2(component == 0?1.f:0.f,component == 1?1.f:0.f,component == 2?1.f:0.f,1.f); 
       if (perceptional) {
-        c2.x *= a.x;
-        c2.y *= a.y;
-        c2.z *= a.z;
+        c2.x *= (float)a.x;
+        c2.y *= (float)a.y;
+        c2.z *= (float)a.z;
       }
-      float value2 = powd(value/255.0,gam0);
-      value2 = ((value2*255-128)*cv+128)/255.0;
+      float value2 = (float)powd(value/255.0,gam0);
+      value2 = (float)(((value2*255-128)*cv+128)/255.0);
       if (value2 < 0) value2 = 0;
       if (value2 > 1) value2 = 1;
       value2 += bv;
@@ -280,9 +281,9 @@ float *ColorTransform::processingGet() {
       if (!channelR) c2.x = 0;
       if (!channelG) c2.y = 0;
       if (!channelB) c2.z = 0;
-      float h2,s2,l2; getHsl(c2,&h2,&s2,&l2); h2 = (h2 * 360 + h)/360.0;
+      float h2,s2,l2; getHsl(c2,&h2,&s2,&l2); h2 = (float)((h2 * 360 + h)/360.0);
       if (h2 < 0) h2 = 0;
-      h2 = fmod(h2,1);
+      h2 = (float)fmod(h2,1);
       if (h2 > 1) h2 = 1;
       ImVec4 col = hsl(h2,s*s2,l*l2*2);
       rf = col.x*255;
@@ -331,9 +332,9 @@ float *ColorTransform::processingGet() {
         outputG += gf*(1-adjust)+bf*(adjust);
         outputB += bf*(1-adjust)+gf*(adjust);
       }
-      rf = outputR/3.0;
-      gf = outputG/3.0;
-      bf = outputB/3.0;
+      rf = (float)(outputR/3.0);
+      gf = (float)(outputG/3.0);
+      bf = (float)(outputB/3.0);
 
       rf *= sr;
       gf *= sg;
@@ -344,9 +345,9 @@ float *ColorTransform::processingGet() {
       bf += ab;
 
       if (perceptional) {
-        rf /= a.x;
-        gf /= a.y;
-        bf /= a.z;
+        rf /= (float)a.x;
+        gf /= (float)a.y;
+        bf /= (float)a.z;
       }
 
       if (rf < 0) rf = 0;
@@ -361,7 +362,7 @@ float *ColorTransform::processingGet() {
     }
 
     if (component == 3) {
-      af = value;
+      af = (float)value;
       if (!channelA) af = 0;
       float af2 = af * colorMatrix[3*4+3] + colorMatrix[4*4+3];
       af = af2;
@@ -391,7 +392,7 @@ float *ColorTransform::processingGet() {
       if (f < 0) f = 0;
       if (f > 255) f = 255;
     }
-    f = powd(f/255.0,gam1)*255.0;
+    f = (float)(powd(f/255.0,gam1)*255.0);
 
     switch(channel) { // sorry it's only possible after gamma currently
       case 0: {
@@ -479,10 +480,10 @@ void ColorTransform::fromProcessing(float *processing) {
     float spaceG = (maxG[component]);
     float spaceB = (maxB[component]);
     float spaceA = (maxA[component]);
-    float addiToR = floor(radd+0.5);
-    float addiToG = floor(gadd+0.5);
-    float addiToB = floor(badd+0.5);
-    float addiToA = floor(aadd+0.5);
+    float addiToR = (float)floor(radd+0.5);
+    float addiToG = (float)floor(gadd+0.5);
+    float addiToB = (float)floor(badd+0.5);
+    float addiToA = (float)floor(aadd+0.5);
     if (addiToR < 0 && addiToR < -spaceR) {addiToR = -spaceR;}
     if (addiToG < 0 && addiToG < -spaceG) {addiToG = -spaceG;}
     if (addiToB < 0 && addiToB < -spaceB) {addiToB = -spaceB;}
@@ -528,10 +529,10 @@ void ColorTransform::fromProcessing(float *processing) {
     float spaceG = (255-maxG[component]);
     float spaceB = (255-maxB[component]);
     float spaceA = (255-maxA[component]);
-    float addiToR = floor(radd+0.5);
-    float addiToG = floor(gadd+0.5);
-    float addiToB = floor(badd+0.5);
-    float addiToA = floor(aadd+0.5);
+    float addiToR = (float)floor(radd+0.5);
+    float addiToG = (float)floor(gadd+0.5);
+    float addiToB = (float)floor(badd+0.5);
+    float addiToA = (float)floor(aadd+0.5);
     if (addiToR >= 0 && addiToR > spaceR) {addiToR = spaceR;}
     if (addiToG >= 0 && addiToG > spaceG) {addiToG = spaceG;}
     if (addiToB >= 0 && addiToB > spaceB) {addiToB = spaceB;}
@@ -556,10 +557,10 @@ void ColorTransform::fromProcessing(float *processing) {
   for (component = 0; component < 4; component++) {
     for (int value = 0; value < 256; value++) {
       int i = value + component * 256;
-      int ri = processing[i*4+0];
-      int gi = processing[i*4+1];
-      int bi = processing[i*4+2];
-      int ai = processing[i*4+3];
+      int ri = (int)processing[i*4+0];
+      int gi = (int)processing[i*4+1];
+      int bi = (int)processing[i*4+2];
+      int ai = (int)processing[i*4+3];
       if (ri < 0) ri = 0;
       if (gi < 0) gi = 0;
       if (bi < 0) bi = 0;
@@ -622,9 +623,9 @@ void ColorTransform::reset() {
   posterizeBlueBase = 0;
   posterizeAlphaBase = 0;
   posterizeUseGrey = true;
-  thresholdRed = 0.333;
-  thresholdGreen = 0.333;
-  thresholdBlue = 0.333;
+  thresholdRed = 0.333f;
+  thresholdGreen = 0.333f;
+  thresholdBlue = 0.333f;
   thresholdAlpha = 0;
   thresholdLuma = 128;
   thresholdInvert = false;
@@ -757,14 +758,14 @@ unsigned int ColorTransform::applyPosterize(unsigned int pixel) {
   int b = (pixel>>16) & 255;
   int a = (pixel>>24) & 255;
   if (posterizeUseGrey) {
-    r -= posterizeGreyBase; if (posterizeGrey>0) r = (int)(r / posterizeGrey)*posterizeGrey; r += posterizeGreyBase;
-    g -= posterizeGreyBase; if (posterizeGrey>0) g = (int)(g / posterizeGrey)*posterizeGrey; g += posterizeGreyBase;
-    b -= posterizeGreyBase; if (posterizeGrey>0) b = (int)(b / posterizeGrey)*posterizeGrey; b += posterizeGreyBase;
+    r -= (int)posterizeGreyBase; if (posterizeGrey>0) r = (int)((int)(r / posterizeGrey)*posterizeGrey); r += (int)posterizeGreyBase;
+    g -= (int)posterizeGreyBase; if (posterizeGrey>0) g = (int)((int)(g / posterizeGrey)*posterizeGrey); g += (int)posterizeGreyBase;
+    b -= (int)posterizeGreyBase; if (posterizeGrey>0) b = (int)((int)(b / posterizeGrey)*posterizeGrey); b += (int)posterizeGreyBase;
   } else {
-    r -= posterizeRedBase; if (posterizeRed>0) r = (int)(r / posterizeRed)*posterizeRed; r += posterizeRedBase;
-    g -= posterizeGreenBase; if (posterizeGreen>0) g = (int)(g / posterizeGreen)*posterizeGreen; g += posterizeGreenBase;
-    b -= posterizeBlueBase; if (posterizeBlue>0) b = (int)(b / posterizeBlue)*posterizeBlue; b += posterizeBlueBase;
-    a -= posterizeAlphaBase; if (posterizeAlpha>0) a = (int)(a / posterizeAlpha)*posterizeAlpha; a += posterizeAlphaBase;
+    r -= (int)posterizeRedBase; if (posterizeRed>0) r = (int)((int)(r / posterizeRed)*posterizeRed); r += (int)posterizeRedBase;
+    g -= (int)posterizeGreenBase; if (posterizeGreen>0) g = (int)((int)(g / posterizeGreen)*posterizeGreen); g += (int)posterizeGreenBase;
+    b -= (int)posterizeBlueBase; if (posterizeBlue>0) b = (int)((int)(b / posterizeBlue)*posterizeBlue); b += (int)posterizeBlueBase;
+    a -= (int)posterizeAlphaBase; if (posterizeAlpha>0) a = (int)((int)(a / posterizeAlpha)*posterizeAlpha); a += (int)posterizeAlphaBase;
   }
   if (r < 0) r = 0; 
   if (r > 255) r = 255;
@@ -861,7 +862,7 @@ void Layer::pixelLine(int x0, int y0, int x1, int y1, unsigned int color) {
   double xa = (double)deltaX/delta;
   double ya = (double)deltaY/delta;
   for (int i = 0; i < delta+1; i++) {
-    setPixel(px,py,color);
+    setPixel((int)px,(int)py,color);
     px += xa;
     py += ya;
   }
@@ -880,8 +881,8 @@ void Layer::pixelLineOr(int x0, int y0, int x1, int y1, unsigned int _or, bool c
   double xa = (double)deltaX/delta;
   double ya = (double)deltaY/delta;
   for (int i = 0; i < delta+1; i++) {
-    int x = px;
-    int y = py;
+    int x = (int)px;
+    int y = (int)py;
     if (clampOnLayer) {if (x < 0) x = 0; if (y < 0) y = 0; if (x >= width) x = width-1; if (y >= height) y = height-1;}
     if ((unsigned int)x<(unsigned int)width&&(unsigned int)y<(unsigned int)height) {
       pixels[x+y*width] |= _or;
@@ -905,8 +906,8 @@ void Layer::pixelLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, bool
   double xa = (double)deltaX/delta;
   double ya = (double)deltaY/delta;
   for (int i = 0; i < delta; i++) {
-    int x = px;
-    int y = py;
+    int x = (int)px;
+    int y = (int)py;
     //if (clampOnLayer) {if (x < 0) x = 0; if (x >= width) x = width-1;  if (y < 0) y = 0; if (y >= height) y = height-1;}
     if ((unsigned int)x<(unsigned int)width&&(unsigned int)y<(unsigned int)height) {
       pixels[x+y*width] ^= _eor;
@@ -928,8 +929,8 @@ void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, boo
   int py = y0;
   double xa = (double)(x1 - x0)/(y1-y0);
   for (int i = 0; i < y1-y0; i++) {
-    int x = px;
-    int y = py;
+    int x = (int)px;
+    int y = (int)py;
     if (clampOnLayer) {if (x < 0) x = 0; if (x >= width) x = width-1;} // we don't need y here (xlineeor)
     if ((unsigned int)x<(unsigned int)width&&(unsigned int)y<(unsigned int)height) {
       pixels[x+y*width] ^= _eor;
@@ -1413,10 +1414,10 @@ static __inline void lookupInterpolated2(unsigned int *colors, int width, int he
   double gb = ((int)((p11>>8) & 255) - (int)((p01>>8) & 255))*fx + (int)((p01>>8) & 255);
   double bb = ((int)((p11>>16) & 255) - (int)((p01>>16) & 255))*fx + (int)((p01>>16) & 255);
   double ab = ((int)((p11>>24) & 255) - (int)((p01>>24) & 255))*fx + (int)((p01>>24) & 255);
-  red = (rb - rt) * fy + rt;
-  green = (gb - gt) * fy + gt;
-  blue = (bb - bt) * fy + bt;
-  alpha = (ab - at) * fy + at;
+  red = (float)((rb - rt) * fy + rt);
+  green = (float)((gb - gt) * fy + gt);
+  blue = (float)((bb - bt) * fy + bt);
+  alpha = (float)((ab - at) * fy + at);
 }
 
 static __inline float catmulRom(float p0, float p1, float p2, float p3, float t) {
@@ -1445,7 +1446,7 @@ static __inline void lookupBicubic(unsigned int *colors, int width, int height, 
         int x3 = x2 + xi;
         if (x3 < 0) x3 = 0;
         if (x3 > width-1) x3 = width-1;
-        p[y2+1][x2+1] = (colors[x3+y3*width]>>l8) & 255;
+        p[y2+1][x2+1] = (float)((colors[x3+y3*width]>>l8) & 255);
       }
     }
     for (int row = 0; row < 4; row++) cols[row] = catmulRom(p[row][0],p[row][1],p[row][2],p[row][3],xf);
@@ -1460,8 +1461,8 @@ static __inline void lookupBicubic(unsigned int *colors, int width, int height, 
 }
 
 static __inline float quadraticKernel(float d) {
-  if (d <= 0.5) return 0.75-d*d;
-  if (d <= 1.5) return 0.5*(1.5-d)*(1.5-d);
+  if (d <= 0.5f) return 0.75f-d*d;
+  if (d <= 1.5f) return 0.5f*(1.5f-d)*(1.5f-d);
   return 0;
 }
 
@@ -1476,11 +1477,11 @@ static __inline void lookupQuadratic(unsigned int *colors, int width, int height
     for (int dy = -1; dy <= 1; dy++) {
       int y3 = yi + dy;
       if ((unsigned int)y3>=(unsigned int)height) continue;
-      float distY = fabs(y-y3);
+      float distY = (float)fabs(y-y3);
       for (int dx = -1; dx <= 1; dx++) {
         int x3 = xi + dx;
         if ((unsigned int)x3>=(unsigned int)width) continue;
-        float distX = fabs(x-x3);
+        float distX = (float)fabs(x-x3);
         float weight = quadraticKernel(distX)*quadraticKernel(distY);
         val += weight * ((colors[x3+y3*width]>>l8) & 255);
         w += weight;
@@ -1575,10 +1576,10 @@ void Layer::bakeLayer(int interpolation) {
             double gb = ((int)((p11>>8) & 255) - (int)((p01>>8) & 255))*fx + (int)((p01>>8) & 255);
             double bb = ((int)((p11>>16) & 255) - (int)((p01>>16) & 255))*fx + (int)((p01>>16) & 255);
             double ab = ((int)((p11>>24) & 255) - (int)((p01>>24) & 255))*fx + (int)((p01>>24) & 255);
-            int r = floor((rb - rt) * fy + rt);
-            int g = floor((gb - gt) * fy + gt);
-            int b = floor((bb - bt) * fy + bt);
-            int a = floor((ab - at) * fy + at);
+            int r = (int)floor((rb - rt) * fy + rt);
+            int g = (int)floor((gb - gt) * fy + gt);
+            int b = (int)floor((bb - bt) * fy + bt);
+            int a = (int)floor((ab - at) * fy + at);
             if (r > 255) r = 255;
             if (g > 255) g = 255;
             if (b > 255) b = 255;
@@ -1594,11 +1595,11 @@ void Layer::bakeLayer(int interpolation) {
           lx3 -= 0.5;
           ly3 -= 0.5;
           float r2=0,g2=0,b2=0,a2=0;
-          lookupQuadratic(beforeP, ow, oh, lx3, ly3, r2, g2, b2, a2);
-          int r = floor(r2);
-          int g = floor(g2);
-          int b = floor(b2);
-          int a = floor(a2);
+          lookupQuadratic(beforeP, ow, oh, (float)lx3, (float)ly3, r2, g2, b2, a2);
+          int r = (int)floor(r2);
+          int g = (int)floor(g2);
+          int b = (int)floor(b2);
+          int a = (int)floor(a2);
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -1613,11 +1614,11 @@ void Layer::bakeLayer(int interpolation) {
           lx3 -= 0.5;
           ly3 -= 0.5;
           float r2=0,g2=0,b2=0,a2=0;
-          lookupBicubic(beforeP, ow, oh, lx3, ly3, r2, g2, b2, a2);
-          int r = floor(r2);
-          int g = floor(g2);
-          int b = floor(b2);
-          int a = floor(a2);
+          lookupBicubic(beforeP, ow, oh, (float)lx3, (float)ly3, r2, g2, b2, a2);
+          int r = (int)floor(r2);
+          int g = (int)floor(g2);
+          int b = (int)floor(b2);
+          int a = (int)floor(a2);
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -1640,12 +1641,12 @@ void Layer::bakeLayer(int interpolation) {
           float a2 = 0;
           float w2 = 0;
           for (int y2 = -kernelSize; y2 <= kernelSize; y2++) {
-            float ky = y2; float ry = ky == 0 ? 1 : (sin(PI*ky)/sin(PI*ky/kernelSize))/((PI*ky)*(PI*ky)/kernelSize);
+            float ky = (float)y2; float ry = (float)(ky == 0 ? 1 : (sin(PI*ky)/sin(PI*ky/kernelSize))/((PI*ky)*(PI*ky)/kernelSize));
             for (int x2 = -kernelSize; x2 <= kernelSize; x2++) {
-              float kx = x2; float rx = kx == 0 ? 1 : (sin(PI*kx)/sin(PI*kx/kernelSize))/((PI*kx)*(PI*kx)/kernelSize);
+              float kx = (float)x2; float rx = (float)(kx == 0 ? 1 : (sin(PI*kx)/sin(PI*kx/kernelSize))/((PI*kx)*(PI*kx)/kernelSize));
               float f = rx * ry;
               float r=0, g=0, b=0, a=0;
-              lookupInterpolated2(beforeP, ow, oh, x2+lx3, y2+ly3, r, g, b, a);
+              lookupInterpolated2(beforeP, ow, oh, (float)(x2+lx3), (float)(y2+ly3), r, g, b, a);
               r2 += r * f;
               g2 += g * f;
               b2 += b * f;
@@ -1654,10 +1655,10 @@ void Layer::bakeLayer(int interpolation) {
             }
           }
           if (w2 != 0) {r2 /= w2; g2 /= w2; b2 /= w2; a2 /= w2;}
-          int r = floor(r2);
-          int g = floor(g2);
-          int b = floor(b2);
-          int a = floor(a2);
+          int r = (int)floor(r2);
+          int g = (int)floor(g2);
+          int b = (int)floor(b2);
+          int a = (int)floor(a2);
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -1922,8 +1923,8 @@ void Layer::setAngleDegrees(double degrees) {
 void Layer::snapToGrid(class Canvas *canvas) {
   if (canvas->gridStepX == 0 || canvas->gridStepY == 0) return;
   Vector k = boundingBox();
-  int px = floor(k.x);
-  int py = floor(k.y);
+  int px = (int)floor(k.x);
+  int py = (int)floor(k.y);
   int mx2 = px - canvas->gridOffsetX;
   int my2 = py - canvas->gridOffsetY;
   int mx = mx2;
@@ -2107,9 +2108,9 @@ void Layer::whiteBalance() {
         int g = (col>>8) & 255;
         int b = (col>>16) & 255;
         int a = (int)((col>>24) & 255);
-        r *= rs;
-        g *= gs;
-        b *= bs;
+        r = (int)(r*rs);
+        g = (int)(g*gs);
+        b = (int)(b*bs);
         if (r > 255) r = 255;
         if (g > 255) g = 255;
         if (b > 255) b = 255;
@@ -2183,9 +2184,9 @@ void Layer::quantize(const Array<unsigned int> &colors) {
       bd -= bs;
       ad -= as;
       if (fastQuantWithLuma) {
-        rd *= luminanceValues[0];
-        gd *= luminanceValues[1];
-        bd *= luminanceValues[2];
+        rd = (int)(rd*luminanceValues[0]);
+        gd = (int)(gd*luminanceValues[1]);
+        bd = (int)(bd*luminanceValues[2]);
       }
       int d = rd*rd+gd*gd+bd*bd+ad*ad;
       if (d < ld) {found = j; ld = d;}
@@ -2238,9 +2239,9 @@ __inline unsigned int quantizeColorFast(unsigned int col, float ditherStrength, 
     float lBefore = (float)(r+g+b)/255.f/3.f;
     if (lBefore != 0) {
       float scale = (lBefore+ditherStrength)/lBefore;
-      r *= scale;
-      g *= scale;
-      b *= scale;
+      r = (int)(r*scale);
+      g = (int)(g*scale);
+      b = (int)(b*scale);
       if (r > 255) r = 255;
       if (g > 255) g = 255;
       if (b > 255) b = 255;
@@ -2424,7 +2425,7 @@ void Canvas::init(int width, int height) {
   this->height = height;
   this->canvasX0 = 0;
   this->canvasY0 = 0;
-  this->canvasX1 = width*aspectRatio*glFrameBufferHeight/glFrameBufferWidth;
+  this->canvasX1 = (int)(width*aspectRatio*glFrameBufferHeight/glFrameBufferWidth);
   this->canvasY1 = height;
 }
 
@@ -2570,7 +2571,7 @@ unsigned int Canvas::getLayerColor(double screenX, double screenY, bool useColor
     Layer *l = layers[i];
     if (l->state.active || l->state.selected) {
       double lx, ly; getLayerPos(l,screenX,screenY,lx,ly);
-      int x = floor(lx), y = floor(ly);
+      int x = (int)floor(lx), y = (int)(floor(ly));
       if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
         unsigned int col = l->getPixel(x,y);
         if (useColorTransform) {
@@ -2632,10 +2633,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   if (b2.y < y0) return;
   if (b1.x > x1) return;
   if (b1.y > y1) return;
-  if (x0 < b1.x) x0 = b1.x;
-  if (y0 < b1.y) y0 = b1.y;
-  if (x1 > b2.x) x1 = b2.x;
-  if (y1 > b2.y) y1 = b2.y;
+  if (x0 < b1.x) x0 = (int)b1.x;
+  if (y0 < b1.y) y0 = (int)b1.y;
+  if (x1 > b2.x) x1 = (int)b2.x;
+  if (y1 > b2.y) y1 = (int)b2.y;
 
   if (x0 < 0) x0 = 0;
   if (y0 < 0) y0 = 0;
@@ -2900,14 +2901,14 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int b = (rgb1>>16) & 255;
           int a = (rgb1>>24) & 255;
           if (layer->colorTransform.posterizeUseGrey) {
-            r -= layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) r = (int)(r / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey; r += layer->colorTransform.posterizeGreyBase;
-            g -= layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) g = (int)(g / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey; g += layer->colorTransform.posterizeGreyBase;
-            b -= layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) b = (int)(b / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey; b += layer->colorTransform.posterizeGreyBase;
+            r -= (int)layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) r = (int)((int)(r / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey); r += (int)layer->colorTransform.posterizeGreyBase;
+            g -= (int)layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) g = (int)((int)(g / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey); g += (int)layer->colorTransform.posterizeGreyBase;
+            b -= (int)layer->colorTransform.posterizeGreyBase; if (layer->colorTransform.posterizeGrey>0) b = (int)((int)(b / layer->colorTransform.posterizeGrey)*layer->colorTransform.posterizeGrey); b += (int)layer->colorTransform.posterizeGreyBase;
           } else {
-            r -= layer->colorTransform.posterizeRedBase; if (layer->colorTransform.posterizeRed>0) r = (int)(r / layer->colorTransform.posterizeRed)*layer->colorTransform.posterizeRed; r += layer->colorTransform.posterizeRedBase;
-            g -= layer->colorTransform.posterizeGreenBase; if (layer->colorTransform.posterizeGreen>0) g = (int)(g / layer->colorTransform.posterizeGreen)*layer->colorTransform.posterizeGreen; g += layer->colorTransform.posterizeGreenBase;
-            b -= layer->colorTransform.posterizeBlueBase; if (layer->colorTransform.posterizeBlue>0) b = (int)(b / layer->colorTransform.posterizeBlue)*layer->colorTransform.posterizeBlue; b += layer->colorTransform.posterizeBlueBase;
-            a -= layer->colorTransform.posterizeAlphaBase; if (layer->colorTransform.posterizeAlpha>0) a = (int)(a / layer->colorTransform.posterizeAlpha)*layer->colorTransform.posterizeAlpha; a += layer->colorTransform.posterizeAlphaBase;
+            r -= (int)layer->colorTransform.posterizeRedBase; if (layer->colorTransform.posterizeRed>0) r = (int)((int)(r / layer->colorTransform.posterizeRed)*layer->colorTransform.posterizeRed); r += (int)layer->colorTransform.posterizeRedBase;
+            g -= (int)layer->colorTransform.posterizeGreenBase; if (layer->colorTransform.posterizeGreen>0) g = (int)((int)(g / layer->colorTransform.posterizeGreen)*layer->colorTransform.posterizeGreen); g += (int)layer->colorTransform.posterizeGreenBase;
+            b -= (int)layer->colorTransform.posterizeBlueBase; if (layer->colorTransform.posterizeBlue>0) b = (int)((int)(b / layer->colorTransform.posterizeBlue)*layer->colorTransform.posterizeBlue); b += (int)layer->colorTransform.posterizeBlueBase;
+            a -= (int)layer->colorTransform.posterizeAlphaBase; if (layer->colorTransform.posterizeAlpha>0) a = (int)((int)(a / layer->colorTransform.posterizeAlpha)*layer->colorTransform.posterizeAlpha); a += (int)layer->colorTransform.posterizeAlphaBase;
           }
           if (r < 0) r = 0; 
           if (r > 255) r = 255;
@@ -2946,9 +2947,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
             float lBefore = (float)(r+g+b)/255.f/3.f;
             if (lBefore != 0) {
               float scale = (lBefore+layer->colorTransform.ditherStrength)/lBefore;
-              r *= scale;
-              g *= scale;
-              b *= scale;
+              r = (int)(r*scale);
+              g = (int)(g*scale);
+              b = (int)(b*scale);
               if (r > 255) r = 255;
               if (g > 255) g = 255;
               if (b > 255) b = 255;
@@ -2988,7 +2989,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
 
       switch(layer->mode) {
       case LAYERMODE_ALPHA: {
-          int a = (rgb1 >> 24)*alpha;
+          int a = (int)((rgb1 >> 24)*alpha);
           if (a == 0) {col = rgb0; break;}
           int r = ((int)(rgb1 & 255)-(int)(rgb0 & 255))*a/255+(int)(rgb0 & 255);
           int g = ((int)((rgb1>>8) & 255)-(int)((rgb0>>8) & 255))*a/255+(int)((rgb0>>8) & 255);
@@ -2997,12 +2998,12 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_ADD: {
-          int a = alpha * (int)(rgb1>>24); 
+          int a = (int)(alpha * (int)(rgb1>>24)); 
           if (a == 0) {col = rgb0; break;}
           float alpha2 = a/255.f;
-          int r = (int)(rgb0 & 255)+(int)(rgb1 & 255)*alpha2;
-          int g = (int)((rgb0>>8) & 255)+(int)((rgb1>>8) & 255)*alpha2;
-          int b = (int)((rgb0>>16) & 255)+(int)((rgb1>>16) & 255)*alpha2;
+          int r = (int)((int)(rgb0 & 255)+(int)(rgb1 & 255)*alpha2);
+          int g = (int)((int)((rgb0>>8) & 255)+(int)((rgb1>>8) & 255)*alpha2);
+          int b = (int)((int)((rgb0>>16) & 255)+(int)((rgb1>>16) & 255)*alpha2);
           if (r > 255) r = 255;       
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -3010,12 +3011,12 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_SUB: {
-          int a = alpha * (int)(rgb1>>24); 
+          int a = (int)(alpha * (int)(rgb1>>24)); 
           if (a == 0) {col = rgb0; break;}
           float alpha2 = a/255.f;
-          int r = (int)(rgb0 & 255)-(int)(rgb1 & 255)*alpha2;
-          int g = (int)((rgb0>>8) & 255)-(int)((rgb1>>8) & 255)*alpha2;
-          int b = (int)((rgb0>>16) & 255)-(int)((rgb1>>16) & 255)*alpha2;
+          int r = (int)((int)(rgb0 & 255)-(int)(rgb1 & 255)*alpha2);
+          int g = (int)((int)((rgb0>>8) & 255)-(int)((rgb1>>8) & 255)*alpha2);
+          int b = (int)((int)((rgb0>>16) & 255)-(int)((rgb1>>16) & 255)*alpha2);
           if (r < 0) r = 0;
           if (g < 0) g = 0;
           if (b < 0) b = 0;
@@ -3029,10 +3030,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           r /= 255;
           g /= 255;
           b /= 255;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0 >> 16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3046,10 +3047,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           r /= 255;
           g /= 255;
           b /= 255;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0 >> 16) & 255);
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -3057,11 +3058,11 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_PREMULTIPLIEDALPHA: {
-          int a = (rgb1 >> 24)*alpha;
+          int a = (int)((rgb1 >> 24)*alpha);
           int a2 = 255-a;
-          int r = (int)(rgb0 & 255)*a2/255+(int)(rgb1 & 255)*alpha;
-          int g = (int)((rgb0>>8) & 255)*a2/255+(int)((rgb1>>8) & 255)*alpha;
-          int b = (int)((rgb0>>16) & 255)*a2/255+(int)((rgb1>>16) & 255)*alpha;
+          int r = (int)((int)(rgb0 & 255)*a2/255+(int)(rgb1 & 255)*alpha);
+          int g = (int)((int)((rgb0>>8) & 255)*a2/255+(int)((rgb1>>8) & 255)*alpha);
+          int b = (int)((int)((rgb0>>16) & 255)*a2/255+(int)((rgb1>>16) & 255)*alpha);
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -3072,10 +3073,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = maxi((int)(rgb0 & 255),(int)(rgb1 & 255));
           int g = maxi((int)((rgb0>>8) & 255),(int)((rgb1>>8) & 255));
           int b = maxi((int)((rgb0>>16) & 255),(int)((rgb1>>16) & 255));
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3083,23 +3084,23 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = mini((int)(rgb0 & 255),(int)(rgb1 & 255));
           int g = mini((int)((rgb0>>8) & 255),(int)((rgb1>>8) & 255));
           int b = mini((int)((rgb0>>16) & 255),(int)((rgb1>>16) & 255));
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       case LAYERMODE_SCREEN: {
-          int a = alpha * (int)(rgb1>>24);
+          int a = (int)(alpha * (int)(rgb1>>24));
           if (a == 0) {col = rgb0; break;}
            float alpha2 = a/255.f;
           int r = 255-(255-(int)(rgb0 & 255))*(255-(int)(rgb1 & 255))/255;
           int g = 255-(255-(int)((rgb0>>8) & 255))*(255-(int)((rgb1>>8) & 255))/255;
           int b = 255-(255-(int)((rgb0>>16) & 255))*(255-(int)((rgb1>>16) & 255))/255;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3119,10 +3120,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           a = (int)((rgb0>>24) & 255); // don't modify alpha
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3142,10 +3143,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           a = (int)((rgb0>>24) & 255); // don't modify alpha
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3159,10 +3160,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rs > 128 ? (255-(255-rd)*(255-(rs-128))/255) : (rd*(rs+128)/255);
           int g = gs > 128 ? (255-(255-gd)*(255-(gs-128))/255) : (gd*(gs+128)/255);
           int b = bs > 128 ? (255-(255-bd)*(255-(bs-128))/255) : (bd*(bs+128)/255);
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3176,10 +3177,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rs > 128 ? (255-(255-rd)*(255-2*(rs-128))/255) : (rd*(2*rs)/255);
           int g = gs > 128 ? (255-(255-gd)*(255-2*(gs-128))/255) : (gd*(2*gs)/255);
           int b = bs > 128 ? (255-(255-bd)*(255-2*(bs-128))/255) : (bd*(2*bs)/255);
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3193,10 +3194,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rs > 128 ? (rd+2*(rs-128)) : (rd+2*rs-255);
           int g = gs > 128 ? (gd+2*(gs-128)) : (gd+2*gs-255);
           int b = bs > 128 ? (bd+2*(bs-128)) : (bd+2*bs-255);
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -3216,10 +3217,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rs > 128 ? maxi(rd,2*(rs-128)) : mini(rd,2*rs);
           int g = gs > 128 ? maxi(gd,2*(gs-128)) : mini(gd,2*gs);
           int b = bs > 128 ? maxi(bd,2*(bs-128)) : mini(bd,2*bs);
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -3239,10 +3240,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rd < 0 ? -rd : rd;
           int g = gd < 0 ? -gd : gd;
           int b = bd < 0 ? -bd : bd;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
@@ -3257,17 +3258,17 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
-          int k = (r + g + b)/3 * alpha;
+          int k = (int)((r + g + b)/3 * alpha);
           canvas->opacityMod[x+y*canvas->width] = (unsigned char)k;
           col = canvas->pixels[x+y*canvas->width];
         } break;
       case LAYERMODE_ADDSUB: {
-          int a = alpha * (int)(rgb1>>24); 
+          int a = (int)(alpha * (int)(rgb1>>24)); 
           if (a == 0) {col = rgb0; break;}
           float alpha2 = a/255.f;
-          int r = (int)(rgb0 & 255)+((int)(rgb1 & 255)-128)*alpha2;
-          int g = (int)((rgb0>>8) & 255)+((int)((rgb1>>8) & 255)-128)*alpha2;
-          int b = (int)((rgb0>>16) & 255)+((int)((rgb1>>16) & 255)-128)*alpha2;
+          int r = (int)((int)(rgb0 & 255)+((int)(rgb1 & 255)-128)*alpha2);
+          int g = (int)((int)((rgb0>>8) & 255)+((int)((rgb1>>8) & 255)-128)*alpha2);
+          int b = (int)((int)((rgb0>>16) & 255)+((int)((rgb1>>16) & 255)-128)*alpha2);
           if (r < 0) r = 0;
           if (g < 0) g = 0;
           if (b < 0) b = 0;
@@ -3287,10 +3288,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rd > 128 ? 255-2*(rd-128)*(255-rs)/255 : 2 * rd * rs / 255;
           int g = gd > 128 ? 255-2*(gd-128)*(255-gs)/255 : 2 * gd * gs / 255;
           int b = bd > 128 ? 255-2*(bd-128)*(255-bs)/255 : 2 * bd * bs / 255;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3307,10 +3308,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (r < 0) r = 0;
           if (g < 0) g = 0;
           if (b < 0) b = 0;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3330,10 +3331,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3353,10 +3354,10 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;
-          int a = alpha * (int)(rgb1>>24); float alpha2 = a/255.f;
-          r = (r - (int)(rgb0 & 255)) * alpha2 + (int)(rgb0 & 255);
-          g = (g - (int)((rgb0>>8) & 255)) * alpha2 + (int)((rgb0>>8) & 255);
-          b = (b - (int)((rgb0>>16) & 255)) * alpha2 + (int)((rgb0>>16) & 255);
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
@@ -3406,10 +3407,10 @@ void updateCanvasPaintFlagByOverlay(Canvas *canvas, Overlay *overlay, Layer *sou
     b2 = inverse2(canvas->transform.transformation) * b2;
     b2.x += 1; // no better solution, yet
     b2.y += 1; // no better solution, yet
-    int x0 = b1.x;
-    int y0 = b1.y;
-    int x1 = b2.x;
-    int y1 = b2.y;
+    int x0 = (int)b1.x;
+    int y0 = (int)b1.y;
+    int x1 = (int)b2.x;
+    int y1 = (int)b2.y;
   
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
@@ -3611,10 +3612,10 @@ void Canvas::updateLayer(Layer *layer, bool forceUpdate) {
   if (b2.y < y0) return;
   if (b1.x > x1) return;
   if (b1.y > y1) return;
-  if (x0 < b1.x) x0 = b1.x;
-  if (y0 < b1.y) y0 = b1.y;
-  if (x1 > b2.x) x1 = b2.x;
-  if (y1 > b2.y) y1 = b2.y;
+  if (x0 < b1.x) x0 = (int)b1.x;
+  if (y0 < b1.y) y0 = (int)b1.y;
+  if (x1 > b2.x) x1 = (int)b2.x;
+  if (y1 > b2.y) y1 = (int)b2.y;
   if (x0 < 0) x0 = 0;
   if (y0 < 0) y0 = 0;
   if (x1 > width) x1 = width;
@@ -3901,7 +3902,7 @@ void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpola
     if (quantizeLayers) {
       int wBefore = l->width;
       int hBefore = l->height;
-      l->resizeLayerContent(interpolation,wBefore/scaleX,hBefore/scaleY);
+      l->resizeLayerContent(interpolation,(int)(wBefore/scaleX),(int)(hBefore/scaleY));
       int wAfter = l->width;
       int hAfter = l->height;
       if (wBefore == 0) wBefore = 1;
@@ -3915,8 +3916,8 @@ void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpola
     }
     l->transform.update();
   }
-  canvasX1 = canvasX0 + w;
-  canvasY1 = canvasY0 + h;
+  canvasX1 = (int)(canvasX0 + w);
+  canvasY1 = (int)(canvasY0 + h);
   shouldUpdateAll = true;
 }
 
@@ -3936,10 +3937,10 @@ void Canvas::fitCanvasToLayers() {
   double y1 = floor(boundingBox.w);
   if (floor(x1)-floor(x0)<1) x1 = x0 + 1;
   if (floor(y1)-floor(y0)<1) y1 = y0 + 1;
-  canvasX0 = x0;
-  canvasY0 = y0;
-  canvasX1 = x1;
-  canvasY1 = y1;
+  canvasX0 = (int)x0;
+  canvasY0 = (int)y0;
+  canvasX1 = (int)x1;
+  canvasY1 = (int)y1;
   shouldUpdateAll = true;
 }
 
@@ -3963,10 +3964,10 @@ void Canvas::fitCanvasToSelection() {
   double y1 = floor(boundingBox.w);
   if (floor(x1)-floor(x0)<1) x1 = x0 + 1;
   if (floor(y1)-floor(y0)<1) y1 = y0 + 1;
-  canvasX0 = x0;
-  canvasY0 = y0;
-  canvasX1 = x1;
-  canvasY1 = y1;
+  canvasX0 = (int)x0;
+  canvasY0 = (int)y0;
+  canvasX1 = (int)x1;
+  canvasY1 = (int)y1;
   shouldUpdateAll = true;
 }
 
@@ -3986,10 +3987,10 @@ void Canvas::cropCanvasByAlpha(double alpha) {
   double y1 = floor(boundingBox.w);
   if (floor(x1)-floor(x0)<1) x1 = x0 + 1;
   if (floor(y1)-floor(y0)<1) y1 = y0 + 1;
-  canvasX0 = x0;
-  canvasY0 = y0;
-  canvasX1 = x1;
-  canvasY1 = y1;
+  canvasX0 = (int)x0;
+  canvasY0 = (int)y0;
+  canvasX1 = (int)x1;
+  canvasY1 = (int)y1;
   shouldUpdateAll = true;
 }
 
@@ -4701,8 +4702,8 @@ void Canvas::cropLayersByAlpha(double alpha) {
 void Canvas::snapToGrid() {
   if (gridStepX == 0 || gridStepY == 0) return;
   Vector k = boundingBox();
-  int px = floor(k.x);
-  int py = floor(k.y);
+  int px = (int)floor(k.x);
+  int py = (int)floor(k.y);
   int mx2 = px - gridOffsetX;
   int my2 = py - gridOffsetY;
   int mx = mx2;

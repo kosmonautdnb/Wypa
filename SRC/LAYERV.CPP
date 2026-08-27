@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "STL/GL.H"
 #include "IMGUI/IMGUIGL.HPP"
 #include "LAYERV.HPP"
@@ -39,9 +40,9 @@
 bool roundButton(const char *name, bool enabled);
 
 bool blinkingRoundButton(const char *name, bool enabled) {
-  static double t = 0; t += timeDelta; t = fmod(t,100); int k = t * 2;
-  ImVec4 color_button_off_bg = ImVec4(0.7,0.7,0.7,1);
-  ImVec4 color_button_on_bg = ImVec4((k & 1)*0.5+0.5,0.0,0.0,1);
+  static double t = 0; t += timeDelta; t = fmod(t,100); int k = (int)(t * 2);
+  ImVec4 color_button_off_bg = ImVec4(0.7f,0.7f,0.7f,1);
+  ImVec4 color_button_on_bg = ImVec4((k & 1)*0.5f+0.5f,0.0,0.0,1);
   ImVec4 color_button_off_text = ImVec4(0,0,0,1);
   ImVec4 color_button_on_text = ImVec4(1,1,1,1);
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5,0));
@@ -107,7 +108,7 @@ void toolTipLayerPreview(Layer *l) {
     double layerPreviewAspect = (double)l->width / l->height;
     updateLayerTexture(l, layerPreview);
     ImGui::BeginTooltip();
-    ImGui::Image((ImTextureID)layerPreview,ImVec2(layerPreviewWidth,layerPreviewHeight*aspectRatio*main_window_yres/main_window_xres/layerPreviewAspect));
+    ImGui::Image((ImTextureID)layerPreview,ImVec2((float)layerPreviewWidth,(float)(layerPreviewHeight*aspectRatio*main_window_yres/main_window_xres/layerPreviewAspect)));
     ImGui::EndTooltip();
   }
 }
@@ -123,8 +124,8 @@ void maybeBlinkLayer(Layer *l) {
 
 void drawLayerView() {
   if (fullScreen) return;
-  ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height+navigator_height+colorField_height));
-  ImGui::Begin("LAYERVIEW", NULL, ImVec2(sidebar_width,main_window_yres-(menuBar_height+navigator_height+colorField_height)),1.0,FROZENWINDOW);
+  ImGui::SetNextWindowPos(ImVec2((float)(main_window_xres-sidebar_width),(float)(menuBar_height+navigator_height+colorField_height)));
+  ImGui::Begin("LAYERVIEW", NULL, ImVec2((float)sidebar_width,(float)(main_window_yres-(menuBar_height+navigator_height+colorField_height))),1.0,FROZENWINDOW);
 
   Layer *currentLayer = currentCanvas->getActiveLayer();
   if (currentLayer != NULL) {
@@ -139,7 +140,7 @@ void drawLayerView() {
 
     ImGui::PopItemWidth();
     ImGui::SameLine();
-    ImGui::PushItemWidth(sidebar_width-(7*8+16)-16);
+    ImGui::PushItemWidth((float)(sidebar_width-(7*8+16)-16));
     float alpha = currentLayer->state.alpha; if (ImGui::SliderFloat("##DRAWLAERVIEWTRANSPARENCYALPHA",&alpha,0,1)) {
       if (alpha < 0) alpha = 0;
       if (alpha > 1) alpha = 1;
@@ -182,10 +183,10 @@ void drawLayerView() {
 
 #define CELLSIZE 24
 #define CELLPRE 4
-  ImGui::BeginChild("LAYERVIEWCHILD",ImVec2(sidebar_width,main_window_yres-ImGui::GetCursorScreenPos().y-20));
+  ImGui::BeginChild("LAYERVIEWCHILD",ImVec2((float)sidebar_width,(float)(main_window_yres-ImGui::GetCursorScreenPos().y-20)));
 
   if (layerTextureIds.size() < currentCanvas->layers.size()) {
-    for (int i = layerTextureIds.size(); i < (int)currentCanvas->layers.size(); i++) {
+    for (int i = (int)layerTextureIds.size(); i < (int)currentCanvas->layers.size(); i++) {
       unsigned int id; glGenTextures(1,&id); 
       glBindTexture(GL_TEXTURE_2D,id); glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, layerThumbWidth, layerThumbHeight, 0, GL_RGBA, GL_BYTE, NULL);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -208,11 +209,11 @@ void drawLayerView() {
 
     SVG *svg = &svgs["visible"];
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
-    ImGui::Image((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,l->state.visible ? 1:0.5)); toolTip("Layer visibility");
+    ImGui::Image((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,l->state.visible ? 1:0.5f)); toolTip("Layer visibility");
 
 
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
-    if (ImGui::InvisibleButton(combined(String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),ImVec2(svg->w,svg->h))) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}
+    if (ImGui::InvisibleButton(combined(String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),ImVec2((float)svg->w,(float)svg->h))) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}
 
     ImGui::SameLine();
     //ImGui::Checkbox(combined(String("##LAYERVIEWCHILDSELECTED")+String::fromInt(i)).c_str(),&l->state.selected);
@@ -226,7 +227,7 @@ void drawLayerView() {
     ImGui::GetIO().MouseClicked[0] = a;
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y));
 
-    ImGui::InvisibleButton("##LAYERVIEWINVISIBLEBUTTON",ImVec2(sidebar_width,CELLSIZE));
+    ImGui::InvisibleButton("##LAYERVIEWINVISIBLEBUTTON",ImVec2((float)sidebar_width,CELLSIZE));
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_NONE) {maybeBlinkLayer(l); currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_CTRL) {maybeBlinkLayer(l); currentCanvas->copyActiveSelectionToLayer(currentCanvas->getActiveLayerIndex(),i);currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_SHIFT) {maybeBlinkLayer(l); l->state.selected = !l->state.selected;Layer *k = currentCanvas->getActiveLayer(); if (k != NULL) k->state.selected = true; shouldUpdateAll = true;}// currentCanvas->setActiveLayer(-1);}
@@ -266,11 +267,11 @@ void drawLayerView() {
 
   bool enableScrollKeys = tool != TOOL_MOVE; // actually tool move should not work instead of this
   if (enableScrollKeys && ImGui::IsMouseHoveringWindow()) {
-    int scrollY = ImGui::GetScrollY();
+    int scrollY = (int)ImGui::GetScrollY();
     if (currentKey == GL_VK_DOWN) {scrollY += CELLSIZE;}
     if (currentKey == GL_VK_UP) {scrollY -= CELLSIZE;}
     if (scrollY < 0) scrollY = 0;
-    ImGui::SetScrollY(scrollY);
+    ImGui::SetScrollY((float)scrollY);
   }
   ImGui::EndChild();
 

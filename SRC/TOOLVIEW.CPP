@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "STL/GL.H"
 #include "TOOLVIEW.HPP"
 #include "IMGUI/IMGUI.H"
@@ -138,8 +139,8 @@ void drawToolWandView() {
     ImGui::Text("");
     if (l->type != LAYERTYPE_TILEMAP) {
       float k;
-      k = wandColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWCOLORDISTANCE",&k,0,256)) {wandColorDistance = k;} else toolTip("Sameness value for color");
-      k = wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
+      k = (float)wandColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWCOLORDISTANCE",&k,0,256)) {wandColorDistance = k;} else toolTip("Sameness value for color");
+      k = (float)wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
     }
     ImGui::Text("Surrounding"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors)) {} else toolTip("Use only surrounding areas");
     ImGui::Separator();
@@ -171,7 +172,7 @@ void drawToolWandView() {
     ImGui::Text("LMouse = inside");
     ImGui::Separator();
     ImGui::Text("Points:%d",watershedPoints.size());
-    ImGui::BeginChild("DRAWTOOLWANDVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
+    ImGui::BeginChild("DRAWTOOLWANDVIEWCHILD",ImVec2((float)toolview_width,(float)(main_window_yres-ImGui::GetCursorScreenPos().y)));
     watershedSelectedPoint = -1;
     for (int i = 0; i < (int)watershedPoints.size(); i++) {
       ImVec2 v0 = ImGui::GetCursorScreenPos();
@@ -181,7 +182,7 @@ void drawToolWandView() {
       SVG *svg = &svgs["delete"];
       ImGui::PushID(combined("DRAWTOOLWANDVIEWDELETE_"+String::fromInt(i)).c_str());
       bool eraseThis = false;
-      if (ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h))) {
+      if (ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h))) {
         eraseThis = true;
       } else toolTip("Delete this marker");
       ImGui::PopID();
@@ -201,7 +202,7 @@ void drawToolWandView() {
 void drawToolFillView() {
   Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && locked(l,LOCK_PIXELS_AND_TILEMAP)) return;
   float k;
-  k = fillColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLFILLCOLORDISTANCE",&k,0,256)) {fillColorDistance = k;} else toolTip("Sameness value for fill area color");
+  k = (float)fillColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLFILLCOLORDISTANCE",&k,0,256)) {fillColorDistance = k;} else toolTip("Sameness value for fill area color");
   ImGui::Text("Use valleys"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFILLVALLEYS",&fillUseValleys)) {} else toolTip("Flow up and down the filling points");
 }
 
@@ -277,7 +278,7 @@ void drawToolMoveView() {
       k = y0; ImGui::Text("Layer pos y"); if (ImGui::InputInt("##DRAWTOOLMOVEVIEWPOSY",&k)) {l->setLayerPos(x0,k); shouldUpdateAll = true;} if (notInt(b.y)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers y position");
       k = x1-x0; ImGui::Text("Layer width"); if (ImGui::InputInt("##DRAWTOOLMOVEVIEWWIDTH",&k)) {if (k<1) k = 1;l->setLayerSize(k,y1-y0); shouldUpdateAll = true;} if (notInt(b.z-b.x)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers width");
       k = y1-y0; ImGui::Text("Layer height"); if (ImGui::InputInt("##DRAWTOOLMOVEVIEWHEIGHT",&k)) {if (k<1) k = 1;l->setLayerSize(x1-x0,k); shouldUpdateAll = true;} if (notInt(b.w-b.y)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers height");
-      float k2 = l->getAngleDegrees(); ImGui::Text("Layer rotation"); if (ImGui::InputFloat("##DRAWTOOLMOVEVIEWROTATION",&k2)) {if(k2<0) k2=0; if (k2>360) k2 = 360;l->setAngleDegrees(k2);shouldUpdateAll = true;} else toolTip("Change layer rotation");
+      float k2 = (float)l->getAngleDegrees(); ImGui::Text("Layer rotation"); if (ImGui::InputFloat("##DRAWTOOLMOVEVIEWROTATION",&k2)) {if(k2<0) k2=0; if (k2>360) k2 = 360;l->setAngleDegrees(k2);shouldUpdateAll = true;} else toolTip("Change layer rotation");
       if (roundButton("Fit boundings##DRAWTOOLMOVEVIEWFITTOCANVAS",somethingToFit)) {
         l->quantizeBoundingBox();
       } else toolTip("Put layer on straight coordinates");
@@ -306,7 +307,7 @@ void drawToolMoveView() {
       k = y0; ImGui::Text("Bounding pos y"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGPOSY",&k)) {currentCanvas->setBoundingPos(x0,k); shouldUpdateAll = true;} if (notIntPosY(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers y position");
       k = x1-x0; ImGui::Text("Bounding width"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGWIDTH",&k)) {if (k<1) k = 1;currentCanvas->setBoundingSize(k,y1-y0); shouldUpdateAll = true;} if (notIntWidth(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers width");
       k = y1-y0; ImGui::Text("Bounding height"); if (ImGui::InputInt("##DRAWTOOLBOUNDINGHEIGHT",&k)) {if (k<1) k = 1;currentCanvas->setBoundingSize(x1-x0,k); shouldUpdateAll = true;} if (notIntHeight(selected)) {ImGui::SameLine(); ImGui::Text("!"); somethingToFit = true;} else toolTip("Change layers height");
-      float k2 = currentCanvas->getBoundingAngleDegrees(); ImGui::Text("Bounding rotation"); if (ImGui::InputFloat("##DRAWTOOLNOUNDINGROTATION",&k2)) {if(k2<0) k2=0; if (k2>360) k2 = 360;currentCanvas->setBoundingAngleDegrees(k2);shouldUpdateAll = true;} toolTip("Change layer rotation");
+      float k2 = (float)currentCanvas->getBoundingAngleDegrees(); ImGui::Text("Bounding rotation"); if (ImGui::InputFloat("##DRAWTOOLNOUNDINGROTATION",&k2)) {if(k2<0) k2=0; if (k2>360) k2 = 360;currentCanvas->setBoundingAngleDegrees(k2);shouldUpdateAll = true;} toolTip("Change layer rotation");
       if (roundButton("Fit boundings##DRAWTOOLMOVEVIEWFITTOCANVAS",somethingToFit)) {
         for (int i = 0; i < (int)selected.size(); i++)
           selected[i]->quantizeBoundingBox();
@@ -319,15 +320,15 @@ void drawToolMoveView() {
 }
 
 bool drawBrushWindow(const char *id, int instanceId, Brush *brush, int w, int h, bool pencil, bool selected) {
-  h = h * aspectRatio * main_window_yres / main_window_xres;
+  h = (int)(h * aspectRatio * main_window_yres / main_window_xres);
   BrushInstance *v = brush->getCreateInstance(instanceId,w,h,pencil);
   ImVec2 cursor = ImGui::GetCursorScreenPos();
   ImGui::PushID(combined(String(id)+"_").c_str());
-  ImGui::Image((ImTextureID)v->glHandle,ImVec2(w,h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,1));
+  ImGui::Image((ImTextureID)v->glHandle,ImVec2((float)w,(float)h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,1));
   if (selected) ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(cursor.x,cursor.y),ImVec2(cursor.x+w,cursor.y+h),0x400000ff);
   ImGui::PopID();
   ImGui::SetCursorScreenPos(cursor);
-  bool ret = ImGui::InvisibleButton(id,ImVec2(w,h));
+  bool ret = ImGui::InvisibleButton(id,ImVec2((float)w, (float)h));
   return ret;
 }
 
@@ -356,7 +357,7 @@ void drawBrushSelect(bool pencil) {
   ImGui::SameLine();
   if (roundButton("Erase##DRAWBRUSHSELECTERASEBRUSH",true)) {eraseBrush();} else toolTip("Erase the current brush");
   //ImGui::Text("Brushes %d",brushes.size()); toolTip("Current brush count");
-  ImGui::BeginChild("DRAWBRUSHSELECTCHILD", ImVec2(toolview_width,toolButtonHeight*toolButtonYCount));
+  ImGui::BeginChild("DRAWBRUSHSELECTCHILD", ImVec2((float)toolview_width,(float)(toolButtonHeight*toolButtonYCount)));
   for (int i = 0; i < (int)brushes.size(); i++) {
     if ((i % toolButtonXCount) != 0) ImGui::SameLine();
     Brush *brush = brushes[i];
@@ -461,7 +462,7 @@ void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
   ImGui::Text("Rate");
   ImGui::SameLine(); if (ImGui::SliderFloat("##DRAWBRUSHEDITRATE",&brush->rate,0,1)) {if (brush->rate<0) brush->rate = 0; if (brush->rate>1) brush->rate = 1; brush->update();} else toolTip("Sprinkle intensity");
   ImGui::Text("Width");
-  ImGui::SameLine(); k = (double)brush->size/(double)brush->aspect; if (ImGui::InputFloat("##DRAWBRUSHEDITWIDTH",&k,1,1)) {if (k<1) k = 1; if (k > 128) k = 128; brush->aspect = (float)((double)brush->size/(double)k); brush->update();} else toolTip("Brush width");
+  ImGui::SameLine(); k = (float)((double)brush->size/(double)brush->aspect); if (ImGui::InputFloat("##DRAWBRUSHEDITWIDTH",&k,1,1)) {if (k<1) k = 1; if (k > 128) k = 128; brush->aspect = (float)((double)brush->size/(double)k); brush->update();} else toolTip("Brush width");
   ImGui::Text("Height");
   ImGui::SameLine(); k = brush->size; if (ImGui::InputFloat("##DRAWBRUSHEDITHEIGHT",&k,1,1)) {double widthBefore = (double)brush->size/(double)brush->aspect; if (widthBefore == 0) widthBefore = 1; if(k<1) k = 1; if (k>128) k = 128; brush->size = k; brush->aspect = (float)((double)brush->size/widthBefore); brush->update();} else toolTip("Brush height");
   ImGui::Text("SpreadX");
@@ -538,7 +539,7 @@ void drawToolGradientView() {
     gradient.elements.push_back(GradientElement());
     updateGradient();
   } else toolTip("Add a gradient element");
-  ImGui::BeginChild("DRAWTOOLGRADIENTVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
+  ImGui::BeginChild("DRAWTOOLGRADIENTVIEWCHILD",ImVec2((float)toolview_width,(float)(main_window_yres-ImGui::GetCursorScreenPos().y)));
   for (int i = 0; i < (int)gradient.elements.size(); i++) {
     GradientElement *e = &gradient.elements[i];
     String id = String("##DRAWTOOLGRADIENTVIEWELEMENT")+String::fromInt(e->id);
@@ -554,7 +555,7 @@ void drawToolGradientView() {
     ImGui::SameLine();
     ImGui::PushID((id+"IMAGEBUTTON").c_str());
     SVG *svg = &svgs["delete"];
-    if (ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2(svg->w,svg->h))) {
+    if (ImGui::ImageButton((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h))) {
       gradient.elements.erase(i,1);
       updateGradient();
       if ((unsigned int)i<gradient.elements.size()) e = &gradient.elements[i]; else e = NULL;
@@ -568,7 +569,7 @@ void drawToolGradientView() {
       ImVec2 cursor = ImGui::GetCursorScreenPos();
       if (colorItem("", (id+"COLOR").c_str(), &chere)) {e->color = getUIntColor(chere); addUsedColor(chere); updateGradient();}
       ImGui::SetCursorScreenPos(cursor);
-      if (ImGui::InvisibleButton((id+"INVISIBLE").c_str(),ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+      if (ImGui::InvisibleButton((id+"INVISIBLE").c_str(),ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),16))) {
         e->color = getUIntColor(foregroundColor); addUsedColor(foregroundColor); updateGradient();
         updateGradient();
       }
@@ -612,7 +613,7 @@ void drawToolMagicView() {
   colorItem("","##DRAWTOOLMAGICVIEWPRCOLOR",&prColor);
   ImGui::Separator();
 
-  ImGui::BeginChild("DRAWTOOLMAGICVIEWCHILD",ImVec2(toolview_width, main_window_yres-ImGui::GetCursorScreenPos().y));
+  ImGui::BeginChild("DRAWTOOLMAGICVIEWCHILD",ImVec2((float)toolview_width, (float)(main_window_yres-ImGui::GetCursorScreenPos().y)));
 
   ImGui::Text("See through"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICVIEWUSETRANSPARENTCOLOR",&l->colorTransform.useTransparentColor)) {
     shouldUpdateAll = true;
@@ -623,7 +624,7 @@ void drawToolMagicView() {
     ImVec2 cursor = ImGui::GetCursorScreenPos();
     if (colorItem("", "##DRAWTOOLMAGICVIEWTRANSPARENTCOLORCOLOR", &chere)) {l->colorTransform.transparentColor = getUIntColor(chere); shouldUpdateAll = true;}
     ImGui::SetCursorScreenPos(cursor);
-    if (ImGui::InvisibleButton("##DRAWTOOLMAGICVIEWTRANSPARENTCOLORCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+    if (ImGui::InvisibleButton("##DRAWTOOLMAGICVIEWTRANSPARENTCOLORCOLORINVISIBLE",ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),16))) {
       l->colorTransform.transparentColor = getUIntColor(foregroundColor);
       shouldUpdateAll = true;
     }
@@ -1054,9 +1055,9 @@ void playTilingAnimation(Layer *l) {
   int s2 = s;
   bool doubleSided = l->toolInfo.tilingAnimDoubleSided;
   if (doubleSided) {s += s-1;}
-  l->toolInfo.tilingAnimTime += timeDelta * l->toolInfo.tilingAnimFPS * (l->toolInfo.tilingAnimReverse ? -1 : 1); // actually the current frame
-  if (l->toolInfo.tilingAnimTime<0) {l->toolInfo.tilingAnimTime += s * floor(-l->toolInfo.tilingAnimTime/s+1);}
-  int tilingFrame = floor(l->toolInfo.tilingAnimTime);
+  l->toolInfo.tilingAnimTime += (float)(timeDelta * l->toolInfo.tilingAnimFPS * (l->toolInfo.tilingAnimReverse ? -1 : 1)); // actually the current frame
+  if (l->toolInfo.tilingAnimTime<0) {l->toolInfo.tilingAnimTime += (float)(s * floor(-l->toolInfo.tilingAnimTime/s+1));}
+  int tilingFrame = (int)floor(l->toolInfo.tilingAnimTime);
   if (tilingFrame<0) {blitTilingAnimFrame(l,f0); return;}
   tilingFrame %= (s+1);
   if (doubleSided && tilingFrame >= s2) {
@@ -1107,7 +1108,7 @@ void drawToolTilingView() {
     if (l->toolInfo.tilingHeight > 1024) l->toolInfo.tilingHeight = 1024;
     ImGui::PopItemWidth();
     ImGui::Separator();
-    ImGui::Image((ImTextureID)tilingTexture, ImVec2(tilingTextureWidth/(aspectRatio*main_window_yres/main_window_xres)/tilingTextureMul,tilingTextureHeight/tilingTextureMul));
+    ImGui::Image((ImTextureID)tilingTexture, ImVec2((float)(tilingTextureWidth/(aspectRatio*main_window_yres/main_window_xres)/tilingTextureMul),(float)(tilingTextureHeight/tilingTextureMul)));
     ImVec2 minB = ImGui::GetItemRectMin();
     ImVec2 maxB = ImGui::GetItemRectMax();
     minB.x -= 1;
@@ -1141,7 +1142,7 @@ void drawToolBlurView() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l != NULL) {
     ImGui::Text("Size");
-    float k = blurCircleSize; ImGui::SameLine();if (ImGui::SliderFloat("##DRAWTOOLBLURSIZE",&k,1,128)) {if (k<1) k = 1; if (k>128) k = 128; blurCircleSize = k;}
+    float k = (float)blurCircleSize; ImGui::SameLine();if (ImGui::SliderFloat("##DRAWTOOLBLURSIZE",&k,1,128)) {if (k<1) k = 1; if (k>128) k = 128; blurCircleSize = (int)k;}
     ImGui::Text("Blur type");
     ImGui::RadioButton("Blur##DRAWTOOLBLURVIEWTYPEBLUR",&blurTool,BLURTOOL_BLUR); toolTip("A simple blur");
     ImGui::RadioButton("Antialias##DRAWTOOLBLURVIEWTYPEANTIALIAS",&blurTool,BLURTOOL_ANTIALIAS); toolTip("FXAA antialiasing");
@@ -1157,13 +1158,13 @@ void drawToolTextView() {
   if (roundButton("Add font",true)) {dialogLoadSave(true,DIALOG_ADDFONT);} else toolTip("Load a .ttf font");
   if (roundButton("Save font",l->toolInfo.fontId != 0)) {saveFontId = l->toolInfo.fontId; dialogLoadSave(true,DIALOG_SAVEFONT);} else toolTip("Save the selected .ttf font");
   ImGui::Text("Fonts [%d]",fonts.size()); toolTip("Currently active font count");
-  ImGui::BeginChild("DRAWTOOLTEXTVIEWFONTS",ImVec2(toolview_width,200));
+  ImGui::BeginChild("DRAWTOOLTEXTVIEWFONTS",ImVec2((float)toolview_width,200));
   String fileName = "";
   for (int i = 0; i < (int)fonts.size(); i++) {
     FontSource *f = fonts[i];
-    if (f->glHandle == 0) f->glHandle = f->createTexture(getName(f->fileName),20,aspectRatio*main_window_yres/main_window_xres,f->glWidth,f->glHeight,0x00000000);
+    if (f->glHandle == 0) f->glHandle = f->createTexture(getName(f->fileName),20,(float)(aspectRatio*main_window_yres/main_window_xres),f->glWidth,f->glHeight,0x00000000);
     ImVec2 minB = ImGui::GetCursorScreenPos();
-    ImGui::Image((ImTextureID)f->glHandle,ImVec2(f->glWidth,f->glHeight)); toolTip("A .ttf font");
+    ImGui::Image((ImTextureID)f->glHandle,ImVec2((float)f->glWidth,(float)f->glHeight)); toolTip("A .ttf font");
     ImVec2 maxB = ImGui::GetItemRectMax();
     ImGui::SetCursorScreenPos(minB);
     maxB.x = minB.x + toolview_width;
@@ -1182,7 +1183,7 @@ void drawToolTextView() {
   ImVec2 cursor = ImGui::GetCursorScreenPos();
   ImVec4 chere = getImVec4Color(ati->fontColor); if (colorItem("", "##DRAWTOOLTEXTUREVIEWFONTCOLOR", &chere)) {ati->fontColor = getUIntColor(chere);}
   ImGui::SetCursorScreenPos(cursor);
-  if (ImGui::InvisibleButton("##DRAWTOOLTEXTUREVIEWFONTCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+  if (ImGui::InvisibleButton("##DRAWTOOLTEXTUREVIEWFONTCOLORINVISIBLE",ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),16))) {
     ati->fontColor = getUIntColor(foregroundColor);
   } else toolTip("The color the text is to be painted with (click to set)");
   ImGui::Text("Scale x"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLTEXTUREVIEWFONTSCALEX",&ati->fontScaleX,0,0,2)) {} else toolTip("Scaling of the text in x"); if (ati->fontScaleX < 0) ati->fontScaleX = 0;
@@ -1195,7 +1196,7 @@ void drawToolTextView() {
   if (ImGui::RadioButton("Align center##DRAWTOOLTEXTUREVIEWALIGNCENTER",&ati->fontAlignment,ALIGN_CENTER)) {} else toolTip("Text alignment in x to the right");
   ImGui::PopItemWidth();
   ImGui::Text("Text"); ImGui::SameLine(); if (roundButton("Edit##DRAWTOOLTEXTUREVIEWEDITTEXT",true)) {textToSave = ati->textEditText; textToSaveLength = MAXTEXTEDITTEXT; dialogEditText(true);}
-  ImGui::PushItemWidth(toolview_width-10);
+  ImGui::PushItemWidth((float)(toolview_width-10));
   ImGui::InputTextMultiline("##DRAWTOOLTEXTUREVIEWALIGNTEXT", ati->textEditText, MAXTEXTEDITTEXT); toolTip("The text to be painted");
   ImGui::PopItemWidth();
   if (roundButton("Bake into layer##DRAWTOOLTEXTUREVIEWBAKE",ati->fontId != 0)) {paintTextIntoLayer(l);} else toolTip("Now paint this text into the layer");
@@ -1272,7 +1273,7 @@ void drawToolOverlaysView() {
   ImGui::Text("Annotations"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWANNOTATIONS",&currentCanvas->showAnnotations)) {shouldUpdateAll = true;} else toolTip("Display all the annotation texts");
   ImGui::Text("Lines"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWLINES",&currentCanvas->showLines)) {shouldUpdateAll = true;} else toolTip("Display all the seperating lines");
   ImGui::Text("Sprites"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLOVERLAYSVIEWSHOWSPRITES",&currentCanvas->showSprites)) {shouldUpdateAll = true;} else toolTip("Display all the sprites");
-  ImGui::BeginChild("DRAWTOOLOVERLAYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y-20));
+  ImGui::BeginChild("DRAWTOOLOVERLAYVIEWCHILD",ImVec2((float)toolview_width,(float)(main_window_yres-ImGui::GetCursorScreenPos().y-20)));
   static int selectedOverlay = -1;
   static bool scrollToSelectedOverlay = false;
   for (int i = 0; i < (int)currentCanvas->overlays.size(); i++) {
@@ -1312,7 +1313,7 @@ void drawToolOverlaysView() {
           ImVec2 cursor = ImGui::GetCursorScreenPos();
           ImVec4 chere = getImVec4Color(o->annotationColor); if (colorItem("", "##DRAWTOOLOVERLAYANNOTATIONCOLOR", &chere)) {o->annotationColor = getUIntColor(chere);shouldUpdateAll = true;}
           ImGui::SetCursorScreenPos(cursor);
-          if (ImGui::InvisibleButton("##DRAWTOOLOVERLAYVIEWANNOTATIONCOLORINVISIBLE",ImVec2(16/aspectRatio*main_window_xres/main_window_yres,16))) {
+          if (ImGui::InvisibleButton("##DRAWTOOLOVERLAYVIEWANNOTATIONCOLORINVISIBLE",ImVec2((float)(16/aspectRatio*main_window_xres/main_window_yres),16))) {
             o->annotationColor = getUIntColor(foregroundColor);
             shouldUpdateAll = true;
           } else toolTip("Annotation color");
@@ -1421,17 +1422,17 @@ void drawToolModifyView() {
     ImGui::Text("Point %d",selectedModifyPoint); toolTip("Point number in shape");
     ImGui::PushItemWidth(7*5);
     if (!modifyMode) {
-      k = modifyPointsSource[selectedModifyPoint].x;ImGui::Text("Source x"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTSX",&k,0,0)) {modifyPointsSource[selectedModifyPoint].x = k;} else toolTip("Modify the shape point in x");
-      k = modifyPointsSource[selectedModifyPoint].y;ImGui::Text("Source y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTSY",&k,0,0)) {modifyPointsSource[selectedModifyPoint].y = k;} else toolTip("Modify the shape point in y");
+      k = (int)modifyPointsSource[selectedModifyPoint].x;ImGui::Text("Source x"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTSX",&k,0,0)) {modifyPointsSource[selectedModifyPoint].x = k;} else toolTip("Modify the shape point in x");
+      k = (int)modifyPointsSource[selectedModifyPoint].y;ImGui::Text("Source y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTSY",&k,0,0)) {modifyPointsSource[selectedModifyPoint].y = k;} else toolTip("Modify the shape point in y");
       if (roundButton("Remove point##DRAWTOOLMODIFYREMOVE",true)) {
         modifyPointsSource.erase(selectedModifyPoint,1);
         if ((unsigned int)selectedModifyPoint<modifyPointsDest.size()) modifyPointsDest.erase(selectedModifyPoint,1);
-        if (selectedModifyPoint>=(int)modifyPointsSource.size()) selectedModifyPoint=modifyPointsSource.size()-1;
+        if (selectedModifyPoint>=(int)modifyPointsSource.size()) selectedModifyPoint=(int)modifyPointsSource.size()-1;
         createModifyTriangles();
       } else toolTip("Remove this point again");
     } else {
-      k = modifyPointsDest[selectedModifyPoint].x;ImGui::Text("Dest x"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTDX",&k,0,0)) {modifyPointsDest[selectedModifyPoint].x = k;} else toolTip("Modify the shape point in x");
-      k = modifyPointsDest[selectedModifyPoint].y;ImGui::Text("Dest y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTDY",&k,0,0)) {modifyPointsDest[selectedModifyPoint].y = k;} else toolTip("Modify the shape point in y");
+      k = (int)modifyPointsDest[selectedModifyPoint].x;ImGui::Text("Dest x"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTDX",&k,0,0)) {modifyPointsDest[selectedModifyPoint].x = k;} else toolTip("Modify the shape point in x");
+      k = (int)modifyPointsDest[selectedModifyPoint].y;ImGui::Text("Dest y"); ImGui::SameLine(); if (ImGui::InputInt("##DRAWTOOLMODIFYPOINTDY",&k,0,0)) {modifyPointsDest[selectedModifyPoint].y = k;} else toolTip("Modify the shape point in y");
     }
     ImGui::PopItemWidth();
     ImGui::Separator();
@@ -1485,14 +1486,14 @@ void drawToolTileMapView() {
     //int tileOffsetX = l2->toolInfo.tilingOffsetX;
     //int tileOffsetY = l2->toolInfo.tilingOffsetY;
     ImVec2 cursor0 = ImGui::GetCursorScreenPos();
-    int width = toolview_width; int height = main_window_yres - cursor0.y;
-    ImGui::BeginChild("DRAWTOOLTILEMAPVIEWCHILD", ImVec2(width,height));
+    int width = toolview_width; int height = (int)(main_window_yres - cursor0.y);
+    ImGui::BeginChild("DRAWTOOLTILEMAPVIEWCHILD", ImVec2((float)width,(float)height));
     int border = 2;
     int tw = 16 + border;
     double ratio = (double)tileHeight/tileWidth;
     if (ratio < 0.5) ratio = 0.5;
     if (ratio > 3) ratio = 3;
-    int th = 16*aspectRatio*main_window_yres/main_window_xres*ratio + border;
+    int th = (int)(16*aspectRatio*main_window_yres/main_window_xres*ratio + border);
 
     static Array<int> tileIndices; tileIndices.clear(); // a first loop to collect all tiles
     int index = 0;
@@ -1502,7 +1503,7 @@ void drawToolTileMapView() {
       int tileX = 0;
       int tileY = 0;
       if (!getTilingAnimationFrameLayerCell(l2, index, tileX, tileY, outaX, outaY)) break;
-      ImVec2 tx0,tx1; tx0.x = (double)(tileX*tileWidth+outaX)/l2->width; tx0.y = (double)(tileY*tileHeight+outaY)/l2->height;
+      ImVec2 tx0,tx1; tx0.x = (float)(tileX*tileWidth+outaX)/l2->width; tx0.y = (float)(tileY*tileHeight+outaY)/l2->height;
       if (tx0.y >= 1) break;
       bool excluded = false;
       if (excludeEmptyTiles) {
@@ -1536,18 +1537,18 @@ void drawToolTileMapView() {
       if (scrollToTileMapIndex >= 0) {
         for (int i = 0; i < (int)tileIndices.size(); i++) {
           if (tileIndices[i] == scrollToTileMapIndex) {
-            ImGui::SetScrollY((i / k-5)*th);
+            ImGui::SetScrollY((float)(i / k-5)*th);
             break;
           }
         }
       }
-      int row = ImGui::GetScrollY() / th;
+      int row = (int)(ImGui::GetScrollY() / th);
       index = row * k;
       ImVec2 c = ImGui::GetCursorScreenPos(); c.y += row * th; ImGui::SetCursorScreenPos(c);
     }
     scrollToTileMapIndex = -1;
 
-    ImVec2 cursor1 = ImGui::GetCursorScreenPos(); cursor1.x += 1; cursor1.y += 3; int posX = cursor1.x; int posY = cursor1.y;
+    ImVec2 cursor1 = ImGui::GetCursorScreenPos(); cursor1.x += 1; cursor1.y += 3; int posX = (int)cursor1.x; int posY = (int)cursor1.y;
 
     while(index < (int)tileIndices.size()) {
 
@@ -1558,12 +1559,12 @@ void drawToolTileMapView() {
       if (!getTilingAnimationFrameLayerCell(l2, tileIndices[index], tileX, tileY, outaX, outaY)) break;
 
       ImVec2 tx0,tx1;
-      tx0.x = (double)(tileX*tileWidth+outaX)/l2->width; tx0.y = (double)(tileY*tileHeight+outaY)/l2->height;
+      tx0.x = (float)(tileX*tileWidth+outaX)/l2->width; tx0.y = (float)(tileY*tileHeight+outaY)/l2->height;
       if (tx0.y >= 1) break;
 
       if (posY < cursor0.y + height) {
-        tx1.x = (double)(tileX*tileWidth+tileWidth+outaX)/l2->width; tx1.y = (double)(tileY*tileHeight+tileHeight+outaY)/l2->height;
-        ImGui::SetCursorScreenPos(ImVec2(posX,posY)); ImGui::Image((ImTextureID)tileMapTexture,ImVec2(tw-border,th-border),tx0,tx1); posX += tw;
+        tx1.x = (float)(tileX*tileWidth+tileWidth+outaX)/l2->width; tx1.y = (float)(tileY*tileHeight+tileHeight+outaY)/l2->height;
+        ImGui::SetCursorScreenPos(ImVec2((float)posX,(float)posY)); ImGui::Image((ImTextureID)tileMapTexture,ImVec2((float)(tw-border),(float)(th-border)),tx0,tx1); posX += tw;
         ImVec2 v0 = ImGui::GetItemRectMin();
         ImVec2 v1 = ImGui::GetItemRectMax();
         if (ImGui::IsMouseHoveringRect(v0,v1) && ImGui::IsMouseClicked(0)) {l->toolInfo.tileMapSelectedTile = tileIndices[index]; if (darkenSelectedTiles) shouldUpdateAll = true;}
@@ -1574,14 +1575,14 @@ void drawToolTileMapView() {
         }
   
         if (posX + tw > cursor0.x + width - 16) {
-          posX = cursor1.x;
+          posX = (int)cursor1.x;
           posY += th;
         }
       }
       index++;
     }
-    posY = tileIndices.size() / k * th - ImGui::GetScrollY();
-    ImGui::SetCursorPos(ImVec2(posX,posY));
+    posY = (int)(tileIndices.size() / k * th - ImGui::GetScrollY());
+    ImGui::SetCursorPos(ImVec2((float)posX,(float)posY));
     ImGui::Text(""); // ScrollBar
     ImGui::EndChild();
   }
@@ -1597,8 +1598,8 @@ void drawToolMirrorView() {
     ImGui::PushItemWidth(7*6);
     ImGui::Text("Angle"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLMIRRORANGLE",&mirrorToolAngle,0,0,2)) {;}; if (mirrorToolAngle < 0) mirrorToolAngle = 0; if (mirrorToolAngle>360) mirrorToolAngle = 360;
     float v;
-    v = mirrorToolPoint.x; ImGui::Text("CanvasX"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLMIRRORPOINTX",&v,0,0,2)) {;}; mirrorToolPoint.x = v;
-    v = mirrorToolPoint.y; ImGui::Text("CanvasY"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLMIRRORPOINTY",&v,0,0,2)) {;}; mirrorToolPoint.y = v;
+    v = (float)mirrorToolPoint.x; ImGui::Text("CanvasX"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLMIRRORPOINTX",&v,0,0,2)) {;}; mirrorToolPoint.x = v;
+    v = (float)mirrorToolPoint.y; ImGui::Text("CanvasY"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLMIRRORPOINTY",&v,0,0,2)) {;}; mirrorToolPoint.y = v;
     if (ImGui::IsMouseClicked(0) && isPaintAreaActive()) {
       double lx = mouseX, ly = mouseY; currentCanvas->getCanvasPos(lx,ly,lx,ly);
       mirrorToolPoint.x = lx;
@@ -1631,8 +1632,8 @@ void drawToolMirrorView() {
 
 void drawToolView() {
   if (fullScreen) return;
-  ImGui::SetNextWindowPos(ImVec2(toolbar_width,menuBar_height));
-  ImGui::Begin("TOOLVIEW", NULL, ImVec2(toolview_width,main_window_yres-menuBar_height),1.0,FROZENWINDOW);
+  ImGui::SetNextWindowPos(ImVec2((float)toolbar_width,(float)menuBar_height));
+  ImGui::Begin("TOOLVIEW", NULL, ImVec2((float)toolview_width,(float)(main_window_yres-menuBar_height)),1.0,FROZENWINDOW);
   if (galleryVisible) {
     ImGui::Text("Wypa gallery");
     ImGui::Separator();

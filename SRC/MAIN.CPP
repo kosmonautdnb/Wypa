@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "STL/GL.H"
 #include "IMGUI/IMGUIGL.HPP"
 #include "UTIL/LOG.HPP"
@@ -48,7 +49,7 @@
 #include "STL/STBIMGWR.HPP" // to patch SRGB gamma for PNG writes
 
 bool roundButton(const char *name, bool enabled) {
-  ImVec4 color_button_off_bg = ImVec4(0.7,0.7,0.7,1);
+  ImVec4 color_button_off_bg = ImVec4(0.7f,0.7f,0.7f,1);
   ImVec4 color_button_on_bg = ImVec4(0.0,0.0,0.0,1);
   ImVec4 color_button_off_text = ImVec4(0,0,0,1);
   ImVec4 color_button_on_text = ImVec4(1,1,1,1);
@@ -93,7 +94,7 @@ void select(Layer *l) {
 
 ImVec2 normalize(const ImVec2 &v) {
   ImVec2 r = v;
-  double l = sqrt(r.x*r.x+r.y*r.y);
+  float l = (float)sqrt(r.x*r.x+r.y*r.y);
   if (l != 0) {r.x /= l; r.y /= l;}
   return r;
 }
@@ -120,26 +121,26 @@ void screenSaver() {
     for (int i = 0; i < glFrameBufferWidth*glFrameBufferHeight; i++) {
       unsigned int col = glFrameBuffer[i]; glFrameBuffer[i] = ((col >> 5) & 0x00070707) | (col & 0xff000000);
     }
-    textPos.x += textDir.x * timeDelta * main_window_xres / 10;
-    textPos.y += textDir.y * timeDelta * main_window_xres / 10;
+    textPos.x += (float)(textDir.x * timeDelta * main_window_xres / 10);
+    textPos.y += (float)(textDir.y * timeDelta * main_window_xres / 10);
     if (textPos.x > main_window_xres-textSize.x) {
-      textDir.x = -(double)rand()/RAND_MAX-1.1;
-      textDir.y = (double)rand()/RAND_MAX*2-1;
+      textDir.x = (float)( - (double)rand() / RAND_MAX - 1.1);
+      textDir.y = (float)((double)rand()/RAND_MAX*2-1);
       textDir = normalize(textDir);
     }
     if (textPos.x < 0) {
-      textDir.x = (double)rand()/RAND_MAX+1.1;
-      textDir.y = (double)rand()/RAND_MAX*2-1;
+      textDir.x = (float)((double)rand()/RAND_MAX+1.1);
+      textDir.y = (float)((double)rand()/RAND_MAX*2-1);
       textDir = normalize(textDir);
     }
     if (textPos.y > main_window_yres-textSize.y) {
-      textDir.x = (double)rand()/RAND_MAX*2-1;
-      textDir.y = -(double)rand()/RAND_MAX-1.1;
+      textDir.x = (float)((double)rand()/RAND_MAX*2-1);
+      textDir.y = (float)(-(double)rand()/RAND_MAX-1.1);
       textDir = normalize(textDir);
     }
     if (textPos.y < 0) {
-      textDir.x = (double)rand()/RAND_MAX*2-1;
-      textDir.y = (double)rand()/RAND_MAX+1.1;
+      textDir.x = (float)((double)rand()/RAND_MAX*2-1);
+      textDir.y = (float)((double)rand()/RAND_MAX+1.1);
       textDir = normalize(textDir);
     }
     static int xr = 0; static int yr = 0; static double l = glSeconds(); double l2 = glSeconds();
@@ -150,7 +151,7 @@ void screenSaver() {
     }
     l = l2;
     drawText(textScale, xr, yr, "WYPA", 0xffffffff,0,0);
-    drawText(textScale, textPos.x, textPos.y, date.c_str(), 0xffffffff,0,0);
+    drawText(textScale, (int)textPos.x, (int)textPos.y, date.c_str(), 0xffffffff, 0, 0);
   } else {
     textDir = normalize(ImVec2(1,1));
     textPos = ImVec2(0,0);
@@ -163,7 +164,7 @@ void whiteFade() {
   double duration = 0.25;
   double ratio = fabs(glSeconds() - start) / duration;
   if (ratio > 1) {whiteFadeOff = true; return;}
-  int white = 255 - ratio * 255;
+  int white = (int)(255 - ratio * 255);
   for (int i = 0; i < glFrameBufferWidth*glFrameBufferHeight; i++) {
     unsigned int col = glFrameBuffer[i]; int r = col & 255; int g = (col>>8) & 255; int b = (col>>16) & 255; int a = (col>>24) & 255;
     r += white; g += white; b += white;
@@ -194,16 +195,16 @@ void splashScreen() {
       }
     }
     ImGui::SetNextWindowPos(ImVec2(0,0));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0,0,0,0.8));
-    ImGui::Begin("SPLASHSCREEN", NULL, ImVec2(main_window_xres,main_window_yres),0.95,FROZENWINDOW);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0,0,0,0.8f));
+    ImGui::Begin("SPLASHSCREEN", NULL, ImVec2((float)main_window_xres,(float)main_window_yres),0.95f,FROZENWINDOW);
     float scale = 6;
     ImGui::SetWindowFontScale(scale);
     if (splash != NULL) {
       int w = splash->width;
       int h = splash->height;
-      if (aspectRatio != 0) {w = w / aspectRatio * main_window_xres/main_window_yres;}
-      ImGui::SetCursorScreenPos(ImVec2(main_window_xres/2-w/2,main_window_yres/2-h/2));
-      ImGui::Image((ImTextureID)glHandle,ImVec2(w,h));
+      if (aspectRatio != 0) {w = (int)(w / aspectRatio * main_window_xres/main_window_yres);}
+      ImGui::SetCursorScreenPos(ImVec2((float)(main_window_xres/2-w/2),(float)(main_window_yres/2-h/2)));
+      ImGui::Image((ImTextureID)glHandle,ImVec2((float)w,(float)h));
       ImGui::SetWindowFontScale(1);
       ImVec2 m = ImGui::GetItemRectMax();
       ImVec2 m2 = ImGui::GetItemRectMin();
@@ -273,7 +274,11 @@ void checkMemory() {
     printf("panel if you get below 16mb.\n");
     printf("\n");
     printf("<Press a key>\n");
+#ifdef _WIN32
+    _getch(); // windows version :/
+#else
     getch();
+#endif
   }
 }
 
@@ -362,25 +367,25 @@ int main(int argc, const char *argv[]) {
   b = new Brush(); b->size = 1; brushes.push_back(b);
   b = new Brush(); b->size = 4; brushes.push_back(b);
   b = new Brush(); b->size = 8; brushes.push_back(b);
-  b = new Brush(); b->size = 8; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 8; b->pressure = 0.3f; brushes.push_back(b);
   b = new Brush(); b->size = 16; brushes.push_back(b);
-  b = new Brush(); b->size = 16; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 16; b->pressure = 0.3f; brushes.push_back(b);
   b = new Brush(); b->size = 32; brushes.push_back(b);
-  b = new Brush(); b->size = 32; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 32; b->pressure = 0.3f; brushes.push_back(b);
   b = new Brush(); b->size = 64; brushes.push_back(b);
-  b = new Brush(); b->size = 64; b->pressure = 0.3; brushes.push_back(b);
+  b = new Brush(); b->size = 64; b->pressure = 0.3f; brushes.push_back(b);
   b = new Brush(); b->size = 128; brushes.push_back(b);
-  b = new Brush(); b->size = 128; b->pressure = 0.3; brushes.push_back(b);
-  b = new Brush(); b->size = 8; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
-  b = new Brush(); b->size = 16; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
-  b = new Brush(); b->size = 32; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
-  b = new Brush(); b->size = 64; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
-  b = new Brush(); b->size = 128; b->aspect = 0.5; b->rotation = 45.f; brushes.push_back(b);
-  b = new Brush(); b->size = 8; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
-  b = new Brush(); b->size = 16; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
-  b = new Brush(); b->size = 32; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
-  b = new Brush(); b->size = 64; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
-  b = new Brush(); b->size = 128; b->edginess = 1.0; b->pressure = 1.5; brushes.push_back(b);
+  b = new Brush(); b->size = 128; b->pressure = 0.3f; brushes.push_back(b);
+  b = new Brush(); b->size = 8; b->aspect = 0.5f; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 16; b->aspect = 0.5f; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 32; b->aspect = 0.5f; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 64; b->aspect = 0.5f; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 128; b->aspect = 0.5f; b->rotation = 45.f; brushes.push_back(b);
+  b = new Brush(); b->size = 8; b->edginess = 1.0f; b->pressure = 1.5f; brushes.push_back(b);
+  b = new Brush(); b->size = 16; b->edginess = 1.0f; b->pressure = 1.5f; brushes.push_back(b);
+  b = new Brush(); b->size = 32; b->edginess = 1.0f; b->pressure = 1.5f; brushes.push_back(b);
+  b = new Brush(); b->size = 64; b->edginess = 1.0f; b->pressure = 1.5f; brushes.push_back(b);
+  b = new Brush(); b->size = 128; b->edginess = 1.0f; b->pressure = 1.5f; brushes.push_back(b);
 
   if (argc == 2) {
     loadImage("",argv[1]);
@@ -399,14 +404,14 @@ int main(int argc, const char *argv[]) {
 
   ImGui::GetStyle().Colors[ImGuiCol_WindowBg] = ImVec4(1,1,1,1);
   ImGui::GetStyle().Colors[ImGuiCol_Text] = ImVec4(0,0,0,1);
-  ImGui::GetStyle().Colors[ImGuiCol_Button] = ImVec4(0.75,0.75,0.75,1);
-  ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = ImVec4(0.5,0.5,1.0,1);
+  ImGui::GetStyle().Colors[ImGuiCol_Button] = ImVec4(0.75f,0.75f,0.75f,1);
+  ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = ImVec4(0.5f,0.5f,1.0,1);
   ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] = ImVec4(1,1,1,1);
-  ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = ImVec4(0.9,0.9,0.9,1);
+  ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = ImVec4(0.9f,0.9f,0.9f,1);
   ImGui::GetStyle().Colors[ImGuiCol_TitleBg] = ImVec4(0,0,0,1.f);
-  ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImVec4(0.2,0.2,0.2,1.f);
-  ImGui::GetStyle().Colors[ImGuiCol_SliderGrab] = ImVec4(0.2,0.2,0.2,1.f);
-  ImGui::GetStyle().Colors[ImGuiCol_TooltipBg] = ImVec4(1,1,1,0.8);
+  ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImVec4(0.2f,0.2f,0.2f,1.f);
+  ImGui::GetStyle().Colors[ImGuiCol_SliderGrab] = ImVec4(0.2f,0.2f,0.2f,1.f);
+  ImGui::GetStyle().Colors[ImGuiCol_TooltipBg] = ImVec4(1,1,1,0.8f);
   ImGui::GetStyle().Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0,0,0,0);
   ImGui::GetStyle().Colors[ImGuiCol_CloseButton] = ImVec4(0.25f,0.25f,0.25f,1.f);
 
@@ -429,10 +434,10 @@ int main(int argc, const char *argv[]) {
 
 
     if (isPaintAreaActive()) {
-      if (currentKey == '-') {currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,1.0/zoomStep);}
-      if (currentKey == '+') {currentCanvas->control.zoomBy(currentCanvas,mouseX,mouseY,zoomStep);}
-      if (currentKey == 'x') {lockedMouseX = !lockedMouseX; lockedMouseY = false; lockedMousePosX = mouseX; lockedMousePosY = mouseY;}
-      if (currentKey == 'y') {lockedMouseY = !lockedMouseY; lockedMouseX = false;  lockedMousePosX = mouseX; lockedMousePosY = mouseY;}
+      if (currentKey == '-') {currentCanvas->control.zoomBy(currentCanvas, mouseX, mouseY, 1.0/zoomStep);}
+      if (currentKey == '+') {currentCanvas->control.zoomBy(currentCanvas, mouseX, mouseY, zoomStep);}
+      if (currentKey == 'x') {lockedMouseX = !lockedMouseX; lockedMouseY = false; lockedMousePosX = (int)mouseX; lockedMousePosY = (int)mouseY;}
+      if (currentKey == 'y') {lockedMouseY = !lockedMouseY; lockedMouseX = false;  lockedMousePosX = (int)mouseX; lockedMousePosY = (int)mouseY;}
   
       if (controlKeyId == CONTROLKEY_ALT) {currentCanvas->control.moveByPixels(currentCanvas,mouseDX,mouseDY);}
 

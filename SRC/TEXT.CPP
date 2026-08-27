@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "TEXT.HPP"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "STL/STBTTF.HPP"
@@ -59,10 +60,10 @@ void FontSource::getBounds(const unsigned short *text, float scaleX, float scale
   while (text[ch]) {
     int advance,lsb,cx0=0,cy0=0,cx1=0,cy1=0; float shiftX = xpos - (float)floor(xpos);
     stbtt_GetCodepointHMetrics(&font, text[ch], &advance, &lsb); getBoundsForChar(text[ch],scaleX,scaleY,shiftX,cx0,cy0,cx1,cy1);
-    cx0 += xpos;
-    cy0 += ypos+baseLine;
-    cx1 += xpos;
-    cy1 += ypos+baseLine;
+    cx0 += (int)xpos;
+    cy0 += (int)(ypos+baseLine);
+    cx1 += (int)xpos;
+    cy1 += (int)(ypos+baseLine);
     if (cx0 < x0) x0 = cx0;
     if (cy0 < y0) y0 = cy0;
     if (cx1 > x1) x1 = cx1;
@@ -142,7 +143,7 @@ GLuint FontSource::createTexture(const unsigned short *text, int fontSize, float
   if (data == NULL) return 0;
 
   int x0,y0,x1,y1;
-  float scale = getScaleForPixelHeight(fontSize); float scaleX = scale, scaleY = scale;
+  float scale = getScaleForPixelHeight((float)fontSize); float scaleX = scale, scaleY = scale;
   if (aspect != 0) scaleX /= aspect;
   getBounds(text,scaleX,scaleY,x0,y0,x1,y1);
   width = x1 - x0;
@@ -287,10 +288,10 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
       stbtt_GetCodepointHMetrics(&f->font, ' ', &advance, &lsb); f->getBoundsForChar(' ',scaleX,scaleY,shiftX,cx0,cy0,cx1,cy1);
       xpos = xposStart;
       ypos += baseLine + l->toolInfo.fontSpaceY*l->toolInfo.fontScaleY;
-      cx0 += xpos;
-      cy0 += ypos+baseLine;
-      cx1 += xpos;
-      cy1 += ypos+baseLine;
+      cx0 += (int)xpos;
+      cy0 += (int)(ypos+baseLine);
+      cx1 += (int)xpos;
+      cy1 += (int)(ypos+baseLine);
       if (!andDraw) {
         if (cx0 < x0) x0 = cx0;
         if (cy0 < y0) y0 = cy0;
@@ -300,10 +301,10 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
       lastLineWidth = 0;
     } else {
       stbtt_GetCodepointHMetrics(&f->font, textEditText2[ch], &advance, &lsb); f->getBoundsForChar(textEditText2[ch],scaleX,scaleY,shiftX,cx0,cy0,cx1,cy1);
-      cx0 += xpos;
-      cy0 += ypos+baseLine;
-      cx1 += xpos;
-      cy1 += ypos+baseLine;
+      cx0 += (int)xpos;
+      cy0 += (int)(ypos+baseLine);
+      cx1 += (int)xpos;
+      cy1 += (int)(ypos+baseLine);
       if (!andDraw) {
         if (cx0 < x0) x0 = cx0;
         if (cy0 < y0) y0 = cy0;
@@ -321,8 +322,8 @@ void getTextBounds(FontSource *f, Layer *l, int &x0, int &y0, int &x1, int &y1, 
         int py = cy0;
         switch (l->toolInfo.fontAlignment) {
         case ALIGN_LEFT: {} break;
-        case ALIGN_RIGHT: {px = x1-lineWidth+(px-xposStart);} break;
-        case ALIGN_CENTER: {px = px + ((x1-x0)-lineWidth)*0.5;} break;
+        case ALIGN_RIGHT: {px = (int)(x1-lineWidth+(px-xposStart));} break;
+        case ALIGN_CENTER: {px = (int)(px + ((x1-x0)-lineWidth)*0.5);} break;
         }
         int pitch = w;
         if ((int)buffer.size()<w*h) buffer.resize(w*h);

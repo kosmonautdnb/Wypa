@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "TOOLS.HPP"
 #include "STL/GL.H"
 #include "IMGUI/IMGUI.H"
@@ -81,8 +82,8 @@ void drawText(float scale, int xp, int yp, const char *text, uint32_t color, flo
     width2 += 1;
   }
   const char *s = text;
-  int x2 = -width * anchorX;
-  int y2 = -height * anchorY;
+  int x2 = (int)(-width * anchorX);
+  int y2 = (int)(-height * anchorY);
   int x3 = x2;
   while(*s!=0) {
     Letter *l = getLetter(*s);
@@ -159,8 +160,8 @@ float sampleDistanceField(float *field, double dx, double dy, int fieldWidth, in
   float p10 = x+1<fieldWidth?field[x+1+y*fieldWidth]:p00;
   float p01 = y+1<fieldHeight?field[x+(y+1)*fieldWidth]:p00;
   float p11 = x+1<fieldWidth&&y+1<fieldHeight?field[x+1+(y+1)*fieldWidth]:p00;
-  float xf = dx - x;
-  float yf = dy - y;
+  float xf = (float)(dx - x);
+  float yf = (float)(dy - y);
   float top = (p10-p00)*xf+p00;
   float bottom = (p11-p01)*xf+p01;
   return (bottom-top)*yf+top;
@@ -209,7 +210,7 @@ void BrushInstance::resize(Brush *base, double newPixelWidth, double newPixelHei
       if (isSinglePixel) d = 1;
       if (isPencil) d = d >= 0 ? 1 : -1;
       //d *= base->opacity;
-      values[x+y*pixelWidth] = d;
+      values[x+y*pixelWidth] = (float)d;
     }
   }
   updateGLHandle(base);
@@ -229,9 +230,9 @@ void BrushInstance::updateGLHandle(Brush *base) {
   for (int i = 0; i < (int)temp.size(); i++) {double a = values[i]; if (a<0) a = 0; if (a<minv) minv = a;if (a>maxv) maxv = a;}
   if (maxv!=minv) {
     double d = 255.0/(maxv-minv)*base->opacity;
-    for (int i2 = 0; i2 < (int)temp.size(); i2++) {temp[i2] = values[i2]>=0?(values[i2]-minv)*d:0;}
+    for (int i2 = 0; i2 < (int)temp.size(); i2++) {temp[i2] = (unsigned char)(values[i2]>=0?(values[i2]-minv)*d:0);}
   } else {
-    for (int i2 = 0; i2 < (int)temp.size(); i2++) {temp[i2] = 255*maxv*base->opacity;}
+    for (int i2 = 0; i2 < (int)temp.size(); i2++) {temp[i2] = (unsigned char)(255*maxv*base->opacity);}
   }
 
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, pixelWidth, pixelHeight, 0, GL_ALPHA, GL_BYTE, &temp[0]);
@@ -329,28 +330,28 @@ void scanSampleDistanceField(Brush *brush, const RGBAImage &image) {
       int dx = (int)floor(distanceFieldPosX);
       float distance = -1;
       if ((unsigned int)dx<(unsigned int)image.width&&(unsigned int)dy<(unsigned int)image.height) {
-        bool isForward = scanSampleDistanceFieldIsForward(image,dx,dy);
+        bool isForward = scanSampleDistanceFieldIsForward(image,(float)dx,(float)dy);
         for (int rad = 0; rad <= maxRad; rad++) {
           for (int x0 = -rad; x0 <= rad; x0++) {
             int y0;
             y0 = rad;
-            if (scanSampleDistanceField(image,x0+dx,y0+dy,isForward)) {
-              float d = sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
+            if (scanSampleDistanceField(image,(float)(x0+dx),(float)(y0+dy),isForward)) {
+              float d = (float)sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
             }
             y0 = -rad;
-            if (scanSampleDistanceField(image,x0+dx,y0+dy,isForward)) {
-              float d = sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
+            if (scanSampleDistanceField(image,(float)(x0+dx),(float)(y0+dy),isForward)) {
+              float d = (float)sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
             }
           }
           for (int y0 = -rad; y0 <= rad; y0++) {
             int x0;
             x0 = rad;
-            if (scanSampleDistanceField(image,x0+dx,y0+dy,isForward)) {
-              float d = sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
+            if (scanSampleDistanceField(image,(float)(x0+dx),(float)(y0+dy),isForward)) {
+              float d = (float)sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
             }
             x0 = -rad;
-            if (scanSampleDistanceField(image,x0+dx,y0+dy,isForward)) {
-              float d = sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
+            if (scanSampleDistanceField(image,(float)(x0+dx),(float)(y0+dy),isForward)) {
+              float d = (float)sqrt(x0*x0+y0*y0); if (distance < 0 || d < distance) distance = d;
             }
           }
           if (distance >= 0) break;
@@ -395,10 +396,10 @@ __inline unsigned int interpolateRange(Gradient *gradient, int index, float valu
   int g1 = (col1>>8) & 255;
   int b1 = (col1>>16) & 255;
   int a1 = (col1>>24) & 255;
-  int r = (int)(r1 - r0) * k + r0;
-  int g = (int)(g1 - g0) * k + g0;
-  int b = (int)(b1 - b0) * k + b0;
-  int a = (int)(a1 - a0) * k + a0;
+  int r = (int)((int)(r1 - r0) * k + r0);
+  int g = (int)((int)(g1 - g0) * k + g0);
+  int b = (int)((int)(b1 - b0) * k + b0);
+  int a = (int)((int)(a1 - a0) * k + a0);
   return r|(g<<8)|(b<<16)|(a<<24);
 }
 
@@ -431,7 +432,7 @@ unsigned int Gradient::getColor(float between0And1) {
 unsigned int Gradient::getColor2D(float dx,float dy) {
   float value = dx;
   if (round) {
-    value = sqrt(dx*dx+dy*dy);
+    value = (float)sqrt(dx*dx+dy*dy);
   } else {
     if (value < 0) value = 0;
   }
@@ -591,7 +592,7 @@ void useSubToolWatershed() {
     point.x = cx;
     point.y = cy;
     point.selection = ImGui::IsMouseClicked(0);
-    point.label = watershedPoints.size() + 1;
+    point.label = (unsigned int)watershedPoints.size() + 1;
     watershedPoints.push_back(point);
   }
 }
@@ -689,8 +690,8 @@ void placeCorner(double mouseX, double mouseY) {
     }
     cx = (int)floor(cx);
     cy = (int)floor(cy);
-    int cx2 = cx + 1;
-    int cy2 = cy + 1;
+    int cx2 = (int)(cx + 1);
+    int cy2 = (int)(cy + 1);
     switch(found) {
     case 0: { 
         l->setLayerPos(cx,cy);
@@ -723,8 +724,8 @@ void placeCorner(double mouseX, double mouseY) {
     }
     cx = (int)floor(cx);
     cy = (int)floor(cy);
-    int cx2 = cx + 1;
-    int cy2 = cy + 1;
+    int cx2 = (int)(cx + 1);
+    int cy2 = (int)(cy + 1);
     switch(found) {
     case 0: { 
         currentCanvas->setBoundingPos(cx,cy);
@@ -1047,8 +1048,8 @@ bool useToolSelectionMove(Layer *activeLayer) {
   if (selectionToolMoveActive || moveByKey) {
     showSelectionPlane = true;
     if (activeLayer->width == selectionPlane->width && activeLayer->height == selectionPlane->height) {
-      int deltaX = selectionToolMoveStartX-lx;
-      int deltaY = selectionToolMoveStartY-ly;
+      int deltaX = (int)(selectionToolMoveStartX-lx);
+      int deltaY = (int)(selectionToolMoveStartY-ly);
       if (tiling) {
         deltaX /= tw;
         deltaY /= th;
@@ -1140,7 +1141,7 @@ void useToolSelection() {
               lx0 = lx0/tw; ly0 = ly0/th;
               lx1 = lx1/tw; ly1 = ly1/th;
             }
-            if (selectionTool2 == SELECTIONTOOL_LASSO) selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,1,true);
+            if (selectionTool2 == SELECTIONTOOL_LASSO) selectionPlane->pixelXLineEor((int)lx0, (int)ly0, (int)lx1,(int)ly1,1,true);
             for (int y = 0; y < selectionPlane->height; y++) {
               bool isInSelection = false;
               for (int x = 0; x < selectionPlane->width; x++) {
@@ -1230,8 +1231,8 @@ void useToolSelection() {
           b.x *= ox; b.z *= ox;
           b.y *= oy; b.w *= oy;
         }
-        for (int yl = b.y; yl < b.w; yl++) {
-          for (int xl = b.x; xl < b.z; xl++) {
+        for (int yl = (int)b.y; yl < (int)b.w; yl++) {
+          for (int xl = (int)b.x; xl < (int)b.z; xl++) {
             double x2 = xl * m.m[0*4+0] + yl * m.m[1*4+0] + m.m[3*4+0];
             double y2 = xl * m.m[0*4+1] + yl * m.m[1*4+1] + m.m[3*4+1];
             int x = (int)x2;
@@ -1260,8 +1261,8 @@ void useToolSelection() {
           lx0 = lx0/tw; ly0 = ly0/th;
           lx1 = lx1/tw; ly1 = ly1/th;
         }
-        selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,EORLINE,true);
-        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,XEORLINE,true);
+        selectionPlane->pixelLineEor((int)lx0, (int)ly0, (int)lx1, (int)ly1,EORLINE,true);
+        selectionPlane->pixelXLineEor((int)lx0, (int)ly0, (int)lx1, (int)ly1,XEORLINE,true);
       } break;
       case SELECTIONTOOL_POLYGON: {
         double lx0,ly0; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionPolygonX1,lastSelectionPolygonY1,lx0,ly0);
@@ -1275,20 +1276,20 @@ void useToolSelection() {
           lx3 = lx3/tw; ly3 = ly3/th;
         }
         if (ImGui::IsMouseDown(1)) {
-          if (pointCount == 0) {selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,XEORLINE,true); selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,EORLINE,true);}
+          if (pointCount == 0) {selectionPlane->pixelXLineEor((int)lx0, (int)ly0, (int)lx2, (int)ly2,XEORLINE,true); selectionPlane->pixelLineEor((int)lx0, (int)ly0, (int)lx2, (int)ly2,EORLINE,true);}
           lastSelectionPolygonX1 = lx;
           lastSelectionPolygonY1 = ly;
           pointCount++;
         } 
-        selectionPlane->pixelXLineEor(lx0,ly0,lx2,ly2,XEORLINE,true); // delete
-        selectionPlane->pixelXLineEor(lx0,ly0,lx1,ly1,XEORLINE,true); // paint
-        selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,EORLINE,true);
-        selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,EORLINE,true);
+        selectionPlane->pixelXLineEor((int)lx0, (int)ly0, (int)lx2, (int)ly2,XEORLINE,true); // delete
+        selectionPlane->pixelXLineEor((int)lx0, (int)ly0, (int)lx1, (int)ly1,XEORLINE,true); // paint
+        selectionPlane->pixelLineEor((int)lx0, (int)ly0, (int)lx2, (int)ly2,EORLINE,true);
+        selectionPlane->pixelLineEor((int)lx0, (int)ly0, (int)lx1, (int)ly1,EORLINE,true);
         if (pointCount > 0) {
-          selectionPlane->pixelXLineEor(lx3,ly3,lx2,ly2,XEORLINE,true); // delete
-          selectionPlane->pixelXLineEor(lx3,ly3,lx1,ly1,XEORLINE,true); // paint
-          selectionPlane->pixelLineEor(lx3,ly3,lx2,ly2,EORLINE,true);
-          selectionPlane->pixelLineEor(lx3,ly3,lx1,ly1,EORLINE,true);
+          selectionPlane->pixelXLineEor((int)lx3, (int)ly3, (int)lx2, (int)ly2,XEORLINE,true); // delete
+          selectionPlane->pixelXLineEor((int)lx3, (int)ly3, (int)lx1, (int)ly1,XEORLINE,true); // paint
+          selectionPlane->pixelLineEor((int)lx3, (int)ly3, (int)lx2, (int)ly2,EORLINE,true);
+          selectionPlane->pixelLineEor((int)lx3, (int)ly3, (int)lx1, (int)ly1,EORLINE,true);
         }
       } break;
     }
@@ -1325,7 +1326,7 @@ void applyGradient(Layer *layer, Gradient *gradient, double cx0, double cy0, dou
         double grady = cx * tx + cy * ty;
         gradx /= lineLength;
         grady /= lineLength;
-        unsigned int col = gradient->getColor2D(gradx,grady);
+        unsigned int col = gradient->getColor2D((float)gradx,(float)grady);
         layer->pixels[x+y*layer->width] = col;
       }
     }
@@ -1400,8 +1401,8 @@ void useToolGradient() {
     double lx1,ly1; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX1,selectionY1,lx1,ly1);
     double lx2,ly2; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,lastSelectionX1,lastSelectionY1,lx2,ly2);
     double lx3,ly3; currentCanvas->getLayerPosFromCanvasPos(selectionPlane,selectionX0,selectionY0,lx3,ly3);
-    selectionPlane->pixelLineEor(lx0,ly0,lx2,ly2,1,true);
-    selectionPlane->pixelLineEor(lx0,ly0,lx1,ly1,1,true);
+    selectionPlane->pixelLineEor((int)lx0, (int)ly0, (int)lx2, (int)ly2,1,true);
+    selectionPlane->pixelLineEor((int)lx0, (int)ly0, (int)lx1, (int)ly1,1,true);
   }
 }
 
@@ -1430,7 +1431,7 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
   double ys = (rand() & 1023)/1023.0*2.0-1.0;
   canvasX += xs * brush->randomX * toolAspectX;
   canvasY += ys * brush->randomY * toolAspectY;
-  BrushInstance *b = brush->getCreateInstance(BRUSHINSTANCE_PAINT,brush->pixelWidth(),brush->pixelHeight(),pencil);
+  BrushInstance *b = brush->getCreateInstance(BRUSHINSTANCE_PAINT,(int)brush->pixelWidth(),(int)brush->pixelHeight(),pencil);
   double toolWidth = b->pixelWidth*0.5*toolAspectX;
   double toolHeight = b->pixelHeight*0.5*toolAspectY;
   Vector layerBoundings;
@@ -1450,17 +1451,17 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
   }
   layerBoundings.z += 1;
   layerBoundings.w += 1;
-  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = (int)layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = (int)layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = (int)layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = (int)layerBoundings.w;
   double tpx = canvasX-toolWidth, tpy = canvasY-toolHeight;
   Matrix t; t.translate(Vector(tpx,tpy,0));
   Matrix m = inverse2(t)*inverse2(layer->transform.transformation);
   bool interpolate = false;
   if (brush->followRotation) {
     interpolate = true;
-    if (angle >= 0) {b->followedRotation = angle;}
+    if (angle >= 0) {b->followedRotation = (float)angle;}
     Matrix toCenter; toCenter.translate(Vector(toolWidth,toolHeight,0));
     m = toCenter * rotationMatrixAngleAxis(b->followedRotation, 0, 0, 1) * inverse2(toCenter) * m;
   }
@@ -1501,8 +1502,8 @@ void drawTool(Layer *layer, Brush *brush,double canvasX, double canvasY, double 
           if (bx + 1 < b->pixelWidth) hereX = b->values[bx+1+by*b->pixelWidth];;
           if (by + 1 < b->pixelHeight) hereY = b->values[bx+(by+1)*b->pixelWidth];;
           if (bx + 1 < b->pixelWidth && by + 1 < b->pixelHeight) hereXY = b->values[bx+1+(by+1)*b->pixelWidth];;
-          float xf = px-bx;
-          float yf = py-by;
+          float xf = (float)(px-bx);
+          float yf = (float)(py-by);
           float top = (hereX-here)*xf + here;
           float bottom = (hereXY-hereY)*xf + hereY;
           here = (bottom-top)*yf+top;
@@ -1560,10 +1561,10 @@ void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, d
   layerBoundings.w += 2 + (lineWidth + 1)/toolAspectY;
   layerBoundings.z += 1;
   layerBoundings.w += 1;
-  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = (int)layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = (int)layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = (int)layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = (int)layerBoundings.w;
 
   double lx0 = canvasX0; double ly0 = canvasY0; currentCanvas->getLayerPosFromCanvasPos(layer,lx0,ly0,lx0,ly0);
   double lx1 = canvasX1; double ly1 = canvasY1; currentCanvas->getLayerPosFromCanvasPos(layer,lx1,ly1,lx1,ly1);
@@ -1639,7 +1640,7 @@ void drawLine(Layer *layer, double canvasX0, double canvasY0, double canvasX1, d
           p = kx + ky * layer->width;
         }
         float value = paintValues[p];
-        value = 1-(1-here)*(1-value);
+        value = (float)(1-(1-here)*(1-value));
         if (!justSelection || (layer->pixelStates[p] & PIXELSTATE_SELECTED)) {
           paintValues[p] = value;
           layer->pixelStates[p] |= PIXELSTATE_TEMP;
@@ -1710,10 +1711,10 @@ void updateUpdateFlagByBrushLine(Layer *l,double cx0,double cy0, double cx1, dou
   }
   layerBoundings.z += 1;
   layerBoundings.w += 1;
-  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = (int)layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = (int)layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = (int)layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = (int)layerBoundings.w;
 
   first = true;
   for (int i2 = 0; i2 < 4; i2++) {
@@ -1733,10 +1734,10 @@ void updateUpdateFlagByBrushLine(Layer *l,double cx0,double cy0, double cx1, dou
   layerUpdateY0 = 0;
   layerUpdateX1 = currentCanvas->width;
   layerUpdateY1 = currentCanvas->height;
-  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = (int)layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = (int)layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = (int)layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = (int)layerBoundings.w;
 
   static int someTimer = 0; someTimer++; if ((someTimer & 3)==0) currentCanvas->clearUpdateFlag();
   for (int y2 = layerUpdateY0; y2 < layerUpdateY1; y2++) {
@@ -1898,10 +1899,10 @@ void useToolPainting() {
       layerBoundings.w += 1;
     }
     if ((!mirrorToolEnabled) && (!tilingOn)) { // if mirror tool is on just take the full canvas (slow)
-      if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-      if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-      if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-      if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+      if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = (int)layerBoundings.x;
+      if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = (int)layerBoundings.y;
+      if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = (int)layerBoundings.z;
+      if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = (int)layerBoundings.w;
     }
 
     double px0 = paintingPointX0; double py0 = paintingPointY0; currentCanvas->getLayerPosFromCanvasPos(paintToolLayer,px0,py0,px0,py0);
@@ -1984,14 +1985,14 @@ void useToolPainting() {
             case TOOL_PAINTBRUSH:
             case TOOL_MAGIC:
             case TOOL_PENCIL: {
-              float rd = col & 255;
-              float gd = (col>>8) & 255;
-              float bd = (col>>16) & 255;
+              float rd = (float)(col & 255);
+              float gd = (float)((col>>8) & 255);
+              float bd = (float)((col>>16) & 255);
               int ad = (col>>24) & 255;
               float rs = foregroundColor.x*255.f;
               float gs = foregroundColor.y*255.f;
               float bs = foregroundColor.z*255.f;
-              int as = foregroundColor.w*value*255.f*brush->opacity;
+              int as = (int)(foregroundColor.w*value*255.f*brush->opacity);
               if (rs < 0) rs = 0;
               if (gs < 0) gs = 0;
               if (bs < 0) bs = 0;
@@ -2018,7 +2019,7 @@ void useToolPainting() {
             } break;
             case TOOL_ERASER: {
               int ad = (col>>24) & 255;
-              ad *= 1-value;
+              ad = (int)(ad*(1-value));
               if (ad < 0) ad = 0;
               switch(paintToolLayer->mode) {
                 case LAYERMODE_PREMULTIPLIEDALPHA: {
@@ -2026,9 +2027,9 @@ void useToolPainting() {
                     int g = (col>>8) & 255;
                     int b = (col>>16) & 255;
                     int a = (col>>24) & 255;
-                    r *= 1-value;
-                    g *= 1-value;
-                    b *= 1-value;
+                    r = (int)(r*(1-value));
+                    g = (int)(g*(1-value));
+                    b = (int)(b*(1-value));
                     if (r < 0) r = 0;
                     if (g < 0) g = 0;
                     if (b < 0) b = 0;
@@ -2061,10 +2062,10 @@ void useToolPainting() {
     layerUpdateX1 = currentCanvas->width;
     layerUpdateY1 = currentCanvas->height;
 
-    if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-    if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-    if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-    if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+    if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = (int)layerBoundings.x;
+    if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = (int)layerBoundings.y;
+    if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = (int)layerBoundings.z;
+    if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = (int)layerBoundings.w;
 
     static int someTimer = 0; someTimer++; if ((someTimer & 15)==0) currentCanvas->clearUpdateFlag();
     for (int y2 = layerUpdateY0; y2 < layerUpdateY1; y2++) {
@@ -2114,8 +2115,8 @@ __inline unsigned int tex(unsigned int *source, const int width, const int heigh
 }
 
 #define FXAA_EDGE_SHARPNESS 8 // 2,4,8 are proposed whilst 8 is sharper and 2 is softer (proposed are 4,8)
-#define FXAA_EDGE_THRESHOLD 0.125 // you need atleast this luma difference for the algorithm to apply
-#define FXAA_EDGE_THRESHOLD_MIN 0.05 // algorithms doesn't process any darker colors
+#define FXAA_EDGE_THRESHOLD 0.125f // you need atleast this luma difference for the algorithm to apply
+#define FXAA_EDGE_THRESHOLD_MIN 0.05f // algorithms doesn't process any darker colors
 
 static __inline unsigned int combineColor(unsigned int c1, unsigned int c2) {
   int r = ((c1 & 255) + (c2 & 255))/2;
@@ -2131,7 +2132,7 @@ static __inline unsigned int combineColor(unsigned int c1, unsigned int c2) {
 unsigned int doFXAASinglePixel(int x, int y, unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask) {
   UNUSED(maskBuffer);
   UNUSED(mask);
-  const float fy = y; const float fx = x;
+  const float fy = (float)y; const float fx = (float)x;
   const unsigned int rgbaM = tex(sourceBuffer,width,height,fx,fy); 
   const float lumaM = luma(rgbaM);
   const float lumaNW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy-0.5f));
@@ -2145,9 +2146,9 @@ unsigned int doFXAASinglePixel(int x, int y, unsigned int *sourceBuffer, const i
   }
   float ndirx = -lumaNE + lumaSW - lumaNW + lumaSE;
   float ndiry = -lumaNE + lumaSW + lumaNW - lumaSE;
-  float dirxyzl = sqrt(ndirx*ndirx+ndiry*ndiry); if (dirxyzl != 0) dirxyzl = 1.f / dirxyzl;
+  float dirxyzl = (float)sqrt(ndirx*ndirx+ndiry*ndiry); if (dirxyzl != 0) dirxyzl = 1.f / dirxyzl;
   ndirx *= dirxyzl, ndiry *= dirxyzl;
-  float dirAbsMinTimesC = minf(fabs(ndirx), fabs(ndiry)) * FXAA_EDGE_SHARPNESS; if (dirAbsMinTimesC < 0.0001f) dirAbsMinTimesC = 0.0001f;
+  float dirAbsMinTimesC = minf((float)fabs(ndirx), (float)fabs(ndiry)) * FXAA_EDGE_SHARPNESS; if (dirAbsMinTimesC < 0.0001f) dirAbsMinTimesC = 0.0001f;
   const float udirx = clampf(ndirx / dirAbsMinTimesC, -2.f, 2.f); const float udiry = clampf(ndiry / dirAbsMinTimesC, -2.f, 2.f);
   const unsigned int rgbn1 = tex(sourceBuffer, width, height, x - ndirx * 0.5f, y - ndiry * 0.5f);
   const unsigned int rgby1 = combineColor(tex(sourceBuffer, width, height, x + ndirx * 0.5f, y + ndiry * 0.5f), rgbn1);
@@ -2169,7 +2170,7 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
   float *k = tr;
   const float fy = 0;
   for (int x = 0; x < width; x++) {
-    const float fx = x;
+    const float fx = (float)x;
     *k++=luma(tex(sourceBuffer,width,height,fx+0.5f,fy-0.5f));
   }
   initStatusBar();
@@ -2178,13 +2179,13 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
     if ((y % portionSize)==0) updateStatusBar();
     unsigned int *source = &sourceBuffer[y*width];
     unsigned int *dest = &tempBuffer[y*width];
-    const float fy = y;
+    const float fy = (float)y;
     const float fx = 1; // why 1?
     float lumaNW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy-0.5f));
     float lumaSW = luma(tex(sourceBuffer,width,height,fx-0.5f,fy+0.5f));
     k = tr;
     for (int x = 0; x < width; x++) {
-      const float fx = x;
+      const float fx = (float)x;
 
       const float lumaM = luma(*source);
       const float lumaNE = *k;
@@ -2199,9 +2200,9 @@ void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsig
         } else {
           float ndirx = -lumaNE + lumaSW - lumaNW + lumaSE;
           float ndiry = -lumaNE + lumaSW + lumaNW - lumaSE;
-          float dirxyzl = sqrt(ndirx*ndirx+ndiry*ndiry); if (dirxyzl != 0) dirxyzl = 1.f / dirxyzl;
+          float dirxyzl = (float)sqrt(ndirx*ndirx+ndiry*ndiry); if (dirxyzl != 0) dirxyzl = 1.f / dirxyzl;
           ndirx *= dirxyzl, ndiry *= dirxyzl;
-          float dirAbsMinTimesC = minf(fabs(ndirx), fabs(ndiry)) * FXAA_EDGE_SHARPNESS; if (dirAbsMinTimesC < 0.0001f) dirAbsMinTimesC = 0.0001f;
+          float dirAbsMinTimesC = minf((float)fabs(ndirx), (float)fabs(ndiry)) * FXAA_EDGE_SHARPNESS; if (dirAbsMinTimesC < 0.0001f) dirAbsMinTimesC = 0.0001f;
           const float udirx = clampf(ndirx / dirAbsMinTimesC, -2.f, 2.f); const float udiry = clampf(ndiry / dirAbsMinTimesC, -2.f, 2.f);
           const unsigned int rgbn1 = tex(sourceBuffer, width, height, x - ndirx * 0.5f, y - ndiry * 0.5f);
           const unsigned int rgby1 = combineColor(tex(sourceBuffer, width, height, x + ndirx * 0.5f, y + ndiry * 0.5f), rgbn1);
@@ -2345,8 +2346,8 @@ void drawMouseArrow2(int mouseX, int mouseY) {
 void drawOpenGLMarkerCircle(double sx, double sy, double r, unsigned int color) {
   double aspect = aspectRatio * main_window_yres/main_window_xres;
   if (aspect == 0) aspect = 1;
-  for (int y = -r-1; y <= r+1; y++) {
-    for (int x = -r/aspect-1; x <= r/aspect+1; x++) {
+  for (int y = (int)-r - 1; y <= (int)r + 1; y++) {
+    for (int x = (int)(-r/aspect - 1); x <= (int)(r / aspect + 1); x++) {
       double px = sx + x;
       double py = sy + y;
       int ix = (int)floor(px);
@@ -2356,7 +2357,7 @@ void drawOpenGLMarkerCircle(double sx, double sy, double r, unsigned int color) 
       double d = sqrt(dx*dx + dy*dy);
       if (d <= r) {
         int d2 = (int)floor(d);
-        int alpha = d2<r-1 ? 255 : (1-(d - d2))*255.0;
+        int alpha = (int)(d2<r-1 ? 255 : (1-(d - d2))*255.0);
         if ((unsigned int)ix < (unsigned int)glFrameBufferWidth && (unsigned int)iy < (unsigned int)glFrameBufferHeight) {
           unsigned int c = glFrameBuffer[ix+iy*glFrameBufferWidth];
           int r = ((int)(color & 255) - (int)(c & 255))*alpha/255+(int)(c & 255);
@@ -2374,8 +2375,8 @@ void drawOpenGLSimpleLine(double sx0, double sy0, double sx1, double sy1, unsign
   sy0 = floor(sy0);
   sx1 = floor(sx1);
   sy1 = floor(sy1);
-  int dx = sx1 - sx0;
-  int dy = sy1 - sy0;
+  int dx = (int)(sx1 - sx0);
+  int dy = (int)(sy1 - sy0);
   int d = abs(dx);
   if (abs(dy)>abs(dx)) d = abs(dy);
   if (d <= 0) return;
@@ -2384,8 +2385,8 @@ void drawOpenGLSimpleLine(double sx0, double sy0, double sx1, double sy1, unsign
   double xa = (double)dx / d;
   double ya = (double)dy / d;
   for (int i = 0; i < d + 1; i++) {
-    int x = floor(px);
-    int y = floor(py);
+    int x = (int)floor(px);
+    int y = (int)floor(py);
 
     if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
@@ -2402,23 +2403,23 @@ void drawOpenGLRect(double sx0, double sy0, double sx1, double sy1, unsigned int
   sx1 = floor(sx1);
   sy1 = floor(sy1);
 
-  for (int x = sx0; x <= sx1; x++) {
-    int y = sy0;
+  for (int x = (int)sx0; x <= (int)sx1; x++) {
+    int y = (int)sy0;
     if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
-    y = sy1;
+    y = (int)sy1;
     if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
   }
 
-  for (int y = sy0; y <= sy1; y++) {
-    int x = sx0;
+  for (int y = (int)sy0; y <= (int)sy1; y++) {
+    int x = (int)sx0;
     if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
-    x = sx1;
+    x = (int)sx1;
     if ((unsigned int)x < (unsigned int)glFrameBufferWidth && (unsigned int)y < (unsigned int)glFrameBufferHeight) {
       glFrameBuffer[x+y*glFrameBufferWidth] = color;
     }
@@ -2459,13 +2460,13 @@ void toolCanvasStuff() {
       lx += l->toolInfo.tilingWidth*0.5;
       ly += l->toolInfo.tilingHeight*0.5;
       currentCanvas->getScreenPos(l,lx,ly,lx,ly);
-      float scale = currentCanvas->control.zoom/100.f;
+      float scale = (float)currentCanvas->control.zoom/100.f;
       if (scale < 1) scale = 1;
       if (scale > 4) scale = 4;
       if (l->toolInfo.showTilingGridIndices) {
         if (cx >= 0 && cy >= 0 && cx < tcx && cy < tcy) {
-          drawText(scale, lx+1, ly+1, String::fromInt(index).c_str(), 0xff000000, 0.5, 0.5);
-          drawText(scale, lx, ly, String::fromInt(index).c_str(), 0xffffffff, 0.5, 0.5);
+          drawText(scale, (int)lx+1, (int)ly+1, String::fromInt(index).c_str(), 0xff000000, 0.5, 0.5);
+          drawText(scale, (int)lx, (int)ly, String::fromInt(index).c_str(), 0xffffffff, 0.5, 0.5);
         }
       }
       if (l->toolInfo.tilingAnimPlaying) {
@@ -2477,11 +2478,11 @@ void toolCanvasStuff() {
           lx += l->toolInfo.tilingWidth*0.5;
           ly += l->toolInfo.tilingHeight*0.5;
           currentCanvas->getScreenPos(l,lx,ly,lx,ly);
-          float scale = currentCanvas->control.zoom/100.f;
+          float scale = (float)currentCanvas->control.zoom/100.f;
           if (scale < 1) scale = 1;
           if (scale > 4) scale = 4;
-          drawText(scale, lx+1, ly+1, String::fromInt(index).c_str(), 0xff0000ff, 0.5, 0.5);
-          drawText(scale, lx, ly, String::fromInt(index).c_str(), 0xff000000, 0.5, 0.5);
+          drawText(scale, (int)lx+1, (int)ly+1, String::fromInt(index).c_str(), 0xff0000ff, 0.5, 0.5);
+          drawText(scale, (int)lx, (int)ly, String::fromInt(index).c_str(), 0xff000000, 0.5, 0.5);
         }
       }
 
@@ -2512,7 +2513,7 @@ void toolCanvasStuff() {
           glViewport(0, 0, glFrameBufferWidth, glFrameBufferHeight);
           glMatrixMode(GL_PROJECTION);
           glLoadIdentity();
-          glOrtho(0,glFrameBufferWidth,glFrameBufferHeight,0,-1,1);
+          glOrtho(0,(GLfloat)glFrameBufferWidth, (GLfloat)glFrameBufferHeight,0,-1,1);
           glMatrixMode(GL_MODELVIEW);
           glLoadIdentity();
 
@@ -2525,7 +2526,7 @@ void toolCanvasStuff() {
                 if ((unsigned int)p<points->size()) {
                   Vector s = modifyPointsSource[p];
                   double sx = s.x, sy = s.y; currentCanvas->getScreenPos(sx,sy,sx,sy);
-                  glVertex4f(sx,sy,0,1);
+                  glVertex4f((GLfloat)sx, (GLfloat)sy,0,1);
                 }
               }
             }
@@ -2545,7 +2546,7 @@ void toolCanvasStuff() {
                 double sx = s.x, sy = s.y; currentCanvas->getScreenPos(sx,sy,sx,sy);
                 double tx = t.x, ty = t.y; currentCanvas->getLayerPosFromCanvasPos(l,tx,ty,tx,ty);
                 glTexCoord2d(tx/l->width,ty/l->height);
-                glVertex4f(sx,sy,0,1);
+                glVertex4f((GLfloat)sx, (GLfloat)sy,0,1);
               }
             }
           }
@@ -2637,7 +2638,7 @@ void toolCanvasStuff() {
       for (int y = 0; y < glFrameBufferHeight; y++)
         glFrameBuffer[x+y*glFrameBufferWidth]=0xff0000ff;
     }
-    drawMouseArrow2(x,mouseY);
+    drawMouseArrow2(x,(int)mouseY);
   }
   if (lockedMouseY) {
     int y = lockedMousePosY;
@@ -2645,13 +2646,13 @@ void toolCanvasStuff() {
       for (int x = 0; x < glFrameBufferWidth; x++)
         glFrameBuffer[x+y*glFrameBufferWidth]=0xff0000ff;
     }
-    drawMouseArrow2(mouseX,y);
+    drawMouseArrow2((int)mouseX,y);
   }
   if (mirrorToolEnabled) {
     double lx = mouseX, ly = mouseY; currentCanvas->getCanvasPos(lx,ly,lx,ly);
     mirrorPoint(lx,ly, 0);
     currentCanvas->getScreenPos(lx,ly,lx,ly);
-    drawMouseArrow2(lx,ly);
+    drawMouseArrow2((int)lx,(int)ly);
   }
   if (rulersOn) {
     int subSteps = 10;
@@ -2762,10 +2763,10 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
   }
   layerBoundings.z += 1;
   layerBoundings.w += 1;
-  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = layerBoundings.x;
-  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = layerBoundings.y;
-  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = layerBoundings.z;
-  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = layerBoundings.w;
+  if (layerBoundings.x > layerUpdateX0) layerUpdateX0 = (int)layerBoundings.x;
+  if (layerBoundings.y > layerUpdateY0) layerUpdateY0 = (int)layerBoundings.y;
+  if (layerBoundings.z < layerUpdateX1) layerUpdateX1 = (int)layerBoundings.z;
+  if (layerBoundings.w < layerUpdateY1) layerUpdateY1 = (int)layerBoundings.w;
   double tpx = canvasX-toolWidth, tpy = canvasY-toolHeight;
   Matrix t; t.translate(Vector(tpx,tpy,0));
   Matrix m = inverse2(t)*inverse2(layer->transform.transformation);
@@ -2829,10 +2830,10 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                           float where = 1000.0;
                           if (where > 0) {
                             unsigned int col = paintBackground[x2+y2*blurCircleSize];
-                            r += ((col & 255)+0.5f)*where;
-                            g += (((col>>8) & 255)+0.5f)*where;
-                            b += (((col>>16) & 255)+0.5f)*where;
-                            a += (((col>>24) & 255)+0.5f)*where;
+                            r += (int)(((col & 255)+0.5f)*where);
+                            g += (int)((((col>>8) & 255)+0.5f)*where);
+                            b += (int)((((col>>16) & 255)+0.5f)*where);
+                            a += (int)((((col>>24) & 255)+0.5f)*where);
                             w += where;
                           }
                         }
@@ -2844,10 +2845,10 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                   if ((unsigned int)bx<(unsigned int)blurCircleSize && (unsigned int)by<(unsigned int)blurCircleSize) {
                     unsigned int col = doFXAASinglePixel(bx, by, &paintBackground[0], blurCircleSize, blurCircleSize, NULL, 0);
                     float where = 1;
-                    r += ((col & 255)+0.5f)*where;
-                    g += (((col>>8) & 255)+0.5f)*where;
-                    b += (((col>>16) & 255)+0.5f)*where;
-                    a += (((col>>24) & 255)+0.5f)*where;
+                    r += (int)(((col & 255)+0.5f)*where);
+                    g += (int)((((col>>8) & 255)+0.5f)*where);
+                    b += (int)((((col>>16) & 255)+0.5f)*where);
+                    a += (int)((((col>>24) & 255)+0.5f)*where);
                     w += where;
                   }
                   d = 1-d;
@@ -2883,14 +2884,14 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                 case BLURTOOL_PULL: {
                   float distanceFromCenterX = (bx+0.5f)/blurCircleSize*2.f-1.f;
                   float distanceFromCenterY = (by+0.5f)/blurCircleSize*2.f-1.f;
-                  float distanceFromCenter = sqrt(distanceFromCenterX*distanceFromCenterX+distanceFromCenterY*distanceFromCenterY);
-                  float mdx = mouseDX;
-                  float mdy = mouseDY;
-                  float mDistance = sqrt(mdx*mdx+mdy*mdy);
+                  float distanceFromCenter = (float)sqrt(distanceFromCenterX*distanceFromCenterX+distanceFromCenterY*distanceFromCenterY);
+                  float mdx = (float)mouseDX;
+                  float mdy = (float)mouseDY;
+                  float mDistance = (float)sqrt(mdx*mdx+mdy*mdy);
                   if (mDistance>blurCircleSize) {
-                    float mAngle = atan2(mdx,mdy);
-                    mdx = sin(mAngle) * blurCircleSize;
-                    mdy = cos(mAngle) * blurCircleSize;
+                    float mAngle = (float)atan2(mdx,mdy);
+                    mdx = (float)(sin(mAngle) * blurCircleSize);
+                    mdy = (float)(cos(mAngle) * blurCircleSize);
                   }
                   float d = 1-distanceFromCenter; 
                   if (d < 0) d = 0;
@@ -2907,10 +2908,10 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                 } break;
               }
               if (w != 0) {
-                r /= w;
-                g /= w;
-                b /= w;
-                a /= w;
+                r = (int)(r/w);
+                g = (int)(g/w);
+                b = (int)(b/w);
+                a = (int)(a/w);
                 unsigned int col = layer->pixels[p];
                 int r2 = col & 255;
                 int g2 = (col>>8) & 255;
@@ -2919,10 +2920,10 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                 float f = 1-d;
                 if (f > 0) {
                   if (f > 1) f = 1;
-                  r = (r - r2)*f+r2;
-                  g = (g - g2)*f+g2;
-                  b = (b - b2)*f+b2;
-                  a = (a - a2)*f+a2;
+                  r = (int)((r - r2)*f+r2);
+                  g = (int)((g - g2)*f+g2);
+                  b = (int)((b - b2)*f+b2);
+                  a = (int)((a - a2)*f+a2);
                   layer->pixels[p] = r|(g<<8)|(b<<16)|(a<<24);
                 }
               }
@@ -2990,7 +2991,7 @@ void createModifyTriangles() {
   delau.delaunator(&points);
 
   modifyTriangles.clear();
-  for (int i2 = 0; i2 < (int)delau.triangles.size(); i2++) modifyTriangles.push_back(delau.triangles[i2]);
+  for (int i2 = 0; i2 < (int)delau.triangles.size(); i2++) modifyTriangles.push_back((unsigned int)delau.triangles[i2]);
 }
 
 void bakeModify(bool justCreateSelection, bool createNewLayer) {
@@ -3276,10 +3277,10 @@ void bakeModify(bool justCreateSelection, bool createNewLayer) {
             double gb = ((int)((p11>>8) & 255) - (int)((p01>>8) & 255))*fx + (int)((p01>>8) & 255);
             double bb = ((int)((p11>>16) & 255) - (int)((p01>>16) & 255))*fx + (int)((p01>>16) & 255);
             double ab = ((int)((p11>>24) & 255) - (int)((p01>>24) & 255))*fx + (int)((p01>>24) & 255);
-            int r = floor((rb - rt) * fy + rt);
-            int g = floor((gb - gt) * fy + gt);
-            int b = floor((bb - bt) * fy + bt);
-            int a = floor((ab - at) * fy + at);
+            int r = (int)floor((rb - rt) * fy + rt);
+            int g = (int)floor((gb - gt) * fy + gt);
+            int b = (int)floor((bb - bt) * fy + bt);
+            int a = (int)floor((ab - at) * fy + at);
             if (r > 255) r = 255;
             if (g > 255) g = 255;
             if (b > 255) b = 255;

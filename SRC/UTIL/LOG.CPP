@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "LOG.HPP"
 #include "../CONFIG.HPP"
 #include "DOS.HPP"
@@ -12,6 +13,7 @@
 #include <dos.h>
 #endif
 
+#if defined(__DJGPP__) || defined(__WATCOMC__)
 void log_setBiosCursor(int x, int y) {
     union REGS r;
     memset(&r,0,sizeof(r));
@@ -21,6 +23,9 @@ void log_setBiosCursor(int x, int y) {
     r.h.dh = (unsigned char)(y&255);
     int386(0x10, &r, &r);
 }
+#else
+void log_setBiosCursor(int x, int y) { UNUSED(x); UNUSED(y); }
+#endif
 
 static char temp_buffer1[4096]; // not thread safe (done this way due to WatcomC)
 static char temp_buffer2[4096]; // not thread safe (done this way due to WatcomC)

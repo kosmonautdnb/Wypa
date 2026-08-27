@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "GALLERY.HPP"
 #include "STL/GL.H"
 #include "IMGUI/IMGUI.H"
@@ -110,17 +111,17 @@ public:
   void blit(float index) {
     double sc2 = galleryScale;
     if (sc2 < 0.001) sc2 = 0.001;
-    int GALLERYTEXTUREWIDTH = (glFrameBufferWidth-sidebar_width-toolbar_width-toolview_width)*2/3*sc2;
+    int GALLERYTEXTUREWIDTH = (int)((glFrameBufferWidth-sidebar_width-toolbar_width-toolview_width)*2/3*sc2);
     int baseLine = 100;
     int bottom = glFrameBufferHeight-baseLine;
     if (sc2 > 1) sc2 = 1;
-    int left = toolbar_width+toolview_width + GALLERYTEXTUREWIDTH*(index-1)/sc2;
-    left += ((glFrameBufferWidth-sidebar_width-toolbar_width-toolview_width)-GALLERYTEXTUREWIDTH)*0.5;
-    int top = bottom - GALLERYTEXTUREWIDTH * height / width * aspectRatio * main_window_yres/main_window_xres;
+    int left = (int)(toolbar_width+toolview_width + GALLERYTEXTUREWIDTH*(index-1)/sc2);
+    left += (int)(((glFrameBufferWidth-sidebar_width-toolbar_width-toolview_width)-GALLERYTEXTUREWIDTH)*0.5);    
+    int top = (int)(bottom - GALLERYTEXTUREWIDTH * height / width * aspectRatio * main_window_yres/main_window_xres);
     int right = left + GALLERYTEXTUREWIDTH;
 
     int wallX = 10;
-    int wallY = wallX * aspectRatio * main_window_yres/main_window_xres;
+    int wallY = (int)(wallX * aspectRatio * main_window_yres/main_window_xres);
     int top2 = top - wallY;
     int right3 = right + wallX;
     //float k2 = 0.0;
@@ -128,15 +129,15 @@ public:
 
     glColor4f(0,0,0,1);
 
-    glVertex4f(right,top2,0,1);
-    glVertex4f(left+wallX,top2,0,1);
-    glVertex4f(left,top,0,1);
-    glVertex4f(right,top,0,1);
+    glVertex4f((GLfloat)right, (GLfloat)top2,0,1);
+    glVertex4f((GLfloat)(left+wallX), (GLfloat)top2,0,1);
+    glVertex4f((GLfloat)left, (GLfloat)top,0,1);
+    glVertex4f((GLfloat)right, (GLfloat)top,0,1);
 
-    glVertex4f(right3,top2,0,1);
-    glVertex4f(right,top2,0,1);
-    glVertex4f(right,bottom,0,1);
-    glVertex4f(right3,bottom-wallY,0,1);
+    glVertex4f((GLfloat)right3, (GLfloat)top2,0,1);
+    glVertex4f((GLfloat)right, (GLfloat)top2,0,1);
+    glVertex4f((GLfloat)right, (GLfloat)bottom,0,1);
+    glVertex4f((GLfloat)right3, (GLfloat)(bottom-wallY),0,1);
 
     glEnd();
 
@@ -150,10 +151,10 @@ public:
     glBindTexture(GL_TEXTURE_2D,texHandle);
     glBegin(GL_QUADS);
     glColor4f(1,1,1,1);
-    glTexCoord2f(1,0); glVertex4f(right,top,0,1);
-    glTexCoord2f(0,0); glVertex4f(left,top,0,1);
-    glTexCoord2f(0,1); glVertex4f(left,bottom,0,1);
-    glTexCoord2f(1,1); glVertex4f(right,bottom,0,1);
+    glTexCoord2f(1,0); glVertex4f((GLfloat)right, (GLfloat)top,0,1);
+    glTexCoord2f(0,0); glVertex4f((GLfloat)left, (GLfloat)top,0,1);
+    glTexCoord2f(0,1); glVertex4f((GLfloat)left, (GLfloat)bottom,0,1);
+    glTexCoord2f(1,1); glVertex4f((GLfloat)right, (GLfloat)bottom,0,1);
     glEnd();
 
     if (hasAlpha) glDisable(GL_BLEND);
@@ -161,18 +162,18 @@ public:
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    float k = 1.2;
-    int left2 = (left - glFrameBufferWidth*0.5) * k + glFrameBufferWidth*0.5;
-    int right2 = (right - glFrameBufferWidth*0.5) * k + glFrameBufferWidth*0.5;
-    int bottom2 = bottom+baseLine*0.7;
+    float k = 1.2f;
+    int left2 = (int)((left - glFrameBufferWidth*0.5) * k + glFrameBufferWidth*0.5);
+    int right2 = (int)((right - glFrameBufferWidth*0.5) * k + glFrameBufferWidth*0.5);
+    int bottom2 = (int)(bottom+baseLine*0.7);
 
     glBegin(GL_QUADS);
     glColor4f(1,1,1,1);
-    glTexCoord2f(1,1); glVertex4f(right,bottom,0,1);
-    glTexCoord2f(0,1); glVertex4f(left,bottom,0,1);
+    glTexCoord2f(1,1); glVertex4f((GLfloat)right, (GLfloat)bottom,0,1);
+    glTexCoord2f(0,1); glVertex4f((GLfloat)left, (GLfloat)bottom,0,1);
     glColor4f(1,1,1,0);
-    glTexCoord2f(0,0.5f); glVertex4f(left2,bottom2,0,1);
-    glTexCoord2f(1,0.5f); glVertex4f(right2,bottom2,0,1);
+    glTexCoord2f(0,0.5f); glVertex4f((GLfloat)left2, (GLfloat)bottom2,0,1);
+    glTexCoord2f(1,0.5f); glVertex4f((GLfloat)right2, (GLfloat)bottom2,0,1);
     glEnd();
 
     glDisable(GL_BLEND);
@@ -244,7 +245,7 @@ void blitGallery() {
   glScissor(left, glFrameBufferHeight - bottom, right-left, bottom-top);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(left,right,bottom,top,-1,1);
+  glOrtho((GLfloat)left, (GLfloat)right, (GLfloat)bottom, (GLfloat)top,-1,1);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glClearColor(0,0,0,1);
@@ -252,13 +253,13 @@ void blitGallery() {
 
 
   glBegin(GL_QUADS);
-  glColor4f(0.1,0.1,0.1,1);
-  glVertex4f(glFrameBufferWidth,0,0,1);
+  glColor4f((GLfloat)0.1, (GLfloat)0.1, (GLfloat)0.1,1);
+  glVertex4f((GLfloat)glFrameBufferWidth,0,0,1);
   glVertex4f(0,0,0,1);
-  float k = 0.4;
-  glColor4f(0.9*k,0.9*k,1.0*k,1);
-  glVertex4f(0,glFrameBufferHeight,0,1);
-  glVertex4f(glFrameBufferWidth,glFrameBufferHeight,0,1);
+  float k = 0.4f;
+  glColor4f((GLfloat)(0.9*k), (GLfloat)(0.9*k), (GLfloat)(1.0*k),1);
+  glVertex4f(0,(GLfloat)glFrameBufferHeight,0,1);
+  glVertex4f((GLfloat)glFrameBufferWidth, (GLfloat)glFrameBufferHeight,0,1);
   glEnd();
 
   int baseLine = 100;
@@ -267,26 +268,26 @@ void blitGallery() {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glBegin(GL_QUADS);
   glColor4f(1,1,1,0);
-  glVertex4f(glFrameBufferWidth,bottom2-40,0,1);
-  glVertex4f(0,bottom2-40,0,1);
+  glVertex4f((GLfloat)glFrameBufferWidth, (GLfloat)(bottom2-40),0,1);
+  glVertex4f(0, (GLfloat)(bottom2-40),0,1);
   glColor4f(1,1,1,1);
-  glVertex4f(0,bottom,0,1);
-  glVertex4f(glFrameBufferWidth,bottom,0,1);
+  glVertex4f(0, (GLfloat)bottom,0,1);
+  glVertex4f((GLfloat)glFrameBufferWidth, (GLfloat)bottom,0,1);
   glEnd();
   glDisable(GL_BLEND);
 
-  if (destIndex > (int)galleryFiles.size()-1) destIndex = galleryFiles.size()-1;
+  if (destIndex > (int)galleryFiles.size()-1) destIndex = (int)galleryFiles.size()-1;
   if (destIndex < 0) destIndex = 0;
-  currentIndex = (destIndex - currentIndex)*0.95+currentIndex;
+  currentIndex = (float)((destIndex - currentIndex)*0.95+currentIndex);
   if (currentIndex < 0) currentIndex = 0;
-  if (currentIndex > (int)galleryFiles.size()-1) currentIndex = galleryFiles.size()-1;
+  if (currentIndex > (int)galleryFiles.size()-1) currentIndex = (float)galleryFiles.size()-1;
 
   for (int i = 0; i < GALLERYTEXTURECOUNT; i++) {
     int k = (int)floor(i-1+currentIndex);
     if ((unsigned int)k < (unsigned int)galleryFiles.size()) {
       int mapIndex = (k + GALLERYTEXTURECOUNT) % GALLERYTEXTURECOUNT;
       gallery[mapIndex]->update(galleryFiles[k]);
-      gallery[mapIndex]->blit(i-(currentIndex-floor(currentIndex)));
+      gallery[mapIndex]->blit((float)(i-(currentIndex-floor(currentIndex))));
     }
   }
 
@@ -316,8 +317,8 @@ void blitGallery() {
 }
 
 void drawGalleryView() {
-  ImGui::Text("Scale"); ImGui::SameLine(); if (ImGui::SliderFloat("##DRAWGALLERYVIEWSCALE",&galleryScale,0.001,2)) {} else toolTip("Scale the gallery images view size by this value");
-  if (galleryScale < 0.001) galleryScale = 0.001;
+  ImGui::Text("Scale"); ImGui::SameLine(); if (ImGui::SliderFloat("##DRAWGALLERYVIEWSCALE",&galleryScale,0.001f,2)) {} else toolTip("Scale the gallery images view size by this value");
+  if (galleryScale < 0.001f) galleryScale = 0.001f;
   if (roundButton("Select folder",true)) {
     dialogLoadSave(true, DIALOG_SELECTGALLERYFOLDER);
   } else toolTip("Select the folder to display the images from");
@@ -328,7 +329,7 @@ void drawGalleryView() {
 
   GalleryEntry *a = gallery[0];
   if (currentIndex < 0) currentIndex = 0;
-  if (currentIndex > (int)galleryFiles.size()-1) currentIndex = galleryFiles.size()-1;
+  if (currentIndex > (int)galleryFiles.size()-1) currentIndex = (float)galleryFiles.size()-1;
   int k2 = (int)currentIndex;
   if ((unsigned int)k2 < galleryFiles.size()) {
     int mapIndex = (k2 + GALLERYTEXTURECOUNT) % GALLERYTEXTURECOUNT;
@@ -351,17 +352,17 @@ void drawGalleryView() {
   ImGui::Separator();
   ImGui::Text("Pictures %d", galleryFiles.size()); toolTip("The count of viewable pictures in this folder");
   ImGui::PushItemWidth(7*4);
-  ImGui::Text("Selected"); ImGui::SameLine(); int k = (int)currentIndex; if (ImGui::InputInt("##DRAWGALLERYVIEWSELECTED",&k,0,0)) {currentIndex = k; destIndex = (int)currentIndex;} else toolTip("The current selected image");
+  ImGui::Text("Selected"); ImGui::SameLine(); int k = (int)currentIndex; if (ImGui::InputInt("##DRAWGALLERYVIEWSELECTED",&k,0,0)) {currentIndex = (float)k; destIndex = (int)currentIndex;} else toolTip("The current selected image");
   ImGui::PopItemWidth();
   ImGui::Separator();
-  ImGui::BeginChild("DRAWGALLERYVIEWCHILD",ImVec2(toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
+  ImGui::BeginChild("DRAWGALLERYVIEWCHILD",ImVec2((float)toolview_width,main_window_yres-ImGui::GetCursorScreenPos().y));
   for (int i = 0; i < (int)galleryFiles.size(); i++) {
     ImGui::Text("%s",galleryFiles[i].name.full.last(14).c_str());
     ImVec2 minB = ImGui::GetItemRectMin();
     ImVec2 maxB = ImGui::GetItemRectMax();
     if (galleryScrollTo == i) ImGui::SetScrollPosHere();
     if (i == (int)currentIndex) ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x40ffff00);
-    if (ImGui::IsMouseClicked(0) && ImGui::IsMouseHoveringRect(minB,maxB)) {currentIndex = i; destIndex = (int)currentIndex;}
+    if (ImGui::IsMouseClicked(0) && ImGui::IsMouseHoveringRect(minB,maxB)) {currentIndex = (float)i; destIndex = (int)currentIndex;}
   }
   ImGui::EndChild();
   galleryScrollTo = -1;

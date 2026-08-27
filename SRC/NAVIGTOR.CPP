@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "STL/GL.H"
 #include "NAVIGTOR.HPP"
 #include "MENUBAR.HPP"
@@ -97,14 +98,14 @@ void updateNavigatorImage() {
 
 void drawNavigator() {
   if (fullScreen) return;
-  ImGui::SetNextWindowPos(ImVec2(main_window_xres-sidebar_width,menuBar_height));
-  ImGui::Begin("NAVIGATOR", NULL, ImVec2(sidebar_width,navigator_height),1.0,FROZENWINDOW);
+  ImGui::SetNextWindowPos(ImVec2((float)(main_window_xres-sidebar_width),(float)menuBar_height));
+  ImGui::Begin("NAVIGATOR", NULL, ImVec2((float)sidebar_width,(float)navigator_height),1.0,FROZENWINDOW);
 
   ImVec2 cursor = ImGui::GetCursorPos();
   ImVec2 cursor3 = ImGui::GetCursorScreenPos();
   int nameSize = 7*(PICTURENAMEMAX);
-  ImGui::PushItemWidth(nameSize);
-  ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9,0.9,0.9,1));
+  ImGui::PushItemWidth((float)nameSize);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0.9f,0.9f,0.9f,1));
   ImGui::InputText("##DRAWNAVIGATORPICTURENAME",currentCanvas->pictureName, PICTURENAMEMAX);
   toolTip("Picture name");
   ImGui::PopStyleColor();
@@ -131,9 +132,9 @@ void drawNavigator() {
   updateNavigatorImage();
   ImVec2 cursor2 = ImGui::GetCursorScreenPos();
   if (aspectRatio != 0) {
-    navigatorWidth = navigatorHeight / aspectRatio * main_window_xres / main_window_yres;
+    navigatorWidth = (int)(navigatorHeight / aspectRatio * main_window_xres / main_window_yres);
   }
-  ImGui::Image((ImTextureID)navigatorTexture,ImVec2(navigatorWidth,navigatorHeight)); toolTip("Pixel view");
+  ImGui::Image((ImTextureID)navigatorTexture,ImVec2((float)navigatorWidth,(float)navigatorHeight)); toolTip("Pixel view");
 #define IMGUIGLFAST
 #ifndef IMGUIGLFAST
   ImVec2 c0 = ImVec2((double)navigatorWidth*(navigatorX/2)/navigatorX,(double)navigatorHeight*(navigatorY/2)/navigatorY);
@@ -152,9 +153,9 @@ void drawNavigator() {
   int ty1 = txaY * (navigatorY/2+1) / navigatorY;
   int px0 = tx0 * navigatorWidth / txaX; int py0 = ty0 * navigatorHeight / txaY;
   int px1 = tx1 * navigatorWidth / txaX; int py1 = ty1 * navigatorHeight / txaY;
-  ImVec2 c0 = ImVec2(px0,py0); c0.x += cursor2.x; c0.y += cursor2.y;
-  ImVec2 c1 = ImVec2(px1,py1); c1.x += cursor2.x; c1.y += cursor2.y;
-  c0.x = floor(c0.x); c0.y = floor(c0.y); c1.x = floor(c1.x)+1; c1.y = floor(c1.y)+1; // no clue why c0 is one left+above
+  ImVec2 c0 = ImVec2((float)px0, (float)py0); c0.x += cursor2.x; c0.y += cursor2.y;
+  ImVec2 c1 = ImVec2((float)px1, (float)py1); c1.x += cursor2.x; c1.y += cursor2.y;
+  c0.x = (float)floor(c0.x); c0.y = (float)floor(c0.y); c1.x = (float)floor(c1.x)+1; c1.y = (float)floor(c1.y)+1; // no clue why c0 is one left+above
 #endif
   ImGui::GetWindowDrawList()->AddRect(c0,c1,0xff0000ff);
 

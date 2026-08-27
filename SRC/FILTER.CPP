@@ -21,6 +21,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
+#define _CRT_SECURE_NO_WARNINGS
 #include "FILTER.HPP"
 #include "STL/GL.H"
 #include "IMGUI/IMGUIGL.HPP"
@@ -35,8 +36,8 @@
 #include "COLORFLD.HPP"
 
 float sfrand2d(int seed,float x, float y) {
-  x *= 3.3333;
-  y *= 7.7777;
+  x *= 3.3333f;
+  y *= 7.7777f;
   void *k1 = (void*)(&x);
   void *k2 = (void*)(&y);
   srand((*((unsigned int*)k1))^seed); int xs = rand();
@@ -69,10 +70,10 @@ void filterDifferenceClouds() {
       for (int x = 0; x < l->width; x++) {
         int ix0 = x / tileSize;
         int iy0 = y / tileSize;
-        float v00 = sfrand2d(seed,ix0,iy0);
-        float v10 = sfrand2d(seed,ix0+1,iy0);
-        float v01 = sfrand2d(seed,ix0,iy0+1);
-        float v11 = sfrand2d(seed,ix0+1,iy0+1);
+        float v00 = sfrand2d(seed, (float)ix0,(float)iy0);
+        float v10 = sfrand2d(seed, (float)ix0+1, (float)iy0);
+        float v01 = sfrand2d(seed, (float)ix0, (float)iy0+1);
+        float v11 = sfrand2d(seed, (float)ix0+1, (float)iy0+1);
         float fx = (float)(x % tileSize)/tileSize;
         float fy = (float)(y % tileSize)/tileSize;
         float top = (v10 - v00)*fx + v00;
@@ -107,11 +108,11 @@ void filterDifferenceClouds() {
   for (int i3 = 0; i3 < l->width*l->height; i3++) {
     if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
       unsigned int col = l->pixels[i3];
-      int r = col & 255;
-      int g = (col>>8) & 255;
-      int b = (col>>16) & 255;
-      int a = (col>>24) & 255;
-      int d = values[i3] * 255;
+      int r = (int)(col & 255);
+      int g = (int)((col>>8) & 255);
+      int b = (int)((col>>16) & 255);
+      int a = (int)((col>>24) & 255);
+      int d = (int)(values[i3] * 255);
       r = d-r;
       g = d-g;
       b = d-b;
@@ -221,9 +222,9 @@ void filterSobelEdgeDetect() {
         sobelYg /= w;
         sobelYb /= w;
       }
-      values[(x+y*l->width)*3+0] = maxf(fabs(sobelXr),fabs(sobelYr));
-      values[(x+y*l->width)*3+1] = maxf(fabs(sobelXg),fabs(sobelYg));
-      values[(x+y*l->width)*3+2] = maxf(fabs(sobelXb),fabs(sobelYb));
+      values[(x+y*l->width)*3+0] = (float)maxf((float)fabs(sobelXr), (float)fabs(sobelYr));
+      values[(x+y*l->width)*3+1] = (float)maxf((float)fabs(sobelXg), (float)fabs(sobelYg));
+      values[(x+y*l->width)*3+2] = (float)maxf((float)fabs(sobelXb), (float)fabs(sobelYb));
     }
   }
   float minV = 0;
@@ -245,9 +246,9 @@ void filterSobelEdgeDetect() {
   bool hasSelection = l->hasSelection();
   for (int i3 = 0; i3 < l->width*l->height; i3++) {
     if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
-      int r = values[i3*3+0]*255;
-      int g = values[i3*3+1]*255;
-      int b = values[i3*3+2]*255;
+      int r = (int)(values[i3*3+0]*255);
+      int g = (int)(values[i3*3+1]*255);
+      int b = (int)(values[i3*3+2]*255);
       int a = 255;
       if (r < 0) r = 0;
       if (g < 0) g = 0;
@@ -296,15 +297,15 @@ void filterMorphologicalEdgeDetect() {
               int g = (col>>8) & 255;
               int b = (col>>16) & 255;
               int l = r + g + b;
-              if (first || l > maxv) maxv = l;
-              if (first || l < minv) minv = l;
+              if (first || l > maxv) maxv = (float)l;
+              if (first || l < minv) minv = (float)l;
               first = false;
             }
           }
         }
-        int k = maxv-minv;
-        if (first || k > maxv2) maxv2 = k;
-        if (first || k < minv2) minv2 = k;
+        int k = (int)(maxv-minv);
+        if (first || k > maxv2) maxv2 = (float)k;
+        if (first || k < minv2) minv2 = (float)k;
         l->pixels[i3] = k;
       }
     }
@@ -314,7 +315,7 @@ void filterMorphologicalEdgeDetect() {
     for (int i3 = 0; i3 < l->width*l->height; i3++) {
       if ((!hasSelection)||(l->pixelStates[i3] & PIXELSTATE_SELECTED)) {
         unsigned int v = l->pixels[i3];
-        v = (v-minv2) * 255/scale;
+        v = (unsigned int)((v-minv2) * 255/scale);
         l->pixels[i3] = v|(v<<8)|(v<<16)|(0xff000000);
       }
     }
@@ -448,9 +449,9 @@ void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
 void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radialAngle, float radialSize, unsigned char *pixelStates, bool usePixelStates) {
   if (radialSize < 1 || radialSize > width+height) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
   initStatusBar();
-  float r = -radialAngle*PI*2/360.0;
-  float stepX = sin(r);
-  float stepY = cos(r);
+  float r = (float)(-radialAngle * PI * 2 / 360.0);
+  float stepX = (float)sin(r);
+  float stepY = (float)cos(r);
   for (int y4 = 0; y4 < (int)height; y4++) {
     if ((y4 & 15)==0) updateStatusBar();
     for (int x4 = 0; x4 < (int)width; x4++) {
@@ -460,9 +461,9 @@ void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int widt
         int b = 0;
         int a = 0;
         int w = 0;
-        for (int k = -radialSize; k <= radialSize; k++) {
-          int x3 = stepX * k + x4;
-          int y3 = stepY * k + y4;
+        for (int k = (int)-radialSize; k <= (int)radialSize; k++) {
+          int x3 = (int)(stepX * k + x4);
+          int y3 = (int)(stepY * k + y4);
           if ((unsigned int)x3 < (unsigned int)width && (unsigned int)y3 < (unsigned int)height) {
             unsigned int col = source[x3+y3*width];
             r += col & 255;
@@ -537,8 +538,8 @@ inline unsigned int bloomLookUp(float x, float y, unsigned int *s, int w, int h)
   return rb | (ga<<8);
 }
 
-#define __SX(__x__) bloomLookUp(__x__,y,s,width,height)
-#define __SY(__y__) bloomLookUp(x,__y__,s,width,height)
+#define __SX(__x__) bloomLookUp((float)__x__,(float)y,s,width,height)
+#define __SY(__y__) bloomLookUp((float)x,(float)__y__,s,width,height)
 
 void bloomX(unsigned int *buffer, unsigned int width, unsigned int height, float tap0, float tap1) {
   float weight0 =  gaussianTap5Weight0;
@@ -556,8 +557,8 @@ void bloomX(unsigned int *buffer, unsigned int width, unsigned int height, float
     for (int x = 0; x < (int)width; x++) {
       float t0x = x - tap0; if (t0x < 0) t0x = 0;
       float t1x = x - tap1; if (t1x < 0) t1x = 0;
-      float t3x = x + tap1; if (t3x > width-1) t3x = width-1;
-      float t4x = x + tap0; if (t4x > width-1) t4x = width-1;
+      float t3x = x + tap1; if (t3x > width-1) t3x = (float)width-1;
+      float t4x = x + tap0; if (t4x > width-1) t4x = (float)width-1;
       unsigned int rgba0 = __SX0(t0x);
       unsigned int rgba1 = __SX0(t1x);
       unsigned int rgba2 = __SX0(x);
@@ -587,8 +588,8 @@ void bloomXFiltered(unsigned int *buffer, unsigned int width, unsigned int heigh
     for (int x = 0; x < (int)width; x++) {
       float t0x = x - tap0; if (t0x < 0) t0x = 0;
       float t1x = x - tap1; if (t1x < 0) t1x = 0;
-      float t3x = x + tap1; if (t3x > width-1) t3x = width-1;
-      float t4x = x + tap0; if (t4x > width-1) t4x = width-1;
+      float t3x = x + tap1; if (t3x > width-1) t3x = (float)width-1;
+      float t4x = x + tap0; if (t4x > width-1) t4x = (float)width-1;
       unsigned int rgba0 = __SX(t0x);
       unsigned int rgba1 = __SX(t1x);
       unsigned int rgba2 = __SX(x);
@@ -618,8 +619,8 @@ void bloomY(unsigned int *buffer, unsigned int width, unsigned int height, float
     for (int y = 0; y < (int)height; y++) {
       float t0y = y - tap0; if (t0y < 0) t0y = 0;
       float t1y = y - tap1; if (t1y < 0) t1y = 0;
-      float t3y = y + tap1; if (t3y > height-1) t3y = height-1;
-      float t4y = y + tap0; if (t4y > height-1) t4y = height-1;
+      float t3y = y + tap1; if (t3y > height-1) t3y = (float)height-1;
+      float t4y = y + tap0; if (t4y > height-1) t4y = (float)height-1;
       unsigned int rgba0 = __SY0(t0y);
       unsigned int rgba1 = __SY0(t1y);
       unsigned int rgba2 = __SY0(y);
@@ -650,8 +651,8 @@ void bloomYFiltered(unsigned int *buffer, unsigned int width, unsigned int heigh
     for (int y = 0; y < (int)height; y++) {
       float t0y = y - tap0; if (t0y < 0) t0y = 0;
       float t1y = y - tap1; if (t1y < 0) t1y = 0;
-      float t3y = y + tap1; if (t3y > height-1) t3y = height-1;
-      float t4y = y + tap0; if (t4y > height-1) t4y = height-1;
+      float t3y = y + tap1; if (t3y > height-1) t3y = (float)height-1;
+      float t4y = y + tap0; if (t4y > height-1) t4y = (float)height-1;
       unsigned int rgba0 = __SY(t0y);
       unsigned int rgba1 = __SY(t1y);
       unsigned int rgba2 = __SY(y);
@@ -685,25 +686,25 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
 
   if (passesX > px) {
     updateStatusBar();
-    float kernelSize = passesX;
+    float kernelSize = (float)passesX;
     bloomXFiltered(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   for (int i1 = px-1; i1 >= 0; i1--) {
     updateStatusBar();
-    float kernelSize = pow(2,i1);
+    float kernelSize = (float)pow(2,i1);
     bloomX(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   if (passesY > py) {
     updateStatusBar();
-    float kernelSize = passesY;
+    float kernelSize = (float)passesY;
     bloomYFiltered(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   for (int i2 = py-1; i2 >= 0; i2--) {
     updateStatusBar();
-    float kernelSize = pow(2,i2);
+    float kernelSize = (float)pow(2,i2);
     bloomY(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
@@ -911,7 +912,7 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
     int r = col & 255;
     int g = (col>>8) & 255;
     int b = (col>>16) & 255;
-    temp[i] = r+g+b;
+    temp[i] = (float)(r+g+b);
   }
   for (int j = 0; j < 2; j++) {
     for (int y = 0; y < (int)height; y++) {
@@ -953,9 +954,9 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
         }
         float val = 0;
         if (sobelX != 0 || sobelY != 0) {
-          float angleHere = atan2(sobelX,sobelY);
-          val = sin(angleHere+(angle-90)*PI*2/360.0);
-          int grey = val * 128 + 128;
+          float angleHere = (float)atan2(sobelX,sobelY);
+          val = (float)sin(angleHere+(angle-90)*PI*2/360.0);
+          int grey = (int)(val * 128 + 128);
           if (grey < 0) grey = 0;
           if (grey > 255) grey = 255;
           int r = grey;
@@ -986,7 +987,7 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
         int a2 = a;
         int fc = rm * r + gm * g + bm * b; // g
         int o = (1-rm) * r; int v = o; o = (1-gm) * g; if (o > v) v = o; o = (1-bm) * b; if (o > v) v = o; // max rb
-        a = (fc - v)*factor;
+        a = (int)((fc - v)*factor);
         if (a < 0) a = 0;
         if (a > 255) a = 255;
         if (!invert) a = 255 - a;
@@ -1025,7 +1026,7 @@ void filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int wid
         int q = rd;
         if (gd > q) q = gd;
         if (bd > q) q = bd;
-        a = q * factor;
+        a = (int)(q * factor);
         if (a < 0) a = 0;
         if (a > 255) a = 255;
         if (invert) a = 255 - a;
@@ -1336,7 +1337,7 @@ void filterClahe(float claheConstant, int cellSize) {
       hcount++;
       int tileW2 = tileW; if (x + tileW2 > l->width) tileW2 = l->width - x;
 
-      int remapStart = remap.size(); remap.resize(remapStart + 256); int *matching = &remap[remapStart];
+      int remapStart = (int)remap.size(); remap.resize(remapStart + 256); int *matching = &remap[remapStart];
 
       memset(&inputHistogram[0],0,256*sizeof(double));
       memset(&targetHistogram[0],0,256*sizeof(double));
@@ -1458,9 +1459,9 @@ void filterClahe(float claheConstant, int cellSize) {
           }
           grey2 /= w;
           if (grey != 0) {
-            r = r * grey2 / grey;
-            g = g * grey2 / grey;
-            b = b * grey2 / grey;
+            r = (int)(r * grey2 / grey);
+            g = (int)(g * grey2 / grey);
+            b = (int)(b * grey2 / grey);
           }
           if (r > 255) r = 255;
           if (g > 255) g = 255;
@@ -1677,7 +1678,7 @@ void filterHistogramMatchingColored(Layer *histogramSource) {
       int v2 = matching[v];
       double cSat = (v2 - 128) * 2;
       double grey = (ch[0] + ch[1] + ch[2]) / 3;
-      ch[channel] = grey + cSat;
+      ch[channel] = (int)(grey + cSat);
       if (ch[channel]<0) ch[channel] = 0;
       if (ch[channel]>255) ch[channel] = 255;
       a->pixels[i2] = ch[0]|(ch[1]<<8)|(ch[2]<<16)|(col & 0xff000000);
@@ -1903,10 +1904,10 @@ static __inline void lookupInterpolated(unsigned int *colors, int width, int hei
   double gb = ((int)((p11>>8) & 255) - (int)((p01>>8) & 255))*fx + (int)((p01>>8) & 255);
   double bb = ((int)((p11>>16) & 255) - (int)((p01>>16) & 255))*fx + (int)((p01>>16) & 255);
   double ab = ((int)((p11>>24) & 255) - (int)((p01>>24) & 255))*fx + (int)((p01>>24) & 255);
-  red = (rb - rt) * fy + rt;
-  green = (gb - gt) * fy + gt;
-  blue = (bb - bt) * fy + bt;
-  alpha = (ab - at) * fy + at;
+  red = (float)((rb - rt) * fy + rt);
+  green = (float)((gb - gt) * fy + gt);
+  blue = (float)((bb - bt) * fy + bt);
+  alpha = (float)((ab - at) * fy + at);
 }
 
 void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float displacement1, float displacement2, int type, unsigned char *pixelStates, bool usePixelStates, Layer *displace) {
@@ -1923,18 +1924,18 @@ void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int
             float dr=0,dg=0,db=0,da=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx, dy-1, dr, dg, db, da);
             float er=0,eg=0,eb=0,ea=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx+1, dy, er, eg, eb, ea);
             float fr=0,fg=0,fb=0,fa=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx, dy+1, fr, fg, fb, fa);
-            lx = x + (er-cr) * displacement1 / 255.0;
-            ly = y + (fg-dg) * displacement2 / 255.0;
+            lx = (float)(x + (er-cr) * displacement1 / 255.0);
+            ly = (float)(y + (fg-dg) * displacement2 / 255.0);
           } break;
           case 1: {
             float cr=0,cg=0,cb=0,ca=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx, dy, cr, cg, cb, ca);
-            lx = x + (cr-128) * displacement1/128.0;
-            ly = y + (cg-128) * displacement2/128.0;
+            lx = (float)(x + (cr-128) * displacement1/128.0);
+            ly = (float)(y + (cg-128) * displacement2/128.0);
           } break;
           case 2: {
             float cr=0,cg=0,cb=0,ca=0; lookupInterpolated(displace->pixels, displace->width, displace->height, dx, dy, cr, cg, cb, ca);
-            float xn = cr * width / 255.0;
-            float yn = cg * height / 255.0;
+            float xn = (float)(cr * width / 255.0);
+            float yn = (float)(cg * height / 255.0);
             lx = (xn-x) * displacement1 + x;
             ly = (yn-y) * displacement2 + y;
           } break;
@@ -1965,7 +1966,7 @@ public:
 };
 
 static __inline void putInPriorityQueue(Array<WatershedEntry> &queue, int x, int y, float priority) {
-  int siz = queue.size();
+  int siz = (int)queue.size();
   WatershedEntry *queue2 = &queue[0];
   if (siz == 0) {
     queue.push_back(WatershedEntry(x,y,priority));
@@ -2038,14 +2039,14 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
             sobelX[0] += r*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[0] += r*sobelYMat[(x2+1)+(y2+1)*3];
             sobelX[1] += g*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[1] += g*sobelYMat[(x2+1)+(y2+1)*3];
             sobelX[2] += b*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[2] += b*sobelYMat[(x2+1)+(y2+1)*3];
-            sobelX[3] += sl*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[3] += sl*sobelYMat[(x2+1)+(y2+1)*3];
+            sobelX[3] += (float)(sl*sobelXMat[(x2+1)+(y2+1)*3]); sobelY[3] += (float)(sl*sobelYMat[(x2+1)+(y2+1)*3]);
             sobelX[4] += a*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[4] += a*sobelYMat[(x2+1)+(y2+1)*3];
           }
         }
       }
       if (y == 0 || y == l->height-1) {sobelY[0] = sobelY[1] = sobelY[2] = sobelY[3] = sobelY[4] = 0;}
       if (x == 0 || x == l->width-1) {sobelX[0] = sobelX[1] = sobelX[2] = sobelX[3] = sobelX[4] = 0;}
-      values[x+y*l->width] = sqrt(sobelX[0]*sobelX[0]+sobelY[0]*sobelY[0]+sobelX[1]*sobelX[1]+sobelY[1]*sobelY[1]+sobelX[2]*sobelX[2]+sobelY[2]*sobelY[2]+sobelX[3]*sobelX[3]+sobelY[3]*sobelY[3]+sobelX[4]*sobelX[4]+sobelY[4]*sobelY[4]);
+      values[x+y*l->width] = (float)sqrt(sobelX[0]*sobelX[0]+sobelY[0]*sobelY[0]+sobelX[1]*sobelX[1]+sobelY[1]*sobelY[1]+sobelX[2]*sobelX[2]+sobelY[2]*sobelY[2]+sobelX[3]*sobelX[3]+sobelY[3]*sobelY[3]+sobelX[4]*sobelX[4]+sobelY[4]*sobelY[4]);
     }
   }
   float minV = 0; float maxV = 0;
