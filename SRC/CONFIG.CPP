@@ -301,36 +301,193 @@ GLvoid glDoneX() {
     if (frameBufferX != NULL) { free(frameBufferX); frameBufferX = NULL; }
     if (depthBufferX != NULL) { free(depthBufferX); depthBufferX = NULL; }
 }
+
+#define MOD_CTRLX (0x80000000)
+#define MOD_ALTX (0x40000000)
+#define MOD_SHIFTX (0x20000000)
+#define KEYMACX(WINDOWSKEY,DOSKEY) (WINDOWSKEY),(DOSKEY),
+#define SPECIALKEYCOUNTX (sizeof(specialKeysX)/sizeof(unsigned int)/2)
+#define KEYCTRLX(WINDOWSKEY) (WINDOWSKEY|MOD_CTRLX)
+#define KEYALTX(WINDOWSKEY) (WINDOWSKEY|MOD_ALTX)
+#define KEYSHIFTX(WINDOWSKEY) (WINDOWSKEY|MOD_SHIFTX)
+unsigned int specialKeysX[] = {
+    KEYMACX(VK_ESCAPE,GL_VK_ESCAPE)
+    KEYMACX(VK_RETURN,GL_VK_ENTER)
+    KEYMACX(VK_UP,GL_VK_UP)
+    KEYMACX(VK_NAVIGATION_UP,GL_VK_PAGEUP)
+    KEYMACX(VK_LEFT,GL_VK_LEFT)
+    KEYMACX(VK_RIGHT,GL_VK_RIGHT)
+    KEYMACX(KEYCTRLX(VK_LEFT),GL_VK_LEFT_CTRL)
+    KEYMACX(KEYCTRLX(VK_RIGHT),GL_VK_RIGHT_CTRL)
+    KEYMACX(VK_DOWN,GL_VK_DOWN)
+    KEYMACX(VK_NAVIGATION_DOWN,GL_VK_PAGEDOWN)
+    KEYMACX(VK_HOME,GL_VK_POS1)
+    KEYMACX(VK_HOME,GL_VK_HOME)
+    KEYMACX(VK_END,GL_VK_END)
+    KEYMACX(VK_F1,GL_VK_F1)
+    KEYMACX(VK_F2,GL_VK_F2)
+    KEYMACX(VK_F3,GL_VK_F3)
+    KEYMACX(VK_F4,GL_VK_F4)
+    KEYMACX(VK_F5,GL_VK_F5)
+    KEYMACX(VK_F6,GL_VK_F6)
+    KEYMACX(VK_F7,GL_VK_F7)
+    KEYMACX(VK_F8,GL_VK_F8)
+    KEYMACX(VK_F9,GL_VK_F9)
+    KEYMACX(VK_F10,GL_VK_F10)
+    KEYMACX(KEYCTRLX(VK_F1),GL_VK_F1_CTRL)
+    KEYMACX(KEYCTRLX(VK_F2),GL_VK_F2_CTRL)
+    KEYMACX(KEYCTRLX(VK_F3),GL_VK_F3_CTRL)
+    KEYMACX(KEYCTRLX(VK_F4),GL_VK_F4_CTRL)
+    KEYMACX(KEYCTRLX(VK_F5),GL_VK_F5_CTRL)
+    KEYMACX(KEYCTRLX(VK_F6),GL_VK_F6_CTRL)
+    KEYMACX(KEYCTRLX(VK_F7),GL_VK_F7_CTRL)
+    KEYMACX(KEYCTRLX(VK_F8),GL_VK_F8_CTRL)
+    KEYMACX(KEYCTRLX(VK_F9),GL_VK_F9_CTRL)
+    KEYMACX(KEYCTRLX(VK_F10),GL_VK_F10_CTRL)
+    KEYMACX(KEYSHIFTX(VK_F1),GL_VK_F1_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F2),GL_VK_F2_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F3),GL_VK_F3_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F4),GL_VK_F4_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F5),GL_VK_F5_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F6),GL_VK_F6_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F7),GL_VK_F7_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F8),GL_VK_F8_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F9),GL_VK_F9_SHIFT)
+    KEYMACX(KEYSHIFTX(VK_F10),GL_VK_F10_SHIFT)
+    KEYMACX(KEYALTX('q'),GL_VK_Q_ALT)
+    KEYMACX(KEYALTX('w'),GL_VK_W_ALT)
+    KEYMACX(KEYALTX('e'),GL_VK_E_ALT)
+    KEYMACX(KEYALTX('r'),GL_VK_R_ALT)
+    KEYMACX(KEYALTX('t'),GL_VK_T_ALT)
+    KEYMACX(KEYALTX('z'),GL_VK_Z_ALT)
+    KEYMACX(KEYALTX('u'),GL_VK_U_ALT)
+    KEYMACX(KEYALTX('i'),GL_VK_I_ALT)
+    KEYMACX(KEYALTX('o'),GL_VK_O_ALT)
+    KEYMACX(KEYALTX('p'),GL_VK_P_ALT)
+    KEYMACX(KEYALTX('a'),GL_VK_A_ALT)
+    KEYMACX(KEYALTX('s'),GL_VK_S_ALT)
+    KEYMACX(KEYALTX('d'),GL_VK_D_ALT)
+    KEYMACX(KEYALTX('f'),GL_VK_F_ALT)
+    KEYMACX(KEYALTX('g'),GL_VK_G_ALT)
+    KEYMACX(KEYALTX('h'),GL_VK_H_ALT)
+    KEYMACX(KEYALTX('j'),GL_VK_J_ALT)
+    KEYMACX(KEYALTX('k'),GL_VK_K_ALT)
+    KEYMACX(KEYALTX('l'),GL_VK_L_ALT)
+    KEYMACX(KEYALTX('y'),GL_VK_Y_ALT)
+    KEYMACX(KEYALTX('x'),GL_VK_X_ALT)
+    KEYMACX(KEYALTX('c'),GL_VK_C_ALT)
+    KEYMACX(KEYALTX('v'),GL_VK_V_ALT)
+    KEYMACX(KEYALTX('b'),GL_VK_B_ALT)
+    KEYMACX(KEYALTX('n'),GL_VK_N_ALT)
+    KEYMACX(KEYALTX('m'),GL_VK_M_ALT)
+    KEYMACX(VK_TAB,GL_VK_TAB)
+    KEYMACX(KEYSHIFTX(VK_TAB),GL_VK_TAB_SHIFT)
+    KEYMACX(VK_DELETE,GL_VK_ENTF)
+    KEYMACX(VK_INSERT,GL_VK_INSERT)
+    KEYMACX(VK_BACK,GL_VK_BACKSPACE)
+    KEYMACX(KEYCTRLX('a'),GL_VK_A_CTRL)
+    KEYMACX(KEYCTRLX('b'),GL_VK_B_CTRL)
+    KEYMACX(KEYCTRLX('c'),GL_VK_C_CTRL)
+    KEYMACX(KEYCTRLX('d'),GL_VK_D_CTRL)
+    KEYMACX(KEYCTRLX('e'),GL_VK_E_CTRL)
+    KEYMACX(KEYCTRLX('f'),GL_VK_F_CTRL)
+    KEYMACX(KEYCTRLX('g'),GL_VK_G_CTRL)
+    KEYMACX(KEYCTRLX('h'),GL_VK_H_CTRL)
+    KEYMACX(KEYCTRLX('i'),GL_VK_I_CTRL)
+    KEYMACX(KEYCTRLX('j'),GL_VK_J_CTRL)
+    KEYMACX(KEYCTRLX('k'),GL_VK_K_CTRL)
+    KEYMACX(KEYCTRLX('l'),GL_VK_L_CTRL)
+    KEYMACX(KEYCTRLX('m'),GL_VK_M_CTRL)
+    KEYMACX(KEYCTRLX('n'),GL_VK_N_CTRL)
+    KEYMACX(KEYCTRLX('o'),GL_VK_O_CTRL)
+    KEYMACX(KEYCTRLX('p'),GL_VK_P_CTRL)
+    KEYMACX(KEYCTRLX('q'),GL_VK_Q_CTRL)
+    KEYMACX(KEYCTRLX('r'),GL_VK_R_CTRL)
+    KEYMACX(KEYCTRLX('s'),GL_VK_S_CTRL)
+    KEYMACX(KEYCTRLX('t'),GL_VK_T_CTRL)
+    KEYMACX(KEYCTRLX('u'),GL_VK_U_CTRL)
+    KEYMACX(KEYCTRLX('v'),GL_VK_V_CTRL)
+    KEYMACX(KEYCTRLX('w'),GL_VK_W_CTRL)
+    KEYMACX(KEYCTRLX('x'),GL_VK_X_CTRL)
+    KEYMACX(KEYCTRLX('y'),GL_VK_Y_CTRL)
+    KEYMACX(KEYCTRLX('z'),GL_VK_Z_CTRL)
+    KEYMACX(KEYCTRLX('+'),GL_VK_PLUS_CTRL)
+    KEYMACX(VK_OEM_PLUS, '+')
+    KEYMACX(VK_ADD, '+')
+    KEYMACX(VK_OEM_MINUS, '-')
+    KEYMACX(VK_SUBTRACT, '-')
+};
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    if (msg == WM_CHAR) {
-        keyboardBuffer[keyboardBufferWrite % KEYBOARDBUFFERSIZE] = (unsigned int)wParam;
-        keyboardBufferWrite = (keyboardBufferWrite + 1) % KEYBOARDBUFFERSIZE;
-    }
-    if (msg == WM_INPUT) {
-        RAWINPUT raw;
-        UINT size = sizeof(raw);
-        if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER)) == size) {
-            if (raw.header.dwType == RIM_TYPEMOUSE) {
-                LONG dx = raw.data.mouse.lLastX;
-                LONG dy = raw.data.mouse.lLastY;
-                mouseDeltaX_X = dx;
-                mouseDeltaY_X = dy;
-                if (IsWindow(hwnd)) { // not reliable enough the cursor could move out of the window anyways
-                    RECT rect;
-                    if (GetClientRect(hwnd, &rect)) {
-                        int centerX = (rect.right - rect.left) / 2;
-                        int centerY = (rect.bottom - rect.top) / 2;
-                        POINT pt = { centerX, centerY };
-                        if (ClientToScreen(hwnd, &pt)) {
-                            if (captureMouse) SetCursorPos(pt.x, pt.y);
+    switch (msg) {
+        case WM_KEYDOWN: {
+            // this is not implemented 100% correct (I didn't intend a Windows port in the first place)
+            GLboolean shiftKey, ctrlKey, altKey;
+            glSpecialKeysX(&shiftKey, &ctrlKey, &altKey); // not right to use this here
+            bool found = false;
+            for (int i = 0; i < SPECIALKEYCOUNTX; i++) {
+                unsigned int source = specialKeysX[i * 2 + 0];
+                unsigned int dest = specialKeysX[i * 2 + 1];
+                unsigned int sourcevk = source & 0x1fffffff;
+                if (wParam == sourcevk) {
+                    GLboolean mshift = source & MOD_SHIFTX ? GL_TRUE : GL_FALSE;
+                    GLboolean mctrl = source & MOD_CTRLX ? GL_TRUE : GL_FALSE;
+                    GLboolean malt = source & MOD_ALTX ? GL_TRUE : GL_FALSE;
+                    if (source == sourcevk || (shiftKey == mshift && ctrlKey == mctrl && altKey == malt)) {
+                        keyboardBuffer[keyboardBufferWrite % KEYBOARDBUFFERSIZE] = dest;
+                        keyboardBufferWrite = (keyboardBufferWrite + 1) % KEYBOARDBUFFERSIZE;
+                        found = true; 
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                BYTE keyState[256];
+                if (GetKeyboardState(keyState)) {
+                    UINT scanCode = (lParam >> 16) & 0xff;
+                    WCHAR buffer[5] = { 0 };
+                    int count = ToUnicode((UINT)wParam, scanCode, keyState, buffer, 4, 0);
+                    for (int i = 0; i < count; i++) {
+                        WCHAR b = buffer[i];
+                        if (b < 0x80) {
+                            keyboardBuffer[keyboardBufferWrite % KEYBOARDBUFFERSIZE] = b;
+                            keyboardBufferWrite = (keyboardBufferWrite + 1) % KEYBOARDBUFFERSIZE;
                         }
                     }
                 }
             }
-        }
+        } break;
+        case WM_CHAR: {
+            //keyboardBuffer[keyboardBufferWrite % KEYBOARDBUFFERSIZE] = (unsigned int)wParam;
+            //keyboardBufferWrite = (keyboardBufferWrite + 1) % KEYBOARDBUFFERSIZE;
+        } break;
+        case WM_INPUT: {
+            RAWINPUT raw;
+            UINT size = sizeof(raw);
+            if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER)) == size) {
+                if (raw.header.dwType == RIM_TYPEMOUSE) {
+                    LONG dx = raw.data.mouse.lLastX;
+                    LONG dy = raw.data.mouse.lLastY;
+                    mouseDeltaX_X = dx;
+                    mouseDeltaY_X = dy;
+                    if (IsWindow(hwnd)) { // not reliable enough the cursor could move out of the window anyways
+                        RECT rect;
+                        if (GetClientRect(hwnd, &rect)) {
+                            int centerX = (rect.right - rect.left) / 2;
+                            int centerY = (rect.bottom - rect.top) / 2;
+                            POINT pt = { centerX, centerY };
+                            if (ClientToScreen(hwnd, &pt)) {
+                                if (captureMouse) SetCursorPos(pt.x, pt.y);
+                            }
+                        }
+                    }
+                }
+            }
+        } break;
     }
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
+
 bool initOtherPlatform() {
     WNDCLASS wc = { 0 };
     wc.lpfnWndProc = WndProc;
