@@ -180,7 +180,7 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
         ImGui::Separator();
-        if (ImGui::MenuItem("Captured mouse", NULL, captureMouse)) { captureMouse = !captureMouse; }
+        if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
         ImGui::EndMenu();
@@ -220,7 +220,7 @@ void drawMenuBar() {
 #endif // __DJGPP__
         if (hasShell && ImGui::MenuItem("Open a shell")) {dosShell();}
         if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
-        if (ImGui::MenuItem("Captured mouse", NULL, captureMouse)) { captureMouse = !captureMouse; }
+        if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
         ImGui::EndMenu();

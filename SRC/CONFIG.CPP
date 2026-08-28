@@ -294,7 +294,7 @@ GLvoid glRefreshX() {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    Sleep(10);
+    Sleep(2);
     if (lastMX != captureMouse) { lastMX = captureMouse; ShowCursor(!lastMX); }
 }
 GLvoid glDoneX() {
