@@ -248,7 +248,18 @@ float* depthBufferX = NULL;
 GLdouble glStartClockX;
 GLdouble glSecondsX() { return (GLdouble)(clock() - glStartClockX) / CLOCKS_PER_SEC; }
 GLvoid glSetTimeX(GLdouble seconds) { glStartClockX = clock() - seconds * CLOCKS_PER_SEC; }
-GLushort glNextKeyX() { if (!_kbhit()) return 0; return _getch(); }
+#define KEYBOARDBUFFERSIZE 100
+unsigned int keyboardBuffer[KEYBOARDBUFFERSIZE] = { { 0 } };
+unsigned int keyboardBufferWrite = 0;
+unsigned int keyboardBufferRead = 0;
+GLushort glNextKeyX() {
+    if (keyboardBufferWrite != keyboardBufferRead) {
+        unsigned int key = keyboardBuffer[keyboardBufferRead % KEYBOARDBUFFERSIZE];
+        keyboardBufferRead = (keyboardBufferRead + 1) % KEYBOARDBUFFERSIZE;
+        return (unsigned short)key;
+    }
+    return 0;
+}
 double mouseDeltaX_X = 0; double mouseDeltaY_X = 0;
 GLvoid glNextMouseDeltaX(GLdouble* deltaX, GLdouble* deltaY) { 
     *deltaX = mouseDeltaX_X; *deltaY = mouseDeltaY_X;
@@ -291,6 +302,10 @@ GLvoid glDoneX() {
     if (depthBufferX != NULL) { free(depthBufferX); depthBufferX = NULL; }
 }
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (msg == WM_CHAR) {
+        keyboardBuffer[keyboardBufferWrite % KEYBOARDBUFFERSIZE] = (unsigned int)wParam;
+        keyboardBufferWrite = (keyboardBufferWrite + 1) % KEYBOARDBUFFERSIZE;
+    }
     if (msg == WM_INPUT) {
         RAWINPUT raw;
         UINT size = sizeof(raw);
