@@ -262,6 +262,7 @@ void deleteAll() {
 bool quit = false;
 
 void checkMemory() {
+#ifndef _WIN32
   if (getFreeMemoryInKb() < 60*1024) {
     printf("You !seem! to not have atleast 60mb of memory free.\n");
     printf("So, maybe it's not a good idea to run this program.\n");
@@ -274,12 +275,9 @@ void checkMemory() {
     printf("panel if you get below 16mb.\n");
     printf("\n");
     printf("<Press a key>\n");
-#ifdef _WIN32
-    _getch(); // windows version :/
-#else
-    getch();
-#endif
+    getch(); // not available in _WIN32
   }
+#endif // _WIN32
 }
 
 int waitTiny = 0;

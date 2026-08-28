@@ -76,11 +76,14 @@ void mouseToGrid() {
 }
 
 void applyHotKeys() {
+  unsigned int currentHotKey = currentKey | ((controlKeyId & (~CONTROLKEY_SHIFT)) << 16);
+  switch (currentHotKey) {
+  case HOTKEY_CAPTUREMOUSE: { captureMouse = !captureMouse; } break; // it's f1 it's ok to have it always enabled
+  }
   if (hotKeysOff) {hotKeysOff = false; return;}
   if (!isHotKeyPossible()) return;
   if (ImGui::IsMouseDown(0)) return;
   if (ImGui::IsMouseDown(1)) return;
-  unsigned int currentHotKey = currentKey | ((controlKeyId&(~CONTROLKEY_SHIFT))<<16);
   switch(currentHotKey) {
     case HOTKEY_TOOL_SELECTION: {switchTool(TOOL_SELECTION);} break;
     case HOTKEY_TOOL_MOVE: {switchTool(TOOL_MOVE);} break;
@@ -117,6 +120,5 @@ void applyHotKeys() {
     case HOTKEY_LAYERORIGIN: {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;} break;
     case HOTKEY_REFRESH: {shouldUpdateAll = true;} break;
     case HOTKEY_LAYERVISIBLE: {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}} break;
-    case HOTKEY_CAPTUREMOUSE: {captureMouse = !captureMouse;} break;
   }
 }

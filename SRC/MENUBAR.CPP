@@ -88,9 +88,6 @@ String extensiveTimeDescString() {
 
 void setMouseSensitivity() {
     mouseSpeed = pow(1.1,mouseSensitivity)-0.1-0.75;
-#ifdef _WIN32
-    mouseSpeed *= 8;
-#endif // _WIN32
 }
 
 void initMenuBar() {

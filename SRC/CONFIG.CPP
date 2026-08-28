@@ -418,8 +418,15 @@ unsigned int specialKeysX[] = {
     KEYMACX(VK_SUBTRACT, '-')
 };
 
+double mouseSpeedX = 8; // some speed multiplier, just by testing this at my own setup, maybe not globally usable
+extern bool quit;
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
+        case WM_CLOSE:
+        case WM_QUIT: {
+            quit = true;
+        } break;
         case WM_KEYDOWN: {
             // this is not implemented 100% correct (I didn't intend a Windows port in the first place)
             GLboolean shiftKey, ctrlKey, altKey;
@@ -468,8 +475,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 if (raw.header.dwType == RIM_TYPEMOUSE) {
                     LONG dx = raw.data.mouse.lLastX;
                     LONG dy = raw.data.mouse.lLastY;
-                    mouseDeltaX_X = dx;
-                    mouseDeltaY_X = dy;
+                    mouseDeltaX_X = dx * mouseSpeedX;
+                    mouseDeltaY_X = dy * mouseSpeedX;
                     if (IsWindow(hwnd)) { // not reliable enough the cursor could move out of the window anyways
                         RECT rect;
                         if (GetClientRect(hwnd, &rect)) {
@@ -494,13 +501,14 @@ bool initOtherPlatform() {
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpszClassName = L"WypaWNDClass";
     RegisterClass(&wc);
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN)-100; int screenHeight = GetSystemMetrics(SM_CYSCREEN)-100;
+    int borderX = 100, borderY = 100;
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN)-borderX; int screenHeight = GetSystemMetrics(SM_CYSCREEN)-borderY;
     main_window_xres = screenWidth; main_window_yres = screenHeight;
     bmi.bmiHeader.biHeight = -screenHeight; bmi.bmiHeader.biWidth = screenWidth;
     screenSettings.dmPelsWidth = screenWidth;screenSettings.dmPelsHeight= screenHeight;
     aspectRatio = (double)main_window_xres / main_window_yres;
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
-    HWND hwnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, L"WypaWNDClass", L"Wypa", WS_VISIBLE | WS_POPUP | WS_BORDER, 0, 0, main_window_xres, main_window_yres, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, L"WypaWNDClass", L"Wypa", WS_VISIBLE | WS_POPUP | WS_BORDER, borderX/2, borderY/2, main_window_xres, main_window_yres, NULL, NULL, wc.hInstance, NULL);
     hDC = GetDC(hwnd);
     RAWINPUTDEVICE rid;
     rid.usUsagePage = 0x01;
