@@ -1386,6 +1386,24 @@ void Layer::resizeLayerContent(int interpolation, int newWidth, int newHeight) {
   transform = before;
 }
 
+void Layer::resizeLayerContentByRepetition(int newWidth, int newHeight) {
+  if (locked(this,LOCK_ANY)) return;
+  if (locked(this,LOCK_SIZECHANGE)) return;
+  if (newWidth <= 0) return;
+  if (newHeight <= 0) return;
+  unsigned int *cBefore = new unsigned int[width*height]; memcpy(cBefore,pixels,sizeof(unsigned int)*width*height);
+  unsigned char *sBefore = new unsigned char[width*height]; memcpy(sBefore,pixelStates,sizeof(unsigned char)*width*height);
+  int wBefore = width; int hBefore = height;
+  layerNewContent(this, newWidth, newHeight);
+  for (int y = 0; y < height; y++) { int sy = y % hBefore;
+    for (int x = 0; x < width; x++) { int sx = x % wBefore;
+      pixels[x+y*width] = cBefore[sx + sy * wBefore];
+      pixelStates[x+y*width] = sBefore[sx + sy * wBefore];
+    }
+  }
+  delete[] cBefore; delete[] sBefore;
+}
+
 static __inline void lookupInterpolated2(unsigned int *colors, int width, int height, float x, float y, float &red, float &green, float &blue, float &alpha) {
   if (width<1||height<1) return;
   int lx = (int)floor(x);

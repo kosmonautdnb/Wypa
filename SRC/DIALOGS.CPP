@@ -182,6 +182,7 @@ void dialogs() {
   dialogCopyPasteLoadedText(false);
   dialogEditText(false);
   dialogDisplacementMap(false);
+  dialogResizeLayerByRepetition(false);
 }
 
 void drawDialogs() {
@@ -1003,7 +1004,7 @@ void dialogDisplacementMap(bool openIt) {
 
   if ((unsigned int)layer < (unsigned int)currentCanvas->layers.size()) {
     ImGui::Text("Type");ImGui::SameLine();if(ImGui::Combo("##DIALOGDISPLACEMENTMAPTYPE",&type, displacementTypeNames, DISPLACEMENT_TYPE_COUNT)) {updateLayer = true;} else toolTip("The type of pixel art scaling to apply");
-    ImGui::Text("Displacment Scale"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGDISPLACEMENTMAPSCALE",&scale)) {updateLayer = true;} else toolTip("The magnitude of the pixel movement.");
+    ImGui::Text("Displacment Scale"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGDISPLACEMENTMAPSCALE",&scale)) {updateLayer = true;} else toolTip("The magnitude of the pixel movement");
     ImGui::Text("Displacement in X"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGDISPLACEMENTMAPSLIDERX",&displacementX,-1,1)) {updateLayer = true;} else toolTip("How much the pixels should be moved in x*scale by the displacement map");
     ImGui::Text("Displacement in Y"); ImGui::SameLine(); if (ImGui::SliderFloat("##DIALOGDISPLACEMENTMAPSLIDERY",&displacementY,-1,1)) {updateLayer = true;} else toolTip("How much the pixels should be moved in y*scale by the displacement map");
   }
@@ -1024,7 +1025,7 @@ void dialogDisplacementMap(bool openIt) {
     shouldUpdateAll = true;
     updatedPixels(l);
     afterUndoPoint();
-  }
+  } else toolTip("Do the displacement mapping");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGDISPLCEMEMNTMAPCLOSE")) {
     if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
@@ -1032,6 +1033,39 @@ void dialogDisplacementMap(bool openIt) {
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
   } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogResizeLayerByRepetition(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  if (l == NULL) return;
+  static int newWidth = 1;
+  static int newHeight = 1;
+  if (openIt) {
+    beforeUndoPoint();
+    newWidth = l->width;
+    newHeight = l->height;
+  }
+  DIALOGSTART("Resize layer by repetition")
+
+  ImGui::PushItemWidth(7*14);
+  ImGui::Text("New width"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGRESIZELAYERBYREPETITIONWIDTH",&newWidth,0,0)) {;} else toolTip("The new layer width");
+  ImGui::Text("New height"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGRESIZELAYERBYREPETITIONHEIGHT",&newHeight,0,0)) {;} else toolTip("The new layer height");
+  ImGui::PopItemWidth();
+  if (newWidth < 1) newWidth = 1;
+  if (newHeight < 1) newHeight = 1;
+
+  if (ImGui::Button("Apply##DIALOGRESIZELAYERBYREPETITIONAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    l->resizeLayerContentByRepetition(newWidth, newHeight);
+    afterUndoPoint();
+    repaintLayer(l, true);
+  } else toolTip("Update width/height of this layer by repetition of its contents");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGRESIZELAYERBYREPETITIONCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+
   DIALOGEND()
 }
 

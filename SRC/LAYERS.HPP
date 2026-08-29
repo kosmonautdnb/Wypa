@@ -604,6 +604,7 @@ public:
   void quantizePosition();
 
   void resizeLayerContent(int interpolation, int newWidth, int newHeight);
+  void resizeLayerContentByRepetition(int newWidth, int newHeight);
   void bakeLayer(int interpolation);
   Layer *clone();
   void convertToPremul();

@@ -191,6 +191,15 @@
       "Be aware that the counter is reset to 0 at every program" _N_
       "start." _N_
     "}" _N_
+    "Captured mouse <F1>{" _N_
+      "Let's you have the mouse control taken from the operating" _N_
+      "system. This option makes no sense on DOS but e.g. on Windows." _N_
+      "You may also press the hotkey <F1> to do that." _N_
+    "}" _N_
+    "Exit Wypa{" _N_
+      "You can quit this program (Wypa) here. Be aware, that you have" _N_
+      "to save all you work first by yourself." _N_
+    "}" _N_
   "}" _N_
   "Edit{" _N_
     "Undo{" _N_
@@ -509,6 +518,11 @@
       "The layer(s) get cut on the borders where the alpha" _N_
       "value/transparency is 0. The layer data is smaller and" _N_
       "the position and size of the layer is updated." _N_
+    "}" _N_
+    "Resize layer by repetition{" _N_
+      "Replicates the current layers content onto a bigger" _N_
+      "(or smaller) layer size, the replicated content stays" _N_
+      "the same width/height as in the original layer." _N_
     "}" _N_
     "Lock layer(s){" _N_
       "The current selected layer(s) get locked. Thus aren't" _N_

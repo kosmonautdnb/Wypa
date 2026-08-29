@@ -278,9 +278,12 @@ if (shiftKey != NULL) { *shiftKey = (GetAsyncKeyState(VK_LSHIFT) | GetAsyncKeySt
 if (ctrlKey != NULL) { *ctrlKey = (GetAsyncKeyState(VK_LCONTROL) | GetAsyncKeyState(VK_RCONTROL)) & 0x8000 ? GL_TRUE : GL_FALSE; }
 if (altKey != NULL) { *altKey = (GetAsyncKeyState(VK_LMENU) | GetAsyncKeyState(VK_RMENU)) & 0x8000 ? GL_TRUE : GL_FALSE; }
 }
+bool hasFocusX = true;
 HDC hDC;
+HWND hWnd;
 __inline unsigned int ___swapRB(unsigned int k) {
-    return ((k & 0x00ff0000) >> 16) | ((k & 0x000000ff) << 16) | (k & 0xff00ff00);
+    if (hasFocusX) return ((k & 0x00ff0000) >> 16) | ((k & 0x000000ff) << 16) | (k & 0xff00ff00);
+    return (((((k & 0x00ff0000) >> 16) | ((k & 0x000000ff) << 16) | (k & 0xff00ff00))>>2)&0x3f3f3f3f);
 }
 bool lastMX = captureMouse;
 GLvoid glRefreshX() {
@@ -425,9 +428,19 @@ extern bool quit;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
+        case WM_SETFOCUS: {
+            hasFocusX = true;
+        } break;
+        case WM_KILLFOCUS: {
+            hasFocusX = false;
+        } break;
         case WM_CLOSE:
         case WM_QUIT: {
             quit = true;
+        } break;
+        case WM_SIZE: {
+            RECT rect; GetClientRect(hWnd, &rect);
+            HBRUSH brush = CreateSolidBrush(0x00000000); FillRect(hDC, &rect, brush); DeleteObject(brush);
         } break;
         case WM_KEYDOWN: {
             // this is not implemented 100% correct (I didn't intend a Windows port in the first place)
@@ -510,18 +523,18 @@ bool initOtherPlatform() {
     screenSettings.dmPelsWidth = screenWidth;screenSettings.dmPelsHeight= screenHeight;
     aspectRatio = (double)main_window_xres / main_window_yres;
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
-    HWND hwnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, L"WypaWNDClass", L"Wypa", WS_VISIBLE | WS_POPUP | WS_BORDER, borderX/2, borderY/2, main_window_xres, main_window_yres, NULL, NULL, wc.hInstance, NULL);
-    hDC = GetDC(hwnd);
+    hWnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, L"WypaWNDClass", L"WYPA", (WS_VISIBLE | WS_OVERLAPPEDWINDOW) & (~WS_THICKFRAME) & (~WS_MAXIMIZEBOX), borderX / 2, borderY / 2, main_window_xres, main_window_yres, NULL, NULL, wc.hInstance, NULL);
+    hDC = GetDC(hWnd);
     RAWINPUTDEVICE rid;
     rid.usUsagePage = 0x01;
     rid.usUsage = 0x02;
     rid.dwFlags = RIDEV_INPUTSINK;
-    rid.hwndTarget = hwnd;
+    rid.hwndTarget = hWnd;
     RegisterRawInputDevices(&rid, 1, sizeof(rid));
     lastMX = captureMouse; ShowCursor(!lastMX);
-    ShowWindow(hwnd, SW_SHOW);
-    SetForegroundWindow(hwnd);
-    SetFocus(hwnd);
+    ShowWindow(hWnd, SW_SHOW);
+    SetForegroundWindow(hWnd);
+    SetFocus(hWnd);
     glSetSecondsCallback(glSecondsX);
     glSetSetTimeCallback(glSetTimeX);
     glSetNextKeyCallback(glNextKeyX);

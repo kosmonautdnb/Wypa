@@ -322,6 +322,7 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Layer properties",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {dialogUpdateLayer(true);}
         if (ImGui::MenuItem("Crop layer(s) by alpha",NULL,false,one)) {currentCanvas->cropLayersByAlpha(1);}
+        if (ImGui::MenuItem("Resize layer by repetition",NULL,false,count == 1 && currentCanvas->getActiveLayer()!=NULL)) {dialogResizeLayerByRepetition(true);}
         ImGui::Separator();
         if (ImGui::MenuItem("Lock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(true);}
         if (ImGui::MenuItem(oneLocked ? "*Unlock layer(s)##DRAWMENUBARUNLOCK" : "Unlock layer(s)##DRAWMENUBARUNLOCK",NULL,false,one)) {currentCanvas->lockLayers(false);}
