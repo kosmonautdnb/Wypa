@@ -262,10 +262,12 @@ GLushort glNextKeyX() {
 }
 double mouseDeltaX_X = 0; double mouseDeltaY_X = 0;
 GLvoid glNextMouseDeltaX(GLdouble* deltaX, GLdouble* deltaY) { 
+    if (!captureMouse) { *deltaX = 0; *deltaY = 0; return ; }
     *deltaX = mouseDeltaX_X; *deltaY = mouseDeltaY_X;
     mouseDeltaX_X = mouseDeltaY_X = 0;
 }
 GLushort glMouseButtonsX() {
+    if (!captureMouse) return 0;
     GLushort ret = GetAsyncKeyState(VK_LBUTTON) & 0x8000 ? GL_MOUSE_BUTTON_LEFT : 0;
     ret |= GetAsyncKeyState(VK_MBUTTON) & 0x8000 ? GL_MOUSE_BUTTON_MIDDLE : 0;
     ret |= GetAsyncKeyState(VK_RBUTTON) & 0x8000 ? GL_MOUSE_BUTTON_RIGHT : 0;

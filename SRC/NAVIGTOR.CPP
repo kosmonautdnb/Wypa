@@ -32,6 +32,7 @@
 #include "TOOLS.HPP"
 #include "TOOLBAR.HPP"
 #include "COLORFLD.HPP"
+#include "CONFIG.HPP"
 #include <math.h>
 
 int navigator_height = 68;
@@ -125,8 +126,12 @@ void drawNavigator() {
     ImGui::Text("%d %d",(int)ceil(toolW),(int)ceil(toolH)); toolTip("Width and height");
   }
 
-  if (getFreeMemoryInKb()<MEMWARNINGMB*1024) {
-    ImGui::TextColored(ImVec4(1,0,0,1),"Less than %dmb",(int)MEMWARNINGMB); toolTip("Almost out of memory");
+  if (!captureMouse) {
+    ImGui::TextColored(ImVec4(1, 0, 0, 1), "<F1> for mouse", (int)MEMWARNINGMB); toolTip("You may need to recapture the mouse");
+  } else {
+    if (getFreeMemoryInKb() < MEMWARNINGMB * 1024) {
+      ImGui::TextColored(ImVec4(1, 0, 0, 1), "Less than %dmb", (int)MEMWARNINGMB); toolTip("Almost out of memory");
+    }
   }
   ImGui::SetCursorPos(ImVec2(cursor.x+sidebar_width - navigatorWidth - 10,cursor.y));
   updateNavigatorImage();
