@@ -516,14 +516,17 @@ bool initOtherPlatform() {
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpszClassName = L"WypaWNDClass";
     RegisterClass(&wc);
-    int borderX = 100, borderY = 100;
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN)-borderX; int screenHeight = GetSystemMetrics(SM_CYSCREEN)-borderY;
-    main_window_xres = screenWidth; main_window_yres = screenHeight;
-    bmi.bmiHeader.biHeight = -screenHeight; bmi.bmiHeader.biWidth = screenWidth;
-    screenSettings.dmPelsWidth = screenWidth;screenSettings.dmPelsHeight= screenHeight;
+    int borderX = 150; int borderY = 150;
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN); int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    main_window_xres = screenWidth - borderX; main_window_yres = screenHeight - borderY;
+    bmi.bmiHeader.biWidth = main_window_xres; bmi.bmiHeader.biHeight = -(LONG)main_window_yres;
+    screenSettings.dmPelsWidth = main_window_xres;screenSettings.dmPelsHeight = main_window_yres;
     aspectRatio = (double)main_window_xres / main_window_yres;
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
-    hWnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, L"WypaWNDClass", L"WYPA", (WS_VISIBLE | WS_OVERLAPPEDWINDOW) & (~WS_THICKFRAME) & (~WS_MAXIMIZEBOX), borderX / 2, borderY / 2, main_window_xres, main_window_yres, NULL, NULL, wc.hInstance, NULL);
+    LONG st = (WS_VISIBLE | WS_OVERLAPPEDWINDOW) & (~WS_THICKFRAME) & (~WS_MAXIMIZEBOX);
+    RECT r = { 0,0,(LONG)main_window_xres,(LONG)main_window_yres }; if (AdjustWindowRect(&r, st, FALSE)) { ; }
+    int w2 = r.right - r.left; int h2 = r.bottom - r.top;
+    hWnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, L"WypaWNDClass", L"WYPA", st, (screenWidth-w2) / 2, (screenHeight - h2) / 2, w2, h2, NULL, NULL, wc.hInstance, NULL);
     hDC = GetDC(hWnd);
     RAWINPUTDEVICE rid;
     rid.usUsagePage = 0x01;
