@@ -3759,6 +3759,7 @@ void Canvas::rotate90DegreesForward() {
   for (int i = 0; i < (int)layers.size(); i++) {
     Layer *l = layers[i];
     l->transform.transformation = l->transform.transformation * m;
+    l->transform.update();
   }
   Vector c0((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5); c0 = inverse2(transform.transformation) * c0;
   int cx0 = canvasX0, cy0 = canvasY0, cx1 = canvasX1, cy1 = canvasY1;
@@ -3780,6 +3781,7 @@ void Canvas::rotate90DegreesBackward() {
   for (int i = 0; i < (int)layers.size(); i++) {
     Layer *l = layers[i];
     l->transform.transformation = l->transform.transformation * m;
+    l->transform.update();
   }
   Vector c0((canvasX0+canvasX1)*0.5,(canvasY0+canvasY1)*0.5); c0 = inverse2(transform.transformation) * c0;
   int cx0 = canvasX0, cy0 = canvasY0, cx1 = canvasX1, cy1 = canvasY1;

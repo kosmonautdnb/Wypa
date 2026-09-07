@@ -560,7 +560,7 @@ void insertImageLayers(const char *shortPath, const char *longFileName) {
 }
 
 void exportLayers(const char *shortPath, const char *longFileName) {
-  Layer *l = currentCanvas->getSelectionAsLayer(false,false,true);
+  Layer *l = currentCanvas->getSelectionAsLayer(false,false,false);
   if (l == NULL) return;
   l->bakeMagic(false); // needed for single layer wyp images
   tempName = getTempFileName(shortPath);

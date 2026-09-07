@@ -271,6 +271,7 @@ void Brush::update() {
 double Brush::pixelWidth() {
   double ret = size;
   if (aspect != 0 && size / aspect > ret) ret = size / aspect;
+  if (rotation != 0) ret = size * sqrt(2);
   return ret;
 }
 
