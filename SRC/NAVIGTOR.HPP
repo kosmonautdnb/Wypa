@@ -26,6 +26,7 @@
 
 extern int sidebar_width;
 extern int navigator_height;
+extern bool alphaWarning;
 
 void initNavigator();
 void freeNavigator();

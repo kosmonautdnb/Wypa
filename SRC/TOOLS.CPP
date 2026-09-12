@@ -39,6 +39,7 @@
 #include "GALLERY.HPP"
 #define __HMAP_IMPLEMENTATION__
 #include "STL/HMAP.HPP"
+#include "NAVIGTOR.HPP"
 #include <math.h>
 
 
@@ -1973,6 +1974,8 @@ void useToolPainting() {
         drawLine2(paintToolLayer,paintingPointX0,paintingPointY0,paintingPointX1,paintingPointY1,justSelection);
       } break;
     }
+
+    if ((double)foregroundColor.w < 1.0/255.0) alphaWarning = true;
 
     for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
       for (int x = layerUpdateX0; x < layerUpdateX1; x++) {

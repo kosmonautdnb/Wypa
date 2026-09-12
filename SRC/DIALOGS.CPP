@@ -755,6 +755,7 @@ void dialogPixelArtInflate(bool openIt) {
   if (openIt) {
   }
   DIALOGSTART("Pixelart inflate")
+  ImGui::TextColored(ImVec4(1,0,0,1),"You may have to wait very long here.");
   ImGui::PushItemWidth(7*15);
   ImGui::Text("Type");ImGui::SameLine();ImGui::Combo("##DIALOGPIXELARTINFLATETYPE",&scalingType, scalingTypeNames, SCALING_TYPE_COUNT); toolTip("The type of pixel art scaling to apply");
   ImGui::PopItemWidth();

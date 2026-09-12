@@ -45,7 +45,7 @@ double aspectRatio = 16.0/9.0;
 const char *logFileName = "WYPA.LOG";
 String appFolder;
 bool refreshMasked = true;
-int version = 95;
+int version = 97;
 bool captureMouse = true;
 double zoomStep = 1.25;
 double scrollKeyPixels = main_window_xres/20;
