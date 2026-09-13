@@ -1843,7 +1843,13 @@ void exportTGA(const char *shortPath, const char *longFileName) {
   Layer *l = currentCanvas->getSelectionAsLayer(false,true,true);
   if (l == NULL) return;
   l->bakeMagic(false);
-  l->quantize(palette2);
+  l->colorTransform.useTransparentColor = false; 
+  l->colorTransform.useColorTransform = false; 
+  l->colorTransform.useLut = false; 
+  l->colorTransform.usePosterize = false; 
+  l->colorTransform.useThreshold = false; 
+  l->colorTransform.useQuantization = false;
+  l->quantize(palette2); // quantize also checks for bake magics
   unsigned char *pixels = new unsigned char[l->width*l->height];
   for (int i = 0; i < l->width * l->height; i++) {
     unsigned char c = 0;

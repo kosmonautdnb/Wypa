@@ -344,6 +344,7 @@ public:
   S_BOOL("useColorTransform",(__o__)->useColorTransform);\
   S_BOOL("usePosterize",(__o__)->usePosterize);\
   S_BOOL("useThreshold",(__o__)->useThreshold);\
+  S_BOOL("useQuantization",(__o__)->useQuantization);\
   S_STRING("gradientCurves",(__o__)->gradientCurves);\
   if (!save) {if ((__o__)->lut == NULL) (__o__)->lut = new Array<float>(); (__o__)->lut->clear(); Array<float> *helper = (__o__)->lut; S_ZIPARRAY(combined(String("lut")+String::fromInt(i)+".rgb"),(*helper),sizeof(float)); if ((__o__)->lut->size()==0) {delete (__o__)->lut; (__o__)->lut = NULL;}}\
   if (save && ((__o__)->lut != NULL)) {Array<float> *helper = (__o__)->lut; S_ZIPARRAY(combined(String("lut")+String::fromInt(i)+".rgb"),(*helper),sizeof(float));}\
