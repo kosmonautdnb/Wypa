@@ -1710,7 +1710,11 @@ void Layer::bakeLayer(int interpolation) {
           int ly2 = (int)ly4;
           if (lx2 == 0) lx2 = (int)floor(px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+0.5);
           if (ly2 == 0) ly2 = (int)floor(px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+0.5);
-          if ((unsigned int)lx2 >= (unsigned int)width || (unsigned int)ly2 >= (unsigned int)height) continue;
+          //if ((unsigned int)lx2 >= (unsigned int)width || (unsigned int)ly2 >= (unsigned int)height) continue;
+          if (lx2 >= width) lx2 = width - 1;
+          if (ly2 >= height) ly2 = height - 1;
+          if (lx2 < 0) lx2 = 0;
+          if (ly2 < 0) ly2 = 0;
           unsigned int ps = beforeP[x+y*ow];
           int r = (ps) & 255;
           int g = (ps>>8) & 255;
@@ -1743,9 +1747,13 @@ void Layer::bakeLayer(int interpolation) {
             int ly2 = (int)ly4;
             if (lx2 == 0) lx2 = (int)floor(px*m2.m[0+0*4]+py*m2.m[0+1*4]+m2.m[0+3*4]+0.5);
             if (ly2 == 0) ly2 = (int)floor(px*m2.m[1+0*4]+py*m2.m[1+1*4]+m2.m[1+3*4]+0.5);
-            if ((unsigned int)lx2 < (unsigned int)width || (unsigned int)ly2 < (unsigned int)height) {
+            //if ((unsigned int)lx2 < (unsigned int)width || (unsigned int)ly2 < (unsigned int)height) {
+              if (lx2 >= width) lx2 = width - 1;
+              if (ly2 >= height) ly2 = height - 1;
+              if (lx2 < 0) lx2 = 0;
+              if (ly2 < 0) ly2 = 0;
               x3 = lx2; y3 = ly2;
-            }
+            //}
           }
           int pos = (x3 + y3 * width)*5;
           int w = accumulationBuffer[pos+4];
@@ -5229,6 +5237,7 @@ void duplicatePicture(bool mergeLayers) {
     zwo->mergeDownLayers();
     if (zwo->layers.size()>0) {
       zwo->setActiveLayer(0);
+      zwo->getActiveLayer()->state.visible = true;
       sprintf(zwo->getActiveLayer()->name,"merged");
     }
   }

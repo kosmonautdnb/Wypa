@@ -657,7 +657,7 @@ void insertPSD(const char *shortPath, const char *longFileName) {
         l->state.visible = k->hidden ? false : true;
         bool has_opacity = k->has_opacity ? true : false;
         l->state.alpha = (float)(has_opacity ? k->opacity/255.0 : 1);
-        currentCanvas->insertLayer(l,pos); pos++;
+        currentCanvas->insertLayer(l,pos); //pos++; (layers are stored bottom to top in a psd)
       }
     }
   }
