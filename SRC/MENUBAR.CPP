@@ -384,6 +384,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Visible undo/redo",NULL,visibleUndo)) {visibleUndo = !visibleUndo; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Visible layer switch",NULL,visibleLayerSwitch)) {visibleLayerSwitch = !visibleLayerSwitch; shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Animated fitting button",NULL,showSomethingToFitAnim)) {showSomethingToFitAnim = !showSomethingToFitAnim;}
         ImGui::Separator();
         static bool wasStored = false;
         if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll(); wasStored = true;}

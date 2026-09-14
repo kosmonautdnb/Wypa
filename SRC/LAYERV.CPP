@@ -122,7 +122,10 @@ void maybeBlinkLayer(Layer *l) {
   clearOutlineAfterNextPaint = true;
 }
 
+bool showSomethingToFitAnim = true;
+
 void drawLayerView() {
+
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2((float)(main_window_xres-sidebar_width),(float)(menuBar_height+navigator_height+colorField_height)));
   ImGui::Begin("LAYERVIEW", NULL, ImVec2((float)sidebar_width,(float)(main_window_yres-(menuBar_height+navigator_height+colorField_height))),1.0,FROZENWINDOW);
@@ -160,6 +163,13 @@ void drawLayerView() {
   if (currentLayer != NULL) {
     Vector b = currentLayer->boundingBox();
     bool somethingToFit = notInt(b.x)||notInt(b.y)||notInt(b.z)||notInt(b.w);
+
+    static double time = 0; time += timeDelta;
+    static double somethingToFitStartTime = time+1000;
+    static bool somethingToFitBefore = false;
+    if (somethingToFitBefore != somethingToFit && somethingToFit) somethingToFitStartTime = time;
+    somethingToFitBefore = somethingToFit;
+
     ImGui::SameLine();
     if (blinkingRoundButton("!##LAYERVIEWFITLAYERS",somethingToFit)) {
       beforeUndoPoint();
@@ -168,7 +178,21 @@ void drawLayerView() {
       else
         currentLayer->quantizePosition();
       afterUndoPoint();
-    } else toolTip("Fit layer coordinates, with <SHIFT> also fit size");
+    } else {
+      if (showSomethingToFitAnim) {
+        ImVec2 mn = ImGui::GetItemRectMin();
+        ImVec2 mx = ImGui::GetItemRectMax();
+        double d = fabs(time - somethingToFitStartTime);
+        if (d < 1) {
+          double sx = 5*aspectRatio*main_window_yres/main_window_xres; double sy = 5;
+          d = 1 - d;
+          mn.x -= d * sx+1; mn.y -= d * sy+1;
+          mx.x += d * sx; mx.y += d * sy;
+          ImGui::GetWindowDrawList()->AddRect(mn,mx,0xff0000ff,3);
+        }
+      }
+      toolTip("Fit layer coordinates, with <SHIFT> also fit size");
+    }
   }
 
   if (roundButton(currentCanvas->justSingle?"Single off##LAYERVIEWSINGLE":"Single on ##LAYERVIEWSINGLE",true)) {

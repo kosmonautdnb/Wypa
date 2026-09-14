@@ -179,6 +179,18 @@
       "into this exported format. The tga is uncompressed." _N_
       "Before exporting the image it is quantized/converted to the set" _N_
       "palette. If the palette has more than 256 it doesn't save it." _N_
+      "" _N_
+      "Be sure to load the palette again, if you want to save the tga again" _N_
+      "after loading it. You'll be having a wrong palette maybe at exporting" _N_
+      "the tga again after loading it." _N_
+    "}" _N_
+    "Palette from (paletted) image{" _N_
+      "You can load the palette of a paletted image here." _N_
+      "Formats supported are lbm,pcx and tga." _N_
+      "" _N_
+      "Be sure to load the palette, if you want to save a tga again" _N_
+      "after loading it. You'll be having a wrong palette maybe at exporting" _N_
+      "the tga if you don't load the palette of it before." _N_
     "}" _N_
     "Save user interface screenshot{" _N_
       "This saves the current screen (without the open menubar)" _N_
@@ -666,6 +678,17 @@
     "}" _N_
     "Visible undo/redo{" _N_
       "Show every undo/redo action as some sort of outline briefly." _N_
+    "}" _N_
+    "Visible layer switch{" _N_
+      "The shape of the layer you switch to, blinks briefly." _N_
+    "}" _N_
+    "Animated fitting button{" _N_
+      "The button with the exclamation mark (on the right) animates" _N_
+      "with a short animation every time you move a layer and similar." _N_
+      "If you don't correct layer positions with this button, it may be" _N_
+      "that you can lose (a tiny bit of) pixel information at baking/merging." _N_
+      "Positions can have non integer values in Wypa, which may cause" _N_
+      "problems if not corrected to integer values before baking/merging." _N_
     "}" _N_
     "Center to view{" _N_
       "Places the current image onto the center of the \"screen\"." _N_
