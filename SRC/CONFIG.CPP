@@ -518,6 +518,11 @@ bool initOtherPlatform() {
     RegisterClass(&wc);
     int borderX = 150; int borderY = 150;
     int screenWidth = GetSystemMetrics(SM_CXSCREEN); int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    // actually you could implement some upscaling (e.g. x2) here or use OpenMP to speed the program(crucial loops) up
+    const int MAXWINSCREENWIDTH = 1920;
+    const int MAXWINSCREENHEIGHT= 1080;
+    if (screenWidth > MAXWINSCREENWIDTH) screenWidth = MAXWINSCREENWIDTH;
+    if (screenHeight > MAXWINSCREENHEIGHT) screenHeight = MAXWINSCREENHEIGHT;
     main_window_xres = screenWidth - borderX; main_window_yres = screenHeight - borderY;
     bmi.bmiHeader.biWidth = main_window_xres; bmi.bmiHeader.biHeight = -(LONG)main_window_yres;
     screenSettings.dmPelsWidth = main_window_xres;screenSettings.dmPelsHeight = main_window_yres;
