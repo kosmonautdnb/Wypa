@@ -81,17 +81,6 @@ void perFrame() {
   controlKeyId = (shift ? CONTROLKEY_SHIFT : 0)|(ctrl ? CONTROLKEY_CTRL : 0)|(alt ? CONTROLKEY_ALT : 0);
 }
 
-void select(Layer *l) {
-  for (int i = 0; i < l->width * l->height; i++) {
-    unsigned int rgba = l->pixels[i];
-    int r = rgba & 255;
-    int g = (rgba>>8) & 255;
-    int b = (rgba>>16) & 255;
-    int k = (r+g+b)/3;
-    if (k<128) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-  }
-}
-
 ImVec2 normalize(const ImVec2 &v) {
   ImVec2 r = v;
   float l = (float)sqrt(r.x*r.x+r.y*r.y);
@@ -262,7 +251,7 @@ void deleteAll() {
 bool quit = false;
 
 void checkMemory() {
-#ifndef _WIN32
+#if defined(__DJGPP__) || defined(__WATCOMC__)
   if (getFreeMemoryInKb() < 60*1024) {
     printf("You !seem! to not have atleast 60mb of memory free.\n");
     printf("So, maybe it's not a good idea to run this program.\n");
@@ -277,7 +266,7 @@ void checkMemory() {
     printf("<Press a key>\n");
     getch(); // not available in _WIN32
   }
-#endif // _WIN32
+#endif // defined(__DJGPP__) || defined(__WATCOMC__)
 }
 
 int waitTiny = 0;
