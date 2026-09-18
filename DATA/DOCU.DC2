@@ -16,6 +16,14 @@
   "and press it before merging layers. Without pressing it" _N_
   "before you may get wrong pixels in merges. If it stays" _N_
   "red after pressing, try to press it together with SHIFT." _N_
+  "If you don't correct layer positions with this button, it may be" _N_
+  "that you can lose (a tiny bit of) pixel information at baking/merging." _N_
+  "Positions can have non integer values in Wypa, which may cause" _N_
+  "problems if not corrected to integer values before baking/merging." _N_
+  "" _N_
+  "Maybe you have a very tiny selection enabled, or alpha = 0," _N_
+  "If yes you don't see anything painted. Try to select nothing" _N_
+  "and have an alpha above 0." _N_
   "" _N_
   "If you experience mouse jittering, try CTMOUSE (CuteMouse)." _N_
   "The AI says, that motioncorrection of Microsofts mouse" _N_
@@ -1307,7 +1315,7 @@
   "" _N_
   "There is \"!\" symbol to align the layer position/size to the" _N_
   "canvasd if it blinks red, the layer dosen't fit to the canvas, yet," _N_
-  " and merging mayfail. If it stays blinking red after clicking," _N_
+  " and merging may somehow fail. If it stays blinking red after clicking," _N_
   " try to use shift, too. Shift also quantizes the layer size not just" _N_
   " its position." _N_
   "" _N_
