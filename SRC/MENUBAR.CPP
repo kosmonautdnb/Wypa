@@ -261,7 +261,7 @@ void drawMenuBar() {
         if (lastMenuUndoBlink != undoBlink) {
           ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x08ffffff);
           lastMenuUndoBlink = undoBlink;
-          tinyWait();
+          //tinyWait();
         }
       }
       if (ImGui::BeginMenu("Image")) {
