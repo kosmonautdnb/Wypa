@@ -355,7 +355,7 @@ void drawMenuBar() {
         maxB.y--;
         static unsigned int lastMenuSelectionBlink = 0;
         if (lastMenuSelectionBlink != selectionBlink) {
-          ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x08ffffff);
+          ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x40ffffff);
           lastMenuSelectionBlink = selectionBlink;
           tinyWait();
         }
@@ -462,7 +462,7 @@ void drawMenuBar() {
         maxB.y--;
         static unsigned int lastMenuPicturesBlink = 0;
         if (lastMenuPicturesBlink != picturesBlink) {
-          ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x08ffffff);
+          ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x60ffffff);
           lastMenuPicturesBlink = picturesBlink;
           tinyWait();
         }
