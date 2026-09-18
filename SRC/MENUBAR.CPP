@@ -59,6 +59,7 @@ String hex2_(int v) {
 }
 
 void dosShell();
+void tinyWait();
 
 String timeDescString() {
   //int rtc_seconds = rtcRead(0);
@@ -260,6 +261,7 @@ void drawMenuBar() {
         if (lastMenuUndoBlink != undoBlink) {
           ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x08ffffff);
           lastMenuUndoBlink = undoBlink;
+          tinyWait();
         }
       }
       if (ImGui::BeginMenu("Image")) {
@@ -353,8 +355,9 @@ void drawMenuBar() {
         maxB.y--;
         static unsigned int lastMenuSelectionBlink = 0;
         if (lastMenuSelectionBlink != selectionBlink) {
-          ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0xffffffff);
+          ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x08ffffff);
           lastMenuSelectionBlink = selectionBlink;
+          tinyWait();
         }
       }
       if (ImGui::BeginMenu("View")) {
@@ -459,8 +462,9 @@ void drawMenuBar() {
         maxB.y--;
         static unsigned int lastMenuPicturesBlink = 0;
         if (lastMenuPicturesBlink != picturesBlink) {
-          ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0xffffffff);
+          ImGui::GetWindowDrawList()->AddRectFilled(minB,maxB,0x08ffffff);
           lastMenuPicturesBlink = picturesBlink;
+          tinyWait();
         }
       }
     }
