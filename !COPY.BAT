@@ -1,4 +1,3 @@
-
 copy /Y c:\_OPENGL_\GL.H SRC\STL\
 copy /Y c:\_OPENGL_\GLIMPL.CPP SRC\STL\
 
