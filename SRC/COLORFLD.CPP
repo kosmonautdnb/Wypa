@@ -447,13 +447,19 @@ void colorDisplay(ImVec4 *c) {
   ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0,0,0,0));
   bool update = false;
   before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,0,sw); k = (float)(c->x * 255.0); if (ImGui::SliderFloat("Red##DIALOGCOLORCOLORRED",&k,0,255)) {lastColorSlider = COLORSLIDER_RED; c->x = (float)(k/255.0);updateColorSlidersTexture();update = true;} else toolTip("Red part");
+    if (ImGui::IsMouseClicked(1) && ImGui::IsItemHovered()) {lastColorSlider = COLORSLIDER_RED; updateColorSlidersTexture(); update = true;}
   before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,1,sw); k = (float)(c->y * 255.0); if (ImGui::SliderFloat("Green##DIALOGCOLORCOLORGREEN",&k,0,255)) {lastColorSlider = COLORSLIDER_GREEN; c->y = (float)(k/255.0);updateColorSlidersTexture();update = true;} else toolTip("Green part");
+    if (ImGui::IsMouseClicked(1) && ImGui::IsItemHovered()) {lastColorSlider = COLORSLIDER_GREEN; updateColorSlidersTexture(); update = true;}
   before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,2,sw); k = (float)(c->z * 255.0); if (ImGui::SliderFloat("Blue##DIALOGCOLORCOLORBLUE",&k,0,255)) {lastColorSlider = COLORSLIDER_BLUE;c->z = (float)(k/255.0); updateColorSlidersTexture();update = true;} else toolTip("Blue part");
+    if (ImGui::IsMouseClicked(1) && ImGui::IsItemHovered()) {lastColorSlider = COLORSLIDER_BLUE; updateColorSlidersTexture(); update = true;}
   float h,s,l; 
   getHsl(*c,&h,&s,&l);
   before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,3,sw); ImVec4 col(0,0,0,1);  k = (float)(h*360.0); if (showSkinTone) {blitSkinToneRange(before, sw); if (k>=20&&k<=30) col = ImVec4(1,0,0,1);} ImGui::PushStyleColor(ImGuiCol_Text,col); if (ImGui::SliderFloat("Hue##DIALOGCOLORCOLORHUE",&k,0,360)) {lastColorSlider = COLORSLIDER_HUE; double w = c->w; h = (float)(k/360.0); *c = hsl(h,s,l); c->w = (float)w; getHsl(*c,&h,&s,&l); updateColorSlidersTexture(); update = true;} else toolTip("Hue of color"); ImGui::PopStyleColor();
+    if (ImGui::IsMouseClicked(1) && ImGui::IsItemHovered()) {lastColorSlider = COLORSLIDER_HUE; updateColorSlidersTexture(); update = true;}
   before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,4,sw); k = s;  if (ImGui::SliderFloat("Sat.##DIALOGCOLORCOLORSAT",&k,0,1)) {lastColorSlider = COLORSLIDER_SATURATION; double w = c->w; s = k; *c = hsl(h,s,l); c->w = (float)w; updateColorSlidersTexture(); update = true;} else toolTip("Saturation of color");
+    if (ImGui::IsMouseClicked(1) && ImGui::IsItemHovered()) {lastColorSlider = COLORSLIDER_SATURATION; updateColorSlidersTexture(); update = true;}
   before = ImGui::GetCursorScreenPos(); blitColorSliderBackground(before,5,sw); k = l;  if (ImGui::SliderFloat("Light.##DIALOGCOLORCOLORLIT",&k,0,1)) {lastColorSlider = COLORSLIDER_LIGHTNESS; double w = c->w; l = k; *c = hsl(h,s,l); c->w = (float)w; updateColorSlidersTexture(); update = true;} else toolTip("Lightness of color");
+    if (ImGui::IsMouseClicked(1) && ImGui::IsItemHovered()) {lastColorSlider = COLORSLIDER_LIGHTNESS; updateColorSlidersTexture(); update = true;}
   getHsl(*c,&h,&s,&l);
   if (update) {
     updateColorWheel(h,0,0,NULL,NULL,NULL);

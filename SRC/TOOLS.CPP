@@ -3150,7 +3150,7 @@ void bakeModify(bool justCreateSelection, bool createNewLayer) {
   Layer *destLayer = l; if (createNewLayer) {destLayer = l->clone(); destLayer->clear();}
 
   // meanValueCoordinates (don't work for inner latice points)
-  double bary[3];
+  double bary[3] = {0};
   int baryTriangle = 0;
   for (int y = layerStartY; y < layerEndY; y++) {
     if ((y & 15)==0) updateStatusBar();
