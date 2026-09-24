@@ -141,6 +141,8 @@ extern Array<Brush *> brushes;
 extern int currentBrush;
 extern bool hardEraser;
 
+extern bool subtractiveColors;
+
 class GradientElement {
 public:
   GradientElement() {

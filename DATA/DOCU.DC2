@@ -698,6 +698,14 @@
       "Positions can have non integer values in Wypa, which may cause" _N_
       "problems if not corrected to integer values before baking/merging." _N_
     "}" _N_
+    "Clay color mixing (opacity){" _N_
+      "If you use a soft brush or lower opacity/alpha channel this" _N_
+      "setting emulates somehow ink or clay from a more or less" _N_
+      "physical perspective. So to say, you get a more natural like" _N_
+      "behaving brush. Maybe not perfect but maybe it helps to feel" _N_
+      "more aligned with the non computerized painting you can do" _N_
+      "without a machine at all." _N_
+    "}" _N_
     "Center to view{" _N_
       "Places the current image onto the center of the \"screen\"." _N_
     "}" _N_

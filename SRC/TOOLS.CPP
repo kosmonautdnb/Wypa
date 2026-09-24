@@ -46,6 +46,7 @@
 Array<Brush *> brushes;
 int currentBrush = 0;
 bool hardEraser = false;
+bool subtractiveColors = false;
 
 Brush *onePixelBrush = NULL;
 
@@ -1749,6 +1750,83 @@ void updateUpdateFlagByBrushLine(Layer *l,double cx0,double cy0, double cx1, dou
   }
 }
 
+
+static __inline void toRYB(float &Rrgb, float &Grgb, float &Brgb) {
+  // Paper RYB Color Compositing (Junichi Sugita)
+  float iW = Rrgb;
+  if (Grgb < iW) iW = Grgb;
+  if (Brgb < iW) iW = Brgb;
+  float rrgb = Rrgb - iW;
+  float grgb = Grgb - iW;
+  float brgb = Brgb - iW;
+  float minrg = rrgb; if (grgb < minrg) minrg = grgb;
+  float rryb = rrgb - minrg;
+  float yryb = (grgb + minrg) * 0.5f;
+  float bryb = (brgb + grgb - minrg) * 0.5f;
+  float n0 = rryb; 
+  if (yryb > n0) n0 = yryb;
+  if (bryb > n0) n0 = bryb;
+  if (n0 < 1) n0 = 1;
+  float n1 = rrgb; 
+  if (grgb > n1) n1 = grgb;
+  if (brgb > n1) n1 = brgb;
+  if (n1 < 1) n1 = 1;
+  float n = n1 / n0;
+  rryb *= n;
+  yryb *= n;
+  bryb *= n;
+  float iB = 255.f-Rrgb;
+  if (255.f-Grgb < iB) iB = 255.f-Grgb;
+  if (255.f-Brgb < iB) iB = 255.f-Brgb;
+  Rrgb = rryb + iB;
+  Grgb = yryb + iB; // now yellow
+  Brgb = bryb + iB;
+  if (Rrgb < 0) Rrgb = 0;
+  if (Grgb < 0) Grgb = 0;
+  if (Brgb < 0) Brgb = 0;
+  if (Rrgb > 255) Rrgb = 255;
+  if (Grgb > 255) Grgb = 255;
+  if (Brgb > 255) Brgb = 255;
+}
+
+static __inline void fromRYB(float &Rryb, float &Yryb, float &Bryb) {
+  // Paper RYB Color Compositing (Junichi Sugita)
+  float iW = Rryb;
+  if (Yryb < iW) iW = Yryb;
+  if (Bryb < iW) iW = Bryb;
+  float rryb = Rryb - iW;
+  float yryb = Yryb - iW;
+  float bryb = Bryb - iW;
+  float minyb = yryb; if (bryb < minyb) minyb = bryb;
+  float rrgb = rryb + yryb - minyb;
+  float grgb = yryb + minyb; // in the paper here is a yryb + 2*minyb which is wrong
+  float brgb = 2 * (bryb - minyb);
+  float n0 = rryb; 
+  if (yryb > n0) n0 = yryb;
+  if (bryb > n0) n0 = bryb;
+  if (n0 < 1) n0 = 1;
+  float n1 = rrgb; 
+  if (grgb > n1) n1 = grgb;
+  if (brgb > n1) n1 = brgb;
+  if (n1 < 1) n1 = 1;
+  float n = n0 / n1; // in the paper n0 and n1 are switched
+  rrgb *= n;
+  grgb *= n;
+  brgb *= n;
+  float iB = 255.f-Rryb;
+  if (255.f-Yryb < iB) iB = 255.f-Yryb;
+  if (255.f-Bryb < iB) iB = 255.f-Bryb;
+  Rryb = rrgb + iB;
+  Yryb = grgb + iB; // now green
+  Bryb = brgb + iB;
+  if (Rryb < 0) Rryb = 0;
+  if (Yryb < 0) Yryb = 0;
+  if (Bryb < 0) Bryb = 0;
+  if (Rryb > 255) Rryb = 255;
+  if (Yryb > 255) Yryb = 255;
+  if (Bryb > 255) Bryb = 255;
+}
+
 void useToolPainting() {
 
   int tool2 = tool;
@@ -2005,7 +2083,6 @@ void useToolPainting() {
               if (gs > 255) gs = 255;
               if (bs > 255) bs = 255;
               if (as > 255) as = 255;
-              //int a = ad>as?ad:as;
               int a = 255-(255-ad)*(255-as)/255; if (a > 255) a = 255;
               if (a > 0) {
                 rd *= ad;
@@ -2015,11 +2092,22 @@ void useToolPainting() {
                 gd /= a;
                 bd /= a;
               }
-              int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
-              int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
-              int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
-              paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
-  
+              if (subtractiveColors) {
+                toRYB(rs,gs,bs); toRYB(rd,gd,bd);
+                float r2 = (rs-rd)*(float)as/255.f+rd;
+                float g2 = (gs-gd)*(float)as/255.f+gd;
+                float b2 = (bs-bd)*(float)as/255.f+bd;
+                fromRYB(r2,g2,b2);
+                int r = (int)r2;
+                int g = (int)g2;
+                int b = (int)b2;
+                paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
+              } else {
+                int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
+                int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
+                int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
+                paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
+              }
             } break;
             case TOOL_ERASER: {
               int ad = (col>>24) & 255;
