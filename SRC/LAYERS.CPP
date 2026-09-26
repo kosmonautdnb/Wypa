@@ -595,6 +595,7 @@ void ColorTransform::reset() {
   channelG = true;
   channelB = true;
   channelA = true;
+  premul = false;
   gamma = 1;
   gammaInvert = false;
   pictureGamma = 1;
@@ -659,10 +660,24 @@ unsigned int ColorTransform::applyTransparentColor(unsigned int pixel) {
 }
 
 unsigned int ColorTransform::applyColorTransform(unsigned int pixel) {
-  unsigned int colr = r[pixel & 255];
-  unsigned int colg = g[(pixel>>8) & 255];
-  unsigned int colb = b[(pixel>>16) & 255];
-  unsigned int cola = a[(pixel>>24) & 255];
+  int r3 = pixel & 255;
+  int g3 = (pixel>>8) & 255;
+  int b3 = (pixel>>16) & 255;
+  int a3 = (pixel>>24) & 255;
+  if (premul) {
+    int ax = a3 != 0 ? a3 : 1;
+    ax = (255 * 256) / ax;
+    r3 = (r3 * ax) / 256;
+    g3 = (g3 * ax) / 256;
+    b3 = (b3 * ax) / 256;
+    if (r3 > 255) r3 = 255;
+    if (g3 > 255) g3 = 255;
+    if (b3 > 255) b3 = 255;
+  }
+  unsigned int colr = r[r3];
+  unsigned int colg = g[g3];
+  unsigned int colb = b[b3];
+  unsigned int cola = a[a3];
   int r2 = (colr & 255)+(colg & 255)+(colb & 255)+(cola & 255);
   colr >>= 8; colg >>= 8; colb >>= 8; cola >>= 8;
   int g2 = (colr & 255)+(colg & 255)+(colb & 255)+(cola & 255);
@@ -674,6 +689,11 @@ unsigned int ColorTransform::applyColorTransform(unsigned int pixel) {
   if (g2 > 255) g2 = 255;
   if (b2 > 255) b2 = 255;
   if (a2 > 255) a2 = 255;
+  if (premul) {
+    r2 = (r2 * a2) / 255;
+    g2 = (g2 * a2) / 255;
+    b2 = (b2 * a2) / 255;
+  }
   return r2|(g2<<8)|(b2<<16)|(a2<<24);
 }
 
@@ -2694,6 +2714,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
 
   bool useQuantization = (!dontUsePostProcessing) && (layer->colorTransform.useQuantization && (quantization.size() == 64*64*64));
   bool useColorTransform = (!dontUsePostProcessing) && layer->colorTransform.useColorTransform;
+  bool colorTransformPremul = layer->colorTransform.premul;
   bool useLut =  (!dontUsePostProcessing) && layer->colorTransform.useLut;
   bool usePosterize = (!dontUsePostProcessing) && layer->colorTransform.usePosterize;
   bool useThreshold =  (!dontUsePostProcessing) && layer->colorTransform.useThreshold;
@@ -2834,6 +2855,16 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
           int a = (rgb1>>24) & 255;
+          if (colorTransformPremul) {
+            int ax = a != 0 ? a : 1;
+            ax = (255 * 256) / ax;
+            r = (r * ax) / 256;
+            g = (g * ax) / 256;
+            b = (b * ax) / 256;
+            if (r > 255) r = 255;
+            if (g > 255) g = 255;
+            if (b > 255) b = 255;
+          }
           unsigned int colr = layer->colorTransform.r[r];
           unsigned int colg = layer->colorTransform.g[g];
           unsigned int colb = layer->colorTransform.b[b];
@@ -2849,6 +2880,11 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (g > 255) g = 255;
           if (b > 255) b = 255;
           if (a > 255) a = 255;
+          if (colorTransformPremul) {
+            r = (r * a) / 255;
+            g = (g * a) / 255;
+            b = (b * a) / 255;
+          }
           rgb1 = r|(g<<8)|(b<<16)|(a<<24);
         }
       }

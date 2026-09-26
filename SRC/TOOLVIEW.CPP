@@ -641,7 +641,7 @@ void drawToolMagicView() {
     ImGui::SameLine(); cursorLeft(2); ImGui::Text("G"); ImGui::SameLine(); cursorLeft(1); if (ImGui::Checkbox("##DRAWTOOLMAGICCHANNELG",&t->channelG)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Enables the green input channel");
     ImGui::SameLine(); cursorLeft(2); ImGui::Text("B"); ImGui::SameLine(); cursorLeft(1); if (ImGui::Checkbox("##DRAWTOOLMAGICCHANNELB",&t->channelB)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Enables the blue input channel");
     ImGui::SameLine(); cursorLeft(2); ImGui::Text("A"); ImGui::SameLine(); cursorLeft(1); if (ImGui::Checkbox("##DRAWTOOLMAGICCHANNELA",&t->channelA)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Enables the alpha input channel");
-
+    ImGui::Text("Premul layer"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLMAGICPREMULCHECK",&t->premul)) {t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("For usage with the \"Premul\" layer mode (correct transparencies e.g. for brightness)");
 
     ImGui::Text("Picture Gamma");
     v = &t->pictureGamma; if (ImGui::InputFloat("##DRAWTOOLMAGICVIEWPICTUREGAMMA",v,0,0,2)) {if (*v<0) *v = 0; if (*v>10) *v = 10; t->shouldUpdate = true; shouldUpdateAll = true;} else toolTip("Apply this gamma before the colorgrading starts");

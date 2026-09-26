@@ -213,6 +213,7 @@ public:
   }
   float colorMatrix[4*5];
   bool channelR,channelG,channelB,channelA;
+  bool premul;
   float hue;
   float saturation;
   float lightness;
@@ -300,6 +301,7 @@ public:
   S_BOOL("channelG",(__o__)->channelG);\
   S_BOOL("channelB",(__o__)->channelB);\
   S_BOOL("channelA",(__o__)->channelA);\
+  S_BOOL("premul",(__o__)->premul);\
   S_FLOAT("gamma",(__o__)->gamma);\
   S_BOOL("gammaInvert",(__o__)->gammaInvert);\
   S_FLOAT("pictureGamma",(__o__)->pictureGamma);\
