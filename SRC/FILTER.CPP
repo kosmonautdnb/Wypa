@@ -1163,7 +1163,71 @@ void filterSharpen() {
   afterUndoPoint();
 }
 
+void filterXBRAntialias() {
+  // this algorithm could take very long
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  int w = l->width, h = l->height;
+  int x0 = 0; int x1 = w; int y0 = 0; int y1 = h;
+  bool hasSelection = l->hasSelection();
+  Array<unsigned int> source;
+  if (hasSelection) {
+    x0 = -1; y0 = -1; x1 = -1; y1 = -1;
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        if (l->pixelStates[x+y*w] & PIXELSTATE_SELECTED) {
+          if (x < x0 || x0 < 0) x0 = x;
+          if (y < y0 || y0 < 0) y0 = y;
+          if (x > x1 || x1 < 0) x1 = x;
+          if (y > y1 || y1 < 0) y1 = y;
+        }
+      }  
+    }
+    x1++;
+    y1++;
+    if (x0 < 0 || y0 < 0 || x1 <= 0 || y1 <= 0) return;
+    w = x1 - x0;
+    h = y1 - y0;
+    if (w <= 0 || h <= 0) return;
+    source.resize(w*h);
+    for (int y2 = 0; y2 < h; y2++) {
+      for (int x2 = 0; x2 < w; x2++) {
+        source[x2+y2*w] = l->pixels[x2+x0+(y2+y0)*l->width];
+      }
+    }
+  } else {
+    source.resize(w*h);
+    memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
+  }
+  beforeUndoPoint();
+  Array<unsigned int> dest; dest.resize(w*2*h*2);
+  superXBR(&source[0],&dest[0],w,h); // somehow this algorithm is a bit broken, sorry.. Not my fault currently..
+
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      if ((!hasSelection)||(l->pixelStates[(x+x0)+(y+y0)*l->width] & PIXELSTATE_SELECTED)) {
+        int adr = x * 2 + y * 2 * w * 2;
+        unsigned int c00 = dest[adr];
+        unsigned int c10 = dest[adr+1];
+        unsigned int c11 = dest[adr+1+w*2];
+        unsigned int c01 = dest[adr+w*2];
+        int r = ((c00 & 255) + (c10 & 255) + (c01 & 255) + (c11 & 255))>>2;
+        int g = (((c00>>8) & 255) + ((c10>>8) & 255) + ((c01>>8) & 255) + ((c11>>8) & 255))>>2;
+        int b = (((c00>>16) & 255) + ((c10>>16) & 255) + ((c01>>16) & 255) + ((c11>>16) & 255))>>2;
+        int a = (((c00>>24) & 255) + ((c10>>24) & 255) + ((c01>>24) & 255) + ((c11>>24) & 255))>>2;
+        l->pixels[(x+x0)+(y+y0)*l->width] = r|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
 void filterSuperXBR() {
+  // this algorithm could take very long
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
   if (locked(l,LOCK_ANY)) return;

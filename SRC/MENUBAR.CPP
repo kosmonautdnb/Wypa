@@ -426,6 +426,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Keying/matte",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogKeying(true);}
         if (ImGui::MenuItem("Denoise",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterDenoise();}
         if (ImGui::MenuItem("Sharpen and grain",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSharpen();}
+        if (ImGui::MenuItem("Antialiasing XBR2x (slow)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterXBRAntialias();}
         if (ImGui::MenuItem("Pixelart inflate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelArtInflate(true);}
         if (ImGui::MenuItem("Histogram matching (brightness)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCH);}
         if (ImGui::MenuItem("Histogram light (colored)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCHINGCOLORED);}

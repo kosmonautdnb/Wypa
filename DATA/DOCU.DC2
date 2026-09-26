@@ -836,6 +836,13 @@
       "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_
+    "Antialiasing XBR2x (slow){" _N_
+      "This does antialiasing by upscaling the layer with pixelart inflate," _N_
+      "and then downscaling the layer again using averaging." _N_
+      "If you antialias big areas, this algorithm can get really slow." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
+    "}" _N_
     "Pixelart inflate{" _N_
       "Implementation of some pixelart scaling algorithms." _N_
       "You may need \"Fit canvas to layers\" after applying this filter." _N_
