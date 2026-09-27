@@ -223,6 +223,9 @@ void dialogAbout(bool openIt) {
     "in high resolutions with true color on DOS.\n"
     "------------------------------------\n"
     "This program is freeware.\n"
+    "------------------------------------\n"
+    "Newest version to be found here:\n"
+    "www.github.com/kosmonautdnb/wypa\n"
   , buildType.c_str(), version / 100, version % 100
   );
   ImGui::Separator();
