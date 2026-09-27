@@ -50,6 +50,7 @@ void filterHistogramMatching(class Layer *histogramSource);
 void filterClahe(float claheConstant, int cellSize);
 void filterColorTransfer(class Layer *colorSource);
 void filterSepia();
+void filterSchraffur(float blackLineWidth, float transparentLineWidth, float angle, bool binary);
 void filterCheckerboard(int w, int h, int xp, int yp);
 void filterHistogramMatchingColored(class Layer *histogramSource);
 void filterSoften();
@@ -59,6 +60,8 @@ void filterWatershed(class Layer *layer);
 void filterSubtract(unsigned int *dest, unsigned int *minuend, unsigned int *subtrahend, unsigned int width, unsigned int height);
 void filterSetAlpha(unsigned int *dest, unsigned int width, unsigned int height, int alpha);
 void filterSelectionDistanceField(class Layer *layer);
+void filterSelectionAverageColor(class Layer *layer);
+void filterPixelate(int cellSizeX, int cellSizeY);
 
 #define S_FILTER_CPP()
 

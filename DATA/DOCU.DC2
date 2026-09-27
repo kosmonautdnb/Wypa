@@ -764,6 +764,14 @@
     "}" _N_
     "Checkerboard{" _N_
       "You can create a black an white checkerboard pattern." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
+    "}" _N_
+    "Hatching{" _N_
+      "This paints a black hatching onto the layer." _N_
+      "You can select angle and distances. However in" _N_
+      "non two side (binary) mode the antialiasing is not perfect." _N_
+      "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_
     "Edge detect{" _N_
@@ -786,6 +794,13 @@
       "Iterative - a stepwise pixel blur." _N_
       "Radial - a directional blur with an angle and a size." _N_
       "Median - this one can be used to smooth surfaces." _N_
+      "" _N_
+      "This filter also works with selections on layers." _N_
+    "}" _N_
+    "Pixelate{" _N_
+      "You can use this to make some people indistinguishable and so" _N_
+      "on. Maybe there are a lot of use cases where something should" _N_
+      "look more from a blocky source than from a fine granular painting." _N_
       "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_
@@ -886,6 +901,10 @@
     "OCR black & white{" _N_
       "Actually not so useful for normal painting, but you may prepare." _N_
       "photographs of text for better readability with it." _N_
+    "}" _N_
+    "Selection average color{" _N_
+      "Averages all pixels under the selection and paints the averaged" _N_
+      "color flat into the selection again." _N_
     "}" _N_
     "Selection distance field{" _N_
       "Makes a smooth black white gradient in the borders of the selection." _N_

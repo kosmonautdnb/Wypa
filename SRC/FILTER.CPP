@@ -1638,6 +1638,59 @@ void filterSepia() {
   repaintLayer(l,true);
 }
 
+void filterSchraffur(float blackLineWidth, float transparentLineWidth, float angle, bool binary) {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  double angle2 = (double)angle * PI / 180.0;
+  double ax = cos(angle2);
+  double ay = -sin(angle2);
+  // since pixel size is different at e.g. 45 degrees (0.707..), the whole image gets warbled in !binary mode
+  // this routine is currently very suboptimal
+  double all = (double)blackLineWidth + (double)transparentLineWidth;
+  if (all <= 0 || blackLineWidth <= 0 || transparentLineWidth <= 0) return;
+  bool hasSelection = l->hasSelection();
+  beforeUndoPoint();
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
+        double d = ax*(double)x+ay*(double)y;
+        if (d >= 0) {
+          d = fmod(d,all);
+        } else {
+          d = all-fmod(-d,all);
+        }
+        double value = 0;
+        if (!binary) {
+          if (d > all - 1) {
+            value = d - (all-1);
+          } else {
+            if (d > (double)blackLineWidth-1 && d < (double)blackLineWidth) {
+              value = 1 - (d - ((double)blackLineWidth-1));
+            } else if (d <= (double)blackLineWidth-1.f) {
+              value = 1;
+            }
+          }
+        } else {
+          if (d < (double)blackLineWidth) value = 1;
+        }
+        int alpha = (int)((1-value) * 255.0);
+        if (alpha < 0) alpha = 0;
+        if (alpha > 255) alpha = 255;
+        unsigned int col = l->pixels[x+y*l->width];
+        int r = (int)(col & 255) * alpha / 255;
+        int g = (int)((col>>8) & 255) * alpha / 255;
+        int b = (int)((col>>16) & 255) * alpha / 255;
+        int a = (int)((col>>24) & 255) * alpha / 255 + (255-alpha);
+        l->pixels[x+y*l->width] = r | (g << 8) | (b << 16) | (a << 24);
+      }
+    }
+  }
+  updatedPixels(l);
+  afterUndoPoint();
+  repaintLayer(l,true);
+}
+
 void filterCheckerboard(int w, int h, int xp, int yp) {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
@@ -2342,6 +2395,103 @@ void filterSelectionDistanceField(Layer *layer) {
       }
     }
   }
+
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
+void filterSelectionAverageColor(Layer *layer) {
+  Layer *l = layer;
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  if (!l->hasSelection()) return;
+
+  beforeUndoPoint();
+
+  double r = 0, g = 0, b = 0, a = 0, w = 0;
+  for (int y2 = 0; y2 < layer->height; y2++) {
+    for (int x2 = 0; x2 < layer->width; x2++) {
+      unsigned char here = layer->pixelStates[x2+y2*layer->width];
+      if (here & PIXELSTATE_SELECTED) {
+        unsigned int col = layer->pixels[x2+y2*layer->width];
+        r += (col) & 255;
+        g += (col>>8) & 255;
+        b += (col>>16) & 255;
+        a += (col>>24) & 255;
+        w += 1;
+      }
+    }
+  }
+  if (w > 0) {
+    r /= w;
+    g /= w;
+    b /= w;
+    a /= w;
+    int ri = (int)r;
+    int gi = (int)g;
+    int bi = (int)b;
+    int ai = (int)a;
+    unsigned int col = ri|(gi<<8)|(bi<<16)|(ai<<24);
+    for (int y2 = 0; y2 < layer->height; y2++) {
+      for (int x2 = 0; x2 < layer->width; x2++) {
+        unsigned char here = layer->pixelStates[x2+y2*layer->width];
+        if (here & PIXELSTATE_SELECTED) {
+          layer->pixels[x2+y2*layer->width] = col;
+        }
+      }
+    }
+  }
+
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
+void filterPixelate(int cellSizeX, int cellSizeY) {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  if (cellSizeX < 1 || cellSizeY < 1) return;
+
+  beforeUndoPoint();
+  int countX = l->width / cellSizeX + 1;
+  int countY = l->height / cellSizeY + 1;
+  Array<Vector> collected; collected.resize(countX*countY);
+  Array<unsigned int> collectedW; collectedW.resize(countX*countY); collectedW.fill(0);
+
+  bool hasSelection = l->hasSelection();
+
+  {for (int y = 0; y < l->height; y++) {
+    int dy = y / cellSizeY;
+    for (int x = 0; x < l->width; x++) {
+      int dx = x / cellSizeX;
+      unsigned int col = l->pixels[x+y*l->width];
+      Vector &k = collected[dx+dy*countX];
+      k.x += col & 255;
+      k.y += (col>>8) & 255;
+      k.z += (col>>16) & 255;
+      k.w += (col>>24) & 255;
+      collectedW[dx+dy*countX]++;
+    }
+  }}
+
+
+  {for (int y = 0; y < l->height; y++) {
+    int dy = y / cellSizeY;
+    for (int x = 0; x < l->width; x++) {
+      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
+        int dx = x / cellSizeX;
+        Vector &k = collected[dx+dy*countX];
+        double w = collectedW[dx+dy*countX]; if (w < 1) w = 1;
+        int r = (int)(k.x / w);
+        int g = (int)(k.y / w);
+        int b = (int)(k.z / w);
+        int a = (int)(k.w / w);
+        l->pixels[x+y*l->width] = r|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }}
 
   repaintLayer(l,true);
   updatedPixels(l);

@@ -165,6 +165,7 @@ void dialogs() {
   dialogGradiationCurves(false);
   dialogColorBalance(false);
   dialogBlur(false);
+  dialogPixelate(false);
   dialogGlow(false);
   dialogEmboss(false);
   dialogHotkeys(false);
@@ -177,6 +178,7 @@ void dialogs() {
   dialogImportFolder(false);
   dialogPixelArtInflate(false);
   dialogClahe(false);
+  dialogSchraffur(false);
   dialogCheckerboard(false);
   dialogFontGlyphs(false, NULL);
   dialogCopyPasteLoadedText(false);
@@ -797,6 +799,32 @@ void dialogClahe(bool openIt) {
   if (ImGui::Button("Close##DIALOGCLAHECLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't apply Clahe");
+  DIALOGEND()
+}
+
+void dialogSchraffur(bool openIt) {
+  static float blackLinesWidth = 2;
+  static float transparentLinesWidth = 4;
+  static float angle = 60;
+  static bool binary = false;
+  if (openIt) {
+  }
+  DIALOGSTART("Hatching")
+  ImGui::PushItemWidth(7*9);
+  ImGui::Text("Black lines width"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGSCHRAFFURBLACKWIDTH",&blackLinesWidth); toolTip("How wide the black lines are in pixels"); if (blackLinesWidth<0) blackLinesWidth = 0;
+  ImGui::Text("Transparent lines width"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGSCHRAFFURTRANSPARENTWIDTH",&transparentLinesWidth); toolTip("How wide the transparent lines are in pixels"); if (transparentLinesWidth<0) transparentLinesWidth = 0;
+  ImGui::Text("Angle"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGSCHRAFFURANGLE",&angle); toolTip("The rotation of the hatching"); if (angle<0) angle = 0; if (angle>360) angle = 360;
+  ImGui::Text("Binary"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGSCHRAFFURBINARY",&binary); toolTip("No antialiasing if binary is on");
+
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGSCHRAFFURAPPLY")) {
+    filterSchraffur(blackLinesWidth, transparentLinesWidth, angle, binary);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Create a hatching image");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGSCHRAFFURCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't create a hatching image");
   DIALOGEND()
 }
 
@@ -2364,6 +2392,28 @@ void dialogBlur(bool openIt) {
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
   } else toolTip("Don't apply a blur here");
+  DIALOGEND()
+}
+
+void dialogPixelate(bool openIt) {
+  static int cellSizeX = 16;
+  static int cellSizeY = 16;
+  if (openIt) {
+  }
+  DIALOGSTART("Pixelate");
+
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Cell size x"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGPIXELATECELLSIZEX",&cellSizeX,0,0)) {;} else toolTip("How big a pixelation cell is in x(width) pixels"); if (cellSizeX < 1) cellSizeX = 1;
+  ImGui::Text("Cell size y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGPIXELATECELLSIZEY",&cellSizeY,0,0)) {;} else toolTip("How big a pixelation cell is in y(height) pixels"); if (cellSizeY < 1) cellSizeY = 1;
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGPIXELATEAPPLY")) {
+    filterPixelate(cellSizeX, cellSizeY);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Apply the pixelation");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGPIXELATECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply a pixelation here");
   DIALOGEND()
 }
 
