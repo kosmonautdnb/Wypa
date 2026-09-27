@@ -142,6 +142,7 @@ extern int currentBrush;
 extern bool hardEraser;
 
 extern bool subtractiveColors;
+extern bool subtractiveCMYK;
 
 class GradientElement {
 public:

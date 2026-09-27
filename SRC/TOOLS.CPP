@@ -47,6 +47,7 @@ Array<Brush *> brushes;
 int currentBrush = 0;
 bool hardEraser = false;
 bool subtractiveColors = false;
+bool subtractiveCMYK = false;
 
 Brush *onePixelBrush = NULL;
 
@@ -1827,6 +1828,48 @@ static __inline void fromRYB(float &Rryb, float &Yryb, float &Bryb) {
   if (Bryb > 255) Bryb = 255;
 }
 
+#define CMYKHACK (24.f)
+
+static __inline void toCMYK(float &r, float &g, float &b, float &k) {
+  r = (r * (255.f-CMYKHACK))/255.f+CMYKHACK;
+  g = (g * (255.f-CMYKHACK))/255.f+CMYKHACK;
+  b = (b * (255.f-CMYKHACK))/255.f+CMYKHACK;
+  k = r;
+  if (g>k) k = g;
+  if (b>k) k = b;
+  k = 255.f - k;
+  float c = 255.f-r-k;
+  float m = 255.f-g-k;
+  float y = 255.f-b-k;
+  if (k < 255.f) {
+    float s = 255.f/(255.f-k);
+    c *= s;
+    m *= s;
+    y *= s;
+  } else {
+    c = m = y = 0;
+  }
+  r = c;
+  g = m;
+  b = y;
+}
+
+static __inline void fromCMYK(float &c, float &m, float &y, float &k) {
+  k = (255.f - k) / 255.f;
+  c = (255.f - c) * k;
+  m = (255.f - m) * k;
+  y = (255.f - y) * k;
+  c = ((c-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
+  m = ((m-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
+  y = ((y-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
+  if (c < 0) c = 0;
+  if (m < 0) m = 0;
+  if (y < 0) y = 0;
+  if (c > 255) c = 255;
+  if (m > 255) m = 255;
+  if (y > 255) y = 255;
+}
+
 void useToolPainting() {
 
   int tool2 = tool;
@@ -2093,15 +2136,29 @@ void useToolPainting() {
                 bd /= a;
               }
               if (subtractiveColors) {
-                toRYB(rs,gs,bs); toRYB(rd,gd,bd);
-                float r2 = (rs-rd)*(float)as/255.f+rd;
-                float g2 = (gs-gd)*(float)as/255.f+gd;
-                float b2 = (bs-bd)*(float)as/255.f+bd;
-                fromRYB(r2,g2,b2);
-                int r = (int)r2;
-                int g = (int)g2;
-                int b = (int)b2;
-                paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
+                if (subtractiveCMYK) {
+                  float ks,kd;
+                  toCMYK(rs,gs,bs,ks); toCMYK(rd,gd,bd,kd);
+                  float r2 = (rs-rd)*(float)as/255.f+rd;
+                  float g2 = (gs-gd)*(float)as/255.f+gd;
+                  float b2 = (bs-bd)*(float)as/255.f+bd;
+                  float k2 = (ks-kd)*(float)as/255.f+kd;
+                  fromCMYK(r2,g2,b2,k2);
+                  int r = (int)r2;
+                  int g = (int)g2;
+                  int b = (int)b2;
+                  paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
+                } else {
+                  toRYB(rs,gs,bs); toRYB(rd,gd,bd);
+                  float r2 = (rs-rd)*(float)as/255.f+rd;
+                  float g2 = (gs-gd)*(float)as/255.f+gd;
+                  float b2 = (bs-bd)*(float)as/255.f+bd;
+                  fromRYB(r2,g2,b2);
+                  int r = (int)r2;
+                  int g = (int)g2;
+                  int b = (int)b2;
+                  paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
+                }
               } else {
                 int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
                 int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;

@@ -389,7 +389,11 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Visible layer switch",NULL,visibleLayerSwitch)) {visibleLayerSwitch = !visibleLayerSwitch; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Animated fitting button",NULL,showSomethingToFitAnim)) {showSomethingToFitAnim = !showSomethingToFitAnim;}
         ImGui::Separator();
-        if (ImGui::MenuItem("Clay color mixing (opacity)",NULL,subtractiveColors)) {subtractiveColors = !subtractiveColors; shouldUpdateAll = true;}
+        int colorMixingMode = (subtractiveColors ? 2 : 0) + (subtractiveCMYK ? 1 : 0);
+        if (ImGui::MenuItem("Clay color mixing (opacity)",NULL,colorMixingMode == 2)) {if (colorMixingMode != 2) colorMixingMode = 2; else colorMixingMode = 0; subtractiveCMYK = false; shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Glaze color mixing (opacity)",NULL,colorMixingMode == 3)) {if (colorMixingMode != 3) colorMixingMode = 3; else colorMixingMode = 0; shouldUpdateAll = true;}
+        subtractiveColors = colorMixingMode & 2 ? true : false;
+        subtractiveCMYK = colorMixingMode & 1 ? true : false;
         ImGui::Separator();
         static bool wasStored = false;
         if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll(); wasStored = true;}
