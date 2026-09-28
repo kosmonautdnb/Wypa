@@ -278,6 +278,8 @@ public:
 };
 extern bool formClosed;
 extern bool formCVEdit;
+extern bool formAutoselect;
+extern bool formUpdateAutoselect;
 extern int selectedFormPoint;
 extern Array<FormPoint> forms;
 enum FORM_TYPE {

@@ -258,7 +258,15 @@
     "Greyscale{" _N_
       "Makes the selected area (or the whole area if nothing is" _N_
       "selected) from colored to grey. There is no luminance conversion" _N_
-      "involved. This means you just get (red+green+blue)/3.\n" _N_
+      "involved. This means you just get (red+green+blue)/3." _N_
+    "}" _N_
+    "Contrast and brightness{" _N_
+      "Changes the layers contrast and brightness and maybe" _N_
+      "hue, saturation and lightness." _N_
+      "Be aware that you may loose the quality of the orignal" _N_
+      "image/layer if you do this operation several times one" _N_
+      "after another. So to say it is destructive, better use" _N_
+      "the Postprocessing tool for color gradings." _N_
     "}" _N_
     "Gradiation curves{" _N_
       "This is for advanced users." _N_

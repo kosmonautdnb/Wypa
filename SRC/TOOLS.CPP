@@ -548,6 +548,8 @@ Array<WatershedPoint> watershedPoints;
 
 bool formClosed = false;
 bool formCVEdit = false;
+bool formAutoselect = false;
+bool formUpdateAutoselect = false;
 int selectedFormPoint = -1;
 Array<FormPoint> forms;
 
@@ -615,7 +617,7 @@ void bakeFormsIntoLayer(Layer *l, int formType) {
   selectionPlane->type = l->type;
   selectionPlane->tileSourceLayerId = l->tileSourceLayerId;
 
-  {for (int i = 0; i < (int)forms.size()-(formClosed ? 0 : 1); i++) {
+  {for (int i = 0; i < (int)forms.size()-((formClosed||formAutoselect) ? 0 : 1); i++) {
     int i0 = i;
     int i1 = (i + 1) % forms.size();
     formSplineLayer(l,forms[i0],forms[i1], getUIntColor(foregroundColor), formType);
@@ -2880,7 +2882,7 @@ void toolCanvasStuff() {
       if (ctrl) break;
       static double time = 0; time += timeDelta; time = fmod(time,1);
       if (forms.empty()) break;
-      {for (int i = 0; i < (int)forms.size()-(formClosed ? 0 : 1); i++) {
+      {for (int i = 0; i < (int)forms.size()-((formClosed||formAutoselect) ? 0 : 1); i++) {
         int i0 = i;
         int i1 = (i + 1) % forms.size();
         formSpline(forms[i0],forms[i1], time < 0.5);
@@ -3770,6 +3772,7 @@ void useToolForms() {
           forms[i].x += dx;
           forms[i].y += dy;
         }
+        if (dx != 0 || dy != 0) formUpdateAutoselect = true;
       }
     } else {
       static double lastClickDist = 0;
@@ -3799,6 +3802,7 @@ void useToolForms() {
             p.y = cy;
             forms.push_back(p);
             selectedFormPoint = (int)forms.size()-1;
+            formUpdateAutoselect = true;
           }
         }
       }
@@ -3809,6 +3813,7 @@ void useToolForms() {
             double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
             forms[selectedFormPoint].x = cx;
             forms[selectedFormPoint].y = cy;
+            formUpdateAutoselect = true;
           }
         }
       }
@@ -3848,6 +3853,7 @@ void useToolForms() {
           p.bezierX[selected2] = -p.bezierX[selected];
           p.bezierY[selected2] = -p.bezierY[selected];
         }
+        if (cx - p.x != 0 || cy - p.y != 0) formUpdateAutoselect = true;
       }
     }
   }

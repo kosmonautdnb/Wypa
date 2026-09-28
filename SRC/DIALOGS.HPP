@@ -109,6 +109,7 @@ void dialogPixelate(bool openIt);
 void dialogGlow(bool openIt);
 void dialogEmboss(bool openIt);
 void dialogHotkeys(bool openIt);
+void dialogContrastAndBrightness(bool openIt);
 void dialogColorMatrix(bool openIt);
 void dialogColorMatrixDirect(bool openIt);
 void dialogQuantizePalette(bool openIt);

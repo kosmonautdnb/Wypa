@@ -243,6 +243,7 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Normalize",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->normalize();afterUndoPoint();}
         if (ImGui::MenuItem("Greyscale",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->greyScale();afterUndoPoint();}
+        if (ImGui::MenuItem("Contrast and brightness",NULL,false,count == 1)) {dialogContrastAndBrightness(true);}
         if (ImGui::MenuItem("Color matrix",NULL,false,count == 1)) {dialogColorMatrixDirect(true);}
         if (ImGui::MenuItem("Gradiation curves",NULL,false,count == 1)) {dialogGradiationCurves(true);}
         if (ImGui::MenuItem("Color balance",NULL,false,count == 1)) {dialogColorBalance(true);}

@@ -169,6 +169,7 @@ void dialogs() {
   dialogGlow(false);
   dialogEmboss(false);
   dialogHotkeys(false);
+  dialogContrastAndBrightness(false);
   dialogColorMatrix(false);
   dialogQuantizePalette(false);
   dialogExtrudeSelection(false);
@@ -2510,6 +2511,77 @@ void dialogEmboss(bool openIt) {
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
   } else toolTip("Don't update this layer");
+  DIALOGEND()
+}
+
+void dialogContrastAndBrightness(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static Layer *clone = NULL;
+  static ColorTransform colorTransform;
+  if (openIt) {
+    beforeUndoPoint();
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    colorTransform.premul = l->mode == LAYERMODE_PREMULTIPLIEDALPHA;
+    colorTransform.shouldUpdate = true;
+  }
+  DIALOGSTART("Contrast and brightness");
+  if (roundButton("Reset##DIALOGCONTRASTANDBRIGHTNESSRESET",true)) colorTransform.reset();
+
+  float *v = NULL;
+  ColorTransform *t = &colorTransform;
+
+  ImGui::SameLine(); ImGui::Text("R"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCONTRASTANDBRIGHTNESSCHANNELR",&t->channelR)) {t->shouldUpdate = true;} else toolTip("Enables the red input channel");
+  ImGui::SameLine(); ImGui::Text("G"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCONTRASTANDBRIGHTNESSCHANNELG",&t->channelG)) {t->shouldUpdate = true;} else toolTip("Enables the green input channel");
+  ImGui::SameLine(); ImGui::Text("B"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCONTRASTANDBRIGHTNESSCHANNELB",&t->channelB)) {t->shouldUpdate = true;} else toolTip("Enables the blue input channel");
+  ImGui::SameLine(); ImGui::Text("|Premul layer"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCONTRASTANDBRIGHTNESSPREMULCHECK",&t->premul)) {t->shouldUpdate = true;} else toolTip("For usage with the \"Premul\" layer mode (correct transparencies e.g. for brightness)");
+
+  ImGui::PushItemWidth(362);
+  ImGui::Text("Contrast");
+  v = &t->contrast; if (ImGui::SliderFloat("##DIALOGCONTRASTANDBRIGHTNESSCONTRAST",v,0,2)) {if (*v<0) *v = 0; if (*v>2) *v = 2; t->shouldUpdate = true;} else toolTip("The less contrast the more grey");
+  ImGui::Text("Brightness");
+  v = &t->brightness; if (ImGui::SliderFloat("##DIALOGCONTRASTANDBRIGHTNESSBRIGHTNESS",v,-1,1)) {if (*v<-1) *v = -1; if (*v>1) *v = 1; t->shouldUpdate = true;} else toolTip("Change the brightness");
+
+  ImGui::Text("Hue");
+  v = &t->hue; if (ImGui::SliderFloat("##DIALOGCONTRASTANDBRIGHTNESSVIEWHUE",v,0,360)) {if (*v<0) *v = 0; if (*v>360) *v = 360; t->shouldUpdate = true;} else toolTip("Change the hue of the layer");
+  ImGui::Text("Saturation");
+  v = &t->saturation; if (ImGui::SliderFloat("##DIALOGCONTRASTANDBRIGHTNESSSATURATION",v,0,2)) {if (*v<0) *v = 0; if (*v>2) *v = 2; t->shouldUpdate = true;} else toolTip("Change the saturation of the layer");
+  ImGui::Text("Lightness");
+  v = &t->lightness; if (ImGui::SliderFloat("##DIALOGCONTRASTANDBRIGHTNESSLIGHTNESS",v,0,1)) {if (*v<0) *v = 0; if (*v>4) *v = 4; t->shouldUpdate = true;} else toolTip("Change the lightness of the layer");
+
+  ImGui::PopItemWidth();
+
+  ImGui::TextColored(ImVec4(1,0,0,1),"This is destructive, maybe better use Postprocessing");
+
+  if (t->shouldUpdate) {
+    t->update();
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) {
+      bool hasSelection = l->hasSelection();
+      for (int i = 0; i < l->width*l->height; i++) {
+        if ((!hasSelection)||(l->pixelStates[i] & PIXELSTATE_SELECTED)) {
+          unsigned int col = clone->pixels[i];
+          col = t->applyColorTransform(col);
+          l->pixels[i] = col;
+        }
+      }
+      repaintLayer(l,true);
+    }
+  }
+
+  if (ImGui::Button("Apply##DIALOGCONTRASTANDBRIGHTNESSAPPLY")) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Apply brightness and contrast");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGCONTRASTANDBRIGHTNESSCLOSE")) {
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    repaintLayer(l,true);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't do anything");
   DIALOGEND()
 }
 
