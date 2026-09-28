@@ -1253,14 +1253,18 @@
     "" _N_
     "Mirroring just works for painting/erasing and lines." _N_
   "}" _N_
-  "The fullscreen checkbox{" _N_
-    "The fullscreen mode is rather not a real fullscreen mode." _N_
-    "The decission of keeping the window the same size is rooted" _N_
-    "in the need for performance. A smaller area is faster to edit/paint." _N_
-    "" _N_
-    "The reason why it is there, is that you may need a neutral" _N_
-    "environment, e.g. not a white surrounding of the image," _N_
-    "to better judge your painting within other environments." _N_
+  "Forms tool{" _N_
+    "You can place vertices here which are connected" _N_
+    "as lines into a shape." _N_
+    "There is a mode for spline editing available." _N_
+    "If you modify the CVs you get a round shape." _N_
+    "There are two CVs on each point. If you press shift," _N_
+    "both CVs are modified at once in CV editing mode." _N_
+    "Select the vertex you like and maybe go into CV edit mode." _N_
+    "If you close the shape by the appropiate option you can" _N_
+    "Make a selection on the current active layer out of the shape." _N_
+    "You also can fill the shape with the current set color." _N_
+    "Points can also be removed." _N_
   "}" _N_
 "}" _N_
 "Navigator{" _N_

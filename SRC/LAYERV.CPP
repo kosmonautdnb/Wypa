@@ -186,8 +186,8 @@ void drawLayerView() {
         if (d < 1) {
           double sx = 5*aspectRatio*main_window_yres/main_window_xres; double sy = 5;
           d = 1 - d;
-          mn.x -= d * sx+1; mn.y -= d * sy+1;
-          mx.x += d * sx; mx.y += d * sy;
+          mn.x -= (float)(d * sx+1); mn.y -= (float)(d * sy+1);
+          mx.x += (float)(d * sx); mx.y += (float)(d * sy);
           ImGui::GetWindowDrawList()->AddRect(mn,mx,0xff0000ff,3);
         }
       }

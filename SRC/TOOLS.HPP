@@ -270,6 +270,23 @@ extern bool watershedSelectionInside;
 extern bool watershedSelectionOutside;
 extern Array<WatershedPoint> watershedPoints;
 
+class FormPoint {
+public:
+  FormPoint() : x(0), y(0) {memset(bezierX,0,sizeof(bezierX)); memset(bezierY,0,sizeof(bezierY));}
+  double x,y;
+  double bezierX[2],bezierY[2];
+};
+extern bool formClosed;
+extern bool formCVEdit;
+extern int selectedFormPoint;
+extern Array<FormPoint> forms;
+enum FORM_TYPE {
+  FORM_LINES = 0,
+  FORM_SELECTION = 1,
+  FORM_FILLED = 2,
+};
+void bakeFormsIntoLayer(class Layer *l, int formType);
+
 bool isPaintAreaActive();
 
 void initTools();

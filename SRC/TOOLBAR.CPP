@@ -40,7 +40,7 @@ int tool = TOOL_NONE;
 int lastTool = TOOL_NONE;
 bool fullScreen = false;
 
-const char *toolNames[TOOL_COUNT] = {"No tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tileset","Blur","Overlays","Modify","Tilemap","Mirror"};
+const char *toolNames[TOOL_COUNT] = {"No tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tileset","Blur","Overlays","Modify","Tilemap","Mirror","Forms"};
 
 void initToolBar() {
 }
@@ -160,6 +160,7 @@ void drawToolBar() {
     toolBarButton("tilemapTool",TOOL_TILEMAP); toolTip("Tilemap tool");
     toolBarButton("overlaysTool",TOOL_OVERLAYS); toolTip("Overlay tool");
     toolBarButton("mirrorTool",TOOL_MIRROR); toolTip("Mirror tool");
+    toolBarButton("formsTool",TOOL_FORMS); toolTip("Forms tool");
     drawAdditionalQuad();
     ImGui::End();
     ImGui::PopStyleColor();

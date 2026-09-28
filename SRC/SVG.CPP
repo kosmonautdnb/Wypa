@@ -130,5 +130,6 @@ void loadBaseSVGs() {
   ADDTOOLBARICON("overlaysTool","OVERLAYS.SVG");
   ADDTOOLBARICON("modifyTool","MODIFY.SVG");
   ADDTOOLBARICON("tilemapTool","TILEMAP.SVG");
+  ADDTOOLBARICONFROMSWIFE("formsTool","FORMS.SVG");
   ADDICON2("visible","VISIBLE.SVG");
 }

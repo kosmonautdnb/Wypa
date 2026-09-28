@@ -546,6 +546,107 @@ bool watershedSelectionOutside = false;
 bool watershedSelectionInside = true;
 Array<WatershedPoint> watershedPoints;
 
+bool formClosed = false;
+bool formCVEdit = false;
+int selectedFormPoint = -1;
+Array<FormPoint> forms;
+
+double bezier(double t, double p0, double p1, double p2, double p3);
+
+void drawOpenGLSimpleLine(double sx0, double sy0, double sx1, double sy1, unsigned int color);
+void formSpline(FormPoint &p0, FormPoint &p1, bool blinkOn) {
+  const int TESSEL = 64;
+  double sx0 = p0.x; double sy0 = p0.y; currentCanvas->getScreenPos(sx0,sy0,sx0,sy0);
+  double sx1 = p0.x + p0.bezierX[1]; double sy1 = p0.y + p0.bezierY[1]; currentCanvas->getScreenPos(sx1,sy1,sx1,sy1);
+  double sx2 = p1.x + p1.bezierX[0]; double sy2 = p1.y + p1.bezierY[0]; currentCanvas->getScreenPos(sx2,sy2,sx2,sy2);
+  double sx3 = p1.x; double sy3 = p1.y; currentCanvas->getScreenPos(sx3,sy3,sx3,sy3);
+  for (int i = 0; i < TESSEL; i++) {
+    double t0 = (double)i / (double)TESSEL;
+    double t1 = (double)(i+1) / (double)TESSEL;
+    double kx0 = bezier(t0,sx0,sx1,sx2,sx3);
+    double ky0 = bezier(t0,sy0,sy1,sy2,sy3);
+    double kx1 = bezier(t1,sx0,sx1,sx2,sx3);
+    double ky1 = bezier(t1,sy0,sy1,sy2,sy3);
+    drawOpenGLSimpleLine(kx0,ky0,kx1,ky1,blinkOn ? 0xffffffff : 0xff0000ff);
+  }
+}
+
+#define XEORLINE 1
+#define EORLINE 2
+#define SELECTEDLINE 4
+
+void formSplineLayer(Layer *l, FormPoint &p0, FormPoint &p1, unsigned int color, int formType) {
+  const int TESSEL = 64;
+  if (l == NULL) return;
+  double sx0 = p0.x; double sy0 = p0.y; currentCanvas->getScreenPos(sx0,sy0,sx0,sy0);
+  double sx1 = p0.x + p0.bezierX[1]; double sy1 = p0.y + p0.bezierY[1]; currentCanvas->getScreenPos(sx1,sy1,sx1,sy1);
+  double sx2 = p1.x + p1.bezierX[0]; double sy2 = p1.y + p1.bezierY[0]; currentCanvas->getScreenPos(sx2,sy2,sx2,sy2);
+  double sx3 = p1.x; double sy3 = p1.y; currentCanvas->getScreenPos(sx3,sy3,sx3,sy3);
+  for (int i = 0; i < TESSEL; i++) {
+    double t0 = (double)i / (double)TESSEL;
+    double t1 = (double)(i+1) / (double)TESSEL;
+    double kx0 = bezier(t0,sx0,sx1,sx2,sx3);
+    double ky0 = bezier(t0,sy0,sy1,sy2,sy3);
+    double kx1 = bezier(t1,sx0,sx1,sx2,sx3);
+    double ky1 = bezier(t1,sy0,sy1,sy2,sy3);
+    currentCanvas->getCanvasPos(kx0,ky0,kx0,ky0);
+    currentCanvas->getCanvasPos(kx1,ky1,kx1,ky1);
+    currentCanvas->getLayerPosFromCanvasPos(l,kx0,ky0,kx0,ky0);
+    currentCanvas->getLayerPosFromCanvasPos(l,kx1,ky1,kx1,ky1);
+
+    switch(formType) {
+    case FORM_LINES: {l->pixelLine((int)kx0, (int)ky0, (int)kx1, (int)ky1, color);} break;
+    case FORM_FILLED:
+    case FORM_SELECTION: {
+        selectionPlane->pixelLineEor((int)kx0, (int)ky0, (int)kx1, (int)ky1,EORLINE,true);
+        selectionPlane->pixelXLineEor((int)kx0, (int)ky0, (int)kx1, (int)ky1,XEORLINE,true);
+    } break;
+    }
+  }
+}
+
+void bakeFormsIntoLayer(Layer *l, int formType) {
+  if (l == NULL) return;
+  if (locked(l,LOCK_PIXELS) && (formType == FORM_LINES || formType == FORM_FILLED)) return;
+  if (locked(l,LOCK_SELECTION) && (formType == FORM_SELECTION)) return;
+
+  selectionPlane->init(l->width, l->height);
+  selectionPlane->transform = l->transform;
+  selectionPlane->type = l->type;
+  selectionPlane->tileSourceLayerId = l->tileSourceLayerId;
+
+  {for (int i = 0; i < (int)forms.size()-(formClosed ? 0 : 1); i++) {
+    int i0 = i;
+    int i1 = (i + 1) % forms.size();
+    formSplineLayer(l,forms[i0],forms[i1], getUIntColor(foregroundColor), formType);
+  }}
+
+  switch(formType) {
+    case FORM_FILLED:
+    case FORM_SELECTION: {
+      for (int y = 0; y < selectionPlane->height; y++) {
+        bool isInSelection = false;
+        for (int x = 0; x < selectionPlane->width; x++) {
+          bool edge = selectionPlane->pixels[x+y*selectionPlane->width] & XEORLINE ? true : false;
+          bool edge2 = selectionPlane->pixels[x+y*selectionPlane->width] & EORLINE ? true : false;
+          if (x == 0) {isInSelection = edge;edge = false;}
+          if (isInSelection||edge||edge2) selectionPlane->pixels[x+y*selectionPlane->width] = SELECTEDLINE;
+          if (edge) {isInSelection = !isInSelection;}
+        }
+      }
+      for (int i = 0; i < l->width*l->height; i++) {
+        switch(formType) {
+          case FORM_FILLED: {if (selectionPlane->pixels[i]==SELECTEDLINE) l->pixels[i] = getUIntColor(foregroundColor);} break;
+          case FORM_SELECTION: {l->pixelStates[i] &= ~PIXELSTATE_SELECTED; if (selectionPlane->pixels[i]==SELECTEDLINE) l->pixelStates[i] |= PIXELSTATE_SELECTED;} break;
+        }
+      }
+    } break;
+  }
+  switch(formType) {
+    case FORM_FILLED: {updatedPixels(l);} break;
+    case FORM_SELECTION: {updatedPixelStates(l);} break;
+  }
+}
 
 void moveSelectedLayersByCanvasPixels(double x, double y) {
   bool one = false;
@@ -1110,10 +1211,6 @@ void useToolSelection() {
     case SELECTIONTOOL_ELLIPSE: 
     case SELECTIONTOOL_RECTANGLE: {selectionProportional2 = tool == TOOL_OVERLAYS ? false : selectionProportional;} break;
   }
-
-#define XEORLINE 1
-#define EORLINE 2
-#define SELECTEDLINE 4
 
   if (selectionToolLayer == NULL ||  (!ImGui::IsMouseDown(0)) || (ImGui::IsMouseDown(1) && selectionTool2 != SELECTIONTOOL_POLYGON)) {
     if (selectionToolActive) {
@@ -2778,7 +2875,38 @@ void toolCanvasStuff() {
           }
         }
       }
-    }
+    } break;
+    case TOOL_FORMS: {
+      if (ctrl) break;
+      static double time = 0; time += timeDelta; time = fmod(time,1);
+      if (forms.empty()) break;
+      {for (int i = 0; i < (int)forms.size()-(formClosed ? 0 : 1); i++) {
+        int i0 = i;
+        int i1 = (i + 1) % forms.size();
+        formSpline(forms[i0],forms[i1], time < 0.5);
+      }}
+      {for (int k = 0; k < 2; k++) for (int i = 0; i < (int)forms.size(); i++) {
+        double sx = forms[i].x, sy = forms[i].y; currentCanvas->getScreenPos(sx,sy,sx,sy);
+        drawOpenGLMarkerCircle(sx+1,sy+1,4,0xff000000);
+        unsigned int col = 0xff0000ff;
+        if (i == selectedFormPoint) col = 0xffffffff;
+        if (k == 1) drawOpenGLMarkerCircle(sx,sy,4,col);
+        if (formCVEdit) {
+          if (i == selectedFormPoint) {
+            for (int j = 0; j < 2; j++) {
+              double sx2 = forms[i].x+forms[i].bezierX[j], sy2 = forms[i].y+forms[i].bezierY[j]; currentCanvas->getScreenPos(sx2,sy2,sx2,sy2);
+              if (k == 0) {
+                drawOpenGLSimpleLine(sx+1,sy+1,sx2+1,sy2+1,0xff000000);
+                drawOpenGLSimpleLine(sx,sy,sx2,sy2,0xffff00ff);
+              } else {
+                drawOpenGLMarkerCircle(sx2+1,sy2+1,2,0xff000000);
+                drawOpenGLMarkerCircle(sx2,sy2,2,0xff00ffff);
+              }
+            }
+          }
+        }
+      }}
+    } break;
   }
 
   if (lockedMouseX) {
@@ -3601,6 +3729,130 @@ void useToolTileMap() {
   }
 }
 
+void useToolForms() {
+  if (!isPaintAreaActive()) return;
+
+  if (!formCVEdit) {
+    static bool lastMouseDown = false;
+    static bool clickEnabled = false;
+    static double startMouseX=0;
+    static double startMouseY=0;
+    bool clicked = false;
+    static bool prohibit = false;
+    if (ImGui::IsMouseDown(0)) {
+      if (!lastMouseDown) {
+        startMouseX = mouseX;
+        startMouseY = mouseY;
+        clickEnabled = true;
+        prohibit = false;
+      }
+      double dx = mouseX - startMouseX;
+      double dy = mouseY - startMouseY;
+      double d = sqrt(dx*dx+dy*dy);
+      if (d > 4) clickEnabled = false;
+      lastMouseDown = true;
+    } else {
+      if (lastMouseDown) clicked = true;
+      lastMouseDown = false;
+    }
+  
+    if (ImGui::IsMouseDown(1)) {
+      prohibit = true;
+    }
+
+    if (shift) {
+      if (ImGui::IsMouseDown(0)) {
+        double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+        double cx2 = mouseX-mouseDX, cy2 = mouseY-mouseDY; currentCanvas->getCanvasPos(cx2,cy2,cx2,cy2);
+        double dx = cx - cx2;
+        double dy = cy - cy2;
+        for (int i = 0; i < (int)forms.size(); i++) {
+          forms[i].x += dx;
+          forms[i].y += dy;
+        }
+      }
+    } else {
+      static double lastClickDist = 0;
+      if (ImGui::IsMouseClicked(0)) {
+        double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+        int found = -1;
+        double ld = 0;
+        for (int i = 0; i < (int)forms.size(); i++) {
+          double dx = forms[i].x - cx;
+          double dy = forms[i].y - cy;
+          double d = dx*dx+dy*dy;
+          if (d < ld || i == 0) {
+            ld = d;
+            found = i;
+          }
+        }
+        lastClickDist = sqrt(ld);
+        selectedFormPoint = found;
+      }
+    
+      if (clicked && clickEnabled) {
+        if (!prohibit && (lastClickDist > 4 || forms.empty())) {
+          if (!modifyMode) {
+            double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+            FormPoint p;
+            p.x = cx;
+            p.y = cy;
+            forms.push_back(p);
+            selectedFormPoint = (int)forms.size()-1;
+          }
+        }
+      }
+    
+      if (ImGui::IsMouseDown(0) && (!clickEnabled)) {
+        if (!prohibit) {
+          if ((unsigned int)selectedFormPoint<forms.size()) {
+            double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+            forms[selectedFormPoint].x = cx;
+            forms[selectedFormPoint].y = cy;
+          }
+        }
+      }
+    }
+  } else {
+    if (ImGui::IsMouseClicked(0)) {
+      double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+      int found = -1;
+      double ld = 0;
+      for (int i = 0; i < (int)forms.size(); i++) {
+        double dx = forms[i].x - cx;
+        double dy = forms[i].y - cy;
+        double d = dx*dx+dy*dy;
+        if (d < ld || i == 0) {
+          ld = d;
+          found = i;
+        }
+      }
+      selectedFormPoint = found;
+    }
+
+    if (ImGui::IsMouseDown(1)) {
+      if ((unsigned int)selectedFormPoint<forms.size()) {
+        FormPoint &p = forms[selectedFormPoint];
+        double cx = mouseX, cy = mouseY; currentCanvas->getCanvasPos(cx,cy,cx,cy);
+        double dx0 = p.x + p.bezierX[0] - cx;
+        double dy0 = p.y + p.bezierY[0] - cy;
+        double dx1 = p.x + p.bezierX[1] - cx;
+        double dy1 = p.y + p.bezierY[1] - cy;
+        double d0 = dx0*dx0+dy0*dy0;
+        double d1 = dx1*dx1+dy1*dy1;
+        int selected = 0; int selected2 = 1;
+        if (d1 < d0) {selected = 1; selected2 = 0;}
+        p.bezierX[selected] = cx - p.x;
+        p.bezierY[selected] = cy - p.y;
+        if (shift) {
+          p.bezierX[selected2] = -p.bezierX[selected];
+          p.bezierY[selected2] = -p.bezierY[selected];
+        }
+      }
+    }
+  }
+}
+
 void useTool() {
   double mouseXBefore = mouseX;
   double mouseYBefore = mouseY;
@@ -3658,6 +3910,9 @@ void useTool() {
     } break;
   case TOOL_TILEMAP: {
     useToolTileMap();
+    } break;
+  case TOOL_FORMS: {
+    useToolForms();
     } break;
   }
   mouseX = mouseXBefore;

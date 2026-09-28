@@ -1630,6 +1630,54 @@ void drawToolMirrorView() {
   }
 }
 
+void drawToolFormsView() {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  if (roundButton("Draw lines##DRAWTOOLFORMSBAKE", forms.size() > 1)) {beforeUndoPoint(); bakeFormsIntoLayer(l, FORM_LINES); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
+  if (roundButton("Make selection##DRAWTOOLFORMSMAKESELECTION", formClosed && forms.size() > 2)) {beforeUndoPoint(); bakeFormsIntoLayer(l,FORM_SELECTION); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
+  if (roundButton("Paint filled##DRAWTOOLFORMSPAINTFILLED", formClosed && forms.size() > 2)) {beforeUndoPoint(); bakeFormsIntoLayer(l,FORM_FILLED); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
+  ImGui::Separator();
+  if (roundButton("Reset##DRAWTOOLFORMSCLEAR", forms.size() > 0)) {forms.clear();} else toolTip("Clear the form");
+  ImGui::Separator();
+  if (!formCVEdit) {
+    ImGui::Text("LMouse add/move");
+    ImGui::Text("Shift = move all");
+  } else {
+    ImGui::Text("RMouse move CV");
+    ImGui::Text("LMouse select");
+    ImGui::Text("Shift = both CVs");
+  }
+  ImGui::Text("Ctrl = invisible");
+  ImGui::Separator();
+  ImGui::Text("Form closed"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFORMSCLOSED", &formClosed)) {;} else toolTip("Is the form a path or a \"ring\"");
+  if (roundButton(formCVEdit ? "Modify vertices##DRAWTOOLFORMSCVSON" : "Modify CVs##DRAWTOOLFORMSCVSON", true)) {formCVEdit = !formCVEdit;} else toolTip("Modify the bezier spline handles of the points or the actual vertices");
+  ImGui::Separator();
+  ImGui::Text("Point count %d",forms.size()); toolTip("Form point count");
+  ImGui::Separator();
+  if ((unsigned int)selectedFormPoint<forms.size()) {
+    ImGui::Text("Point %d",selectedFormPoint); toolTip("Point number in form");
+    ImGui::PushItemWidth(7*10);
+    float k;
+    k = (float)forms[selectedFormPoint].x; ImGui::Text("X"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLFORMSPOINTSX",&k,0,0)) {forms[selectedFormPoint].x = k;} else toolTip("Modify the form point in x");
+    k = (float)forms[selectedFormPoint].y; ImGui::Text("Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLFORMSPOINTSY",&k,0,0)) {forms[selectedFormPoint].y = k;} else toolTip("Modify the form point in y");
+    k = (float)forms[selectedFormPoint].bezierX[0]; ImGui::Text("CvX0"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLFORMSPOINTSBX0",&k,0,0)) {forms[selectedFormPoint].bezierX[0] = k;} else toolTip("Modify the form points bezier cv in x");
+    k = (float)forms[selectedFormPoint].bezierY[0]; ImGui::Text("CvY0"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLFORMSPOINTSBY0",&k,0,0)) {forms[selectedFormPoint].bezierY[0] = k;} else toolTip("Modify the form points bezier cv in y");
+    k = (float)forms[selectedFormPoint].bezierX[1]; ImGui::Text("CvX1"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLFORMSPOINTSBX1",&k,0,0)) {forms[selectedFormPoint].bezierX[1] = k;} else toolTip("Modify the form points bezier cv in x");
+    k = (float)forms[selectedFormPoint].bezierY[1]; ImGui::Text("CvY1"); ImGui::SameLine(); if (ImGui::InputFloat("##DRAWTOOLFORMSPOINTSBY1",&k,0,0)) {forms[selectedFormPoint].bezierY[1] = k;} else toolTip("Modify the form points bezier cv in y");
+    if (roundButton("Clear CVs##DRAWTOOLFORMSCLEARCVS",true)) {
+      forms[selectedFormPoint].bezierX[0] = 0;
+      forms[selectedFormPoint].bezierY[0] = 0;
+      forms[selectedFormPoint].bezierX[1] = 0;
+      forms[selectedFormPoint].bezierY[1] = 0;
+    }
+    if (roundButton("Remove point##DRAWTOOLFORMSREMOVE",true)) {
+      forms.erase(selectedFormPoint,1);
+      if (selectedFormPoint>=(int)forms.size()) selectedFormPoint=(int)forms.size()-1;
+    } else toolTip("Remove this point again");
+    ImGui::PopItemWidth();
+    ImGui::Separator();
+  }
+}
+
 void drawToolView() {
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2((float)toolbar_width,(float)menuBar_height));
@@ -1698,6 +1746,9 @@ void drawToolView() {
       } break;
     case TOOL_MIRROR: {
         drawToolMirrorView();
+      } break;
+    case TOOL_FORMS: {
+        drawToolFormsView();
       } break;
     }
   }
