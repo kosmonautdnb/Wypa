@@ -125,7 +125,7 @@ void maybeBlinkLayer(Layer *l) {
 bool showSomethingToFitAnim = true;
 
 void drawLayerView() {
-
+  if (singleLayerId != 0) {singleLayerId = 0; shouldUpdateAll = true;}
   if (fullScreen) return;
   ImGui::SetNextWindowPos(ImVec2((float)(main_window_xres-sidebar_width),(float)(menuBar_height+navigator_height+colorField_height)));
   ImGui::Begin("LAYERVIEW", NULL, ImVec2((float)sidebar_width,(float)(main_window_yres-(menuBar_height+navigator_height+colorField_height))),1.0,FROZENWINDOW);
@@ -255,6 +255,7 @@ void drawLayerView() {
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_NONE) {maybeBlinkLayer(l); currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_CTRL) {maybeBlinkLayer(l); currentCanvas->copyActiveSelectionToLayer(currentCanvas->getActiveLayerIndex(),i);currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_SHIFT) {maybeBlinkLayer(l); l->state.selected = !l->state.selected;Layer *k = currentCanvas->getActiveLayer(); if (k != NULL) k->state.selected = true; shouldUpdateAll = true;}// currentCanvas->setActiveLayer(-1);}
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1) && controlKeyId == CONTROLKEY_NONE) {singleLayerId = l->id; shouldUpdateAll = true;ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x800080ff);}
     if (l->type == LAYERTYPE_ADJUSTMENT) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ff00ff);
     }

@@ -998,6 +998,7 @@ extern bool showOnlyActiveLayersSelection;
 extern bool blitOutlineSolidOneFrame;
 extern bool showCanvasDarkened;
 extern bool darkenSelectedTiles;
+extern unsigned int singleLayerId;
 
 Layer *layerFromCanvas(Canvas *canvas);
 void repaintLayer(Layer *layer, bool fullUpdate);

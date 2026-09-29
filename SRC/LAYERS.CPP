@@ -90,6 +90,7 @@ bool showOnlyActiveLayersSelection = true;
 bool blitOutlineSolidOneFrame = false;
 bool showCanvasDarkened = true;
 bool darkenSelectedTiles = false;
+unsigned int singleLayerId = 0;
 
 void initLayers() {
   selectionPlane = new Layer();
@@ -2658,7 +2659,7 @@ bool dontUsePostProcessing = false;
 bool hadOpMod = false;
 
 void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) {
-  if ((!canvas->justSingle) && (!layer->state.visible)) return;
+  if ((!canvas->justSingle) && (!layer->state.visible) && (!(singleLayerId!=0 && singleLayerId == layer->id))) return;
   if (canvas->justSingle && (!layer->state.active)) return;
 
   bool darken = !(layer->state.selected || layer->state.active);
@@ -2783,6 +2784,8 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
 
   int lxBefore = 0;
   int lyBefore = 0;
+  int mode = layer->mode;
+  if (singleLayerId != 0 && singleLayerId == layer->id) mode = LAYERMODE_COPY;
 
   for (int y = y0; y < y1; y++) {
     for (int x = x0; x < x1; x++) {
@@ -3049,7 +3052,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
         canvas->opacityMod[x+y*canvas->width] = 0;
       }
 
-      switch(layer->mode) {
+      switch(mode) {
       case LAYERMODE_ALPHA: {
           int a = (int)((rgb1 >> 24)*alpha);
           if (a == 0) {col = rgb0; break;}
@@ -3593,11 +3596,12 @@ void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1
   int y1 = screenY1 - screenPosY;
   fillCanvas(this,x0,y0,x1,y1,0x00000000,0);
   for (int i = (int)layers.size()-1; i >= 0; i--) {
+    Layer *l = layers[i]; if (singleLayerId != 0 && singleLayerId != l->id) continue;
     updateCanvas(this,x0,y0,x1,y1,layers[i]);
   }
   if (layerShapesOn) {
     for (int i = (int)layers.size()-1; i >= 0; i--) {
-      Layer *l = layers[i];
+      Layer *l = layers[i]; if (singleLayerId != 0 && singleLayerId != l->id) continue;
 
       int w = l->width; int h = l->height;
       if (l->type == LAYERTYPE_TILEMAP) {
@@ -3636,6 +3640,7 @@ void Canvas::updateRegion(int screenX0, int screenY0, int screenX1, int screenY1
       if (o->visible) {
         Layer *l = getLayerById(o->layerId);
         if (l != NULL) {
+          if (singleLayerId != 0 && singleLayerId != l->id) continue;
           drawOverlay(x0,y0,x1,y1,this,l,o);
         }
       }

@@ -1367,6 +1367,8 @@
   "layer name. You can use cursor keys when hovering the layer" _N_
   "pane to scroll." _N_
   "" _N_
+  "And you can right click on a layer item to show it singularly." _N_
+  "" _N_
   "There is \"!\" symbol to align the layer position/size to the" _N_
   "canvasd if it blinks red, the layer dosen't fit to the canvas, yet," _N_
   " and merging may somehow fail. If it stays blinking red after clicking," _N_
