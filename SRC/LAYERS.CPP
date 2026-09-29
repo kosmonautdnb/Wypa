@@ -104,7 +104,30 @@ void freeLayers() {
 }
 
 Matrix inverse2(const Matrix &a) {
-  return inverse(a); // maybe this inverse is too simple
+  //return inverse(a); // maybe this inverse is too simple
+  double a00 = a.m[0]; double a10 = a.m[1]; double a01 = a.m[4]; double a11 = a.m[5];
+  double b00 = a.m[8]; double b10 = a.m[9]; double b01 = a.m[12]; double b11 = a.m[13];
+  double det = a00*a11-a10*a01;
+  if (det == 0) return a;
+  double invDet = 1.0 / det;
+  double ai00 = a11 * invDet;
+  double ai10 = -a10 * invDet;
+  double ai01 = -a01 * invDet;
+  double ai11 = a00 * invDet;
+  double tr00 = -(ai00*b00+ai01*b10);
+  double tr01 = -(ai00*b01+ai01*b11);
+  double tr10 = -(ai10*b00+ai11*b10);
+  double tr11 = -(ai10*b01+ai11*b11);
+  Matrix ret;
+  ret.m[0] = ai00;
+  ret.m[1] = ai10;
+  ret.m[4] = ai01;
+  ret.m[5] = ai11;
+  ret.m[8] = tr00;
+  ret.m[9] = tr10;
+  ret.m[12] = tr01;
+  ret.m[13] = tr11;
+  return ret;
 }
 
 const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge"};

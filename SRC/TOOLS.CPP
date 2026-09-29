@@ -1411,7 +1411,7 @@ void applyGradient(Layer *layer, Gradient *gradient, double cx0, double cy0, dou
 
   bool selection = layer->hasSelection();
 
-  Matrix m = inverse(layer->transform.transformation);
+  Matrix m = inverse2(layer->transform.transformation);
 
   double cx2 = 1.0 / toolAspectX;
   double cy2 = 1.0 / toolAspectY;
