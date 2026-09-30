@@ -232,6 +232,7 @@ extern double measureLX1;
 extern double measureLY1;
 
 extern int blurCircleSize;
+extern int dragIntensity;
 
 extern Array<Vector> modifyPointsSource;
 extern Array<Vector> modifyPointsDest;

@@ -3006,6 +3006,7 @@ void toolCanvasStuff() {
 }
 
 int blurCircleSize = 64;
+int dragIntensity = 1;
 int blurTool = BLURTOOL_BLUR;
 
 int medianRGBASort(const void *p, const void *q)
@@ -3175,7 +3176,15 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                   float d = 1-distanceFromCenter; 
                   if (d < 0) d = 0;
                   if (d > 1) d = 1;
-                  d = d * d * d * d * d;
+                  switch(dragIntensity) {
+                  case 0:
+                  case 1: {;} break;
+                  case 2: {d = d * d;} break;
+                  case 3: {d = d * d * d;} break;
+                  case 4: {d = d * d * d * d;} break;
+                  case 5: {d = d * d * d * d * d;} break;
+                  default: {d = d * d * d * d * d * d;}
+                  }
                   float newX = (bx - mdx)*d + bx * (1-d);
                   float newY = (by - mdy)*d + by * (1-d);
                   unsigned int col = tex(&paintBackground[0], blurCircleSize, blurCircleSize, newX, newY);

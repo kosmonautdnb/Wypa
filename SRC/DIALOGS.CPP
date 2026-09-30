@@ -511,6 +511,9 @@ void dialogFlaws(bool openIt) {
     "   memory for large graphics and edits, if your machine intrinsically has\n"
     "   a lot of memory. This memory can be accessed with it by DOS.\n"
     "   Maybe look into the TinyDocumentation/FreeDOS for explanations.\n"
+    "\n"
+    "I already worked with Wypa some longer times and am not aware of\n"
+    "really critical flaws."
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGWHATFORCLOSE")) {

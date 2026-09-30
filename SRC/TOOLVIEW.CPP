@@ -1148,6 +1148,9 @@ void drawToolBlurView() {
     ImGui::RadioButton("Antialias##DRAWTOOLBLURVIEWTYPEANTIALIAS",&blurTool,BLURTOOL_ANTIALIAS); toolTip("FXAA antialiasing");
     ImGui::RadioButton("Remove dirt##DRAWTOOLBLURVIEWTYPEMEDIAN",&blurTool,BLURTOOL_MEDIAN); toolTip("Removes cracks and dirt");
     ImGui::RadioButton("Drag##DRAWTOOLBLURVIEWTYPEPULL",&blurTool,BLURTOOL_PULL); toolTip("Pulls the area in the mouse direction");
+    if (blurTool == BLURTOOL_PULL) {
+      float k = (float)dragIntensity; ImGui::Text("Drag harshness"); ImGui::SliderFloat("##DRAWTOOLBLURVIEWTYPEPULLINTENSITY",&k,1,6); dragIntensity = (int)k; if (dragIntensity < 1) dragIntensity = 1; if (dragIntensity > 6) dragIntensity = 6;
+    }
   }
 }
 
@@ -1644,9 +1647,9 @@ void drawToolFormsView() {
     if (roundButton("Make selection##DRAWTOOLFORMSMAKESELECTION", formClosed && forms.size() > 2)) {beforeUndoPoint(); bakeFormsIntoLayer(l,FORM_SELECTION); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
     if (roundButton("Paint filled##DRAWTOOLFORMSPAINTFILLED", formClosed && forms.size() > 2)) {beforeUndoPoint(); bakeFormsIntoLayer(l,FORM_FILLED); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
   }
-  ImGui::Text("Autoselect"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFORMSAUTOSELECT",&formAutoselect)) {if (formAutoselect) formUpdateAutoselect = true; else l->selectNone();} else toolTip("Always directly make a selection out of the current form");
+  ImGui::Text("Autoselect"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFORMSAUTOSELECT",&formAutoselect)) {if (formAutoselect) formUpdateAutoselect = true; else {l->selectNone(); formClosed = true;}} else toolTip("Always directly make a selection out of the current form");
   ImGui::Separator();
-  if (roundButton("Reset##DRAWTOOLFORMSCLEAR", forms.size() > 0)) {forms.clear(); formUpdateAutoselect = true;} else toolTip("Clear the form");
+  if (roundButton("Reset##DRAWTOOLFORMSCLEAR", forms.size() > 0)) {forms.clear(); formUpdateAutoselect = true; formClosed = false; formCVEdit = false;} else toolTip("Clear the form");
   ImGui::Separator();
   if (!formCVEdit) {
     ImGui::Text("LMouse add/move");
