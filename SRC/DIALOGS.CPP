@@ -2310,6 +2310,7 @@ void cropTwo(Layer *base, Layer *cropToo) {
 
 void dialogBlur(bool openIt) {
   static Layer *clone = NULL;
+  static Layer *restoreClone = NULL;
   static int boxWidth = 4;
   static int boxHeight = 4;
   static float gaussX = 2;
@@ -2334,7 +2335,9 @@ void dialogBlur(bool openIt) {
   if (openIt) {
     beforeUndoPoint();
     if (clone != NULL) {delete clone; clone = NULL;}
+    if (restoreClone != NULL) {delete restoreClone; restoreClone = NULL;}
     clone = l->clone();
+    restoreClone = l->clone();
     updatedValues = true;
   }
   DIALOGSTART("Blur");
@@ -2424,6 +2427,7 @@ void dialogBlur(bool openIt) {
 
   if (apply) {
     if (clone != NULL) {delete clone; clone = NULL;}
+    if (restoreClone != NULL) {delete restoreClone; restoreClone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
     updatedPixels(l);
@@ -2431,8 +2435,10 @@ void dialogBlur(bool openIt) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGBLURCLOSE")) {
-    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    //if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (!locked(l,LOCK_ANY)) {l->getContentFromOtherLayer(restoreClone);l->transform = restoreClone->transform;}
     if (clone != NULL) {delete clone; clone = NULL;}
+    if (restoreClone != NULL) {delete restoreClone; restoreClone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
   } else toolTip("Don't apply a blur here");

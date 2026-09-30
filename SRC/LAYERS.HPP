@@ -638,6 +638,8 @@ public:
   bool canPasteSelection();
   void copySelection();
   void pasteSelection(int mode);
+
+  bool getContentFromOtherLayer(Layer *source);
 };
 
 #define S_LAYER(__name__,__o__)\

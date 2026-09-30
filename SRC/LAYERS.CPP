@@ -2434,6 +2434,24 @@ void Layer::pasteSelection(int mode) {
   }
 }
 
+bool Layer::getContentFromOtherLayer(Layer *source) {
+  bool ret = false;
+  if (pixels == NULL || pixelStates == NULL || source->width != width || source->height != height) {
+    if (pixels != NULL) {delete[] pixels; pixels = NULL;}
+    if (pixelStates != NULL) {delete[] pixelStates; pixelStates = NULL;}
+    width = source->width;
+    height = source->height;
+    pixels = new unsigned int[width*height];
+    pixelStates = new unsigned char[width*height];
+    ret = true;
+  }
+  if (memcmp(pixels,source->pixels,width*height*sizeof(unsigned int)) != 0) ret = true;
+  if (memcmp(pixelStates,source->pixelStates,width*height*sizeof(unsigned char)) != 0) ret = true;
+  memcpy(pixels,source->pixels,width*height*sizeof(unsigned int));
+  memcpy(pixelStates,source->pixelStates,width*height*sizeof(unsigned char));
+  return ret;
+}
+
 void CanvasControl::setCanvasTransform(Canvas *canvas) {
   canvas->transform.fresh();
   canvas->transform.translate(scrollX,scrollY);
@@ -3245,9 +3263,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int rs = (rgb1&255);
           int gs = ((rgb1>>8)&255);
           int bs = ((rgb1>>16)&255);
-          int r = rs > 128 ? (255-(255-rd)*(255-(rs-128))/255) : (rd*(rs+128)/255);
-          int g = gs > 128 ? (255-(255-gd)*(255-(gs-128))/255) : (gd*(gs+128)/255);
-          int b = bs > 128 ? (255-(255-bd)*(255-(bs-128))/255) : (bd*(bs+128)/255);
+          int r = rs >= 128 ? (255-(255-rd)*(255-(rs-128))/255) : (rd*(rs+128)/255);
+          int g = gs >= 128 ? (255-(255-gd)*(255-(gs-128))/255) : (gd*(gs+128)/255);
+          int b = bs >= 128 ? (255-(255-bd)*(255-(bs-128))/255) : (bd*(bs+128)/255);
           int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
           r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
           g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
@@ -3262,9 +3280,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int rs = (rgb1&255);
           int gs = ((rgb1>>8)&255);
           int bs = ((rgb1>>16)&255);
-          int r = rs > 128 ? (255-(255-rd)*(255-2*(rs-128))/255) : (rd*(2*rs)/255);
-          int g = gs > 128 ? (255-(255-gd)*(255-2*(gs-128))/255) : (gd*(2*gs)/255);
-          int b = bs > 128 ? (255-(255-bd)*(255-2*(bs-128))/255) : (bd*(2*bs)/255);
+          int r = rs >= 128 ? (255-(255-rd)*(255-2*(rs-128))/255) : (rd*(2*rs)/255);
+          int g = gs >= 128 ? (255-(255-gd)*(255-2*(gs-128))/255) : (gd*(2*gs)/255);
+          int b = bs >= 128 ? (255-(255-bd)*(255-2*(bs-128))/255) : (bd*(2*bs)/255);
           int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
           r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
           g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
@@ -3279,9 +3297,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int rs = (rgb1&255);
           int gs = ((rgb1>>8)&255);
           int bs = ((rgb1>>16)&255);
-          int r = rs > 128 ? (rd+2*(rs-128)) : (rd+2*rs-255);
-          int g = gs > 128 ? (gd+2*(gs-128)) : (gd+2*gs-255);
-          int b = bs > 128 ? (bd+2*(bs-128)) : (bd+2*bs-255);
+          int r = rs >= 128 ? (rd+2*(rs-128)) : (rd+2*rs-255);
+          int g = gs >= 128 ? (gd+2*(gs-128)) : (gd+2*gs-255);
+          int b = bs >= 128 ? (bd+2*(bs-128)) : (bd+2*bs-255);
           int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
           r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
           g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
@@ -3302,9 +3320,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int rs = (rgb1&255);
           int gs = ((rgb1>>8)&255);
           int bs = ((rgb1>>16)&255);
-          int r = rs > 128 ? maxi(rd,2*(rs-128)) : mini(rd,2*rs);
-          int g = gs > 128 ? maxi(gd,2*(gs-128)) : mini(gd,2*gs);
-          int b = bs > 128 ? maxi(bd,2*(bs-128)) : mini(bd,2*bs);
+          int r = rs >= 128 ? maxi(rd,2*(rs-128)) : mini(rd,2*rs);
+          int g = gs >= 128 ? maxi(gd,2*(gs-128)) : mini(gd,2*gs);
+          int b = bs >= 128 ? maxi(bd,2*(bs-128)) : mini(bd,2*bs);
           int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
           r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
           g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
@@ -3373,9 +3391,9 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int rs = (rgb1&255);
           int gs = ((rgb1>>8)&255);
           int bs = ((rgb1>>16)&255);
-          int r = rd > 128 ? 255-2*(rd-128)*(255-rs)/255 : 2 * rd * rs / 255;
-          int g = gd > 128 ? 255-2*(gd-128)*(255-gs)/255 : 2 * gd * gs / 255;
-          int b = bd > 128 ? 255-2*(bd-128)*(255-bs)/255 : 2 * bd * bs / 255;
+          int r = rd >= 128 ? 255-2*(rd-128)*(255-rs)/255 : 2 * rd * rs / 255;
+          int g = gd >= 128 ? 255-2*(gd-128)*(255-gs)/255 : 2 * gd * gs / 255;
+          int b = bd >= 128 ? 255-2*(bd-128)*(255-bs)/255 : 2 * bd * bs / 255;
           int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
           r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
           g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
@@ -4932,18 +4950,7 @@ void Canvas::getContentFromOtherLayer(Layer *dest, unsigned int sourceId) {
       Layer *l = layers[i];
       if (dest->undoData.updatePixelsCount != l->undoData.updatePixelsCount) {
         l->undoData.updatePixelsCount = dest->undoData.updatePixelsCount; // attention here may interfer with undo if some implementations change
-        if (dest->pixels == NULL || l->width != dest->width || l->height != dest->height) {
-          if (dest->pixels != NULL) {delete[] dest->pixels; dest->pixels = NULL;}
-          if (dest->pixelStates != NULL) {delete[] dest->pixelStates; dest->pixelStates = NULL;}
-          dest->width = l->width;
-          dest->height = l->height;
-          dest->pixels = new unsigned int[dest->width*dest->height];
-          dest->pixelStates = new unsigned char[dest->width*dest->height];
-           shouldUpdateAll = true;
-        }
-        if (memcmp(dest->pixels,l->pixels,dest->width*dest->height*sizeof(unsigned int)) != 0) shouldUpdateAll = true;
-        memcpy(dest->pixels,l->pixels,dest->width*dest->height*sizeof(unsigned int));
-        //memcpy(dest->pixelStates,l->pixelStates,dest->width*dest->height*sizeof(unsigned char));
+        if (dest->getContentFromOtherLayer(l)) shouldUpdateAll = true;
         memset(dest->pixelStates,0,dest->width*dest->height*sizeof(unsigned char));
       }
       break;

@@ -3742,6 +3742,7 @@ void useToolTileMap() {
 
 void useToolForms() {
   if (!isPaintAreaActive()) return;
+  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
 
   if (!formCVEdit) {
     static bool lastMouseDown = false;
