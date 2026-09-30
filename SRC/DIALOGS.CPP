@@ -155,6 +155,7 @@ void dialogs() {
   dialogDocumentation(false);
   dialogNewHere(false);
   dialogWhatFor(false);
+  dialogFlaws(false);
   dialogSuite(false);
   dialogExit(false);
   dialogDuplicate(false);
@@ -471,6 +472,45 @@ void dialogWhatFor(bool openIt) {
     "So be aware that Wypa is not a replacement\n"
     "for a propper graphics suite on other operating\n"
     "systems.\n"
+  );
+  ImGui::Separator();
+  if (ImGui::Button("Close##DIALOGWHATFORCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  }
+  DIALOGEND()
+}
+
+void dialogFlaws(bool openIt) {
+  DIALOGSTART("Flaws")
+  ImGui::Text(
+    "There are several more or less flaws in Wypa, which\n"
+    "are maybe not found in professional graphic programs.\n"
+    "Keep in mind that Wypa is more some sort of an \"inhouse\"\n"
+    "tool.\n"
+    "\n"
+    "Here the most important ones:\n"
+    "\n"
+    "1. After merging a layer you don't have an undo operation\n"
+    "   which recreates the upper layer(s) again. Thus be very\n"
+    "   careful with merging of layers.\n"
+    "2. If you merge or bake layers and aren't on strict pixel\n"
+    "   boundaries or have larger/smaller layers. You may\n"
+    "   lose some pixel information. The \"!\" button prevents\n"
+    "   this in most cases. The flaw exists because Wypa can't\n"
+    "   display shrinked/enlarged layers like they are merged\n"
+    "   later by 100 percent.\n"
+    "3. If you don't use the post processing tool for color grading\n"
+    "   you may lose bits of color information when doing this again and again.\n"
+    "   This is because Wypa handles layers internally as integer32\n"
+    "   as opposed to floats.\n"
+    "4. Wypa is slow because it works 100 percent on the CPU and not GPU\n"
+    "   and it only uses one single core of your processor.\n"
+    "   And it doesn't use SIMD (single instruction multiple data) extensions.\n"
+    "5. On DOS you need a lot of memory. There is a HDMPI32I.EXE driver to\n"
+    "   be found in the repository. It's from SBEMU. It should provide enough\n"
+    "   memory for large graphics and edits, if your machine intrinsically has\n"
+    "   a lot of memory. This memory can be accessed with it by DOS.\n"
+    "   Maybe look into the TinyDocumentation/FreeDOS for explanations.\n"
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGWHATFORCLOSE")) {

@@ -2497,3 +2497,38 @@ void filterPixelate(int cellSizeX, int cellSizeY) {
   updatedPixels(l);
   afterUndoPoint();
 }
+
+void filterSelectionVerticalGradient(Layer *layer) {
+  Layer *l = layer;
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  if (!l->hasSelection()) return;
+
+  beforeUndoPoint();
+
+  for (int x2 = 0; x2 < layer->width; x2++) {
+    int gradientStart = -1;
+    for (int y2 = 0; y2 < layer->height; y2++) {
+      unsigned char here = layer->pixelStates[x2+y2*layer->width];
+      if (here & PIXELSTATE_SELECTED) {
+        if (gradientStart < 0) gradientStart = y2;
+      } else {
+        if (gradientStart >= 0) {
+          int delta = y2 - gradientStart;
+          if (delta > 0) {
+            if (delta > 1) delta--;
+            for (int y3 = gradientStart; y3 < y2; y3++) {
+              int grey = (y3 - gradientStart)*255/delta;
+              layer->pixels[x2+y3*layer->width] = grey|(grey<<8)|(grey<<16)|0xff000000;
+            }
+          }
+          gradientStart = -1;
+        }
+      }
+    }
+  }
+
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}

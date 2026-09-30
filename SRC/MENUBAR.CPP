@@ -444,6 +444,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("OCR black & white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterBlackWhiteOCR();}
         if (ImGui::MenuItem("Selection average color",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionAverageColor(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Selection distance field",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionDistanceField(currentCanvas->getActiveLayer());}
+        if (ImGui::MenuItem("Selection vertical gradient",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionVerticalGradient(currentCanvas->getActiveLayer());}
         ImGui::EndMenu();
       }
   
@@ -485,6 +486,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Hotkeys")) {dialogHotkeys(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
+      if (ImGui::MenuItem("Flaws")) {dialogFlaws(true);}
       if (ImGui::MenuItem("Puls4r game creation suite")) {dialogSuite(true);}
       if (ImGui::MenuItem("Tiny documentation")) {dialogDocumentation(true);}
       if (ImGui::MenuItem("What's Wypa for?")) {dialogWhatFor(true);}
