@@ -697,6 +697,10 @@
     "Show rulers{" _N_
       "Displays some pixel position displaying rulers on the top and left." _N_
     "}" _N_
+    "Transparency pattern fixed{" _N_
+      "If enabled, the transparency denoting background pattern is not" _N_
+      "affected by moves and zooms." _N_
+    "}" _N_
     "Visible undo/redo{" _N_
       "Show every undo/redo action as some sort of outline briefly." _N_
     "}" _N_

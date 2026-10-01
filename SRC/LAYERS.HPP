@@ -1002,6 +1002,7 @@ extern bool blitOutlineSolidOneFrame;
 extern bool showCanvasDarkened;
 extern bool darkenSelectedTiles;
 extern unsigned int singleLayerId;
+extern bool transparencyFixed;
 
 Layer *layerFromCanvas(Canvas *canvas);
 void repaintLayer(Layer *layer, bool fullUpdate);

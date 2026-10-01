@@ -91,6 +91,7 @@ bool blitOutlineSolidOneFrame = false;
 bool showCanvasDarkened = true;
 bool darkenSelectedTiles = false;
 unsigned int singleLayerId = 0;
+bool transparencyFixed = false;
 
 void initLayers() {
   selectionPlane = new Layer();
@@ -5037,6 +5038,7 @@ void blitCanvas() {
   int selectionY0 = -1;
   int selectionX1 = -1;
   int selectionY1 = -1;
+  float aspect = (float)(aspectRatio*glFrameBufferHeight/glFrameBufferWidth);
 
   bool tiling = false;
   int tw = 1, th = 1;
@@ -5066,6 +5068,10 @@ void blitCanvas() {
       if ((col & 0xff000000) != 0xff000000) {
         int lx = lx2 + 4*100000;
         int ly = ly2 + 4*100000;
+        if (transparencyFixed) {
+          lx = (int)(x*aspect); 
+          ly = y;
+        }
         lx /= 4;
         ly /= 4;
         int k = (lx + ly) & 1;
