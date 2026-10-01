@@ -704,6 +704,10 @@ void useSubToolWatershed() {
   }
 }
 
+void colorGet() {
+  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor); reGenColorWheel();}
+}
+
 void useToolWand() {
 
   if (watershed) {
@@ -713,7 +717,7 @@ void useToolWand() {
 
   if (!isPaintAreaActive()) return;
 
-  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+  colorGet();
 
   if (!ImGui::IsMouseClicked(0)) return;
 
@@ -1000,7 +1004,7 @@ void useToolFill() {
   unsigned int clickBack = currentCanvas->getLayerColor(mouseX, mouseY,false);
   if (ImGui::IsMouseClicked(1)) {
     if (!tiling) {
-      foregroundColor = getImVec4Color(clickBack); addUsedColor(foregroundColor);
+      foregroundColor = getImVec4Color(clickBack); addUsedColor(foregroundColor); reGenColorWheel();
     } else l->toolInfo.tileMapSelectedTile = clickBack;
   }
 
@@ -1183,7 +1187,7 @@ void useToolSelection() {
   if (wasActiveLayerSwitched()) {selectionToolActive = false; selectionToolMoveActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
 
   bool polygonSpanning = selectionTool == SELECTIONTOOL_POLYGON && selectionToolActive;
-  if (ImGui::IsMouseClicked(1) && isPaintAreaActive() && (!polygonSpanning)) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+  colorGet();
 
   Layer *activeLayer = currentCanvas->getActiveLayer(); 
   if (activeLayer == NULL) return; 
@@ -2060,7 +2064,7 @@ void useToolPainting() {
 
   mouseClickUndo();
 
-  if (!paintingOn && ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+  if (!paintingOn) colorGet();
   bool useTempBrush = tool == TOOL_LINE;
   if ((unsigned int)currentBrush >= brushes.size() && (!useTempBrush)) return;
   Brush *brush = useTempBrush ? onePixelBrush : brushes[currentBrush];
@@ -3764,7 +3768,7 @@ void useToolTileMap() {
 
 void useToolForms() {
   if (!isPaintAreaActive()) return;
-  if (ImGui::IsMouseClicked(1) && isPaintAreaActive()) {foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX, mouseY,false)); addUsedColor(foregroundColor);}
+  colorGet();
 
   if (!formCVEdit) {
     static bool lastMouseDown = false;
