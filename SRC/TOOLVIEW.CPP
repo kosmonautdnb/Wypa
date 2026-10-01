@@ -344,6 +344,14 @@ void eraseBrush() {
   if ((!brushes.empty()) && currentBrush>=(int)brushes.size()) currentBrush = (int)brushes.size()-1;
 }
 
+bool shortBrushSelector = false;
+
+void cursorLeft(int left = 1) {
+  ImVec2 cursor = ImGui::GetCursorScreenPos();
+  cursor.x -= left;
+  ImGui::SetCursorScreenPos(cursor);
+}
+
 void drawBrushSelect(bool pencil) {
   int toolButtonXCount = 4;
   int toolButtonYCount = 4;
@@ -353,86 +361,97 @@ void drawBrushSelect(bool pencil) {
     ImGui::Text("Erase (hard)");
   else
     ImGui::Text("");
-  if (roundButton("Insert##DRAWBRUSHSELECTINSERTBRUSH",true)) {insertBrush();} else toolTip("Insert a new brush");
-  ImGui::SameLine();
-  if (roundButton("Erase##DRAWBRUSHSELECTERASEBRUSH",true)) {eraseBrush();} else toolTip("Erase the current brush");
-  //ImGui::Text("Brushes %d",brushes.size()); toolTip("Current brush count");
-  ImGui::BeginChild("DRAWBRUSHSELECTCHILD", ImVec2((float)toolview_width,(float)(toolButtonHeight*toolButtonYCount)));
-  for (int i = 0; i < (int)brushes.size(); i++) {
-    if ((i % toolButtonXCount) != 0) ImGui::SameLine();
-    Brush *brush = brushes[i];
-    if (drawBrushWindow(combined(String("##DRAWBRUSHSELECT")+String::fromInt(i)).c_str(),BRUSHINSTANCE_SELECT,brush,toolButtonWidth,toolButtonHeight, pencil, i == currentBrush)) {
-      brushes[currentBrush]->freeInstance(BRUSHINSTANCE_PAINT);
-      brushes[currentBrush]->freeInstance(BRUSHINSTANCE_EDIT);
-      currentBrush = i;
-    }
-  }
-  ImGui::EndChild(); toolTip("Brush palette");
-  if (roundButton("Load##DRAWBRUSHSELECTLOADBRUSH",true)) {dialogLoadSave(true,DIALOG_LOADBRUSH);} else toolTip("Load a brush to current brush");
-  ImGui::SameLine();
-  if (roundButton("Save##DRAWBRUSHSELECTSAVEBRUSH",true)) {dialogLoadSave(true,DIALOG_SAVEBRUSH);} else toolTip("Save the current brush");
-  ImGui::SameLine();
-  if (roundButton("Get##DRAWBRUSHSELECTGETBRUSH1",true)) {
-    Layer *l = currentCanvas->getActiveLayer();
-    if (l != NULL && l->hasSelection()) {
-      if ((unsigned int)currentBrush<brushes.size()) {
-        Brush *brush = brushes[currentBrush];
-        int minX = 0, minY = 0, maxX = 0, maxY = 0; bool first = true;
-        for (int y = 0; y < l->height; y++) {
-          for (int x = 0; x < l->width; x++) {
-            if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {
-              if (first || x < minX) minX = x;
-              if (first || y < minY) minY = y;
-              if (first || x > maxX) maxX = x;
-              if (first || y > maxY) maxY = y;
-              first = false;
-            }
-          }
-        }
-        maxX++;
-        maxY++;
-        RGBAImage img;
-        img.width = maxX-minX;
-        img.height = maxY-minY;
-        img.data = (unsigned int*)malloc(img.width*img.height*sizeof(unsigned int));
-        for (int y2 = 0; y2 < img.height; y2++) {
-          for (int x2 = 0; x2 < img.width; x2++) {
-            int sx = x2 + minX;
-            int sy = y2 + minY;
-            unsigned int col = 0x00000000;
-            if ((unsigned int)sx < (unsigned int)l->width && (unsigned int)sy < (unsigned int)l->height) {
-              col = l->pixels[sx+sy*l->width];
-            }
-            img.data[x2+y2*img.width] = col;
-          }
-        }
-        if (img.width > 128 || img.height > 128) {
-          int m = img.width;
-          if (img.height > m) m = img.height;
-          if (m != 0) {
-            RGBAImage img2 = img.getResized(128*img.width/m,128*img.height/m);
-            img.free();
-            img = img2;
-          }
-        }
-        scanSampleDistanceField(brush, img);
-        brush->isDistanceField = true;
-        brush->update();
-        img.free();
+  cursorLeft(2); if (ImGui::Checkbox("##DRAWBRUSHSELECTSHORTBRUSHSELECTOR",&shortBrushSelector)) {;} else toolTip("If enabled just basic brush settings are visible");
+  if (shortBrushSelector) {
+    ImGui::SameLine();
+    ImGui::Text("Return");
+  } else {
+    ImGui::SameLine();
+    if (roundButton("Insert##DRAWBRUSHSELECTINSERTBRUSH",true)) {insertBrush();} else toolTip("Insert a new brush");
+    ImGui::SameLine();
+    if (roundButton("Erase##DRAWBRUSHSELECTERASEBRUSH",true)) {eraseBrush();} else toolTip("Erase the current brush");
+    //ImGui::Text("Brushes %d",brushes.size()); toolTip("Current brush count");
+    ImGui::BeginChild("DRAWBRUSHSELECTCHILD", ImVec2((float)toolview_width,(float)(toolButtonHeight*toolButtonYCount)));
+    for (int i = 0; i < (int)brushes.size(); i++) {
+      if ((i % toolButtonXCount) != 0) ImGui::SameLine();
+      Brush *brush = brushes[i];
+      if (drawBrushWindow(combined(String("##DRAWBRUSHSELECT")+String::fromInt(i)).c_str(),BRUSHINSTANCE_SELECT,brush,toolButtonWidth,toolButtonHeight, pencil, i == currentBrush)) {
+        brushes[currentBrush]->freeInstance(BRUSHINSTANCE_PAINT);
+        brushes[currentBrush]->freeInstance(BRUSHINSTANCE_EDIT);
+        currentBrush = i;
       }
     }
-  } else toolTip("Get a transparency based brush from selection");
-  if (roundButton("Load brushes##DRAWBRUSHSELECTLOADBRUSHES",true)) {dialogLoadSave(true,DIALOG_LOADBRUSHES);} else toolTip("Load a brush palette");
-  if (roundButton("Save brushes##DRAWBRUSHSELECTSAVEBRUSHES",true)) {dialogLoadSave(true,DIALOG_SAVEBRUSHES);} else toolTip("Save the brush palette");
-  ImGui::Separator();
+    ImGui::EndChild(); toolTip("Brush palette");
+    if (roundButton("Load##DRAWBRUSHSELECTLOADBRUSH",true)) {dialogLoadSave(true,DIALOG_LOADBRUSH);} else toolTip("Load a brush to current brush");
+    ImGui::SameLine();
+    if (roundButton("Save##DRAWBRUSHSELECTSAVEBRUSH",true)) {dialogLoadSave(true,DIALOG_SAVEBRUSH);} else toolTip("Save the current brush");
+    ImGui::SameLine();
+    if (roundButton("Get##DRAWBRUSHSELECTGETBRUSH1",true)) {
+      Layer *l = currentCanvas->getActiveLayer();
+      if (l != NULL && l->hasSelection()) {
+        if ((unsigned int)currentBrush<brushes.size()) {
+          Brush *brush = brushes[currentBrush];
+          int minX = 0, minY = 0, maxX = 0, maxY = 0; bool first = true;
+          for (int y = 0; y < l->height; y++) {
+            for (int x = 0; x < l->width; x++) {
+              if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {
+                if (first || x < minX) minX = x;
+                if (first || y < minY) minY = y;
+                if (first || x > maxX) maxX = x;
+                if (first || y > maxY) maxY = y;
+                first = false;
+              }
+            }
+          }
+          maxX++;
+          maxY++;
+          RGBAImage img;
+          img.width = maxX-minX;
+          img.height = maxY-minY;
+          img.data = (unsigned int*)malloc(img.width*img.height*sizeof(unsigned int));
+          for (int y2 = 0; y2 < img.height; y2++) {
+            for (int x2 = 0; x2 < img.width; x2++) {
+              int sx = x2 + minX;
+              int sy = y2 + minY;
+              unsigned int col = 0x00000000;
+              if ((unsigned int)sx < (unsigned int)l->width && (unsigned int)sy < (unsigned int)l->height) {
+                col = l->pixels[sx+sy*l->width];
+              }
+              img.data[x2+y2*img.width] = col;
+            }
+          }
+          if (img.width > 128 || img.height > 128) {
+            int m = img.width;
+            if (img.height > m) m = img.height;
+            if (m != 0) {
+              RGBAImage img2 = img.getResized(128*img.width/m,128*img.height/m);
+              img.free();
+              img = img2;
+            }
+          }
+          scanSampleDistanceField(brush, img);
+          brush->isDistanceField = true;
+          brush->update();
+          img.free();
+        }
+      }
+    } else toolTip("Get a transparency based brush from selection");
+    if (roundButton("Load brushes##DRAWBRUSHSELECTLOADBRUSHES",true)) {dialogLoadSave(true,DIALOG_LOADBRUSHES);} else toolTip("Load a brush palette");
+    if (roundButton("Save brushes##DRAWBRUSHSELECTSAVEBRUSHES",true)) {dialogLoadSave(true,DIALOG_SAVEBRUSHES);} else toolTip("Save the brush palette");
+    ImGui::Separator();
+  }
 }
 
 void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
-  ImGui::InputText("##DRAWBRUSHEDITNAME",brush->name,BRUSHNAMEMAX); toolTip("Brush name");
-  ImGui::SameLine(); if (ImGui::Checkbox("##DRAWBRUSHEDITOUTLINE",&toolOutline)) {} else toolTip("Show brush shape whilst painting");
-  if (drawBrushWindow(id,BRUSHINSTANCE_EDIT,brush,toolview_width-10,toolview_width-10, pencil,false)) {
-    dialogLoadSave(true,DIALOG_LOADBRUSHSHAPE);
-  } else toolTip("Load a .svg as brush");
+  if (!shortBrushSelector) {
+    ImGui::InputText("##DRAWBRUSHEDITNAME",brush->name,BRUSHNAMEMAX); toolTip("Brush name");
+    ImGui::SameLine(); if (ImGui::Checkbox("##DRAWBRUSHEDITOUTLINE",&toolOutline)) {} else toolTip("Show brush shape whilst painting");
+    if (drawBrushWindow(id,BRUSHINSTANCE_EDIT,brush,toolview_width-10,toolview_width-10, pencil,false)) {
+      dialogLoadSave(true,DIALOG_LOADBRUSHSHAPE);
+    } else toolTip("Load a .svg as brush");
+  } else {
+    ImGui::Text("\"%s\"", brush->name);
+  }
   if (tool == TOOL_ERASER) {
     ImGui::Text("Hard"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWBRUSHEDITERASERHARD",&hardEraser)) {} else toolTip("Erase is binary");
   }
@@ -444,33 +463,35 @@ void drawBrushEdit(const char *id, Brush *brush, bool pencil) {
   }
   ImGui::Text("Opacity");
   if (ImGui::SliderFloat("##DRAWBRUSHEDITOPACITY",&brush->opacity,0,1)) {if (brush->opacity<0) brush->opacity = 0; if (brush->opacity>1) brush->opacity = 1; brush->update();} else toolTip("Additional transparency");
-  ImGui::Text("Aspect");
-  if (ImGui::SliderFloat("##DRAWBRUSHEDITASPECT",&brush->aspect,1,8)) {if (brush->aspect<1) brush->aspect = 0; if (brush->aspect>8) brush->aspect = 8; brush->update();} else toolTip("X vs Y pixel size");
-  ImGui::Text("Rotation");
-  if (ImGui::SliderFloat("##DRAWBRUSHEDITROTATION",&brush->rotation,0,360)) {if (brush->rotation<0) brush->rotation = 0; if (brush->rotation>360) brush->rotation = 360; brush->update();} else toolTip("Rotation of the brush");
-  if (!pencil) {
-    ImGui::Text("Softness");
-    float k = brush->softness-1; if (ImGui::SliderFloat("##DRAWBRUSHEDITSOFTNESS",&k,-1,1)) {if (k<-1) k = -1; if (k>1) k = 1; brush->softness = k + 1; brush->update();} else toolTip("Intensity of brush shape");
+  if (!shortBrushSelector) {
+    ImGui::Text("Aspect");
+    if (ImGui::SliderFloat("##DRAWBRUSHEDITASPECT",&brush->aspect,1,8)) {if (brush->aspect<1) brush->aspect = 0; if (brush->aspect>8) brush->aspect = 8; brush->update();} else toolTip("X vs Y pixel size");
+    ImGui::Text("Rotation");
+    if (ImGui::SliderFloat("##DRAWBRUSHEDITROTATION",&brush->rotation,0,360)) {if (brush->rotation<0) brush->rotation = 0; if (brush->rotation>360) brush->rotation = 360; brush->update();} else toolTip("Rotation of the brush");
+    if (!pencil) {
+      ImGui::Text("Softness");
+      float k = brush->softness-1; if (ImGui::SliderFloat("##DRAWBRUSHEDITSOFTNESS",&k,-1,1)) {if (k<-1) k = -1; if (k>1) k = 1; brush->softness = k + 1; brush->update();} else toolTip("Intensity of brush shape");
+    }
+    ImGui::Text("Edge");
+    ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITEDGINESS",&brush->edginess,0,1)) {if (brush->edginess<0) brush->edginess = 0; if (brush->edginess>1) brush->edginess = 1; brush->update();} else toolTip("Brush to rectangle");
+    ImGui::Text("Oval");
+    ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITOVALITY",&brush->ovality,0,1)) {if (brush->ovality<0) brush->ovality = 0; if (brush->ovality>1) brush->ovality = 1; brush->update();} else toolTip("Make brush more or less oval");
+    float k;
+    ImGui::Separator();
+    ImGui::PushItemWidth(7*5+16*2);
+    ImGui::Text("Rate");
+    ImGui::SameLine(); if (ImGui::SliderFloat("##DRAWBRUSHEDITRATE",&brush->rate,0,1)) {if (brush->rate<0) brush->rate = 0; if (brush->rate>1) brush->rate = 1; brush->update();} else toolTip("Sprinkle intensity");
+    ImGui::Text("Width");
+    ImGui::SameLine(); k = (float)((double)brush->size/(double)brush->aspect); if (ImGui::InputFloat("##DRAWBRUSHEDITWIDTH",&k,1,1)) {if (k<1) k = 1; if (k > 128) k = 128; brush->aspect = (float)((double)brush->size/(double)k); brush->update();} else toolTip("Brush width");
+    ImGui::Text("Height");
+    ImGui::SameLine(); k = brush->size; if (ImGui::InputFloat("##DRAWBRUSHEDITHEIGHT",&k,1,1)) {double widthBefore = (double)brush->size/(double)brush->aspect; if (widthBefore == 0) widthBefore = 1; if(k<1) k = 1; if (k>128) k = 128; brush->size = k; brush->aspect = (float)((double)brush->size/widthBefore); brush->update();} else toolTip("Brush height");
+    ImGui::Text("SpreadX");
+    ImGui::SameLine(); if (ImGui::InputFloat("##DRAWBRUSHEDITRANDOMX",&brush->randomX)) {brush->update();} else toolTip("Sprinkle in x");
+    ImGui::Text("SpreadY");
+    ImGui::SameLine();if (ImGui::InputFloat("##DRAWBRUSHEDITRANDOMY",&brush->randomY)) {brush->update();} else toolTip("Sprinkle in y");
+    ImGui::Text("Rotate"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWBRUSHEDITFOLLOWROTATION",&brush->followRotation)) {} else toolTip("Try to follow the paint curve");
+    ImGui::PopItemWidth();
   }
-  ImGui::Text("Edge");
-  ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITEDGINESS",&brush->edginess,0,1)) {if (brush->edginess<0) brush->edginess = 0; if (brush->edginess>1) brush->edginess = 1; brush->update();} else toolTip("Brush to rectangle");
-  ImGui::Text("Oval");
-  ImGui::SameLine();if (ImGui::SliderFloat("##DRAWBRUSHEDITOVALITY",&brush->ovality,0,1)) {if (brush->ovality<0) brush->ovality = 0; if (brush->ovality>1) brush->ovality = 1; brush->update();} else toolTip("Make brush more or less oval");
-  float k;
-  ImGui::Separator();
-  ImGui::PushItemWidth(7*5+16*2);
-  ImGui::Text("Rate");
-  ImGui::SameLine(); if (ImGui::SliderFloat("##DRAWBRUSHEDITRATE",&brush->rate,0,1)) {if (brush->rate<0) brush->rate = 0; if (brush->rate>1) brush->rate = 1; brush->update();} else toolTip("Sprinkle intensity");
-  ImGui::Text("Width");
-  ImGui::SameLine(); k = (float)((double)brush->size/(double)brush->aspect); if (ImGui::InputFloat("##DRAWBRUSHEDITWIDTH",&k,1,1)) {if (k<1) k = 1; if (k > 128) k = 128; brush->aspect = (float)((double)brush->size/(double)k); brush->update();} else toolTip("Brush width");
-  ImGui::Text("Height");
-  ImGui::SameLine(); k = brush->size; if (ImGui::InputFloat("##DRAWBRUSHEDITHEIGHT",&k,1,1)) {double widthBefore = (double)brush->size/(double)brush->aspect; if (widthBefore == 0) widthBefore = 1; if(k<1) k = 1; if (k>128) k = 128; brush->size = k; brush->aspect = (float)((double)brush->size/widthBefore); brush->update();} else toolTip("Brush height");
-  ImGui::Text("SpreadX");
-  ImGui::SameLine(); if (ImGui::InputFloat("##DRAWBRUSHEDITRANDOMX",&brush->randomX)) {brush->update();} else toolTip("Sprinkle in x");
-  ImGui::Text("SpreadY");
-  ImGui::SameLine();if (ImGui::InputFloat("##DRAWBRUSHEDITRANDOMY",&brush->randomY)) {brush->update();} else toolTip("Sprinkle in y");
-  ImGui::Text("Rotate"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWBRUSHEDITFOLLOWROTATION",&brush->followRotation)) {} else toolTip("Try to follow the paint curve");
-  ImGui::PopItemWidth();
 }
 
 void drawToolPencilView() {
@@ -576,12 +597,6 @@ void drawToolGradientView() {
     }
   }
   ImGui::EndChild();
-}
-
-void cursorLeft(int left = 1) {
-  ImVec2 cursor = ImGui::GetCursorScreenPos();
-  cursor.x -= left;
-  ImGui::SetCursorScreenPos(cursor);
 }
 
 void drawToolMagicView() {
