@@ -308,6 +308,7 @@ enum BLURTOOL {
 extern int blurTool;
 
 void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask);
+void paintSelection(float opacity);
 
 #define S_TOOLS_CPP()\
   S_INT("currentBrush",currentBrush);\

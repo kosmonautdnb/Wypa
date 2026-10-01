@@ -1969,6 +1969,82 @@ static __inline void fromCMYK(float &c, float &m, float &y, float &k) {
   if (y > 255) y = 255;
 }
 
+static __inline unsigned int applyPixel(unsigned int col, float alpha) {
+  float rd = (float)(col & 255);
+  float gd = (float)((col>>8) & 255);
+  float bd = (float)((col>>16) & 255);
+  int ad = (col>>24) & 255;
+  float rs = foregroundColor.x*255.f;
+  float gs = foregroundColor.y*255.f;
+  float bs = foregroundColor.z*255.f;
+  int as = (int)(foregroundColor.w*alpha*255.f);
+  if (rs < 0) rs = 0;
+  if (gs < 0) gs = 0;
+  if (bs < 0) bs = 0;
+  if (as < 0) as = 0;
+  if (rs > 255) rs = 255;
+  if (gs > 255) gs = 255;
+  if (bs > 255) bs = 255;
+  if (as > 255) as = 255;
+  int a = 255-(255-ad)*(255-as)/255; if (a > 255) a = 255;
+  if (a > 0) {
+    rd *= ad;
+    gd *= ad;
+    bd *= ad;
+    rd /= a;
+    gd /= a;
+    bd /= a;
+  }
+  if (subtractiveColors) {
+    if (subtractiveCMYK) {
+      float ks,kd;
+      toCMYK(rs,gs,bs,ks); toCMYK(rd,gd,bd,kd);
+      float r2 = (rs-rd)*(float)as/255.f+rd;
+      float g2 = (gs-gd)*(float)as/255.f+gd;
+      float b2 = (bs-bd)*(float)as/255.f+bd;
+      float k2 = (ks-kd)*(float)as/255.f+kd;
+      fromCMYK(r2,g2,b2,k2);
+      int r = (int)r2;
+      int g = (int)g2;
+      int b = (int)b2;
+      return (r)|(g<<8)|(b<<16)|(a<<24);
+    } else {
+      toRYB(rs,gs,bs); toRYB(rd,gd,bd);
+      float r2 = (rs-rd)*(float)as/255.f+rd;
+      float g2 = (gs-gd)*(float)as/255.f+gd;
+      float b2 = (bs-bd)*(float)as/255.f+bd;
+      fromRYB(r2,g2,b2);
+      int r = (int)r2;
+      int g = (int)g2;
+      int b = (int)b2;
+      return (r)|(g<<8)|(b<<16)|(a<<24);
+    }
+  } else {
+    int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
+    int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
+    int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
+    return (r)|(g<<8)|(b<<16)|(a<<24);
+  }
+}
+
+void paintSelection(float opacity) {
+  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
+    Layer *l = currentCanvas->layers[i];
+    if ((l->state.selected || l->state.active) && l->hasSelection()) {
+      if (!l->hasSelection()) continue;
+      if (locked(l,LOCK_PIXELS)) continue;
+      for (int i = 0; i < l->width * l->height; i++) {
+        if (l->pixelStates[i] & PIXELSTATE_SELECTED) {
+          l->pixels[i] = applyPixel(l->pixels[i], opacity);
+        }
+      }
+      shouldUpdateAll = true;
+      updatedPixels(l);
+      addUsedColor(foregroundColor);
+    }
+  }
+}
+
 void useToolPainting() {
 
   int tool2 = tool;
@@ -2209,61 +2285,7 @@ void useToolPainting() {
             case TOOL_PAINTBRUSH:
             case TOOL_MAGIC:
             case TOOL_PENCIL: {
-              float rd = (float)(col & 255);
-              float gd = (float)((col>>8) & 255);
-              float bd = (float)((col>>16) & 255);
-              int ad = (col>>24) & 255;
-              float rs = foregroundColor.x*255.f;
-              float gs = foregroundColor.y*255.f;
-              float bs = foregroundColor.z*255.f;
-              int as = (int)(foregroundColor.w*value*255.f*brush->opacity);
-              if (rs < 0) rs = 0;
-              if (gs < 0) gs = 0;
-              if (bs < 0) bs = 0;
-              if (as < 0) as = 0;
-              if (rs > 255) rs = 255;
-              if (gs > 255) gs = 255;
-              if (bs > 255) bs = 255;
-              if (as > 255) as = 255;
-              int a = 255-(255-ad)*(255-as)/255; if (a > 255) a = 255;
-              if (a > 0) {
-                rd *= ad;
-                gd *= ad;
-                bd *= ad;
-                rd /= a;
-                gd /= a;
-                bd /= a;
-              }
-              if (subtractiveColors) {
-                if (subtractiveCMYK) {
-                  float ks,kd;
-                  toCMYK(rs,gs,bs,ks); toCMYK(rd,gd,bd,kd);
-                  float r2 = (rs-rd)*(float)as/255.f+rd;
-                  float g2 = (gs-gd)*(float)as/255.f+gd;
-                  float b2 = (bs-bd)*(float)as/255.f+bd;
-                  float k2 = (ks-kd)*(float)as/255.f+kd;
-                  fromCMYK(r2,g2,b2,k2);
-                  int r = (int)r2;
-                  int g = (int)g2;
-                  int b = (int)b2;
-                  paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
-                } else {
-                  toRYB(rs,gs,bs); toRYB(rd,gd,bd);
-                  float r2 = (rs-rd)*(float)as/255.f+rd;
-                  float g2 = (gs-gd)*(float)as/255.f+gd;
-                  float b2 = (bs-bd)*(float)as/255.f+bd;
-                  fromRYB(r2,g2,b2);
-                  int r = (int)r2;
-                  int g = (int)g2;
-                  int b = (int)b2;
-                  paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
-                }
-              } else {
-                int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
-                int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
-                int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
-                paintToolLayer->pixels[p] = (r)|(g<<8)|(b<<16)|(a<<24);
-              }
+              paintToolLayer->pixels[p] = applyPixel(col, value * brush->opacity);
             } break;
             case TOOL_ERASER: {
               int ad = (col>>24) & 255;

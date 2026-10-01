@@ -594,6 +594,7 @@ public:
   void whiteBalance();
   void invertColor();
   void invertAlpha();
+  void paintPixel(int x, int y, unsigned int color, float opacity);
   void expandSelection(int pixels);
   void selectByAlpha(int alphaThresholdMin,int alphaThresholdMax);
   void selectionAsOutline();

@@ -160,7 +160,7 @@
       "layer." _N_
       "It is a very simple implementation and e.g. doesn't convert" _N_
       "the transparency modes of the layers." _N_
-      "Maybe you should not rely on the 100% correctness of the" _N_
+      "Maybe you should not rely on the 100 percent correctness of the" _N_
       "functionality of this feature." _N_
     "}" _N_
     "Insert svg layer{" _N_
@@ -234,13 +234,18 @@
     "Redo{" _N_
       "Reverses the last made undos again." _N_
     "}" _N_
-    "Fill selection with color{" _N_
-      "Fills the entire selected area of a layer(s) with the current" _N_
-      "paint color." _N_
+    "Fill selection{" _N_
+      "Fills the entire selected area of a layer with the current" _N_
+      "paint color. The color is applied like painting with a pen with" _N_
+      "opacity 100 percent." _N_
     "}" _N_
-    "Fill selection with alpha{" _N_
-      "Fills the entire selected area of a layer(s) with the current" _N_
-      "paint colors alpha(transparency)." _N_
+    "Fill selection with direct color{" _N_
+      "Fills the entire selected area of a layer with the current" _N_
+      "paint color. The color is just copy pasted." _N_
+    "}" _N_
+    "Fill selection with direct alpha{" _N_
+      "Fills the entire selected area of a layer with the current" _N_
+      "paint colors alpha(transparency). The alpha is just copy pasted." _N_
     "}" _N_
     "Erase selection{" _N_
       "Deletes the selected area of an layer." _N_
@@ -636,7 +641,7 @@
       "certain colors." _N_
       "A gamma of 2.2 almost looks like my android phones output here." _N_
       "You can also adjust the min and max color levels, but that's" _N_
-      "more or less only for monitors that don't work 100% right." _N_
+      "more or less only for monitors that don't work 100 percent right." _N_
       "PNG exports should contain monitor gamma info{" _N_
         "PNG files contain a section about their gamma value." _N_
         "If you enable this option, the png file contains your" _N_
@@ -657,11 +662,11 @@
       "like 1280x720. This option makes it possible to use the 1024x768" _N_
       "option on 1280x720 monitors." _N_
     "}" _N_
-    "Zoom 100%{" _N_
+    "Zoom 100 percent{" _N_
       "Sets the zoom factor to 1:1 mapping." _N_
       "The zooming gets applied from the center of the \"screen\"" _N_
     "}" _N_
-    "Zoom 200%{" _N_
+    "Zoom 200 percent{" _N_
       "Sets the zoom factor to 1:2 mapping." _N_
       "The zooming gets applied from the center of the \"screen\"" _N_
     "}" _N_
@@ -1140,8 +1145,8 @@
     "The warmth setting is a simple -1 to 1 value, not in Kelvin." _N_
     "The operators are processed like the item order." _N_
     "" _N_
-    "Fast quant is not 100% correct. The \"Quantize\" menu point is better." _N_
-    "The current palette is used for quantization/color reduction." _N_
+    "Fast quant is not 100 percent correct. The \"Quantize\" menu point" _N_
+    "is better. The current palette is used for quantization/color reduction." _N_
     "You have a \"dither\" option which actually only increases the" _N_
     "luminance in a checkerboard. You can define a factor e.g. how much." _N_
     "You can add a value to the color index chosen by \"Palette shift\"." _N_
@@ -1183,7 +1188,7 @@
     "" _N_
     "You can load/save the anim to a png." _N_
     "The first line in the png holds the width of a cell" _N_
-    "(a 100% red pixel)." _N_
+    "(a 100 percent red pixel)." _N_
     "" _N_
     "You may use \"Tiled drawing\", which lets you select a cell," _N_
     "and draw repeated (seamless) on it." _N_
@@ -1738,7 +1743,7 @@
     "      control with that entity. For the purposes of this definition," _N_
     "      \"control\" means (i) the power, direct or indirect, to cause the" _N_
     "      direction or management of such entity, whether by contract or" _N_
-    "      otherwise, or (ii) ownership of fifty percent (50%) or more of the" _N_
+    "      otherwise, or (ii) ownership of fifty percent (50 percent) or more of the" _N_
     "      outstanding shares, or (iii) beneficial ownership of such entity." _N_
     "" _N_
     "      \"You\" (or \"Your\") shall mean an individual or Legal Entity" _N_
