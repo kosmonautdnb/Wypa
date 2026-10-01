@@ -144,6 +144,7 @@ void dialogs() {
   dialogImageResize(false);
   if (!dialogLoadSaveOff) {dialogLoadSave(false,DIALOG_NONE);} dialogLoadSaveOff = false;
   dialogDeletePicture(false);
+  dialogDeleteAllPictures(false);
   dialogAddLayer(false);
   dialogDeleteLayers(false);
   dialogSelectByAlpha(false);
@@ -1392,6 +1393,27 @@ void dialogDeletePicture(bool openIt) {
   if (ImGui::Button("Close##DIALOGDELETEPICTURECLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't delete this picture");
+  DIALOGEND()
+}
+
+void dialogDeleteAllPictures(bool openIt) {
+  DIALOGSTART("Close all opened pictures?");
+  noUndoMessage();
+  ImGui::Text("Do you want to close/delete all open pictures?");
+  if (ImGui::Button("Delete##DIALOGDELETEALLPICTURESDELETE")) {
+    for (int i = 0; i < (int)canvas.size(); i++) {
+      delete canvas[i];
+    }
+    canvas.clear();
+    addTempPicture();
+    currentCanvas = canvas[0];
+    shouldUpdateAll = true;
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Close all open pictures and free their used memory");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGDELETEALLPICTURESCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Do nothing / just let all pictures open and like they are");
   DIALOGEND()
 }
 
@@ -3621,7 +3643,7 @@ void dialogCreateFolder(bool openIt) {
   ImGui::TextWrapped("Long path:%s",longFileName(f).c_str()); toolTip("The long (doslfn.com) DOS path");
   ImGui::EndChild();
   ImGui::Separator();
-  ImGui::Text("Folder name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGCREATEFOLDERCHILD",folderName,MAX_LFN_PATH); toolTip("How the new folder to create should be named here");
+  ImGui::Text("Folder name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGCREATEFOLDERFOLDERNAME",folderName,MAX_LFN_PATH); toolTip("How the new folder to create should be named here");
   ImGui::Separator();
   if (!k.empty()) {
     if (ImGui::Button("Create folder##DIALOGCREATEFOLDERCREATE")) {
@@ -3637,6 +3659,56 @@ void dialogCreateFolder(bool openIt) {
   if (ImGui::Button("Close##DIALOGCREATEFOLDERCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't create any new folder");
+  DIALOGEND()
+}
+
+void dialogRenameFile(bool openIt) {
+  static char renameName[MAX_LFN_PATH];
+  static bool alreadyExists = false;
+  static bool testForExist = false;
+  if (openIt) {
+    sprintf(renameName,"%s",loadSaveLongFileName.c_str());
+    testForExist = true;
+  }
+  DIALOGSTART("Rename a file")
+  ImGui::BeginChild("##DIALOGRENAMEFILECHILD",ImVec2((float)(main_window_xres/2),64));
+  String k = String(renameName);
+  String f = loadSaveShortPath + k;
+  ImGui::TextWrapped("Short path:%s",shortFileName(f).c_str()); toolTip("The short DOS path");
+  ImGui::Separator();
+  ImGui::TextWrapped("Long path:%s",longFileName(f).c_str()); toolTip("The long (doslfn.com) DOS path");
+  ImGui::EndChild();
+  ImGui::Separator();
+  ImGui::Text("Rename file to"); ImGui::SameLine(); DIALOGKEYSHERE(); if (ImGui::InputText("##DIALOGRENAMEFILEFILENAME", renameName, MAX_LFN_PATH)) {testForExist = true;} else toolTip("The new name of this file");
+  if (testForExist) {
+    String k2 = String(renameName);
+    String f2 = loadSaveShortPath + k2;
+    testForExist = false;
+    alreadyExists = false;
+    FILE *in = fopen(dosFileName(shortFileName(dosFileName(f2))).c_str(),"rb");
+    if (in != NULL) {
+      alreadyExists = true;
+      fclose(in);
+    }
+  }
+  if (alreadyExists) {ImGui::TextColored(ImVec4(1,0,0,1),"Filename already used");}
+  ImGui::Separator();
+  if (!k.empty() && (!alreadyExists)) {
+    if (ImGui::Button("Rename file##DIALOGRENAMEFILECREATE")) {
+      String k2 = String(renameName);
+      String f0 = loadSaveShortPath + loadSaveLongFileName;
+      String f2 = loadSaveShortPath + k2;
+      if (!doslfnRename(f0.c_str(), f2.c_str())) {
+        rename(f0.c_str(), f2.c_str());
+      }
+      fileSystemUpdatedHere = true;
+      ImGui::CloseCurrentPopup();
+    } else toolTip("Rename the file");
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGRENAMEFILECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't create rename the file");
   DIALOGEND()
 }
 
@@ -3704,6 +3776,7 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   DIALOGSTART(dialogCaption[mode])
   ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogOverwrite(false); ImGui::PopStyleColor();
   ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogCreateFolder(false); ImGui::PopStyleColor(); if (fileSystemUpdatedHere) {fileSystemUpdatedHere = false;needsRescanFiles=true;}
+  ImGui::PushStyleColor(ImGuiCol_ModalWindowDarkening,ImVec4(0,0,0,0.5)); dialogRenameFile(false); ImGui::PopStyleColor(); if (fileSystemUpdatedHere) {fileSystemUpdatedHere = false;needsRescanFiles=true;}
 
   noUndoMessage();
   if (paths[mode].empty()) {paths[mode] = getCWD();}
@@ -3751,6 +3824,13 @@ void dialogLoadSave(bool openIt, int dialogMode) {
   if (ImGui::Button("Create folder##DIALOGLOADSAVECREATEFOLDER")) {
       loadSaveShortPath = paths[mode]; 
       dialogCreateFolder(true);
+  } else TOOLTIP("Create a new folder here");
+  ImGui::SameLine();
+  if (ImGui::Button("Rename file##DIALOGLOADSAVERENAMEFILE")) {
+      loadSaveShortPath = paths[mode]; 
+      loadSaveLongFileName = fileNames[mode];
+      loadSaveLongFileName.resize((int)strlen(loadSaveLongFileName.c_str()));
+      if (!loadSaveLongFileName.empty()) dialogRenameFile(true);
   } else TOOLTIP("Create a new folder here");
   ImGui::SameLine();
   ImGui::Text("Preview"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGLOADSAVEPREVIEW",&previewOn)) {if (previewOn) clearPreview();} else TOOLTIP("Show a tiny preview of this in a box");

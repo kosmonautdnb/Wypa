@@ -5228,6 +5228,7 @@ void addPicture(String fileName) {
   static unsigned short counter = 0; counter++;
   sprintf(currentCanvas->pictureName,"loaded %d",counter);
   canvas.push_back(currentCanvas);
+  picturesBlink++;
   canvasDefault(currentCanvas);
   currentCanvas->addLayer(l);
   currentCanvas->setActiveLayer(0);
@@ -5242,6 +5243,7 @@ void addPicture(String fileName) {
 void addCanvas(Canvas *canvas) {
   currentCanvas = canvas;
   ::canvas.push_back(currentCanvas);
+  picturesBlink++;
   shouldUpdateAll = true;
   updatedPixels(currentCanvas->getActiveLayer());
   updatedPixelStates(currentCanvas->getActiveLayer());
@@ -5288,6 +5290,7 @@ void newPicture(int w, int h,const String &pictureName) {
   currentCanvas = new Canvas();
   sprintf(currentCanvas->pictureName,pictureName.c_str());
   canvas.push_back(currentCanvas);
+  picturesBlink++;
   canvasDefault(currentCanvas);
   Layer *l = new Layer();
   l->init(w,h);
@@ -5320,5 +5323,6 @@ void duplicatePicture(bool mergeLayers) {
   }
   zwo->signSave();
   canvas.push_back(zwo);
+  picturesBlink++;
   shouldUpdateAll = true;
 }

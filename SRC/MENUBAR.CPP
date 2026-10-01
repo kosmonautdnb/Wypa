@@ -207,6 +207,8 @@ void drawMenuBar() {
         }
         if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
         ImGui::Separator();
+        if (ImGui::MenuItem("Delete all pictures")) {dialogDeleteAllPictures(true);}
+        ImGui::Separator();
         bool hasShell = false;
 #ifdef __DJGPP__
         hasShell = true;

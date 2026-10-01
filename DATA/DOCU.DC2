@@ -200,6 +200,9 @@
       "after loading it. You'll be having a wrong palette maybe at exporting" _N_
       "the tga if you don't load the palette of it before." _N_
     "}" _N_
+    "Delete all pictures{" _N_
+      "Closes all open pictures and lets you have an empty workspace again." _N_
+    "}" _N_
     "Save user interface screenshot{" _N_
       "This saves the current screen (without the open menubar)" _N_
       "there is an aspect ratio correction applied to have the png" _N_

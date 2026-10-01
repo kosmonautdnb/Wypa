@@ -84,6 +84,7 @@ void dialogCanvas(bool openIt);
 void dialogImageResize(bool openIt);
 void dialogExpandShrinkSelection(bool openIt);
 void dialogDeletePicture(bool openIt);
+void dialogDeleteAllPictures(bool openIt);
 void dialogAddLayer(bool openIt);
 void dialogDeleteLayers(bool openIt);
 void dialogSelectByAlpha(bool openIt);
@@ -131,6 +132,7 @@ void dialogResizeLayerByRepetition(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);
+void dialogRenameFile(bool openIt);
 void dialogLoadSave(bool openIt, int dialogMode);
 
 extern class ColorTransform *gradientCurvesToColorTransform;
