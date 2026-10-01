@@ -62,6 +62,7 @@
 extern double fps;
 extern double timeDelta;
 extern double mouseDX,mouseDY;
+extern double programStartTimeSeconds;
 extern unsigned int mouseB;
 extern bool shift,ctrl,alt;
 extern const char *appName;

@@ -34,6 +34,7 @@
 double fps = 30.0;
 double timeDelta = 0;
 double mouseDX = 0, mouseDY = 0;
+double programStartTimeSeconds = 0;
 unsigned int mouseB = 0;
 bool shift = false, ctrl = false, alt = false;
 unsigned int controlKeyId = 0;

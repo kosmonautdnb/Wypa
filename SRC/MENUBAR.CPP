@@ -506,7 +506,14 @@ void drawMenuBar() {
     ImVec2 cursorScreen = ImGui::GetCursorScreenPos();
     cursorScreen.x = (float)(main_window_xres - timeDesc.length()*7);
     ImGui::SetCursorScreenPos(cursorScreen);
-    ImGui::Text("%s",timeDesc.c_str()); toolTip("Info: %s", extensiveTimeDescString().c_str());
+    static bool clockMode = true;
+    if (clockMode) {
+      ImGui::Text("%s",timeDesc.c_str());  
+    } else {
+      unsigned int secs = (unsigned int)(glSeconds() - programStartTimeSeconds);
+      ImGui::Text("%dh:%02dm%c%02ds on.",secs/60/60,(secs/60)%60,(k2%10)<1 ? ' ':':',secs % 60);
+    } 
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) clockMode = !clockMode; toolTip("Info: %s", extensiveTimeDescString().c_str());
     cursorScreen.x -= 7 + 3;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);

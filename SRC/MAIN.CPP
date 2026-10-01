@@ -299,6 +299,7 @@ int main(int argc, const char *argv[]) {
   appFolder = getCWD();
 #endif
   //appFolder = getCWD();
+  programStartTimeSeconds = glSeconds();
 
   printf("Wypa version: %d.%02d", version / 100, version % 100);
   printf("\n");
