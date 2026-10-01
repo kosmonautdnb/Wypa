@@ -946,9 +946,11 @@ void useToolPipette() {
   if (!pipetteFromLayer) {
     foregroundColor = getImVec4Color(currentCanvas->getCanvasColor(mouseX,mouseY));
     addUsedColor(foregroundColor);
+    reGenColorWheel();
   } else {
     foregroundColor = getImVec4Color(currentCanvas->getLayerColor(mouseX,mouseY,pipetteWithColorTransform));
     addUsedColor(foregroundColor);
+    reGenColorWheel();
   }
 }
 
