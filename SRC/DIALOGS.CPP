@@ -3855,12 +3855,14 @@ void dialogLoadSave(bool openIt, int dialogMode) {
       }
       switch(mode) {
         case DIALOG_SAVEIMAGEASNEWVERSION: {
+          String path = getPath(lastUsedImageFileName);
+          paths[mode] = path;
           String name = getName(lastUsedImageFileName);
           String ext = ".WYP";
           bool found = false;
           for (int i = 0; i < 100; i++) {
             sprintf(&ext[0],".W%02d",i);
-            FILE *in = fopen(dosFileName(shortFileName(dosFileName(name+ext))).c_str(),"rb");
+            FILE *in = fopen(dosFileName(shortFileName(dosFileName(path+name+ext))).c_str(),"rb");
             if (in != NULL) {
               fclose(in);
             } else {

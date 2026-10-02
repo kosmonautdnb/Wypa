@@ -1169,7 +1169,7 @@ void zipGradient(const Gradient &gradient, bool save) {
 String lastUsedImageFileName = "";
 
 void loadImage(const char *shortPath, const char *longFileName) {
-  lastUsedImageFileName = String(longFileName);
+  lastUsedImageFileName = String(shortPath)+String(longFileName);
   initStatusBar();
   bool allWentWell = true;
   readZipShortPath = shortPath;
@@ -1226,7 +1226,7 @@ RGBAImage generateThumbFromLayer(Layer *l) {
 }
 
 void saveImage(const char *shortPath, const char *longFileName) {
-  lastUsedImageFileName = String(longFileName);
+  lastUsedImageFileName = String(shortPath) + String(longFileName);
   initStatusBar();
   mz_zip_archive &zip = globalZip;
   mz_zip_zero_struct(&zip);

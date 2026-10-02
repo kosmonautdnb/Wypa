@@ -138,6 +138,12 @@
       "Let's you save the Wypa .wyp image you are currently" _N_
       "editing." _N_
     "}" _N_
+    "Save as new version{" _N_
+      "Let's you save the Wypa .wyp image you are currently" _N_
+      "editing. It is saved with a .w00 or .w01 etc.. extension." _N_
+      "If you used all 99 extensions the program let's you just" _N_
+      "choose a completely new filename." _N_
+    "}" _N_
     "Load any image as a single layer{" _N_
       "If you load a Wypa .wyp image with this it gets 'reduced'" _N_
       "to a single layer." _N_
