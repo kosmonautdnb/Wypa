@@ -76,9 +76,19 @@ void filterDifferenceClouds() {
         float v11 = sfrand2d(seed, (float)ix0+1, (float)iy0+1);
         float fx = (float)(x % tileSize)/tileSize;
         float fy = (float)(y % tileSize)/tileSize;
-        float top = (v10 - v00)*fx + v00;
-        float bottom = (v11 - v01)*fx + v01;
-        float v = (bottom-top)*fy + top;
+        //float top = (v10 - v00)*fx + v00;
+        //float bottom = (v11 - v01)*fx + v01;
+        //float v = (bottom-top)*fy + top;
+        float influence00 = 1.f-(float)sqrt(fx*fx+fy*fy);
+        float influence10 = 1.f-(float)sqrt((1-fx)*(1-fx)+fy*fy);
+        float influence01 = 1.f-(float)sqrt(fx*fx+(1-fy)*(1-fy));
+        float influence11 = 1.f-(float)sqrt((1-fx)*(1-fx)+(1-fy)*(1-fy));
+        if (influence00<0) influence00 = 0;
+        if (influence10<0) influence10 = 0;
+        if (influence01<0) influence01 = 0;
+        if (influence11<0) influence11 = 0;
+        float all = influence00 + influence10 + influence01 + influence11;
+        float v = (influence00 * v00 + influence10 * v10 + influence01 * v01 + influence11 * v11) / all;
         values[x+y*l->width] += v*mul;
       }
     }
@@ -87,7 +97,7 @@ void filterDifferenceClouds() {
     seed *= 3;
     seed &= 0xffff;
     tileSize >>= 1;
-    mul *= 0.5;
+    mul *= 0.5f;
   }
   float minV = 0;
   float maxV = 0;
