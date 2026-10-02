@@ -421,6 +421,16 @@ void signSaveForUndo() {
   for (int i = 0; i < (int)undoStages.size(); i++) undoStages[i]->signSave();
 }
 
+void clearUndos() {
+  undoBlink++;
+  for (int i = 0; i < (int)undoStages.size(); i++) {
+    delete undoStages[i];
+  }
+  undoStages.clear();
+  availableRedos = 0;
+  availableUndos = 0;
+}
+
 void undo() {
   if (useUndo) {
     if (undoStages.size()>0) {

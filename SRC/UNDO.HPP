@@ -36,6 +36,7 @@ void afterUndoPoint();
 void forceUndoPoint();
 
 void signSaveForUndo();
+void clearUndos();
 
 void undo();
 void redo();

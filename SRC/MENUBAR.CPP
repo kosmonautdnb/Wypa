@@ -240,10 +240,10 @@ void drawMenuBar() {
           if (ImGui::MenuItem("Redo",NULL,false,availableRedos>0)) {redo();}
           ImGui::Separator();
         }
-        if (ImGui::MenuItem("Fill selection",NULL,false,count == 1)) {beforeUndoPoint();paintSelection(1.f);afterUndoPoint();}
-        if (ImGui::MenuItem("Fill selection with direct color",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));afterUndoPoint();}
-        if (ImGui::MenuItem("Fill selection with direct alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->fillSelectionWithAlpha((unsigned char)(getUIntColor(foregroundColor)>>24));beforeUndoPoint();}
-        if (ImGui::MenuItem("Erase selection",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(0x00000000);afterUndoPoint();}
+        if (ImGui::MenuItem("Fill selection",NULL,false,count > 0)) {beforeUndoPoint();paintSelection(1.f);afterUndoPoint();}
+        if (ImGui::MenuItem("Fill selection with direct color",NULL,false,count > 0)) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(getUIntColor(foregroundColor));afterUndoPoint();}
+        if (ImGui::MenuItem("Fill selection with direct alpha",NULL,false,count > 0)) {beforeUndoPoint();currentCanvas->fillSelectionWithAlpha((unsigned char)(getUIntColor(foregroundColor)>>24));beforeUndoPoint();}
+        if (ImGui::MenuItem("Erase selection",NULL,false,count > 0)) {beforeUndoPoint();currentCanvas->fillSelectionWithColor(0x00000000);afterUndoPoint();}
         ImGui::Separator();
         if (ImGui::MenuItem("Antialias selected",NULL,false,hasSelection)) {beforeUndoPoint();currentCanvas->antialiasSelected();afterUndoPoint();}
         ImGui::Separator();

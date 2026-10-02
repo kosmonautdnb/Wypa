@@ -1776,7 +1776,7 @@ void Layer::bakeLayer(int interpolation) {
       Matrix m3 = inverse2(m2);
       for (int y2 = 0; y2 < height; y2++) {
         for (int x2 = 0; x2 < width; x2++) {
-          double px = x2+0.5; double py = y2+0.5;
+          double px = x2; double py = y2;
           double lx4 = px*m3.m[0+0*4]+py*m3.m[0+1*4]+m3.m[0+3*4];
           double ly4 = px*m3.m[1+0*4]+py*m3.m[1+1*4]+m3.m[1+3*4];
           int lx2 = (int)lx4;
@@ -4005,11 +4005,12 @@ void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpola
   if (h == 0) h = 1;
   double scaleX = w2 / w;
   double scaleY = h2 / h;
+  Matrix t; t.translate(Vector(-canvasX0,-canvasY0));
   Matrix m; m.scale3(Vector(scaleX,scaleY,1));
   for (int i = 0; i < (int)layers.size(); i++) {
     Layer *l = layers[i];
     if (quantizeLayers) l->bakeLayer(interpolation);
-    l->transform.transformation = l->transform.transformation * m;
+    l->transform.transformation = l->transform.transformation * inverse2(t) * m * t;
     if (quantizeLayers) {
       int wBefore = l->width;
       int hBefore = l->height;
@@ -4027,6 +4028,7 @@ void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpola
     }
     l->transform.update();
   }
+  clearUndos();
   canvasX1 = (int)(canvasX0 + w);
   canvasY1 = (int)(canvasY0 + h);
   shouldUpdateAll = true;
@@ -5225,8 +5227,9 @@ void addPicture(String fileName) {
   Layer *l = loadImage("",fileName);
   if (l == NULL) return;
   currentCanvas = new Canvas();
-  static unsigned short counter = 0; counter++;
-  sprintf(currentCanvas->pictureName,"loaded %d",counter);
+  //static unsigned short counter = 0; counter++;
+  String f = getName(fileName) + getExtension(fileName);
+  sprintf(currentCanvas->pictureName,"%s",f.last(PICTURENAMEMAX-1).c_str());
   canvas.push_back(currentCanvas);
   picturesBlink++;
   canvasDefault(currentCanvas);
