@@ -1166,8 +1166,10 @@ void zipGradient(const Gradient &gradient, bool save) {
   }
 }
 
+String lastUsedImageFileName = "";
 
 void loadImage(const char *shortPath, const char *longFileName) {
+  lastUsedImageFileName = String(longFileName);
   initStatusBar();
   bool allWentWell = true;
   readZipShortPath = shortPath;
@@ -1224,6 +1226,7 @@ RGBAImage generateThumbFromLayer(Layer *l) {
 }
 
 void saveImage(const char *shortPath, const char *longFileName) {
+  lastUsedImageFileName = String(longFileName);
   initStatusBar();
   mz_zip_archive &zip = globalZip;
   mz_zip_zero_struct(&zip);
@@ -1737,7 +1740,8 @@ Layer *loadImage(const String &filePath, const String &fileName) {
   }
 
   if (img.data == NULL) {
-    if (toLower(getExtension(fileName)) == ".wyp") {
+    String k = toLower(getExtension(fileName));
+    if (k == ".wyp" || k.startsWith(".w")) {
       Array<unsigned char> array;
       if (readZippedFile(filePath.c_str(), fileName.c_str(), "image.png", array)) {
         img = RGBAImage::fromMemory(&array[0],(unsigned int)array.size());
@@ -1757,7 +1761,8 @@ Layer *loadImage(const String &filePath, const String &fileName) {
 Layer *loadThumb(const String &filePath, const String &fileName) {
   Layer *ret = NULL;
   RGBAImage img;
-  if (toLower(getExtension(fileName)) == ".wyp") {
+  String k = toLower(getExtension(fileName));
+  if (k == ".wyp" || k.startsWith(".w")) {
     Array<unsigned char> array;
     if (readZippedFile(filePath.c_str(), fileName.c_str(), "thumb.png", array)) {
       img = RGBAImage::fromMemory(&array[0],(unsigned int)array.size());

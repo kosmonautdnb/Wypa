@@ -49,6 +49,8 @@ unsigned int picturesBlink = 0;
 
 float mouseSensitivity = 3;
 
+extern String lastUsedImageFileName;
+
 String hex2_(int v) {
   const char *h="0123456789ABCDEF";
   String r;
@@ -190,6 +192,7 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Load wyp image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
         if (ImGui::MenuItem("Save wyp image")) {dialogLoadSave(true,DIALOG_SAVEIMAGE);}
+        if (ImGui::MenuItem("Save as new version",NULL,false, !lastUsedImageFileName.empty())) {dialogLoadSave(true,DIALOG_SAVEIMAGEASNEWVERSION);}
         if (ImGui::MenuItem("Load any image as a single layer")) {dialogLoadSave(true,DIALOG_IMPORTIMAGE);}
         ImGui::Separator();
         if (ImGui::MenuItem("Import folder into single layer")) {dialogImportFolder(true);}

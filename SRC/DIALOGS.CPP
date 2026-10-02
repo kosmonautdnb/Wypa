@@ -3628,11 +3628,11 @@ const char *lut = "*.cube";
 const char *tga = "*.tga";
 const char *cmapped = ".tga,.pcx,.lbm";
 const char *calib = "*.cl2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text","Load UTF8 text","LUT Color lookup","Export (paletted) tga","Palette from (paletted) picture", "Load calibration", "Save calibration"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load","Load","Load","Save","Load","Load","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt,txt,lut,tga,cmapped,calib,calib};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga",".cl2",".cl2"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture,loadCalibration,saveCalibration};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text","Load UTF8 text","LUT Color lookup","Export (paletted) tga","Palette from (paletted) picture", "Load calibration", "Save calibration", "Save wyp image as new version"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load","Load","Load","Save","Load","Load","Save","Save"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt,txt,lut,tga,cmapped,calib,calib,img};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga",".cl2",".cl2",".wyp"};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture,loadCalibration,saveCalibration,saveImage};
 
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < (int)files.size(); i++) {
@@ -3803,6 +3803,8 @@ String lastPath = "";
 
 #define TOOLTIP(__a__) {if (!previewOn) toolTip(__a__);}
 
+extern String lastUsedImageFileName;
+
 void dialogLoadSave(bool openIt, int dialogMode) {
 
   static int mode = DIALOG_NONE; if (dialogMode != DIALOG_NONE) mode = dialogMode;
@@ -3850,6 +3852,26 @@ void dialogLoadSave(bool openIt, int dialogMode) {
         resize2(fileNames[mode],NAMEMAXHERE);
         paths[mode] = getPath(dialogLoadSaveSetFileNameAndPath);
         dialogLoadSaveSetFileNameAndPath = "";
+      }
+      switch(mode) {
+        case DIALOG_SAVEIMAGEASNEWVERSION: {
+          String name = getName(lastUsedImageFileName);
+          String ext = ".WYP";
+          bool found = false;
+          for (int i = 0; i < 100; i++) {
+            sprintf(&ext[0],".W%02d",i);
+            FILE *in = fopen(dosFileName(shortFileName(dosFileName(name+ext))).c_str(),"rb");
+            if (in != NULL) {
+              fclose(in);
+            } else {
+              found = true;
+              break;
+            }
+          }
+          if (found) {
+            fileNames[mode] = name + ext;
+          }
+        } break;
       }
     }
     reOpen = false;
