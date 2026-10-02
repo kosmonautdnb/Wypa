@@ -465,6 +465,7 @@ void drawMenuBar() {
             currentCanvas = canvas[i];
             shouldUpdateAll = true;
           }
+          showCanvasPreviewToolTip(canvas[i]);
         }
         ImGui::Separator();
         if (ImGui::MenuItem("Delete picture")) {dialogDeletePicture(true);}

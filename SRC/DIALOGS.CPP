@@ -74,6 +74,25 @@ void clearPreview() {
   updatePreview();
 }
 
+void showCanvasPreviewToolTip(Canvas *canvas) {
+  if (!showToolTips) return;
+  if (ImGui::IsItemHovered()) {
+    for (int y = 0; y < previewHeight; y++) {
+      int sy = (y*canvas->height)/previewHeight;
+      for (int x = 0; x < previewWidth; x++) {
+        int sx = (x*canvas->width)/previewWidth;
+        preview[x+y*previewWidth] = canvas->pixels[sx+sy*canvas->width];
+      }
+    }
+    previewAspect = (double)canvas->width/(canvas->height != 0 ? canvas->height : 1);
+    if (previewAspect == 0) previewAspect = 1;
+    updatePreview();
+    ImGui::BeginTooltip();
+    ImGui::Image((ImTextureID)previewTexture,ImVec2((float)previewWidth,(float)(previewHeight/previewAspect)));
+    ImGui::EndTooltip();
+  }
+}
+
 void noUndoMessage() {
   static double k = 0; k += timeDelta*2; k = fmod(k,100);
   int t = (int)k;
@@ -3376,6 +3395,12 @@ void dialogNewImage(bool openIt) {
   ImGui::Text("Picture name"); ImGui::SameLine(); DIALOGKEYSHERE(); ImGui::InputText("##DIALOGNEWIMAGENAME",imageName,PICTURENAMEMAX); toolTip("The name of the picture");
   ImGui::PushItemWidth(7*14);
   ImGui::Text("Type"); ImGui::SameLine(); ImGui::Combo("##DIALOGNEWIMAGETYPE",&type, imageMeasureNames, IMAGEMEASURE_COUNT); toolTip("The measure type for the image creation");
+  ImGui::SameLine(); if (roundButton("Rotate##DIALOGNEWIMAGEROTATE",true)) {
+    float t;
+    t = w; w = h; h = t;
+    t = wcm; wcm = hcm; hcm = t;
+    t = winches; winches = hinches; hinches = t;
+  }
   ImGui::PopItemWidth();
   ImGui::PushItemWidth(64+16*2);
   switch(type) {
@@ -3410,8 +3435,64 @@ void dialogNewImage(bool openIt) {
     }
   } else toolTip("Keep the images x vs y ratio the same when entering new width or height");
 
+  static int baseMode = 1;
+  ImGui::Text("");
+  ImGui::BeginChild("DIALOGNEWIMAGECHILD",ImVec2(100,20*4));
+  ImGui::Text("Background");
+  ImGui::RadioButton("Transparent##DIALOGNEWIMAGERADIO0", &baseMode, 0); toolTip("The background of the new created image should be transparent");
+  ImGui::RadioButton("Black##DIALOGNEWIMAGERADIO1", &baseMode, 1); toolTip("The background of the new created image should be black");
+  ImGui::RadioButton("White##DIALOGNEWIMAGERADIO2", &baseMode, 2); toolTip("The background of the new created image should be white");
+  ImGui::EndChild();
+  ImGui::SameLine(); 
+  ImVec2 c = ImGui::GetCursorScreenPos();
+  if (ImGui::Button("1024x768##DIALOGNEWIMAGE640480")) {type = IMAGEMEASURE_PIXELS; w = 1024; h = 768;}
+  ImGui::SameLine(); if (ImGui::Button("800x600##DIALOGNEWIMAGE800600")) {type = IMAGEMEASURE_PIXELS; w = 800; h = 600;}
+  ImGui::SameLine(); if (ImGui::Button("640x480##DIALOGNEWIMAGE640480")) {type = IMAGEMEASURE_PIXELS; w = 640; h = 480;}
+  ImGui::SameLine(); if (ImGui::Button("320x200##DIALOGNEWIMAGE640480")) {type = IMAGEMEASURE_PIXELS; w = 320; h = 200;}
+
+  c.y += 20; ImGui::SetCursorScreenPos(c);
+  if (ImGui::Button("FullHD##DIALOGNEWIMAGEFULLHD")) {type = IMAGEMEASURE_PIXELS; w = 1920; h = 1080;}
+  ImGui::SameLine(); if (ImGui::Button("HD##DIALOGNEWIMAGEHD")) {type = IMAGEMEASURE_PIXELS; w = 1280; h = 720;}
+  ImGui::SameLine(); if (ImGui::Button("SD(PAL)##DIALOGNEWIMAGESD1")) {type = IMAGEMEASURE_PIXELS; w = 720; h = 576;}
+  ImGui::SameLine(); if (ImGui::Button("SD(NTSC)##DIALOGNEWIMAGESD2")) {type = IMAGEMEASURE_PIXELS; w = 720; h = 480;}
+
+  c.y += 20; ImGui::SetCursorScreenPos(c);
+  if (ImGui::Button("UHD8K##DIALOGNEWIMAGEUHD8K")) {type = IMAGEMEASURE_PIXELS; w = 7680; h = 4320;}
+  ImGui::SameLine(); if (ImGui::Button("UHD4K##DIALOGNEWIMAGEUHD4K")) {type = IMAGEMEASURE_PIXELS; w = 3840; h = 2160;}
+  ImGui::SameLine(); if (ImGui::Button("DCI4K##DIALOGNEWIMAGEDCI4K")) {type = IMAGEMEASURE_PIXELS; w = 4096; h = 2160;}
+
+  c.y += 20; ImGui::SetCursorScreenPos(c);
+  if (ImGui::Button("A0##DIALOGNEWIMAGEA0")) {type = IMAGEMEASURE_CM; hcm = 84.1f; wcm = 118.9f;}
+  ImGui::SameLine(); if (ImGui::Button("A1##DIALOGNEWIMAGEA1")) {type = IMAGEMEASURE_CM; hcm = 59.4f; wcm = 84.1f;}
+  ImGui::SameLine(); if (ImGui::Button("A2##DIALOGNEWIMAGEA2")) {type = IMAGEMEASURE_CM; hcm = 42.0f; wcm = 59.4f;}
+  ImGui::SameLine(); if (ImGui::Button("A3##DIALOGNEWIMAGEA3")) {type = IMAGEMEASURE_CM; hcm = 29.7f; wcm = 42.0f;}
+  ImGui::SameLine(); if (ImGui::Button("A4##DIALOGNEWIMAGEA4")) {type = IMAGEMEASURE_CM; hcm = 21.0f; wcm = 29.7f;}
+  ImGui::SameLine(); if (ImGui::Button("A5##DIALOGNEWIMAGEA5")) {type = IMAGEMEASURE_CM; hcm = 14.8f; wcm = 21.0f;}
+  ImGui::SameLine(); if (ImGui::Button("A6##DIALOGNEWIMAGEA6")) {type = IMAGEMEASURE_CM; hcm = 10.5f; wcm = 14.8f;}
+  ImGui::SameLine(); if (ImGui::Button("A7##DIALOGNEWIMAGEA7")) {type = IMAGEMEASURE_CM; hcm = 7.4f; wcm = 10.5f;}
+  ImGui::SameLine(); if (ImGui::Button("A8##DIALOGNEWIMAGEA8")) {type = IMAGEMEASURE_CM; hcm = 5.2f; wcm = 7.4f;}
+  ImGui::SameLine(); if (ImGui::Button("A9##DIALOGNEWIMAGEA9")) {type = IMAGEMEASURE_CM; hcm = 3.7f; wcm = 5.2f;}
+  ImGui::SameLine(); if (ImGui::Button("A10##DIALOGNEWIMAGEA10")) {type = IMAGEMEASURE_CM; hcm = 2.6f; wcm = 3.7f;}
+
+  c.y += 20; ImGui::SetCursorScreenPos(c);
+  if (ImGui::Button("Letter##DIALOGNEWIMAGELETTER")) {type = IMAGEMEASURE_INCHES; hinches = 8.5f; winches = 11.f;}
+  ImGui::SameLine(); if (ImGui::Button("Legal##DIALOGNEWIMAGELEGAL")) {type = IMAGEMEASURE_INCHES; hinches = 8.5f; winches = 14.f;}
+  ImGui::SameLine(); if (ImGui::Button("Tabloid##DIALOGNEWIMAGETABLOID")) {type = IMAGEMEASURE_INCHES; hinches = 11.f; winches = 17.f;}
+
+  ImGui::Text("");
+
   if (ImGui::Button("Create##DIALOGNEWIMAGECREATE")) {
     newPicture(w,h,String(imageName));
+    Layer *l = currentCanvas->getActiveLayer();
+    if (l != NULL) {
+      l->selectAll();
+      switch(baseMode) {
+        case 0: {l->fillSelectionWithColor(0x00000000);} break;
+        case 1: {l->fillSelectionWithColor(0xff000000);} break;
+        case 2: {l->fillSelectionWithColor(0xffffffff);} break;
+      }
+      l->selectNone();
+    }
     ImGui::CloseCurrentPopup();
   } else toolTip("Create a new picture");
   ImGui::SameLine();

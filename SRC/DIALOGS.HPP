@@ -145,6 +145,8 @@ void sortFileNames(Array<File> &files, int column, bool sortOrder);
 extern Array<String> fileErrors;
 void errorWindow(bool openIt);
 
+void showCanvasPreviewToolTip(class Canvas *canvas);
+
 #define S_DIALOGS_CPP()
 
 #endif // __DIALOGS_HPP__
