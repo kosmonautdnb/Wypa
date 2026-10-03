@@ -330,7 +330,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Rotate -90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesBackwardLayers();}
         ImGui::Separator();
         if (ImGui::MenuItem("Layer properties",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {dialogUpdateLayer(true);}
-        if (ImGui::MenuItem("Crop layer(s) by alpha",NULL,false,one)) {currentCanvas->cropLayersByAlpha(1);}
+        if (ImGui::MenuItem("Crop layer(s) by alpha",NULL,false,one)) {beforeUndoPoint();currentCanvas->cropLayersByAlpha(1);afterUndoPoint();}
         if (ImGui::MenuItem("Resize layer by repetition",NULL,false,count == 1 && currentCanvas->getActiveLayer()!=NULL)) {dialogResizeLayerByRepetition(true);}
         ImGui::Separator();
         if (ImGui::MenuItem("Lock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(true);}

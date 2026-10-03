@@ -2518,8 +2518,8 @@ void filterSelectionVerticalGradient(Layer *layer) {
 
   for (int x2 = 0; x2 < layer->width; x2++) {
     int gradientStart = -1;
-    for (int y2 = 0; y2 < layer->height; y2++) {
-      unsigned char here = layer->pixelStates[x2+y2*layer->width];
+    for (int y2 = 0; y2 < layer->height+1; y2++) {
+      unsigned char here = y2 < layer->height ? layer->pixelStates[x2+y2*layer->width] : 0;
       if (here & PIXELSTATE_SELECTED) {
         if (gradientStart < 0) gradientStart = y2;
       } else {
@@ -2529,7 +2529,7 @@ void filterSelectionVerticalGradient(Layer *layer) {
             if (delta > 1) delta--;
             for (int y3 = gradientStart; y3 < y2; y3++) {
               int grey = (y3 - gradientStart)*255/delta;
-              layer->pixels[x2+y3*layer->width] = grey|(grey<<8)|(grey<<16)|0xff000000;
+              if (y3 < layer->height) layer->pixels[x2+y3*layer->width] = grey|(grey<<8)|(grey<<16)|0xff000000;
             }
           }
           gradientStart = -1;
