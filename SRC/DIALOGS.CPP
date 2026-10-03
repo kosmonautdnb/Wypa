@@ -720,6 +720,29 @@ void dialogMonitorGamma2(bool openIt) {
   }
   ImGui::EndChild();
 
+  cursor = ImGui::GetCursorScreenPos();
+  int w = 64, h = 64;
+  int w2 = w * 10/15, h2 = h * 10/15;
+  ImVec2 c2;
+  for (int i = 0; i < 2+3; i++) {
+    unsigned int col = 0xff000000; 
+    switch(i) {
+      case 0: {col = 0xff000000;} break;
+      case 1: {col = 0xffffffff;} break;
+      case 2: {col = 0xff0000ff;} break;
+      case 3: {col = 0xff00ff00;} break;
+      case 4: {col = 0xffff0000;} break;
+    }
+    ImGui::SetCursorScreenPos(cursor);
+    ImGui::Image((ImTextureID)0, ImVec2(w,h), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col));
+    c2 = ImGui::GetCursorScreenPos();
+    ImGui::GetWindowDrawList()->AddRect(cursor, ImVec2(cursor.x+w,cursor.y+h), 0xff0000ff);
+    ImGui::SetCursorScreenPos(ImVec2(cursor.x+(w-w2)/2,cursor.y+(h-h2)/2));
+    col = gammaCorrect(col,0,0); ImGui::Image((ImTextureID)0, ImVec2(w2,h2), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col));
+    cursor.x += w + 10;
+  }   
+  ImGui::SetCursorScreenPos(c2);
+
   if (ImGui::Button("Close##DIALOGMONITORGAMMACLOSE")) {
     ImGui::CloseCurrentPopup();
   }
