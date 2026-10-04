@@ -1982,6 +1982,8 @@ static __inline unsigned int getPaintModeColor(unsigned int background, unsigned
   unsigned int col = 0xffff00ff;
   unsigned int rgb0 = background;
   unsigned int rgb1 = color;
+  if (alpha < 0) alpha = 0;
+  if (alpha > 1) alpha = 1;
   switch(mode) {
   case PAINTMODE_ADD: {
       int a = (int)(alpha * (int)(rgb1>>24)); 
