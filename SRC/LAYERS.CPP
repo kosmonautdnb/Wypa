@@ -2554,11 +2554,15 @@ Canvas *Canvas::clone() {
 
   ret->layers.data = new Layer*[2]; ret->layers.allocatedSize = 2; ret->layers.usedSize = 0;
   ret->overlays.data = new Overlay*[2]; ret->overlays.allocatedSize = 2; ret->overlays.usedSize = 0;
+  ret->groups.data = new Group*[2]; ret->groups.allocatedSize = 2; ret->groups.usedSize = 0;
   for (int i = 0; i < (int)layers.size(); i++) {
     unsigned int id = layers[i]->id; Layer *l = layers[i]->clone(); reverseLastLayerIdCountUp(); l->id = id; ret->layers.push_back(l);
   }
   for (int i2 = 0; i2 < (int)overlays.size(); i2++) {
     Overlay *zwo = new Overlay(); *zwo = *overlays[i2]; ret->overlays.push_back(zwo);
+  }
+  for (int i3 = 0; i3 < (int)groups.size(); i3++) {
+    Group *zwo = new Group(); *zwo = *groups[i3]; ret->groups.push_back(zwo);
   }
 
   ret->pixels = new unsigned int[ret->width*ret->height]; if (ret->pixels==NULL) {ret->width = 0; ret->height = 0; return ret;} memcpy(ret->pixels,this->pixels,ret->width*ret->height*sizeof(unsigned int));
@@ -3804,6 +3808,36 @@ void Canvas::insertAdjustmentLayer() {
   }
 }
 
+void Canvas::insertGroup() {
+  int pos = 0;
+  for (int i = 0; i < (int)layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      pos = i;
+      break;
+    }
+  }
+  for (int j = 0; j < (int)groups.size(); j++) {
+    Group *group = groups[j];
+    if (pos >= group->index && pos < group->index + group->length) return;
+  }
+
+  Group *group = new Group();
+  group->index = pos;
+  group->length = 0;
+  sprintf(group->name,"group");
+  groups.push_back(group);
+  selectedGroup = groups.size()-1;
+  deSelectAllLayers();
+}
+
+void Canvas::deleteGroup() {
+  if ((unsigned int)selectedGroup<(unsigned int)groups.size()) {
+    delete groups[selectedGroup];
+    groups.erase(selectedGroup,1);
+    selectedGroup = -1;
+  }
+}
+
 extern double canvasScrollX;
 extern double canvasScrollY;
 
@@ -4225,6 +4259,11 @@ void Canvas::selectionAsOutline() {
 
 void Canvas::selectAllLayers() {
   for (int i = 0; i < (int)layers.size(); i++) {layers[i]->state.selected = true;layers[i]->state.active = false;}
+  shouldUpdateAll = true;
+}
+
+void Canvas::deSelectAllLayers() {
+  for (int i = 0; i < (int)layers.size(); i++) {layers[i]->state.selected = false;layers[i]->state.active = false;}
   shouldUpdateAll = true;
 }
 

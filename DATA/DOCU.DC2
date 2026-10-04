@@ -566,6 +566,19 @@
       "(or smaller) layer size, the replicated content stays" _N_
       "the same width/height as in the original layer." _N_
     "}" _N_
+    "Insert group{" _N_
+      "This inserts a group above the current topmost selected layer." _N_
+      "Groups are a little bit quirky in Wypa and not a feature that was" _N_
+      "intended at start. So they have a position (above the first layer)" _N_
+      "and a length which can be changed with \"+\" and \"-\"." _N_
+      "You can move the groups with the moveup/movedown option." _N_
+      "You can open / close a group (with a size bigger than 0) by" _N_
+      "clicking on the \"{\" or \"}\" symbol on the left." _N_
+    "}" _N_
+    "Delete group{" _N_
+      "The current selected group is deleted." _N_
+      "Be aware that there is no dialog asking to confirm before." _N_
+    "}" _N_
     "Lock layer(s){" _N_
       "The current selected layer(s) get locked. Thus aren't" _N_
       "modificable anymore. Be aware that some layers are locked" _N_

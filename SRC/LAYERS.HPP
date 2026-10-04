@@ -758,6 +758,23 @@ extern unsigned int activeLayerSwitchIndex;
 extern unsigned int lastActiveLayerSwitchIndex;
 bool wasActiveLayerSwitched();
 
+class Group {
+public:
+  Group() : index(0), length(0), open(true), imGuiActive(false) {sprintf(name,"");}
+  int index;
+  int length;
+  bool open;
+  bool imGuiActive;
+  char name[LAYERNAMEMAX];
+};
+#define S_GROUP(__name__,__o__)\
+  S_OBJECT_OPEN(__name__);\
+  S_INT("index",(__o__)->index);\
+  S_INT("length",(__o__)->length);\
+  S_BOOL("open",(__o__)->open);\
+  S_NAME("name",(__o__)->name,LAYERNAMEMAX);\
+  S_OBJECT_CLOSE();
+
 class Canvas {
 public:
 
@@ -786,6 +803,7 @@ public:
 
   CanvasControl control;
   TransformationState transform;
+  Array<Group*> groups;
   Array<Layer*> layers;
   Array<Overlay*> overlays;
 
@@ -796,6 +814,7 @@ public:
   bool showAnnotations;
   bool showLines;
   bool showSprites;
+  int selectedGroup;
 
   Canvas() {
     width = 0;
@@ -827,6 +846,7 @@ public:
     showAnnotations = true;
     showLines = true;
     showSprites = true;
+    selectedGroup = -1;
   }
 
   ~Canvas() {
@@ -841,6 +861,10 @@ public:
       if (overlays[i2] != NULL) {delete overlays[i2]; overlays[i2] = NULL;}
     }
     overlays.clear();
+    for (int i3 = 0; i3 < (int)groups.size(); i3++) {
+      if (groups[i3] != NULL) {delete groups[i3]; groups[i3] = NULL;}
+    }
+    groups.clear();
   }
 
   void init(int width, int height);
@@ -868,6 +892,8 @@ public:
   void eraseLayer(Layer *layer);
   void insertTextLayer();
   void insertAdjustmentLayer();
+  void insertGroup();
+  void deleteGroup();
 
   void mirrorHorizontally();
   void mirrorVertically();
@@ -899,6 +925,7 @@ public:
   void selectByAlpha(int alphaThresholdMin, int alphaThresholdMax);
   void selectionAsOutline();
   void selectAllLayers();
+  void deSelectAllLayers();
   void showAllLayers(bool show);
 
   unsigned int moveLayersUp();
@@ -985,6 +1012,7 @@ public:
   (__o__)->control.setCanvasTransform(__o__);\
   Canvas *helperCanvas = __o__; S_POINTER_ARRAY("layers",helperCanvas->layers,Layer,S_LAYER(NULL,helperCanvas->layers[i]));\
   S_POINTER_ARRAY("overlays",helperCanvas->overlays,Overlay,S_OVERLAY(NULL,helperCanvas->overlays[i]));\
+  S_POINTER_ARRAY("groups",helperCanvas->groups,Group,S_GROUP(NULL,helperCanvas->groups[i]));\
   S_RESOLVEIDS();\
   S_OBJECT_CLOSE();
 

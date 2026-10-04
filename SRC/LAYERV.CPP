@@ -206,6 +206,7 @@ void drawLayerView() {
   } else toolTip("Darken all non selected layer(s)");
 
 #define CELLSIZE 24
+#define GROUPCELLSIZE 17
 #define CELLPRE 4
   ImGui::BeginChild("LAYERVIEWCHILD",ImVec2((float)sidebar_width,(float)(main_window_yres-ImGui::GetCursorScreenPos().y-20)));
 
@@ -220,7 +221,87 @@ void drawLayerView() {
     }
   }
 
-  for (int i = 0; i < (int)currentCanvas->layers.size(); i++) {
+  for (int i3 = 0; i3 < (int)currentCanvas->layers.size(); i3++) {
+    Layer *l = currentCanvas->layers[i3];
+    if (l->state.selected || l->state.active) {currentCanvas->selectedGroup = -1; break;}
+  }
+
+  for (int i4 = 0; i4 < (int)currentCanvas->groups.size(); i4++) {
+    Group *group = currentCanvas->groups[i4];
+    if (group->index > (int)currentCanvas->layers.size()) {group->index = (int)currentCanvas->layers.size();}
+    if (group->index < 0) group->index = 0;
+  }
+
+  double time = glSeconds();
+
+  int offCounter = 0;
+  int onCounter = 0;
+#define GROUPINS 10
+  for (int i = 0; i < (int)currentCanvas->layers.size()+1; i++) { // there is a break with // !!! below
+    for (int j = 0; j < (int)currentCanvas->groups.size(); j++) {
+      Group *group = currentCanvas->groups[j];
+      if (group->index == i) {
+        ImVec2 cursor = ImGui::GetCursorScreenPos();
+        cursor.x += GROUPINS;
+        ImGui::SetCursorScreenPos(cursor);
+        ImGui::Text("%c%02d", group->open ? '{':'}', group->length);
+        toolTip("This group is %s and contains %d layers", group->open ? "open" : "closed", group->length);
+        ImGui::SameLine();
+        ImVec2 c2 = ImGui::GetCursorScreenPos();
+        ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y));
+        if (ImGui::InvisibleButton(combined(String("##LAYERVIEWGROUPOPEN")+String::fromInt(j)).c_str(),ImVec2((float)c2.x-cursor.x,(float)20))) {group->open = !group->open; currentCanvas->selectedGroup = j; currentCanvas->deSelectAllLayers();}
+        ImGui::SameLine();
+        ImGui::SetCursorScreenPos(ImVec2(c2.x,cursor.y));
+        bool a = ImGui::GetIO().MouseClicked[0];
+        ImGui::GetIO().MouseClicked[0] = (ImGui::GetIO().MouseClicked[0] && (group->imGuiActive))||(ImGui::GetIO().MouseDoubleClicked[0] && (!group->imGuiActive));
+        if (ImGui::IsWindowHovered() && currentKey == GL_VK_F2) ImGui::GetIO().MouseClicked[0] = true;
+        ImGui::PushItemWidth(7*LAYERNAMEMAX);
+        ImGui::InputText(combined(String("##LAYERVIEWGROUPNAME")+String::fromInt(j)).c_str(),group->name,LAYERNAMEMAX); toolTip("Group name");
+        ImGui::PopItemWidth();
+        ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + GROUPCELLSIZE),0x80ffff00);
+        group->imGuiActive = ImGui::IsItemActive();
+        ImGui::GetIO().MouseClicked[0] = a;
+        ImGui::SameLine(); if (ImGui::Button(combined(String("-##LAYERVIEWGROUPMINUS")+String::fromInt(j)).c_str())) {group->length--; currentCanvas->selectedGroup = j; currentCanvas->deSelectAllLayers();} else toolTip("Exclude the bottom layer from the group");
+        ImGui::SameLine(); if (ImGui::Button(combined(String("+##LAYERVIEWGROUPPLUS")+String::fromInt(j)).c_str())) {
+          bool canMoveDown = true;
+          for (int k = 0; k < (int)currentCanvas->groups.size(); k++) {
+            Group *group2 = currentCanvas->groups[k];
+            if (group != group2 && group2->index != group->index) {
+              if (group->index+group->length <= group2->index && group->index+group->length+1 > group2->index) canMoveDown = false;
+            }
+          }
+          if (canMoveDown) group->length++; 
+          currentCanvas->selectedGroup = j; currentCanvas->deSelectAllLayers();
+        }  else toolTip("Include another layer into the group");
+        if (group->length+group->index>(int)currentCanvas->layers.size()) group->length = (int)currentCanvas->layers.size() - group->index;
+        if (group->length<0) group->length = 0;
+        if (group->length>99) group->length = 99;
+        ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y));
+        ImGui::InvisibleButton("##GROUPVIEWINVISIBLEBUTTON",ImVec2((float)sidebar_width,GROUPCELLSIZE));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_NONE) {currentCanvas->selectedGroup = j; currentCanvas->deSelectAllLayers();}
+        static double startTime = time;
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1) && controlKeyId == CONTROLKEY_NONE) {
+          unsigned int k = (unsigned int)((time - startTime)*4.0);
+          ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + GROUPCELLSIZE),0x800080ff);
+          if (group->length != 0) {
+            int p = (k % group->length) + group->index;
+            if ((unsigned int)p < (unsigned int)currentCanvas->layers.size()) {
+              singleLayerId = currentCanvas->layers[p]->id;
+              shouldUpdateAll = true;
+            }
+          }
+        } else {startTime = time;}
+        if (currentCanvas->selectedGroup == j) {
+          ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + GROUPCELLSIZE),0x400000ff);
+        }
+        if (!group->open) offCounter = group->length; else onCounter = group->length;
+      }
+    }
+    if (i >= (int)currentCanvas->layers.size()) break; // !!!
+    bool belongsToGroup = false;
+    if (offCounter > 0) {offCounter--; continue;}
+    if (onCounter > 0) {onCounter--; belongsToGroup = true;}
+
     Layer *l = currentCanvas->layers[i];
 
     ImVec2 cursor = ImGui::GetCursorScreenPos();
@@ -255,7 +336,13 @@ void drawLayerView() {
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_NONE) {maybeBlinkLayer(l); currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_CTRL) {maybeBlinkLayer(l); currentCanvas->copyActiveSelectionToLayer(currentCanvas->getActiveLayerIndex(),i);currentCanvas->setActiveLayer(i);shouldUpdateAll = true;currentCanvas->noSelectedLayers();}
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0) && controlKeyId == CONTROLKEY_SHIFT) {maybeBlinkLayer(l); l->state.selected = !l->state.selected;Layer *k = currentCanvas->getActiveLayer(); if (k != NULL) k->state.selected = true; shouldUpdateAll = true;}// currentCanvas->setActiveLayer(-1);}
-    if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1) && controlKeyId == CONTROLKEY_NONE) {singleLayerId = l->id; shouldUpdateAll = true;ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x800080ff);}
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1) && controlKeyId == CONTROLKEY_NONE) {singleLayerId = l->id; shouldUpdateAll = true;}
+    if (belongsToGroup) {
+      ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(cursor.x+GROUPINS+5,cursor.y),ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ffff00);
+    }
+    if (singleLayerId != 0 && singleLayerId == l->id) {
+      ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x800080ff);
+    }
     if (l->type == LAYERTYPE_ADJUSTMENT) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ff00ff);
     }
@@ -302,24 +389,77 @@ void drawLayerView() {
 
   int count = 0; bool one = false; for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.selected || currentCanvas->layers[i2]->state.active) {one = true; count++;}
 
-  if (!currentCanvas->layers.empty()) {
-    if (roundButton("Move up##LAYERVIEWADMOVEUP",one && (!(currentCanvas->layers[0]->state.selected || currentCanvas->layers[0]->state.active)))) {
-      scrollToLayerId = currentCanvas->moveLayersUp();
-    } else toolTip("Move selected layers up in hierarchy");
-    ImGui::SameLine();
-    if (roundButton("Move down##LAYERVIEWADMOVEDOWN",one && (!(currentCanvas->layers[currentCanvas->layers.size()-1]->state.selected || currentCanvas->layers[currentCanvas->layers.size()-1]->state.active)))) {
-      scrollToLayerId = currentCanvas->moveLayersDown();
-    } else toolTip("Move selected layers down in hierarchy");
-    ImGui::SameLine();
-    //if (roundButton("Compact##LAYERVIEWADMOVECOMPACT",count>1)) {
-    //  currentCanvas->compactLayers();
-    //} else toolTip("Selected layers one after another");
-    if (roundButton("Merge##LAYERVIEWADMOVEMERGE",count>1)) {
-      dialogMergeDown(true);
-      //beforeUndoPoint();
-      //currentCanvas->mergeDownLayers();
-      //afterUndoPoint();
-    } else toolTip("Merge the layers onto the lowest selected layer");
+  if (currentCanvas->selectedGroup < 0) {
+    if (!currentCanvas->layers.empty()) {
+      if (roundButton("Move up##LAYERVIEWADMOVEUP",one && (!(currentCanvas->layers[0]->state.selected || currentCanvas->layers[0]->state.active)))) {
+        scrollToLayerId = currentCanvas->moveLayersUp();
+      } else toolTip("Move selected layers up in hierarchy");
+      ImGui::SameLine();
+      if (roundButton("Move down##LAYERVIEWADMOVEDOWN",one && (!(currentCanvas->layers[currentCanvas->layers.size()-1]->state.selected || currentCanvas->layers[currentCanvas->layers.size()-1]->state.active)))) {
+        scrollToLayerId = currentCanvas->moveLayersDown();
+      } else toolTip("Move selected layers down in hierarchy");
+      ImGui::SameLine();
+      //if (roundButton("Compact##LAYERVIEWADMOVECOMPACT",count>1)) {
+      //  currentCanvas->compactLayers();
+      //} else toolTip("Selected layers one after another");
+      if (roundButton("Merge##LAYERVIEWADMOVEMERGE",count>1)) {
+        dialogMergeDown(true);
+        //beforeUndoPoint();
+        //currentCanvas->mergeDownLayers();
+        //afterUndoPoint();
+      } else toolTip("Merge the layers onto the lowest selected layer");
+    }
+  } else {
+    if ((unsigned int)currentCanvas->selectedGroup < (unsigned int)currentCanvas->groups.size()) {
+      Group *group = currentCanvas->groups[currentCanvas->selectedGroup];
+      bool canMoveUp = group->index > 0;
+      bool canMoveDown = group->index + group->length < currentCanvas->layers.size();
+      if (roundButton("Move up##LAYERVIEWGROUPMOVEUP", canMoveUp)) {
+        int stepUp = 1, count = 0; Group *group3 = NULL;
+        for (int i2 = 0; i2 < (int)currentCanvas->groups.size(); i2++) {
+          Group *group2 = currentCanvas->groups[i2];
+          if (group != group2 && group2->index != group->index) {
+            if (group->index >= group2->index + group2->length && group->index-1 < group2->index + group2->length) {count++; group3 = group2; stepUp = group3->length;}
+          }
+        }
+        if (count > 1) stepUp = 1;
+        if (count == 1) {group3->index += group->length;}
+        group->index -= stepUp;
+        group->open = true;
+        for (int i = group->index+stepUp; i < group->index + group->length + stepUp; i++) {
+          if (i >= stepUp && i < currentCanvas->layers.size()) {
+            Layer *t = currentCanvas->layers[i-stepUp];
+            currentCanvas->layers[i-stepUp] = currentCanvas->layers[i];
+            currentCanvas->layers[i] = t;
+          }
+        }
+        shouldUpdateAll = true;
+        if ((unsigned int)group->index < (unsigned int)currentCanvas->layers.size()) scrollToLayerId = currentCanvas->layers[group->index]->id;
+      } else toolTip("Move the selected group up in hierarchy");
+      ImGui::SameLine();
+      if (roundButton("Move down##LAYERVIEWGROUPMOVEDOWN", canMoveDown)) {
+        int stepDown = 1, count = 0; Group *group3 = NULL;
+        for (int i2 = 0; i2 < (int)currentCanvas->groups.size(); i2++) {
+          Group *group2 = currentCanvas->groups[i2];
+          if (group != group2 && group2->index != group->index) {
+            if (group->index+group->length <= group2->index && group->index+group->length+1 > group2->index) {count++; group3 = group2; stepDown = group3->length;}
+          }
+        }
+        if (count > 1) stepDown = 1;
+        if (count == 1) {group3->index -= group->length;}
+        group->index += stepDown;
+        group->open = true;
+        for (int i = group->index + group->length - stepDown-1; i >= group->index-stepDown; i--) {
+          if (i >= 0 && i < currentCanvas->layers.size()-stepDown) {
+            Layer *t = currentCanvas->layers[i+stepDown];
+            currentCanvas->layers[i+stepDown] = currentCanvas->layers[i];
+            currentCanvas->layers[i] = t;
+          }
+        }
+        shouldUpdateAll = true;
+        if ((unsigned int)group->index < (unsigned int)currentCanvas->layers.size()) scrollToLayerId = currentCanvas->layers[group->index]->id;
+      } else toolTip("Move the selected group down in hierarchy");
+    }
   }
 
 
