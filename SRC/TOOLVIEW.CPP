@@ -357,10 +357,21 @@ void drawBrushSelect(bool pencil) {
   int toolButtonYCount = 4;
   int toolButtonHeight = (toolview_width - 16) / toolButtonXCount - 4;
   int toolButtonWidth = toolButtonHeight;
-  if (controlKeyId == CONTROLKEY_CTRL)
+  if (controlKeyId == CONTROLKEY_CTRL) {
     ImGui::Text("Erase (hard)");
-  else
-    ImGui::Text("");
+  } else {
+    switch(tool) {
+      case TOOL_PENCIL:
+      case TOOL_PAINTBRUSH: {
+        ImGui::Text("Mode"); ImGui::SameLine(); if (ImGui::Combo("##DRAWBRUSHSELECTPAINTMODECOMBO",&paintMode,paintModeNames,PAINTMODE_COUNT)) {
+        } else toolTip(paintModeNamesFull[paintMode]);
+        if (paintMode != PAINTMODE_NORMAL) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
+      } break;
+      default: {
+        ImGui::Text("");
+      }
+    }
+  }
   cursorLeft(2); if (ImGui::Checkbox("##DRAWBRUSHSELECTSHORTBRUSHSELECTOR",&shortBrushSelector)) {;} else toolTip("If enabled just basic brush settings are visible");
   if (shortBrushSelector) {
     ImGui::SameLine();
@@ -523,6 +534,9 @@ void drawToolPipetteView() {
 }
 
 void drawToolLineView() {
+  ImGui::Text("Mode"); ImGui::SameLine(); if (ImGui::Combo("##DRAWTOOLLINEPAINTMODECOMBO",&paintMode,paintModeNames,PAINTMODE_COUNT)) {
+  } else toolTip(paintModeNamesFull[paintMode]);
+  if (paintMode != PAINTMODE_NORMAL) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
   ImGui::Text("Line width");
   if (ImGui::InputFloat("##DRAWTOOLLINEVIEWLINEWIDTH",&lineWidth,0,0,2)) {} else toolTip("Width of the line(s)"); if (lineWidth < 0) lineWidth = 0;
   ImGui::Text("Line cap"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLLINEVIEWLINECAP",&lineCap)) {} else toolTip("Also draw caps at line ends");
@@ -1163,8 +1177,15 @@ void drawToolBlurView() {
     ImGui::RadioButton("Antialias##DRAWTOOLBLURVIEWTYPEANTIALIAS",&blurTool,BLURTOOL_ANTIALIAS); toolTip("FXAA antialiasing");
     ImGui::RadioButton("Remove dirt##DRAWTOOLBLURVIEWTYPEMEDIAN",&blurTool,BLURTOOL_MEDIAN); toolTip("Removes cracks and dirt");
     ImGui::RadioButton("Drag##DRAWTOOLBLURVIEWTYPEPULL",&blurTool,BLURTOOL_PULL); toolTip("Pulls the area in the mouse direction");
+    ImGui::Separator();
+    ImGui::RadioButton("Color blur##DRAWTOOLBLURVIEWTYPECOLORBLUR",&blurTool,BLURTOOL_COLORBLUR); toolTip("Blurs the colors whilst keeping the brightness");
+    ImGui::RadioButton("Alpha blur##DRAWTOOLBLURVIEWTYPEALPHABLUR",&blurTool,BLURTOOL_ALPHABLUR); toolTip("Blurs the alpha channel / transparency");
+    ImGui::Separator();
     if (blurTool == BLURTOOL_PULL) {
       float k = (float)dragIntensity; ImGui::Text("Drag harshness"); ImGui::SliderFloat("##DRAWTOOLBLURVIEWTYPEPULLINTENSITY",&k,1,6); dragIntensity = (int)k; if (dragIntensity < 1) dragIntensity = 1; if (dragIntensity > 6) dragIntensity = 6;
+    }
+    if (blurTool == BLURTOOL_ALPHABLUR && l->mode == LAYERMODE_PREMULTIPLIEDALPHA) {
+      ImGui::Text("Premul"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLBLURVIEWTYPEALPHABLURPREMUL", &alphaBlurPremul)) {;} else toolTip("Do the alpha blur for a layer with layer mode \"Premul\"");
     }
   }
 }

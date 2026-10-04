@@ -137,9 +137,36 @@ public:
 
 void scanSampleDistanceField(class Brush *brush, const class RGBAImage &image);
 
+enum PAINTMODES {
+  PAINTMODE_NORMAL = 0,
+  PAINTMODE_SCREEN = 1,
+  PAINTMODE_ADD = 2,
+  PAINTMODE_SUB = 3,
+  PAINTMODE_MUL = 4,
+  PAINTMODE_MUL2X = 5,
+  PAINTMODE_MAX = 6,
+  PAINTMODE_MIN = 7,
+  PAINTMODE_COLOR = 8,
+  PAINTMODE_LUMINANCE = 9,
+  PAINTMODE_SOFTLIGHT = 10,
+  PAINTMODE_HARDLIGHT = 11,
+  PAINTMODE_LINEARLIGHT = 12,
+  PAINTMODE_PINLIGHT = 13,
+  PAINTMODE_DIFFERENCE = 14,
+  PAINTMODE_ADDSUB = 15,
+  PAINTMODE_OVERLAY = 16,
+  PAINTMODE_LINEARBURN = 17,
+  PAINTMODE_COLORBURN = 18,
+  PAINTMODE_COLORDODGE = 19,
+  PAINTMODE_COUNT = 20
+};
+extern const char *paintModeNames[PAINTMODE_COUNT];
+extern const char *paintModeNamesFull[PAINTMODE_COUNT];
+
 extern Array<Brush *> brushes;
 extern int currentBrush;
 extern bool hardEraser;
+extern int paintMode;
 
 extern bool subtractiveColors;
 extern bool subtractiveCMYK;
@@ -303,9 +330,12 @@ enum BLURTOOL {
   BLURTOOL_BLUR = 1,
   BLURTOOL_ANTIALIAS = 2,
   BLURTOOL_MEDIAN = 3,
-  BLURTOOL_PULL = 4
+  BLURTOOL_PULL = 4,
+  BLURTOOL_COLORBLUR = 5,
+  BLURTOOL_ALPHABLUR = 6
 };
 extern int blurTool;
+extern bool alphaBlurPremul;
 
 void doFXAA(unsigned int *sourceBuffer, const int width, const int height, unsigned char *maskBuffer, unsigned char mask);
 void paintSelection(float opacity);
