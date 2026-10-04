@@ -3537,7 +3537,7 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                       g = g2;
                       b = b2;
                       a = (int)newA;
-                      if (alphaBlurPremul) {
+                      if (alphaBlurPremul && layer->mode == LAYERMODE_PREMULTIPLIEDALPHA) {
                         if (a2 != 0) {
                           r = (int)(r * newA / a2);
                           g = (int)(g * newA / a2);
