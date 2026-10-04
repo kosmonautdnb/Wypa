@@ -467,6 +467,8 @@ void drawMenuBar() {
           if (ImGui::MenuItem(combined(String(canvas[i]->hasUpdates()?".":" ")+String(canvas[i]->pictureName)+String("##MENUBARPICTURES")+String::fromInt(i)).c_str(),NULL,isIt)) {
             currentCanvas = canvas[i];
             shouldUpdateAll = true;
+          } else {
+            if (isIt) ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x20808080);
           }
           showCanvasPreviewToolTip(canvas[i]);
         }
