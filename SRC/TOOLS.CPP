@@ -2634,8 +2634,11 @@ void useToolPainting() {
 
     if ((double)foregroundColor.w < 1.0/255.0) alphaWarning = true;
 
-    Matrix pm; Layer *pigment = currentCanvas->getPigmentLayerForLayer(paintToolLayer);
-    if (pigment != NULL) {pm = pigment->transform.transformation * inverse2(paintToolLayer->transform.transformation);}
+    Matrix pm; Layer *pigment = NULL;
+    if (tool2 == TOOL_PAINTBRUSH || tool2 == TOOL_PENCIL) {
+      pigment = currentCanvas->getPigmentLayerForLayer(paintToolLayer);
+      if (pigment != NULL) {pm = pigment->transform.transformation * inverse2(paintToolLayer->transform.transformation);}
+    }
 
     for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
       for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
