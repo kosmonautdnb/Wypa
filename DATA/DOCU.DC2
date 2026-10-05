@@ -768,6 +768,10 @@
       "Also if you did enable the \"Tiled drawing\" feature in the Tileset" _N_
       "tool this feature will be disabled by this menu line." _N_
     "}" _N_
+    "Clear canvas rotation{" _N_
+      "If you rotated the canvas / the whole \"screen\" e.g. with ALT+SHIFT" _N_
+      "this option lets you clear the angle to 0 degrees again." _N_
+    "}" _N_
     "Show only selected layers selection{" _N_
       "If you disable this option the selections of all layers bleed" _N_
       "through. So to say you see all layer selections at once/combined." _N_

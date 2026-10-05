@@ -1192,7 +1192,7 @@ void useToolSelection() {
   if (wasActiveLayerSwitched()) {selectionToolActive = false; selectionToolMoveActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
 
   bool polygonSpanning = selectionTool == SELECTIONTOOL_POLYGON && selectionToolActive;
-  colorGet();
+  if (!polygonSpanning) colorGet();
 
   Layer *activeLayer = currentCanvas->getActiveLayer(); 
   if (activeLayer == NULL) return; 
@@ -3221,13 +3221,17 @@ void toolCanvasStuff() {
       int txi = (int)floor((double)lxi/l2->toolInfo.tilingWidth);
       int tyi = (int)floor((double)lyi/l2->toolInfo.tilingHeight);
       if ((unsigned int)txi < (unsigned int)l->width && (unsigned int)tyi < (unsigned int)l->height) {
-        double sx0 = txi*l2->toolInfo.tilingWidth;
-        double sy0 = tyi*l2->toolInfo.tilingHeight;
-        double sx1 = (txi+1)*l2->toolInfo.tilingWidth;
-        double sy1 = (tyi+1)*l2->toolInfo.tilingHeight;
-        currentCanvas->getScreenPos(l,sx0,sy0,sx0,sy0);
-        currentCanvas->getScreenPos(l,sx1,sy1,sx1,sy1);
-        drawOpenGLRect(sx0,sy0,sx1+1,sy1+1,0xff0000ff); // actually sx0-1???
+        int kx[4] = {0,1,1,0};
+        int ky[4] = {0,0,1,1};
+        for (int i = 0; i < 4; i++) {
+          double sx0 = (txi+kx[i])*l2->toolInfo.tilingWidth;
+          double sy0 = (tyi+ky[i])*l2->toolInfo.tilingHeight;
+          currentCanvas->getScreenPos(l,sx0,sy0,sx0,sy0);
+          double sx1 = (txi+kx[(i+1)%4])*l2->toolInfo.tilingWidth;
+          double sy1 = (tyi+ky[(i+1)%4])*l2->toolInfo.tilingHeight;
+          currentCanvas->getScreenPos(l,sx1,sy1,sx1,sy1);
+          drawOpenGLSimpleLine(sx0,sy0,sx1,sy1,0xff0000ff);
+        }
       }
     } break;
     case TOOL_MIRROR: {
@@ -3561,7 +3565,6 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                     for (int kx = -1; kx <= 1; kx++) {
                       int x2 = bx+kx;
                       if ((unsigned int)x2<(unsigned int)blurCircleSize && (unsigned int)y2<(unsigned int)blurCircleSize) {
-                        float where = 1000.0;
                         if (paintValues[x2+y2*blurCircleSize] != 0) {
                           unsigned int col = paintBackground[x2+y2*blurCircleSize];
                           float r2 = (float)(col & 255)+0.5f;
@@ -3661,7 +3664,7 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                   float mdy = (float)mouseDY;
                   float mDistance = (float)sqrt(mdx*mdx+mdy*mdy);
                   if (mDistance>blurCircleSize) {
-                    float mAngle = (float)atan2(mdx,mdy);
+                    float mAngle = (float)atan2(mdx,mdy)+currentCanvas->control.rotation * PI / 180.0;
                     mdx = (float)(sin(mAngle) * blurCircleSize);
                     mdy = (float)(cos(mAngle) * blurCircleSize);
                   }

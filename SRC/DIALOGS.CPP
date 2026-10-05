@@ -1193,6 +1193,7 @@ void dialogResizeLayerByRepetition(bool openIt) {
 void dialogHotkeys(bool openIt) {
   DIALOGSTART("Hotkeys")
   HOTKEY_ZOOMPAN
+  HOTKEY_ROTATECANVAS
   HOTKEY_ZOOMIN
   HOTKEY_ZOOMOUT
   HOTKEY_TOOL_SELECTION

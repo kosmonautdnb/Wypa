@@ -424,6 +424,7 @@ int main(int argc, const char *argv[]) {
     perFrame();
 
 
+    static double angleDisplayStartTime = -1000;
     if (isPaintAreaActive()) {
       if (currentKey == '-') {currentCanvas->control.zoomBy(currentCanvas, mouseX, mouseY, 1.0/zoomStep);}
       if (currentKey == '+') {currentCanvas->control.zoomBy(currentCanvas, mouseX, mouseY, zoomStep);}
@@ -431,6 +432,7 @@ int main(int argc, const char *argv[]) {
       if (currentKey == 'y') {lockedMouseY = !lockedMouseY; lockedMouseX = false;  lockedMousePosX = (int)mouseX; lockedMousePosY = (int)mouseY;}
   
       if (controlKeyId == CONTROLKEY_ALT) {currentCanvas->control.moveByPixels(currentCanvas,mouseDX,mouseDY);}
+      if (controlKeyId == (CONTROLKEY_ALT|CONTROLKEY_SHIFT)) {angleDisplayStartTime = lastTime; currentCanvas->control.addAngle(currentCanvas,mouseDX*2.0);}
 
       if (currentKey == GL_VK_LEFT) currentCanvas->control.moveByPixels(currentCanvas,scrollKeyPixels,0);
       if (currentKey == GL_VK_RIGHT) currentCanvas->control.moveByPixels(currentCanvas,-scrollKeyPixels,0);
@@ -493,6 +495,12 @@ int main(int argc, const char *argv[]) {
     whiteFade();
     
     lastActiveLayerSwitchIndex = activeLayerSwitchIndex;
+
+    if (fabs(lastTime-angleDisplayStartTime)<0.5) {
+      double x = currentCanvas->screenPosX; double y = currentCanvas->screenPosY;
+      drawText(4, x, y, String::fromInt((int)currentCanvas->control.rotation).c_str(), 0xff000000,0,0);
+      drawText(4, x+2, y+2, String::fromInt((int)currentCanvas->control.rotation).c_str(), 0xff0000ff,0,0);
+    }
       
     if (refreshMasked) glRefreshMasked(); else glRefresh();
 

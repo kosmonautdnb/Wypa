@@ -234,6 +234,12 @@ void TransformationState::scaleAround(double scaleX, double scaleY, double cente
   update();
 }
 
+void TransformationState::rotateAround(double angle, double centerX, double centerY) {
+  Matrix t; t.translate(Vector(centerX, centerY,0));
+  transformation = t * rotationMatrixAngleAxis(angle*PI/180.0,0,0,1) * inverse2(t) * transformation;
+  update();
+}
+
 void TransformationState::fresh() {
   clear();
 }
@@ -2458,14 +2464,18 @@ void CanvasControl::setCanvasTransform(Canvas *canvas) {
   canvas->transform.translate(scrollX,scrollY);
   canvas->transform.zoom(zoom);
   canvas->transform.aspect(1*aspectRatio*glFrameBufferHeight/glFrameBufferWidth);
+  Matrix t; t.translate(Vector(canvas->width*0.5,canvas->height*0.5,0)); Matrix q = canvas->transform.transformation * t; t.identity(); t.translate(q.getColumn(3));
+  canvas->transform.transformation = t * rotationMatrixAngleAxis(-rotation*PI/180.0,0,0,1) * inverse2(t) * canvas->transform.transformation;
   canvas->transform.pixelSize(pixelSizeX,pixelSizeY);
   canvas->transform.update();
   shouldUpdateAll = true;
 }
 
 void CanvasControl::moveByPixels(Canvas *canvas, double x, double y) {
-  scrollX -= x;
-  scrollY -= y;
+  double a = 1*aspectRatio*glFrameBufferHeight/glFrameBufferWidth;
+  Vector k(x*a,y); k = k * inverse2(rotationMatrixAngleAxis(-rotation*PI/180.0,0,0,1));
+  scrollX -= k.x/a;
+  scrollY -= k.y;
   setCanvasTransform(canvas);
 }
 
@@ -2482,6 +2492,14 @@ void CanvasControl::zoomTo(Canvas *canvas, double screenPixelCenterX, double scr
 
 void CanvasControl::zoomBy(Canvas *canvas, double screenPixelCenterX, double screenPixelCenterY,double step) {
   zoomTo(canvas,screenPixelCenterX,screenPixelCenterY,zoom * step);
+}
+
+void CanvasControl::addAngle(Canvas *canvas, double angle) {
+  rotation += angle;
+  rotation = floor(rotation);
+  if (rotation >= 0) rotation = fmod(rotation,360.0); else rotation = 360.0 - fmod(fabs(rotation),360.0);
+  setCanvasTransform(canvas);
+  shouldUpdateAll = true;
 }
 
 void Canvas::init(int width, int height) {
@@ -2716,10 +2734,15 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   }
 
   Vector b = layer->boundingBox();
-  Vector b1 = b.xy();
-  Vector b2; b2.x = b.z; b2.y = b.w;
-  b1 = inverse2(canvas->transform.transformation) * b1;
-  b2 = inverse2(canvas->transform.transformation) * b2;
+  Vector b1,b2;
+  for (int i = 0; i < 4; i++) {
+    Vector k(i & 1 ? b.z : b.x, i & 2 ? b.w : b.y);
+    k = inverse2(canvas->transform.transformation) * k;
+    if (i == 0 || k.x < b1.x) b1.x = k.x;
+    if (i == 0 || k.y < b1.y) b1.y = k.y;
+    if (i == 0 || k.x > b2.x) b2.x = k.x;
+    if (i == 0 || k.y > b2.y) b2.y = k.y;
+  }
   b2.x += 1; // no better solution, yet
   b2.y += 1; // no better solution, yet
   if (b2.x < x0) return;
@@ -3715,10 +3738,15 @@ void Canvas::updateLayer(Layer *layer, bool forceUpdate) {
   int x1 = width;
   int y1 = height;
   Vector b = layer->boundingBox();
-  Vector b1 = b.xy();
-  Vector b2; b2.x = b.z; b2.y = b.w;
-  b1 = inverse2(transform.transformation) * b1;
-  b2 = inverse2(transform.transformation) * b2;
+  Vector b1,b2;
+  for (int i = 0; i < 4; i++) {
+    Vector k(i & 1 ? b.z : b.x, i & 2 ? b.w : b.y);
+    k = inverse2(transform.transformation) * k;
+    if (i == 0 || k.x < b1.x) b1.x = k.x;
+    if (i == 0 || k.y < b1.y) b1.y = k.y;
+    if (i == 0 || k.x > b2.x) b2.x = k.x;
+    if (i == 0 || k.y > b2.y) b2.y = k.y;
+  }
   b2.x += 1;
   b2.y += 1;
   if (b2.x < x0) return;
@@ -3847,8 +3875,18 @@ void applyFlip(Layer *l, const Matrix &scale, const Matrix &center, const Matrix
   l->transform.update();
 }
 
+Matrix getTransformationWithoutRotation(Canvas *canvas) {
+  double k = canvas->control.rotation;
+  canvas->control.rotation = 0;
+  canvas->control.setCanvasTransform(canvas);
+  Matrix ret = canvas->transform.transformation;
+  canvas->control.rotation = k;
+  canvas->control.setCanvasTransform(canvas);
+  return ret;
+}
+
 void Canvas::mirrorHorizontally() {
-  Matrix screenToCanvas = transform.transformation; // from screen coordinates to canvas space
+  Matrix screenToCanvas = getTransformationWithoutRotation(this); // from screen coordinates to canvas space
   Vector ltCanvas = inverse2(screenToCanvas) * Vector(canvasX0,canvasY0,0);
   Vector rbCanvas = inverse2(screenToCanvas) * Vector(canvasX1,canvasY1,0);
   Matrix center; center.translate(Vector((ltCanvas.x+rbCanvas.x)*0.5,0,0));
@@ -3862,7 +3900,7 @@ void Canvas::mirrorHorizontally() {
 }
 
 void Canvas::mirrorVertically() {
-  Matrix screenToCanvas = transform.transformation; // from screen coordinates to canvas space
+  Matrix screenToCanvas = getTransformationWithoutRotation(this); // from screen coordinates to canvas space
   Vector ltCanvas = inverse2(screenToCanvas) * Vector(canvasX0,canvasY0,0);
   Vector rbCanvas = inverse2(screenToCanvas) * Vector(canvasX1,canvasY1,0);
   Matrix center; center.translate(Vector(0,(ltCanvas.y+rbCanvas.y)*0.5,0));

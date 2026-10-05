@@ -413,7 +413,7 @@ void drawLayerView() {
     if ((unsigned int)currentCanvas->selectedGroup < (unsigned int)currentCanvas->groups.size()) {
       Group *group = currentCanvas->groups[currentCanvas->selectedGroup];
       bool canMoveUp = group->index > 0;
-      bool canMoveDown = group->index + group->length < currentCanvas->layers.size();
+      bool canMoveDown = group->index + group->length < (int)currentCanvas->layers.size();
       if (roundButton("Move up##LAYERVIEWGROUPMOVEUP", canMoveUp)) {
         int stepUp = 1, count = 0; Group *group3 = NULL;
         for (int i2 = 0; i2 < (int)currentCanvas->groups.size(); i2++) {
@@ -427,7 +427,7 @@ void drawLayerView() {
         group->index -= stepUp;
         group->open = true;
         for (int i = group->index+stepUp; i < group->index + group->length + stepUp; i++) {
-          if (i >= stepUp && i < currentCanvas->layers.size()) {
+          if (i >= stepUp && i < (int)currentCanvas->layers.size()) {
             Layer *t = currentCanvas->layers[i-stepUp];
             currentCanvas->layers[i-stepUp] = currentCanvas->layers[i];
             currentCanvas->layers[i] = t;
@@ -450,7 +450,7 @@ void drawLayerView() {
         group->index += stepDown;
         group->open = true;
         for (int i = group->index + group->length - stepDown-1; i >= group->index-stepDown; i--) {
-          if (i >= 0 && i < currentCanvas->layers.size()-stepDown) {
+          if (i >= 0 && i < (int)currentCanvas->layers.size()-stepDown) {
             Layer *t = currentCanvas->layers[i+stepDown];
             currentCanvas->layers[i+stepDown] = currentCanvas->layers[i];
             currentCanvas->layers[i] = t;

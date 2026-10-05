@@ -415,6 +415,7 @@ void drawMenuBar() {
         bool lockedMouse = lockedMouseX||lockedMouseY||tilingOn;
         if (lockedMouse) ImGui::PushStyleColor(ImGuiCol_Text,(k2 & 1) ? ImVec4(1,0,0,1) : ImVec4(0.5,0,0,1));
         if (ImGui::MenuItem("Clear mouse lock and tiling",NULL,false,lockedMouse)) {lockedMouseX = false; lockedMouseY = false; tilingOn = false; if (tool == TOOL_TILING) switchTool(TOOL_NONE);}
+        if (ImGui::MenuItem("Clear canvas rotation",NULL,false,currentCanvas->control.rotation != 0)) {currentCanvas->control.rotation = 0; shouldUpdateAll = true;}
         if (lockedMouse) ImGui::PopStyleColor();
         if (ImGui::MenuItem("Show only selected layer(s) selection",NULL,showOnlyActiveLayersSelection)) {showOnlyActiveLayersSelection = !showOnlyActiveLayersSelection; shouldUpdateAll = true;}
         ImGui::Separator();
@@ -523,7 +524,7 @@ void drawMenuBar() {
       unsigned int secs = (unsigned int)(glSeconds() - programStartTimeSeconds);
       ImGui::Text("%dh:%02dm%c%02ds on.",secs/60/60,(secs/60)%60,(k2%10)<1 ? ' ':':',secs % 60);
     } 
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) clockMode = !clockMode; toolTip("Info: %s", extensiveTimeDescString().c_str());
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) clockMode = !clockMode; else toolTip("Info: %s", extensiveTimeDescString().c_str());
     cursorScreen.x -= 7 + 3;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(cursorScreen);

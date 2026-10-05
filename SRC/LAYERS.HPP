@@ -153,6 +153,7 @@ public:
   void translate(double x, double y);
   void scale(double x, double y);
   void scaleAround(double scaleX, double scaleY, double centerX, double centerY);
+  void rotateAround(double angle, double centerX, double centerY);
 
   void fresh();
   void zoom(double zoom);
@@ -726,6 +727,7 @@ public:
   double pixelSizeY;
   double scrollX;
   double scrollY;
+  double rotation;
 
   CanvasControl() {
     zoom = 100.0;
@@ -733,12 +735,14 @@ public:
     pixelSizeY = 1;
     scrollX = 0;
     scrollY = 0;
+    rotation = 0;
   }
 
   void setCanvasTransform(class Canvas *canvas);
   void moveByPixels(class Canvas *canvas,double x, double y);
   void zoomTo(Canvas *canvas, double screenPixelCenterX, double screenPixelCenterY,double zoom);
   void zoomBy(Canvas *canvas, double screenPixelCenterX, double screenPixelCenterY,double step);
+  void addAngle(Canvas *canvas, double angle);
 };
 #define S_CANVASCONTROL(__name__,__o__)\
   S_OBJECT_OPEN(__name__);\
@@ -747,6 +751,7 @@ public:
   S_DOUBLE("pixelSizeY",(__o__)->pixelSizeY);\
   S_DOUBLE("scrollX",(__o__)->scrollX);\
   S_DOUBLE("scrollY",(__o__)->scrollY);\
+  S_DOUBLE("rotation",(__o__)->rotation);\
   S_OBJECT_CLOSE();
 
 
@@ -760,7 +765,7 @@ bool wasActiveLayerSwitched();
 
 class Group {
 public:
-  Group() : index(0), length(0), open(true), imGuiActive(false) {sprintf(name,"");}
+  Group() : index(0), length(0), open(true), imGuiActive(false) {sprintf(name,"%s","");}
   int index;
   int length;
   bool open;
