@@ -1443,6 +1443,7 @@
     "BURN = Like Photoshop Linear Burn." _N_
     "COLBURN = Like Photoshop Color Burn." _N_
     "COLDODGE = Like Photoshop Color Dodge." _N_
+    "PIGMENT = Brushes paint with this layer as opacity in layers above." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_

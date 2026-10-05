@@ -2634,12 +2634,32 @@ void useToolPainting() {
 
     if ((double)foregroundColor.w < 1.0/255.0) alphaWarning = true;
 
+    Matrix pm; Layer *pigment = currentCanvas->getPigmentLayerForLayer(paintToolLayer);
+    if (pigment != NULL) {pm = pigment->transform.transformation * inverse2(paintToolLayer->transform.transformation);}
+
     for (int y = layerUpdateY0; y < layerUpdateY1; y++) {
       for (int x = layerUpdateX0; x < layerUpdateX1; x++) {
         int p = x + y * paintToolLayer->width;
         float value = paintValues[p];
         if (paintToolLayer->pixelStates[p] & PIXELSTATE_TEMP) {
           paintToolLayer->pixelStates[p] &= ~PIXELSTATE_TEMP;
+          if (pigment != NULL) {
+            int lx = (int)(x*pm.m[0+0*4]+y*pm.m[0+1*4]+pm.m[0+3*4]);
+            int ly = (int)(x*pm.m[1+0*4]+y*pm.m[1+1*4]+pm.m[1+3*4]);
+            if (lx == 0) lx = (int)floor(x*pm.m[0+0*4]+y*pm.m[0+1*4]+pm.m[0+3*4]);
+            if (ly == 0) ly = (int)floor(x*pm.m[1+0*4]+y*pm.m[1+1*4]+pm.m[1+3*4]);
+            if ((unsigned int)lx < (unsigned int)pigment->width && (unsigned int)ly < (unsigned int)pigment->height) {
+              unsigned int col = pigment->pixels[lx+ly*pigment->width];
+              int r = (int)(col & 255);
+              int g = (int)((col>>8) & 255);
+              int b = (int)((col>>16) & 255);
+              float p = (float)(r + g + b)/255.f/3.f;
+              p = 1-((1-p) * pigment->state.alpha);
+              if (p < 0) p = 0;
+              if (p > 1) p = 1;
+              value *= p;
+            }
+          }
           unsigned int col = paintBackground[p];
           switch(tool2) {
             case TOOL_LINE:

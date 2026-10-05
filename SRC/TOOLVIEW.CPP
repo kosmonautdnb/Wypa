@@ -366,6 +366,18 @@ void drawBrushSelect(bool pencil) {
         ImGui::Text("Mode"); ImGui::SameLine(); if (ImGui::Combo("##DRAWBRUSHSELECTPAINTMODECOMBO",&paintMode,paintModeNames,PAINTMODE_COUNT)) {
         } else toolTip(paintModeNamesFull[paintMode]);
         if (paintMode != PAINTMODE_NORMAL) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
+        Layer *l = currentCanvas->getPigmentLayerForLayer(currentCanvas->getActiveLayer()); 
+        if (l != NULL) {
+          ImVec2 cursor = ImGui::GetCursorScreenPos();
+          cursor.y -= 2;
+          ImGui::SetCursorScreenPos(cursor);
+          ImGui::TextColored(ImVec4(1,0,0,0.5),"Pigment"); 
+          ImGui::PushItemWidth(50);
+          ImGui::SameLine(); if (ImGui::SliderFloat("##DRAWBRUSHSELECTPIGMENTINTENSITY",&l->state.alpha,0,1)) {;} toolTip("The pigment layers opacity");
+          ImGui::PopItemWidth();
+          if (l->state.alpha<0) l->state.alpha = 0;
+          if (l->state.alpha>1) l->state.alpha = 1;
+        }
       } break;
       default: {
         ImGui::Text("");

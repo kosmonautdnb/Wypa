@@ -140,6 +140,9 @@ void drawLayerView() {
     if (currentLayer->mode == LAYERMODE_OPMOD) {
       ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x40ff8040);
     }
+    if (currentLayer->mode == LAYERMODE_PIGMENT) {
+      ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x40008000);
+    }
 
     ImGui::PopItemWidth();
     ImGui::SameLine();
@@ -351,6 +354,9 @@ void drawLayerView() {
     }
     if (l->mode == LAYERMODE_OPMOD) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40ff8040);
+    }
+    if (l->mode == LAYERMODE_PIGMENT) {
+      ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),l->state.visible ? 0x40008000 : 0xc0c0ffc0);
     }
     if (l->state.active) {
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x40000000);
