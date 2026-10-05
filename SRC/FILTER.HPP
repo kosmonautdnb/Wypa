@@ -63,6 +63,7 @@ void filterSelectionDistanceField(class Layer *layer);
 void filterSelectionAverageColor(class Layer *layer);
 void filterPixelate(int cellSizeX, int cellSizeY);
 void filterSelectionVerticalGradient(class Layer *layer);
+void filterFillAlphaHoles(class Layer *layer);
 
 #define S_FILTER_CPP()
 

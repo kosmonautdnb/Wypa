@@ -2542,3 +2542,86 @@ void filterSelectionVerticalGradient(Layer *layer) {
   updatedPixels(l);
   afterUndoPoint();
 }
+
+
+void filterFillAlphaHoles(class Layer *layer) {
+  Layer *l = layer;
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+
+  initStatusBar();
+  beforeUndoPoint();
+
+  bool hasSelection = l->hasSelection();
+
+  for (int x2 = 0; x2 < l->width; x2++) {
+    int gradientStart = -1;
+    for (int y2 = 0; y2 < l->height+1; y2++) {
+      bool hole = y2 < l->height ? ((l->pixels[x2+y2*l->width]>>24) & 255) != 255 : false;
+      if (hole) {
+        if (gradientStart < 0) gradientStart = y2;
+      } else {
+        if (gradientStart >= 0) {
+          int delta = y2 - gradientStart;
+          if (delta > 0) {
+            int y0 = gradientStart - 1; if (y0 < 0) y0 = 0;
+            int y1 = y2; if (y1 >= l->height) y1 = l->height - 1;
+            unsigned int col0 = l->pixels[x2+y0 * l->width];
+            unsigned int col1 = l->pixels[x2+y1 * l->width];
+            for (int y3 = gradientStart; y3 < y2; y3++) {
+              float k = (float)(y3 - gradientStart)/delta;
+              int r = (int)((float)((int)(col1 & 255) - (int)(col0 & 255))*k + (float)(col0 & 255));
+              int g = (int)((float)((int)((col1>>8) & 255) - (int)((col0>>8) & 255))*k + (float)((col0>>8) & 255));
+              int b = (int)((float)((int)((col1>>16) & 255) - (int)((col0>>16) & 255))*k + (float)((col0>>16) & 255));
+              if (y3 < layer->height && ((!hasSelection)||(l->pixelStates[x2+y3*layer->width] & PIXELSTATE_SELECTED))) 
+                l->pixels[x2+y3*layer->width] = r|(g<<8)|(b<<16);
+            }
+          }
+          gradientStart = -1;
+        }
+      }
+    }
+  }
+
+  for (int y2 = 0; y2 < l->height; y2++) {
+    int gradientStart = -1;
+    for (int x2 = 0; x2 < l->width+1; x2++) {
+      bool hole = x2 < l->width ? ((l->pixels[x2+y2*l->width]>>24) & 255) != 255 : false;
+      if (hole) {
+        if (gradientStart < 0) gradientStart = x2;
+      } else {
+        if (gradientStart >= 0) {
+          int delta = x2 - gradientStart;
+          if (delta > 0) {
+            int x0 = gradientStart - 1; if (x0 < 0) x0 = 0;
+            int x1 = x2; if (x1 >= l->width) x1 = l->width - 1;
+            unsigned int col0 = l->pixels[x0+y2 * l->width];
+            unsigned int col1 = l->pixels[x1+y2 * l->width];
+            for (int x3 = gradientStart; x3 < x2; x3++) {
+              float k = (float)(x3 - gradientStart)/delta;
+              int r = (int)((float)((int)(col1 & 255) - (int)(col0 & 255))*k + (float)(col0 & 255));
+              int g = (int)((float)((int)((col1>>8) & 255) - (int)((col0>>8) & 255))*k + (float)((col0>>8) & 255));
+              int b = (int)((float)((int)((col1>>16) & 255) - (int)((col0>>16) & 255))*k + (float)((col0>>16) & 255));
+              if (x3 < layer->width && ((!hasSelection)||(l->pixelStates[x3+y2*layer->width] & PIXELSTATE_SELECTED))) {
+                int col2 = l->pixels[x3+y2*layer->width];
+                if (((col2>>24) & 255)==0) {
+                  r = r + (int)(col2 & 255);
+                  g = g + (int)((col2>>8) & 255);
+                  b = b + (int)((col2>>16) & 255);
+                  r /= 2; g /= 2; b /= 2;
+                }
+                l->pixels[x3+y2*layer->width] = r|(g<<8)|(b<<16)|0xff000000;
+              }
+            }
+          }
+          gradientStart = -1;
+        }
+      }
+    }
+  }
+
+
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
