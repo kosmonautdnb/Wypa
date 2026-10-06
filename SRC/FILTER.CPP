@@ -2752,3 +2752,120 @@ void filterFillAlphaHoles(class Layer *layer, bool forAlpha) {
   updatedPixels(l);
   afterUndoPoint();
 }
+
+void filterTurnToShadow() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+  beforeUndoPoint();
+  for (int i = 0; i < l->width*l->height; i++) l->pixels[i] = l->pixels[i] & 0xff000000;
+  repaintLayer(l,true);
+  updatedPixels(l);
+  afterUndoPoint();
+}
+
+void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width, unsigned int height, float outlineSize, bool antialiasing) {
+  beforeUndoPoint();
+
+  initStatusBar();
+  memset(dest,0,width*height*sizeof(unsigned int));
+
+  Array<unsigned int> astar; astar.resize(width*height); memset(&astar[0],0xff,astar.size() * sizeof(unsigned int));
+  unsigned int *astar_ = &astar[0];
+
+  int alphaThresh = 1;
+  outlineSize += 1.f;
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      unsigned char alphaHere = (unsigned char)((source[x+y*width]>>24) & 255);
+      if (alphaHere < alphaThresh) {
+        bool found = false;
+        int foundX = 0; int foundY = 0;
+        for (int y2 = -1; y2 <= 1; y2++) {
+          for (int x2 = -1; x2 <= 1; x2++) {
+            if ((unsigned int)(x+x2) >= (unsigned int)width || (unsigned int)(y+y2) >= (unsigned int)height) {break;}
+            unsigned char alphaThere = (unsigned char)((source[(x+x2)+(y+y2)*width]>>24) & 255);
+            if (alphaThere>=alphaThresh) {found = true; foundX = x + x2; foundY = y + y2; break;}
+          }
+        }
+        if (found) {
+          astar_[x+y*width] = (foundX & 0xffff) + ((foundY & 0xffff)<<16);
+        }
+      }
+    }
+  }
+
+  bool somethingUpdated = true;
+  unsigned int counter = 0;
+  int outlineSizeSqr = (int)((outlineSize+1)*(outlineSize+1));
+  while(somethingUpdated) {
+    somethingUpdated = false;
+    counter++; counter &= 15; if (counter == 0) updateStatusBar();
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        unsigned int here = astar_[x+y*width];
+        if (here != 0xffffffff) {
+          int dx0 = (int)(here & 0xffff) - x;
+          int dy0 = (int)((here>>16) & 0xffff) - y;
+          int d0 = dx0*dx0 + dy0*dy0;
+          if (d0 > outlineSizeSqr) continue;
+          for (int y2 = -1; y2 <= 1; y2++) {
+            for (int x2 = -1; x2 <= 1; x2++) {
+              if ((unsigned int)(x+x2) >= (unsigned int)width || (unsigned int)(y+y2) >= (unsigned int)height) continue;
+              unsigned char thereAlpha = (unsigned char)((source[(x+x2)+(y+y2)*width]>>24)&255);
+              if (thereAlpha<alphaThresh) {
+                unsigned int therea = astar_[(x+x2)+(y+y2)*width];
+                if (therea == 0xffffffff) {
+                  astar_[(x+x2)+(y+y2)*width] = here;
+                  somethingUpdated = true;
+                } else {
+                  int dx1 = (int)(therea & 0xffff) - (x+x2);
+                  int dy1 = (int)((therea>>16) & 0xffff) - (y+y2);
+                  int d1 = dx1*dx1 + dy1*dy1;
+                  int dx2 = (int)(here & 0xffff) - (x+x2);
+                  int dy2 = (int)((here>>16) & 0xffff) - (y+y2);
+                  int d2 = dx2*dx2 + dy2*dy2;
+                  if (d2 < d1) {
+                    astar_[(x+x2)+(y+y2)*width] = here;
+                    somethingUpdated = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  for (int y2 = 0; y2 < height; y2++) {
+    for (int x2 = 0; x2 < width; x2++) {
+      unsigned char hereAlpha = (unsigned char)((source[x2+y2*width]>>24) & 255);
+      if (hereAlpha < alphaThresh) {
+        unsigned int astr = astar_[x2+y2*width];
+        if (astr == 0xffffffff) {dest[x2+y2*width] = 0x00000000; continue;}
+        int dx = (int)(astr & 0xffff)-x2;
+        int dy = (int)((astr>>16) & 0xffff)-y2;
+        double d = sqrt(dx*dx+dy*dy);
+        int alpha = d >= outlineSize ? 0 : 255;
+        if (antialiasing) {
+          if (d < outlineSize - 1) alpha = 255; else {
+            if (d >= outlineSize) {
+              alpha = 0;
+            } else {
+              double k = d - (outlineSize-1);
+              if (k < 0) k = 0;
+              if (k > 1) k = 1;
+              alpha = (int)((1-k) * 255.0);
+            }
+          }
+        }
+        int grey = alpha; // this is just for premul
+        dest[x2+y2*width] = grey|(grey<<8)|(grey<<16)|(alpha<<24);
+      } else dest[x2+y2*width] = 0xffffffff;
+    }
+  }
+
+  afterUndoPoint();
+}

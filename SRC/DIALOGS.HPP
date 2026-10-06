@@ -130,6 +130,7 @@ void dialogCopyPasteLoadedText(bool openIt);
 void dialogEditText(bool openIt);
 void dialogDisplacementMap(bool openIt);
 void dialogResizeLayerByRepetition(bool openIt);
+void dialogTurnToOutline(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);

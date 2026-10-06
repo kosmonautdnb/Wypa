@@ -964,6 +964,17 @@
       "fill the holes in order to make them really fixed by hand crafting" _N_
       "them later." _N_
     "}" _N_
+    "Turn to shadow{" _N_
+      "Makes the entire layer black but keeps the transparency." _N_
+      "If you want to make a shadow you can just duplicate a layer and use this." _N_
+      "And reposition the layer and change it's opacity." _N_
+    "}" _N_
+    "Turn to outline{" _N_
+      "Creates a white blob out of the layer with an outline size you specify." _N_
+      "Just duplicate a layer put it behind another layer and use this." _N_
+      "If you want to change the color you can use postprocessing and" _N_
+      "e.g. disable green and change the hue then." _N_
+    "}" _N_
   "}" _N_
   "Pictures{" _N_
     "Here all the currently loaded pictures are visible." _N_

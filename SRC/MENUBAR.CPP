@@ -312,7 +312,7 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Copy layer(s)",NULL,false,one)) {currentCanvas->copy();}
         if (ImGui::MenuItem("Paste",NULL,false,copyLayer != NULL)) {currentCanvas->paste();}
-        if (ImGui::MenuItem("Bake layer(s)",NULL,false,one)) {dialogBakeLayers(true);}
+        if (ImGui::MenuItem("Bake layer(s) (and rasterize)",NULL,false,one)) {dialogBakeLayers(true);}
         ImGui::Separator();
         if (ImGui::MenuItem("Merge down layer(s)",NULL,false,count > 1)) {dialogMergeDown(true);}
         if (ImGui::MenuItem("Insert merge of layer(s)",NULL,false,count > 0)) {currentCanvas->insertMergeOfLayers();}
@@ -382,9 +382,19 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Zoom 100%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,100.f);}
         if (ImGui::MenuItem("Zoom 200%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,200.f);}
+        if (ImGui::MenuItem("Canvas rotation 0 degrees",NULL,false,currentCanvas->control.rotation != 0)) {currentCanvas->control.rotation = 0; shouldUpdateAll = true;}
         ImGui::Separator();
         if (ImGui::MenuItem("Zoom in (+)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,zoomStep);}
         if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
+        if (ImGui::MenuItem("Rotate canvas +45 degrees")) {currentCanvas->control.addAngle(currentCanvas,45);}
+        if (ImGui::MenuItem("Rotate canvas -45 degrees")) {currentCanvas->control.addAngle(currentCanvas,-45);}
+        ImGui::Separator();
+        static bool wasStored = false;
+        if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll(); wasStored = true;}
+        if (ImGui::MenuItem("Restore scroll",NULL,false,wasStored)) {currentCanvas->restoreScroll(); shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Scroll to layer origin",NULL, false, count == 1)) {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;}
         ImGui::Separator();
         if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Show canvas darkened",NULL,showCanvasDarkened)) {showCanvasDarkened = !showCanvasDarkened; shouldUpdateAll = true;}
@@ -405,17 +415,9 @@ void drawMenuBar() {
         subtractiveColors = colorMixingMode & 2 ? true : false;
         subtractiveCMYK = colorMixingMode & 1 ? true : false;
         ImGui::Separator();
-        static bool wasStored = false;
-        if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll(); wasStored = true;}
-        if (ImGui::MenuItem("Restore scroll",NULL,false,wasStored)) {currentCanvas->restoreScroll(); shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Scroll to layer origin",NULL, false, count == 1)) {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;}
-        ImGui::Separator();
         bool lockedMouse = lockedMouseX||lockedMouseY||tilingOn;
         if (lockedMouse) ImGui::PushStyleColor(ImGuiCol_Text,(k2 & 1) ? ImVec4(1,0,0,1) : ImVec4(0.5,0,0,1));
         if (ImGui::MenuItem("Clear mouse lock and tiling",NULL,false,lockedMouse)) {lockedMouseX = false; lockedMouseY = false; tilingOn = false; if (tool == TOOL_TILING) switchTool(TOOL_NONE);}
-        if (ImGui::MenuItem("Clear canvas rotation",NULL,false,currentCanvas->control.rotation != 0)) {currentCanvas->control.rotation = 0; shouldUpdateAll = true;}
         if (lockedMouse) ImGui::PopStyleColor();
         if (ImGui::MenuItem("Show only selected layer(s) selection",NULL,showOnlyActiveLayersSelection)) {showOnlyActiveLayersSelection = !showOnlyActiveLayersSelection; shouldUpdateAll = true;}
         ImGui::Separator();
@@ -457,6 +459,8 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Selection vertical gradient",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionVerticalGradient(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Patch alpha holes",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterFillAlphaHoles(currentCanvas->getActiveLayer(), true);}
         if (ImGui::MenuItem("Fill selected area by border",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterFillAlphaHoles(currentCanvas->getActiveLayer(), false);}
+        if (ImGui::MenuItem("Turn to outline",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogTurnToOutline(true);}
+        if (ImGui::MenuItem("Turn to shadow",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterTurnToShadow();}
         ImGui::EndMenu();
       }
   

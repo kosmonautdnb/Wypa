@@ -64,6 +64,8 @@ void filterSelectionAverageColor(class Layer *layer);
 void filterPixelate(int cellSizeX, int cellSizeY);
 void filterSelectionVerticalGradient(class Layer *layer);
 void filterFillAlphaHoles(class Layer *layer, bool forAlpha);
+void filterTurnToShadow();
+void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width, unsigned int height, float outlineSize, bool antialiasing);
 
 #define S_FILTER_CPP()
 

@@ -207,6 +207,7 @@ void dialogs() {
   dialogEditText(false);
   dialogDisplacementMap(false);
   dialogResizeLayerByRepetition(false);
+  dialogTurnToOutline(false);
 }
 
 void drawDialogs() {
@@ -229,8 +230,8 @@ void dialogAbout(bool openIt) {
   ImGui::Text(
     "WYPA - A SIMPLE PAINT PROGRAM FOR DOS\n"
     "------------------------------------\n"
-    "Coded in early 2026 including\n"
-    "all design by\n"
+    "Started in early 2026 including\n"
+    "all code and design by\n"
     "Stefan Mader of Puls4r\n"
     "------------------------------------\n"
     "Source is released under the most\n"
@@ -245,6 +246,10 @@ void dialogAbout(bool openIt) {
     "It's just a proof of concept, since there\n"
     "where almost no other options to paint\n"
     "in high resolutions with true color on DOS.\n"
+    "------------------------------------\n"
+    "Actually it's more sort of a game creation\n"
+    "helper. You e.g. even can do tilemaps\n"
+    "(even isometric ones) with it.\n"
     "------------------------------------\n"
     "This program is freeware.\n"
     "------------------------------------\n"
@@ -310,6 +315,9 @@ void dialogDocumentation(bool openIt) {
     DIALOGSTART("Tiny documentation not found")
     ImGui::TextColored(ImVec4(1,0,0,1),"The documentation was not found in path");
     ImGui::TextColored(ImVec4(1,0,0,1),"%s",fromLocalFileName("./DATA/DOCU.DC2").c_str());
+    if (ImGui::Button("Close##DIALOGDOCUMENTATIONCLOSENOTFOUND")) {
+      ImGui::CloseCurrentPopup();
+    }
     DIALOGEND()
     return;
   }
@@ -531,6 +539,7 @@ void dialogFlaws(bool openIt) {
     "   memory for large graphics and edits, if your machine intrinsically has\n"
     "   a lot of memory. This memory can be accessed with it by DOS.\n"
     "   Maybe look into the TinyDocumentation/FreeDOS for explanations.\n"
+    "6. Again: Undo is very limited (due to memory) and not all actions have an undo.\n"
     "\n"
     "I already worked with Wypa some longer times and am not aware of\n"
     "really critical flaws."
@@ -1185,6 +1194,56 @@ void dialogResizeLayerByRepetition(bool openIt) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
 
+  DIALOGEND()
+}
+
+void dialogTurnToOutline(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float outlineSize = 1;
+  static Layer *clone = NULL;
+  static bool updateLayer = false;
+  static bool antialiasing = true;
+  if (l == NULL) return;
+  if (openIt) {
+    beforeUndoPoint();
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    updateLayer = true;
+  }
+  DIALOGSTART("Turn to outline")
+  ImGui::PushItemWidth(7*14);
+  ImGui::Text("Outline size (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGTURNTOOUTLINESIZE", &outlineSize,0,64)) {;} else toolTip("How many pixels the outline should span"); 
+  ImGui::SameLine(); if (roundButton("Preview##DIALOGTURNTOOUTLINEPREVIEW",true)) updateLayer = true;
+  ImGui::Text("Antialiasing"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGTURNTOOUTLINEANTIALIASING", &antialiasing)) {updateLayer = true;}
+  ImGui::PopItemWidth();
+  if (outlineSize < 0) outlineSize = 0;
+  if (outlineSize > 64) outlineSize = 64;
+
+  bool apply = false; if (ImGui::Button("Apply##DIALOGTURNTOOUTLINEAPPLY")) {updateLayer = true; apply = true;}
+
+  if (updateLayer) {
+    updateLayer = false;
+    if (l->width == clone->width && l->height == clone->height && (!locked(l,LOCK_ANY))) {
+      filterOutline(&l->pixels[0],&clone->pixels[0], l->width, l->height, outlineSize, antialiasing);
+      updatedPixels(l);
+      repaintLayer(l,true);
+    }
+  }
+
+  if (apply) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  } else toolTip("Use this outline");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGTURNTOOUTLINECLOSE")) {
+    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (clone != NULL) {delete clone; clone = NULL;}
+    shouldUpdateAll = true;
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
   DIALOGEND()
 }
 

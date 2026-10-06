@@ -149,7 +149,7 @@ void drawToolWandView() {
       watershed = true;
     }
   } else {
-    if (roundButton("Close##DRAWTOOLWANDVIEWCLOSE",true)) {
+    if (roundButton("Return##DRAWTOOLWANDVIEWCLOSE",true)) {
       watershed = false;
     }
     ImGui::Text("Watershed algo.");
