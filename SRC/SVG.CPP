@@ -74,21 +74,25 @@ SVG *SVG::set(const char *fileName, unsigned int *rgba, int w, int h) {
   return this;
 }
 
+bool problemsLoadingSVGs = false;
+
 void addSVG(const char *id, const char *fileName, int width, int height,double scale, double aspect) {
   NSVGimage* image;
   NSVGrasterizer* rast = nsvgCreateRasterizer();
   String fileName2 = dosFileName(fromLocalFileName(fileName));
   image = nsvgParseFromFile(fileName2.c_str(), "px", 96);
-  if (image == NULL) {
-    printf("some problem with loading the svg <%s>\n", fileName2.c_str());
-    exit(0);
-  }
   int w = width;
   int h = height;
   unsigned int* img = (unsigned int*)malloc(w*h*4);
-  nsvgRasterize(rast, image, 0,0,(float)scale, (unsigned char*)img, w, h, w*4);
-  nsvgDelete(image);
-  nsvgDeleteRasterizer(rast);
+  if (image != NULL) {
+    nsvgRasterize(rast, image, 0,0,(float)scale, (unsigned char*)img, w, h, w*4);
+    nsvgDelete(image);
+    nsvgDeleteRasterizer(rast);
+  } else {
+    printf("Problem loading svg image:\"%s\"\n",dosFileName(fromLocalFileName(fileName)).c_str());
+    memset(img,0,w*h*4);
+    problemsLoadingSVGs = true;
+  }
   RGBAImage img2;
   img2.data = img;
   img2.width = w;
@@ -105,6 +109,7 @@ void reloadIcons() {
 }
 
 void loadBaseSVGs() {
+  problemsLoadingSVGs = false;
   ADDAPPICON("appicon","WYPA.SVG");
   ADDICON("search","SEARCH.SVG");
   ADDICON("delete","DELETE.SVG");
@@ -132,4 +137,10 @@ void loadBaseSVGs() {
   ADDTOOLBARICON("tilemapTool","TILEMAP.SVG");
   ADDTOOLBARICONFROMSWIFE("formsTool","FORMS.SVG");
   ADDICON2("visible","VISIBLE.SVG");
+  if (problemsLoadingSVGs) {
+    problemsLoadingSVGs = false;
+#if defined(__WATCOMC__) || defined(__DJGPP__)
+    double a = glSeconds(); while(fabs(glSeconds()-a)<1) {;}
+#endif // defined(__WATCOMC__) || defined(__DJGPP__)
+  }
 }
