@@ -455,7 +455,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Selection average color",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionAverageColor(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Selection distance field",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionDistanceField(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Selection vertical gradient",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionVerticalGradient(currentCanvas->getActiveLayer());}
-        if (ImGui::MenuItem("Simple alpha hole patch",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterFillAlphaHoles(currentCanvas->getActiveLayer());}
+        if (ImGui::MenuItem("Patch alpha holes",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterFillAlphaHoles(currentCanvas->getActiveLayer());}
         ImGui::EndMenu();
       }
   

@@ -2672,11 +2672,11 @@ void filterFillAlphaHoles(class Layer *layer) {
   }}
 
   {for (int k2 = 0; k2 < l->width + l->height; k2++) {
-    int xp = k2 < l->width ? k2 : l->width - 1;
+    int xp = k2 < l->width ? k2 : 0;
     int yp = k2 < l->width ? l->height - 1 : k2 - l->width;
     int gradientStart = -1;
     for (int k3 = 0; k3 < l->width + l->height; k3++) {
-      int xh = xp - k3;
+      int xh = xp + k3;
       int yh = yp - k3;
       bool hole = (unsigned int)xh < (unsigned int)l->width && (unsigned int)yh < (unsigned int)l->height ? ((l->pixels[xh+yh*l->width]>>24) & 255) != 255 : false;
       if (hole) {
@@ -2685,9 +2685,9 @@ void filterFillAlphaHoles(class Layer *layer) {
         if (gradientStart >= 0) {
           int delta = k3 - gradientStart;
           if (delta > 0) {
-            int xh0 = xp - (gradientStart-1); 
+            int xh0 = xp + (gradientStart-1); 
             int yh0 = yp - (gradientStart-1); 
-            int xh1 = xp - k3;
+            int xh1 = xp + k3;
             int yh1 = yp - k3; 
             if (xh0 >= l->width) xh0 = l->width - 1;
             if (yh0 >= l->height) yh0 = l->height - 1;
@@ -2704,7 +2704,7 @@ void filterFillAlphaHoles(class Layer *layer) {
               float r = ((float)((int)(col1 & 255) - (int)(col0 & 255))*k + (float)(col0 & 255));
               float g = ((float)((int)((col1>>8) & 255) - (int)((col0>>8) & 255))*k + (float)((col0>>8) & 255));
               float b = ((float)((int)((col1>>16) & 255) - (int)((col0>>16) & 255))*k + (float)((col0>>16) & 255));
-              int xh2 = xp - i;
+              int xh2 = xp + i;
               int yh2 = yp - i;
               if ((unsigned int)xh2 < (unsigned int)layer->width && (unsigned int)yh2 < (unsigned int)layer->height && ((!hasSelection)||(l->pixelStates[xh2+yh2*layer->width] & PIXELSTATE_SELECTED))) {
                 p2[(xh2+yh2*layer->width)*4+0] += r;
