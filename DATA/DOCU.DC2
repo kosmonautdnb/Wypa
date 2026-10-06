@@ -958,6 +958,12 @@
       "fill the holes in order to make them really fixed by hand crafting" _N_
       "them later." _N_
     "}" _N_
+    "Fill selected area by border{" _N_
+      "Fills up the selected area with a summed averaging of x and y" _N_
+      "border color. It's not perfect but maybe you can use it to just" _N_
+      "fill the holes in order to make them really fixed by hand crafting" _N_
+      "them later." _N_
+    "}" _N_
   "}" _N_
   "Pictures{" _N_
     "Here all the currently loaded pictures are visible." _N_
