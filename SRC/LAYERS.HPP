@@ -766,11 +766,13 @@ bool wasActiveLayerSwitched();
 
 class Group {
 public:
-  Group() : index(0), length(0), open(true), imGuiActive(false) {sprintf(name,"%s","");}
+  Group() : index(0), length(0), open(true), imGuiActive(false), visible(true), opacity(1.f) {sprintf(name,"%s","");}
   int index;
   int length;
   bool open;
   bool imGuiActive;
+  bool visible;
+  float opacity;
   char name[LAYERNAMEMAX];
 };
 #define S_GROUP(__name__,__o__)\
@@ -778,6 +780,8 @@ public:
   S_INT("index",(__o__)->index);\
   S_INT("length",(__o__)->length);\
   S_BOOL("open",(__o__)->open);\
+  S_BOOL("visible",(__o__)->visible);\
+  S_FLOAT("opacity",(__o__)->opacity);\
   S_NAME("name",(__o__)->name,LAYERNAMEMAX);\
   S_OBJECT_CLOSE();
 

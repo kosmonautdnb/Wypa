@@ -31,6 +31,10 @@
   "Currently there is no other workaround for that, since" _N_
   "CuteMouse doesn't provide motion counters here and I" _N_
   "just use CuteMouse." _N_
+  "" _N_
+  "If you can't fill or paint on a layer it may also be, that" _N_
+  "the size is just not big enough. You can increase the layer" _N_
+  "size with the \"Layer properties\"." _N_
 "}" _N_
 "" _N_
 "Source code{" _N_
@@ -574,6 +578,9 @@
       "You can move the groups with the moveup/movedown option." _N_
       "You can open / close a group (with a size bigger than 0) by" _N_
       "clicking on the \"{\" or \"}\" symbol on the left." _N_
+      "" _N_
+      "Groups can have an opacity which subsequently gets applied to all" _N_
+      "layers in that group and a visibility for all layers in the group." _N_
     "}" _N_
     "Delete group{" _N_
       "The current selected group is deleted." _N_
@@ -1440,6 +1447,11 @@
   "" _N_
   "Be aware that merging of a tilemap layer onto a bitmap layer" _N_
   "only works, if you also include the tileset in the merge." _N_
+  "" _N_
+  "There a groups. Which just have a length / count of layers" _N_
+  "belonging to them. These groups also have an visibility state" _N_
+  "and an opacity which gets applied upon the opacity of all layers" _N_
+  "in that group." _N_
   "" _N_
   "Layer modes{" _N_
     "ALPHA = normal alpha blending." _N_

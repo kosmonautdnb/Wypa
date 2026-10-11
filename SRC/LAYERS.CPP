@@ -2719,12 +2719,32 @@ void fillCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, unsigned int col
   }
 }
 
+bool isVisibleInGroup(Canvas *canvas, Layer *layer, float &groupOpacity) {
+  groupOpacity = 1;
+  int pos = -1;
+  for (int i = 0; i < (int)canvas->layers.size(); i++) {
+    Layer *l = canvas->layers[i];
+    if (l->id == layer->id) {pos = i; break;}
+  }
+  if (pos < 0) return true;
+  for (int j = 0; j < (int)canvas->groups.size(); j++) {
+    Group *group = canvas->groups[j];
+    if (pos >= group->index && pos < group->index + group->length) {
+      groupOpacity = group->opacity;
+      return group->visible;
+    }
+  }
+  return true;
+}
+
 bool dontUsePostProcessing = false;
 bool hadOpMod = false;
 
 void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) {
+  bool visible = layer->state.visible;
+  float groupOpacity = 1; if (!isVisibleInGroup(canvas, layer, groupOpacity)) visible = false;
   if (layer->mode == LAYERMODE_PIGMENT && (!(singleLayerId!=0 && singleLayerId == layer->id))) return;
-  if ((!canvas->justSingle) && (!layer->state.visible) && (!(singleLayerId!=0 && singleLayerId == layer->id))) return;
+  if ((!canvas->justSingle) && (!visible) && (!(singleLayerId!=0 && singleLayerId == layer->id))) return;
   if (canvas->justSingle && (!layer->state.active)) return;
 
   bool darken = !(layer->state.selected || layer->state.active);
@@ -2761,7 +2781,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   if (y1 > canvas->height) y1 = canvas->height;
   if (x0 >= x1) return;
   if (y0 >= y1) return;
-  float alpha_ = layer->state.alpha;
+  float alpha_ = layer->state.alpha; alpha_ *= groupOpacity;
   Matrix cm = canvas->transform.transformation;
   Matrix lm = layer->transform.transformation;
   Matrix m = lm * cm;

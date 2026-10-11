@@ -154,6 +154,18 @@ void drawLayerView() {
       repaintLayer(currentLayer,true);
     } else toolTip("Layer opacity");
     ImGui::PopItemWidth();
+  } else {
+    if ((unsigned int)currentCanvas->selectedGroup < (unsigned int)currentCanvas->groups.size()) {
+      Group *group = currentCanvas->groups[currentCanvas->selectedGroup];
+      ImGui::PushItemWidth((float)(sidebar_width-32));
+      float alpha = group->opacity; if (ImGui::SliderFloat("##DRAWLAERVIEWTRANSPARENCYALPHA",&alpha,0,1)) {
+        if (alpha < 0) alpha = 0;
+        if (alpha > 1) alpha = 1;
+        group->opacity = alpha;
+        shouldUpdateAll = true;
+      } else toolTip("Group opacity");
+      ImGui::PopItemWidth();
+    }
   }
 
   if (roundButton("Add layer##LAYERVIEWADDLAYER",true)) {
@@ -239,13 +251,20 @@ void drawLayerView() {
 
   int offCounter = 0;
   int onCounter = 0;
-#define GROUPINS 10
+#define GROUPINS 6
+  Group *currentGroup = NULL;
   for (int i = 0; i < (int)currentCanvas->layers.size()+1; i++) { // there is a break with // !!! below
     for (int j = 0; j < (int)currentCanvas->groups.size(); j++) {
       Group *group = currentCanvas->groups[j];
       if (group->index == i) {
         ImVec2 cursor = ImGui::GetCursorScreenPos();
         cursor.x += GROUPINS;
+        ImGui::SetCursorScreenPos(cursor);
+        SVG *svg = &svgs["visible"];
+        ImGui::Image((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,group->visible ? 1:0.5f)); toolTip("Group visibility");
+        ImGui::SetCursorScreenPos(cursor);
+        if (ImGui::InvisibleButton(combined(String("##LAYERGROUPVISIBLE")+String::fromInt(j)).c_str(),ImVec2((float)svg->w,(float)svg->h))) {group->visible = !group->visible; shouldUpdateAll = true;}
+        cursor.x += svg->w;
         ImGui::SetCursorScreenPos(cursor);
         ImGui::Text("%c%02d", group->open ? '{':'}', group->length);
         toolTip("This group is %s and contains %d layers", group->open ? "open" : "closed", group->length);
@@ -298,6 +317,7 @@ void drawLayerView() {
           ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + GROUPCELLSIZE),0x400000ff);
         }
         if (!group->open) offCounter = group->length; else onCounter = group->length;
+        currentGroup = group;
       }
     }
     if (i >= (int)currentCanvas->layers.size()) break; // !!!
@@ -317,11 +337,12 @@ void drawLayerView() {
 
     SVG *svg = &svgs["visible"];
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
-    ImGui::Image((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,l->state.visible ? 1:0.5f)); toolTip("Layer visibility");
-
-
+    bool groupVisibility = (!belongsToGroup) || (currentGroup != NULL && currentGroup->visible);
+    bool visible = l->state.visible && groupVisibility;
+    ImGui::Image((ImTextureID)svg->glHandle,ImVec2((float)svg->w,(float)svg->h),ImVec2(0,0),ImVec2(1,1),ImVec4(0,0,0,visible ? 1:0.5f)); toolTip("Layer visibility");
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y+CELLPRE));
-    if (ImGui::InvisibleButton(combined(String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),ImVec2((float)svg->w,(float)svg->h))) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}
+    if (ImGui::InvisibleButton(combined(String("##LAYERVIEWCHILDVISIBLE")+String::fromInt(i)).c_str(),ImVec2((float)svg->w,(float)svg->h))) {visible = !visible; shouldUpdateAll = true;}
+    if (groupVisibility) l->state.visible = visible;
 
     ImGui::SameLine();
     //ImGui::Checkbox(combined(String("##LAYERVIEWCHILDSELECTED")+String::fromInt(i)).c_str(),&l->state.selected);
