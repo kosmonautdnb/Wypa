@@ -418,6 +418,9 @@ int main(int argc, const char *argv[]) {
 
   beforeUndoPoint();
 
+  ImGuiNewFrame(); ImGui::Render(); // clearing imgui states
+
+
   while(!quit) {
 
     if (currentKey == GL_VK_ESCAPE && ctrl) quit = true;

@@ -368,6 +368,7 @@ void drawBrushSelect(bool pencil) {
       case TOOL_PAINTBRUSH: {
         ImGui::Text("Mode"); ImGui::SameLine(); if (ImGui::Combo("##DRAWBRUSHSELECTPAINTMODECOMBO",&paintMode,paintModeNames,PAINTMODE_COUNT)) {
         } else toolTip(paintModeNamesFull[paintMode]);
+        if (paintMode == PAINTMODE_COPY) paintMode = PAINTMODE_NORMAL;
         if (paintMode != PAINTMODE_NORMAL) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
         Layer *l = currentCanvas->getPigmentLayerForLayer(currentCanvas->getActiveLayer()); 
         if (l != NULL) {
