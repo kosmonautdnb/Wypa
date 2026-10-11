@@ -120,5 +120,6 @@ void applyHotKeys() {
     case HOTKEY_LAYERORIGIN: {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;} break;
     case HOTKEY_REFRESH: {shouldUpdateAll = true;} break;
     case HOTKEY_LAYERVISIBLE: {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}} break;
+    case HOTKEY_SELECTUNDER: {currentCanvas->selectUnder(mouseX, mouseY); shouldUpdateAll = true;} break;
   }
 }

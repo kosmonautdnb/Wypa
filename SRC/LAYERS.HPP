@@ -938,6 +938,7 @@ public:
   void selectAllLayers();
   void deSelectAllLayers();
   void showAllLayers(bool show);
+  void selectUnder(double screenX, double screenY);
 
   unsigned int moveLayersUp();
   unsigned int moveLayersDown();

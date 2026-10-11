@@ -66,6 +66,7 @@
 #define HOTKEY_REFRESH HOTKEY(' ',false,false,"SPACE refresh whole paint area")
 #define HOTKEY_LAYERVISIBLE HOTKEY('v',false,false,"<v> Toggle visibility of active layer")
 #define HOTKEY_CAPTUREMOUSE HOTKEY(GL_VK_F1,false,false,"<F1> capture / uncapture mouse in window")
+#define HOTKEY_SELECTUNDER HOTKEY('.',false,false,"<.> select layer under mouse by transparency (double press = multiple layers)")
 
 void initHotkeys();
 void freeHotkeys();

@@ -2371,7 +2371,6 @@ void Layer::bakeMagic(bool onlyInSelection) {
   updatedPixels(this);
 }
 
-
 void Layer::addSelectionFromLayer(Layer *source) {
   if (locked(this,LOCK_SELECTION)) return;
   if (source == NULL || (!source->hasSelection())) return;
@@ -4344,6 +4343,40 @@ void Canvas::deSelectAllLayers() {
 void Canvas::showAllLayers(bool show) {
   for (int i = 0; i < (int)layers.size(); i++) {layers[i]->state.visible = show;}
   shouldUpdateAll = true;
+}
+
+void Canvas::selectUnder(double screenX, double screenY) {
+  Array<int> found;
+  for (int i = 0; i < (int)layers.size(); i++) {
+    Layer *l = layers[i]; if (!l->state.visible) continue;
+    float groupOpacity = 1;
+    if (!isVisibleInGroup(this, l, groupOpacity)) continue;
+    unsigned int col = 0;
+    double lx, ly; getLayerPos(l,screenX,screenY,lx,ly); int x = (int)floor(lx), y = (int)(floor(ly));
+    if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
+      col = l->getPixel(x,y);
+      if (l->colorTransform.useTransparentColor) col = l->colorTransform.applyTransparentColor(col);
+      if (l->colorTransform.useColorTransform) col = l->colorTransform.applyColorTransform(col);
+      if (l->colorTransform.useLut) col = l->colorTransform.applyLut(col);
+      if (l->colorTransform.usePosterize) col = l->colorTransform.applyPosterize(col);
+      if (l->colorTransform.useThreshold) col = l->colorTransform.applyThreshold(col);
+      if (l->colorTransform.useQuantization) col = quantizeColorFast(col, l->colorTransform.ditherStrength,x,y,l->colorTransform.paletteShift);
+    }
+    int alpha = (int)((col>>24) & 255);
+    if (l->state.alpha * groupOpacity * (float)alpha >= 1) {
+      found.push_back(i);
+    }
+  }
+
+  if (found.size() > 0) {
+    static unsigned int iteration = 0;
+    bool k = false; for (int j = 0; j < (int)found.size(); j++) {if (layers[found[j]]->state.active) {k = true; break;}}
+    if (!k) iteration = 0;
+    int i = found[iteration % found.size()];
+    deSelectAllLayers();
+    setActiveLayer(i);
+    iteration++;
+  }
 }
 
 unsigned int Canvas::moveLayersUp() {
