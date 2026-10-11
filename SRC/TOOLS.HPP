@@ -158,7 +158,8 @@ enum PAINTMODES {
   PAINTMODE_LINEARBURN = 17,
   PAINTMODE_COLORBURN = 18,
   PAINTMODE_COLORDODGE = 19,
-  PAINTMODE_COUNT = 20
+  PAINTMODE_COPY = 20,
+  PAINTMODE_COUNT = 21
 };
 extern const char *paintModeNames[PAINTMODE_COUNT];
 extern const char *paintModeNamesFull[PAINTMODE_COUNT];
@@ -224,6 +225,7 @@ extern bool pipetteWithColorTransform;
 
 extern double fillColorDistance;
 extern bool fillUseValleys;
+extern int fillMode;
 
 enum SELECTIONTOOL {
   SELECTIONTOOL_RECTANGLE,

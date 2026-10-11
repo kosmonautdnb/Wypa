@@ -201,6 +201,9 @@ void drawToolWandView() {
 
 void drawToolFillView() {
   Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && locked(l,LOCK_PIXELS_AND_TILEMAP)) return;
+  ImGui::Text("Mode"); ImGui::SameLine(); if (ImGui::Combo("##DRAWBRUSHSELECTPAINTMODECOMBO",&fillMode,paintModeNames,PAINTMODE_COUNT)) {
+  } else toolTip(paintModeNamesFull[fillMode]);
+  if (fillMode != PAINTMODE_COPY) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
   float k;
   k = (float)fillColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLFILLCOLORDISTANCE",&k,0,256)) {fillColorDistance = k;} else toolTip("Sameness value for fill area color");
   ImGui::Text("Use valleys"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFILLVALLEYS",&fillUseValleys)) {} else toolTip("Flow up and down the filling points");

@@ -42,8 +42,8 @@
 #include "NAVIGTOR.HPP"
 #include <math.h>
 
-const char *paintModeNames[PAINTMODE_COUNT] = {"Normal","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Addsub","Overlay","Burn","ColBurn","ColDodge"};
-const char *paintModeNamesFull[PAINTMODE_COUNT] = {"Normal painting","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge"};
+const char *paintModeNames[PAINTMODE_COUNT] = {"Normal","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Addsub","Overlay","Burn","ColBurn","ColDodge","Copy"};
+const char *paintModeNamesFull[PAINTMODE_COUNT] = {"Normal painting","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Direct copy of color"};
 
 Array<Brush *> brushes;
 int currentBrush = 0;
@@ -957,9 +957,540 @@ void useToolPipette() {
   }
 }
 
+static __inline void toRYB(float &Rrgb, float &Grgb, float &Brgb) {
+  // Paper RYB Color Compositing (Junichi Sugita)
+  float iW = Rrgb;
+  if (Grgb < iW) iW = Grgb;
+  if (Brgb < iW) iW = Brgb;
+  float rrgb = Rrgb - iW;
+  float grgb = Grgb - iW;
+  float brgb = Brgb - iW;
+  float minrg = rrgb; if (grgb < minrg) minrg = grgb;
+  float rryb = rrgb - minrg;
+  float yryb = (grgb + minrg) * 0.5f;
+  float bryb = (brgb + grgb - minrg) * 0.5f;
+  float n0 = rryb; 
+  if (yryb > n0) n0 = yryb;
+  if (bryb > n0) n0 = bryb;
+  if (n0 < 1) n0 = 1;
+  float n1 = rrgb; 
+  if (grgb > n1) n1 = grgb;
+  if (brgb > n1) n1 = brgb;
+  if (n1 < 1) n1 = 1;
+  float n = n1 / n0;
+  rryb *= n;
+  yryb *= n;
+  bryb *= n;
+  float iB = 255.f-Rrgb;
+  if (255.f-Grgb < iB) iB = 255.f-Grgb;
+  if (255.f-Brgb < iB) iB = 255.f-Brgb;
+  Rrgb = rryb + iB;
+  Grgb = yryb + iB; // now yellow
+  Brgb = bryb + iB;
+  if (Rrgb < 0) Rrgb = 0;
+  if (Grgb < 0) Grgb = 0;
+  if (Brgb < 0) Brgb = 0;
+  if (Rrgb > 255) Rrgb = 255;
+  if (Grgb > 255) Grgb = 255;
+  if (Brgb > 255) Brgb = 255;
+}
+
+static __inline void fromRYB(float &Rryb, float &Yryb, float &Bryb) {
+  // Paper RYB Color Compositing (Junichi Sugita)
+  float iW = Rryb;
+  if (Yryb < iW) iW = Yryb;
+  if (Bryb < iW) iW = Bryb;
+  float rryb = Rryb - iW;
+  float yryb = Yryb - iW;
+  float bryb = Bryb - iW;
+  float minyb = yryb; if (bryb < minyb) minyb = bryb;
+  float rrgb = rryb + yryb - minyb;
+  float grgb = yryb + minyb; // in the paper here is a yryb + 2*minyb which is wrong
+  float brgb = 2 * (bryb - minyb);
+  float n0 = rryb; 
+  if (yryb > n0) n0 = yryb;
+  if (bryb > n0) n0 = bryb;
+  if (n0 < 1) n0 = 1;
+  float n1 = rrgb; 
+  if (grgb > n1) n1 = grgb;
+  if (brgb > n1) n1 = brgb;
+  if (n1 < 1) n1 = 1;
+  float n = n0 / n1; // in the paper n0 and n1 are switched
+  rrgb *= n;
+  grgb *= n;
+  brgb *= n;
+  float iB = 255.f-Rryb;
+  if (255.f-Yryb < iB) iB = 255.f-Yryb;
+  if (255.f-Bryb < iB) iB = 255.f-Bryb;
+  Rryb = rrgb + iB;
+  Yryb = grgb + iB; // now green
+  Bryb = brgb + iB;
+  if (Rryb < 0) Rryb = 0;
+  if (Yryb < 0) Yryb = 0;
+  if (Bryb < 0) Bryb = 0;
+  if (Rryb > 255) Rryb = 255;
+  if (Yryb > 255) Yryb = 255;
+  if (Bryb > 255) Bryb = 255;
+}
+
+#define CMYKHACK (24.f)
+
+static __inline void toCMYK(float &r, float &g, float &b, float &k) {
+  r = (r * (255.f-CMYKHACK))/255.f+CMYKHACK;
+  g = (g * (255.f-CMYKHACK))/255.f+CMYKHACK;
+  b = (b * (255.f-CMYKHACK))/255.f+CMYKHACK;
+  k = r;
+  if (g>k) k = g;
+  if (b>k) k = b;
+  k = 255.f - k;
+  float c = 255.f-r-k;
+  float m = 255.f-g-k;
+  float y = 255.f-b-k;
+  if (k < 255.f) {
+    float s = 255.f/(255.f-k);
+    c *= s;
+    m *= s;
+    y *= s;
+  } else {
+    c = m = y = 0;
+  }
+  r = c;
+  g = m;
+  b = y;
+}
+
+static __inline void fromCMYK(float &c, float &m, float &y, float &k) {
+  k = (255.f - k) / 255.f;
+  c = (255.f - c) * k;
+  m = (255.f - m) * k;
+  y = (255.f - y) * k;
+  c = ((c-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
+  m = ((m-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
+  y = ((y-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
+  if (c < 0) c = 0;
+  if (m < 0) m = 0;
+  if (y < 0) y = 0;
+  if (c > 255) c = 255;
+  if (m > 255) m = 255;
+  if (y > 255) y = 255;
+}
+
+static __inline unsigned int getPaintModeColor(unsigned int background, unsigned int color, int mode, float alpha) {
+  unsigned int col = 0xffff00ff;
+  unsigned int rgb0 = background;
+  unsigned int rgb1 = color;
+  if (alpha < 0) alpha = 0;
+  if (alpha > 1) alpha = 1;
+  switch(mode) {
+  case PAINTMODE_ADD: {
+      int a = (int)(alpha * (int)(rgb1>>24)); 
+      if (a == 0) {col = rgb0; break;}
+      float alpha2 = a/255.f;
+      int r = (int)((int)(rgb0 & 255)+(int)(rgb1 & 255)*alpha2);
+      int g = (int)((int)((rgb0>>8) & 255)+(int)((rgb1>>8) & 255)*alpha2);
+      int b = (int)((int)((rgb0>>16) & 255)+(int)((rgb1>>16) & 255)*alpha2);
+      if (r > 255) r = 255;       
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_SUB: {
+      int a = (int)(alpha * (int)(rgb1>>24)); 
+      if (a == 0) {col = rgb0; break;}
+      float alpha2 = a/255.f;
+      int r = (int)((int)(rgb0 & 255)-(int)(rgb1 & 255)*alpha2);
+      int g = (int)((int)((rgb0>>8) & 255)-(int)((rgb1>>8) & 255)*alpha2);
+      int b = (int)((int)((rgb0>>16) & 255)-(int)((rgb1>>16) & 255)*alpha2);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_MUL: {
+      int r = (int)(rgb0 & 255)*(int)(rgb1 & 255);
+      int g = (int)((rgb0>>8) & 255)*(int)((rgb1>>8) & 255);
+      int b = (int)((rgb0>>16) & 255)*(int)((rgb1>>16) & 255);
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0 >> 16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_MUL2X: {
+      int r = (int)(rgb0 & 255)*(int)(rgb1 & 255);
+      int g = (int)((rgb0>>8) & 255)*(int)((rgb1>>8) & 255);
+      int b = (int)((rgb0>>16) & 255)*(int)((rgb1>>16) & 255);
+      r *= 2;
+      g *= 2;
+      b *= 2;
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0 >> 16) & 255);
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_MAX: {
+      int r = maxi((int)(rgb0 & 255),(int)(rgb1 & 255));
+      int g = maxi((int)((rgb0>>8) & 255),(int)((rgb1>>8) & 255));
+      int b = maxi((int)((rgb0>>16) & 255),(int)((rgb1>>16) & 255));
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_MIN: {
+      int r = mini((int)(rgb0 & 255),(int)(rgb1 & 255));
+      int g = mini((int)((rgb0>>8) & 255),(int)((rgb1>>8) & 255));
+      int b = mini((int)((rgb0>>16) & 255),(int)((rgb1>>16) & 255));
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_SCREEN: {
+      int a = (int)(alpha * (int)(rgb1>>24));
+      if (a == 0) {col = rgb0; break;}
+       float alpha2 = a/255.f;
+      int r = 255-(255-(int)(rgb0 & 255))*(255-(int)(rgb1 & 255))/255;
+      int g = 255-(255-(int)((rgb0>>8) & 255))*(255-(int)((rgb1>>8) & 255))/255;
+      int b = 255-(255-(int)((rgb0>>16) & 255))*(255-(int)((rgb1>>16) & 255))/255;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_COLOR: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int lumas = rs+gs+bs;
+      int lumad = rd+gd+bd;
+      bool zero = lumas == 0; // source has no color/black
+      int r = zero ? 0 : lumad*rs/lumas;
+      int g = zero ? 0 : lumad*gs/lumas;
+      int b = zero ? 0 : lumad*bs/lumas;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      a = (int)((rgb0>>24) & 255); // don't modify alpha
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_LUMINANCE: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int lumas = rs+gs+bs;
+      int lumad = rd+gd+bd;
+      bool zero = lumad == 0; // dest has no color/black
+      int r = zero ? 0 : lumas*rd/lumad;
+      int g = zero ? 0 : lumas*gd/lumad;
+      int b = zero ? 0 : lumas*bd/lumad;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      a = (int)((rgb0>>24) & 255); // don't modify alpha
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_SOFTLIGHT: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int r = rs >= 128 ? (255-(255-rd)*(255-(rs-128))/255) : (rd*(rs+128)/255);
+      int g = gs >= 128 ? (255-(255-gd)*(255-(gs-128))/255) : (gd*(gs+128)/255);
+      int b = bs >= 128 ? (255-(255-bd)*(255-(bs-128))/255) : (bd*(bs+128)/255);
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_HARDLIGHT: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int r = rs >= 128 ? (255-(255-rd)*(255-2*(rs-128))/255) : (rd*(2*rs)/255);
+      int g = gs >= 128 ? (255-(255-gd)*(255-2*(gs-128))/255) : (gd*(2*gs)/255);
+      int b = bs >= 128 ? (255-(255-bd)*(255-2*(bs-128))/255) : (bd*(2*bs)/255);
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_LINEARLIGHT: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int r = rs >= 128 ? (rd+2*(rs-128)) : (rd+2*rs-255);
+      int g = gs >= 128 ? (gd+2*(gs-128)) : (gd+2*gs-255);
+      int b = bs >= 128 ? (bd+2*(bs-128)) : (bd+2*bs-255);
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_PINLIGHT: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int r = rs >= 128 ? maxi(rd,2*(rs-128)) : mini(rd,2*rs);
+      int g = gs >= 128 ? maxi(gd,2*(gs-128)) : mini(gd,2*gs);
+      int b = bs >= 128 ? maxi(bd,2*(bs-128)) : mini(bd,2*bs);
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_DIFFERENCE: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      rd -= rs;
+      gd -= gs;
+      bd -= bs;
+      int r = rd < 0 ? -rd : rd;
+      int g = gd < 0 ? -gd : gd;
+      int b = bd < 0 ? -bd : bd;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_ADDSUB: {
+      int a = (int)(alpha * (int)(rgb1>>24)); 
+      if (a == 0) {col = rgb0; break;}
+      float alpha2 = a/255.f;
+      int r = (int)((int)(rgb0 & 255)+((int)(rgb1 & 255)-128)*alpha2);
+      int g = (int)((int)((rgb0>>8) & 255)+((int)((rgb1>>8) & 255)-128)*alpha2);
+      int b = (int)((int)((rgb0>>16) & 255)+((int)((rgb1>>16) & 255)-128)*alpha2);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;       
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_OVERLAY: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int r = rd >= 128 ? 255-2*(rd-128)*(255-rs)/255 : 2 * rd * rs / 255;
+      int g = gd >= 128 ? 255-2*(gd-128)*(255-gs)/255 : 2 * gd * gs / 255;
+      int b = bd >= 128 ? 255-2*(bd-128)*(255-bs)/255 : 2 * bd * bs / 255;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_LINEARBURN: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int r = rd + rs - 255;
+      int g = gd + gs - 255;
+      int b = bd + bs - 255;
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_COLORBURN: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int r = 255 - (255-rd) * 255 / (rs == 0 ? 1 : rs);
+      int g = 255 - (255-gd) * 255 / (gs == 0 ? 1 : gs);
+      int b = 255 - (255-bd) * 255 / (bs == 0 ? 1 : bs);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+  case PAINTMODE_COLORDODGE: {
+      int rd = (rgb0&255);
+      int gd = ((rgb0>>8)&255);
+      int bd = ((rgb0>>16)&255);
+      int rs = (rgb1&255);
+      int gs = ((rgb1>>8)&255);
+      int bs = ((rgb1>>16)&255);
+      int r = rd * 255 / (rs == 255 ? 1 : 255-rs);
+      int g = gd * 255 / (gs == 255 ? 1 : 255-gs);
+      int b = bd * 255 / (bs == 255 ? 1 : 255-bs);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+      if (a>0) a = 255; else a = (rgb0>>24);
+      col = r|(g<<8)|(b<<16)|(a<<24);
+    } break;
+    case PAINTMODE_COPY: {
+        col = rgb1;
+      } break;
+  }
+  return col;
+}
+
+static __inline unsigned int applyPixel(unsigned int col, float alpha) {
+  float rd = (float)(col & 255);
+  float gd = (float)((col>>8) & 255);
+  float bd = (float)((col>>16) & 255);
+  int ad = (col>>24) & 255;
+  float rs = foregroundColor.x*255.f;
+  float gs = foregroundColor.y*255.f;
+  float bs = foregroundColor.z*255.f;
+  int as = (int)(foregroundColor.w*alpha*255.f);
+  if (rs < 0) rs = 0;
+  if (gs < 0) gs = 0;
+  if (bs < 0) bs = 0;
+  if (as < 0) as = 0;
+  if (rs > 255) rs = 255;
+  if (gs > 255) gs = 255;
+  if (bs > 255) bs = 255;
+  if (as > 255) as = 255;
+  int a = 255-(255-ad)*(255-as)/255; if (a > 255) a = 255;
+  if (a > 0) {
+    rd *= ad;
+    gd *= ad;
+    bd *= ad;
+    rd /= a;
+    gd /= a;
+    bd /= a;
+  }
+  if (subtractiveColors) {
+    if (subtractiveCMYK) {
+      float ks,kd;
+      toCMYK(rs,gs,bs,ks); toCMYK(rd,gd,bd,kd);
+      float r2 = (rs-rd)*(float)as/255.f+rd;
+      float g2 = (gs-gd)*(float)as/255.f+gd;
+      float b2 = (bs-bd)*(float)as/255.f+bd;
+      float k2 = (ks-kd)*(float)as/255.f+kd;
+      fromCMYK(r2,g2,b2,k2);
+      int r = (int)r2;
+      int g = (int)g2;
+      int b = (int)b2;
+      return (r)|(g<<8)|(b<<16)|(a<<24);
+    } else {
+      toRYB(rs,gs,bs); toRYB(rd,gd,bd);
+      float r2 = (rs-rd)*(float)as/255.f+rd;
+      float g2 = (gs-gd)*(float)as/255.f+gd;
+      float b2 = (bs-bd)*(float)as/255.f+bd;
+      fromRYB(r2,g2,b2);
+      int r = (int)r2;
+      int g = (int)g2;
+      int b = (int)b2;
+      return (r)|(g<<8)|(b<<16)|(a<<24);
+    }
+  } else {
+    int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
+    int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
+    int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
+    return (r)|(g<<8)|(b<<16)|(a<<24);
+  }
+}
+
 double fillColorDistance = 1;
 bool fillAcceptedHasSelection = false;
 bool fillUseValleys = false;
+int fillMode = PAINTMODE_COPY;
 
 bool isFillAccepted(unsigned int here, unsigned int destColor, unsigned int checkColor, unsigned char destPixelState) {
   if (fillAcceptedHasSelection && (!(destPixelState & PIXELSTATE_SELECTED))) return false;
@@ -1045,8 +1576,12 @@ void useToolFill() {
       }
       counter++; if ((counter % 100)==0) updateStatusBar();
     }
+    unsigned int f = getUIntColor(foregroundColor);
     for (int i = 0; i < l->width*l->height; i++) if (l->pixelStates[i] & PIXELSTATE_TEMP) {
-      l->pixels[i] = getUIntColor(foregroundColor);
+      switch(fillMode) {
+        case PAINTMODE_NORMAL: {l->pixels[i] = applyPixel(l->pixels[i], 1);} break;
+        default: {l->pixels[i] = getPaintModeColor(l->pixels[i], f, fillMode, 1);} break;
+      }
     }
     addUsedColor(foregroundColor);
   } else {
@@ -1856,535 +2391,6 @@ void updateUpdateFlagByBrushLine(Layer *l,double cx0,double cy0, double cx1, dou
     for (int x2 = layerUpdateX0; x2 < layerUpdateX1; x2++) {
       currentCanvas->pixelStates[x2+y2*currentCanvas->width] |= PIXELSTATE_UPDATED;
     }
-  }
-}
-
-
-static __inline void toRYB(float &Rrgb, float &Grgb, float &Brgb) {
-  // Paper RYB Color Compositing (Junichi Sugita)
-  float iW = Rrgb;
-  if (Grgb < iW) iW = Grgb;
-  if (Brgb < iW) iW = Brgb;
-  float rrgb = Rrgb - iW;
-  float grgb = Grgb - iW;
-  float brgb = Brgb - iW;
-  float minrg = rrgb; if (grgb < minrg) minrg = grgb;
-  float rryb = rrgb - minrg;
-  float yryb = (grgb + minrg) * 0.5f;
-  float bryb = (brgb + grgb - minrg) * 0.5f;
-  float n0 = rryb; 
-  if (yryb > n0) n0 = yryb;
-  if (bryb > n0) n0 = bryb;
-  if (n0 < 1) n0 = 1;
-  float n1 = rrgb; 
-  if (grgb > n1) n1 = grgb;
-  if (brgb > n1) n1 = brgb;
-  if (n1 < 1) n1 = 1;
-  float n = n1 / n0;
-  rryb *= n;
-  yryb *= n;
-  bryb *= n;
-  float iB = 255.f-Rrgb;
-  if (255.f-Grgb < iB) iB = 255.f-Grgb;
-  if (255.f-Brgb < iB) iB = 255.f-Brgb;
-  Rrgb = rryb + iB;
-  Grgb = yryb + iB; // now yellow
-  Brgb = bryb + iB;
-  if (Rrgb < 0) Rrgb = 0;
-  if (Grgb < 0) Grgb = 0;
-  if (Brgb < 0) Brgb = 0;
-  if (Rrgb > 255) Rrgb = 255;
-  if (Grgb > 255) Grgb = 255;
-  if (Brgb > 255) Brgb = 255;
-}
-
-static __inline void fromRYB(float &Rryb, float &Yryb, float &Bryb) {
-  // Paper RYB Color Compositing (Junichi Sugita)
-  float iW = Rryb;
-  if (Yryb < iW) iW = Yryb;
-  if (Bryb < iW) iW = Bryb;
-  float rryb = Rryb - iW;
-  float yryb = Yryb - iW;
-  float bryb = Bryb - iW;
-  float minyb = yryb; if (bryb < minyb) minyb = bryb;
-  float rrgb = rryb + yryb - minyb;
-  float grgb = yryb + minyb; // in the paper here is a yryb + 2*minyb which is wrong
-  float brgb = 2 * (bryb - minyb);
-  float n0 = rryb; 
-  if (yryb > n0) n0 = yryb;
-  if (bryb > n0) n0 = bryb;
-  if (n0 < 1) n0 = 1;
-  float n1 = rrgb; 
-  if (grgb > n1) n1 = grgb;
-  if (brgb > n1) n1 = brgb;
-  if (n1 < 1) n1 = 1;
-  float n = n0 / n1; // in the paper n0 and n1 are switched
-  rrgb *= n;
-  grgb *= n;
-  brgb *= n;
-  float iB = 255.f-Rryb;
-  if (255.f-Yryb < iB) iB = 255.f-Yryb;
-  if (255.f-Bryb < iB) iB = 255.f-Bryb;
-  Rryb = rrgb + iB;
-  Yryb = grgb + iB; // now green
-  Bryb = brgb + iB;
-  if (Rryb < 0) Rryb = 0;
-  if (Yryb < 0) Yryb = 0;
-  if (Bryb < 0) Bryb = 0;
-  if (Rryb > 255) Rryb = 255;
-  if (Yryb > 255) Yryb = 255;
-  if (Bryb > 255) Bryb = 255;
-}
-
-#define CMYKHACK (24.f)
-
-static __inline void toCMYK(float &r, float &g, float &b, float &k) {
-  r = (r * (255.f-CMYKHACK))/255.f+CMYKHACK;
-  g = (g * (255.f-CMYKHACK))/255.f+CMYKHACK;
-  b = (b * (255.f-CMYKHACK))/255.f+CMYKHACK;
-  k = r;
-  if (g>k) k = g;
-  if (b>k) k = b;
-  k = 255.f - k;
-  float c = 255.f-r-k;
-  float m = 255.f-g-k;
-  float y = 255.f-b-k;
-  if (k < 255.f) {
-    float s = 255.f/(255.f-k);
-    c *= s;
-    m *= s;
-    y *= s;
-  } else {
-    c = m = y = 0;
-  }
-  r = c;
-  g = m;
-  b = y;
-}
-
-static __inline void fromCMYK(float &c, float &m, float &y, float &k) {
-  k = (255.f - k) / 255.f;
-  c = (255.f - c) * k;
-  m = (255.f - m) * k;
-  y = (255.f - y) * k;
-  c = ((c-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
-  m = ((m-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
-  y = ((y-CMYKHACK) * 255.f)/(255.f-CMYKHACK);
-  if (c < 0) c = 0;
-  if (m < 0) m = 0;
-  if (y < 0) y = 0;
-  if (c > 255) c = 255;
-  if (m > 255) m = 255;
-  if (y > 255) y = 255;
-}
-
-static __inline unsigned int getPaintModeColor(unsigned int background, unsigned int color, int mode, float alpha) {
-  unsigned int col = 0xffff00ff;
-  unsigned int rgb0 = background;
-  unsigned int rgb1 = color;
-  if (alpha < 0) alpha = 0;
-  if (alpha > 1) alpha = 1;
-  switch(mode) {
-  case PAINTMODE_ADD: {
-      int a = (int)(alpha * (int)(rgb1>>24)); 
-      if (a == 0) {col = rgb0; break;}
-      float alpha2 = a/255.f;
-      int r = (int)((int)(rgb0 & 255)+(int)(rgb1 & 255)*alpha2);
-      int g = (int)((int)((rgb0>>8) & 255)+(int)((rgb1>>8) & 255)*alpha2);
-      int b = (int)((int)((rgb0>>16) & 255)+(int)((rgb1>>16) & 255)*alpha2);
-      if (r > 255) r = 255;       
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_SUB: {
-      int a = (int)(alpha * (int)(rgb1>>24)); 
-      if (a == 0) {col = rgb0; break;}
-      float alpha2 = a/255.f;
-      int r = (int)((int)(rgb0 & 255)-(int)(rgb1 & 255)*alpha2);
-      int g = (int)((int)((rgb0>>8) & 255)-(int)((rgb1>>8) & 255)*alpha2);
-      int b = (int)((int)((rgb0>>16) & 255)-(int)((rgb1>>16) & 255)*alpha2);
-      if (r < 0) r = 0;
-      if (g < 0) g = 0;
-      if (b < 0) b = 0;
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_MUL: {
-      int r = (int)(rgb0 & 255)*(int)(rgb1 & 255);
-      int g = (int)((rgb0>>8) & 255)*(int)((rgb1>>8) & 255);
-      int b = (int)((rgb0>>16) & 255)*(int)((rgb1>>16) & 255);
-      r /= 255;
-      g /= 255;
-      b /= 255;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0 >> 16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_MUL2X: {
-      int r = (int)(rgb0 & 255)*(int)(rgb1 & 255);
-      int g = (int)((rgb0>>8) & 255)*(int)((rgb1>>8) & 255);
-      int b = (int)((rgb0>>16) & 255)*(int)((rgb1>>16) & 255);
-      r *= 2;
-      g *= 2;
-      b *= 2;
-      r /= 255;
-      g /= 255;
-      b /= 255;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0 >> 16) & 255);
-      if (r > 255) r = 255;
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_MAX: {
-      int r = maxi((int)(rgb0 & 255),(int)(rgb1 & 255));
-      int g = maxi((int)((rgb0>>8) & 255),(int)((rgb1>>8) & 255));
-      int b = maxi((int)((rgb0>>16) & 255),(int)((rgb1>>16) & 255));
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_MIN: {
-      int r = mini((int)(rgb0 & 255),(int)(rgb1 & 255));
-      int g = mini((int)((rgb0>>8) & 255),(int)((rgb1>>8) & 255));
-      int b = mini((int)((rgb0>>16) & 255),(int)((rgb1>>16) & 255));
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_SCREEN: {
-      int a = (int)(alpha * (int)(rgb1>>24));
-      if (a == 0) {col = rgb0; break;}
-       float alpha2 = a/255.f;
-      int r = 255-(255-(int)(rgb0 & 255))*(255-(int)(rgb1 & 255))/255;
-      int g = 255-(255-(int)((rgb0>>8) & 255))*(255-(int)((rgb1>>8) & 255))/255;
-      int b = 255-(255-(int)((rgb0>>16) & 255))*(255-(int)((rgb1>>16) & 255))/255;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_COLOR: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int lumas = rs+gs+bs;
-      int lumad = rd+gd+bd;
-      bool zero = lumas == 0; // source has no color/black
-      int r = zero ? 0 : lumad*rs/lumas;
-      int g = zero ? 0 : lumad*gs/lumas;
-      int b = zero ? 0 : lumad*bs/lumas;
-      if (r > 255) r = 255;
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      a = (int)((rgb0>>24) & 255); // don't modify alpha
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_LUMINANCE: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int lumas = rs+gs+bs;
-      int lumad = rd+gd+bd;
-      bool zero = lumad == 0; // dest has no color/black
-      int r = zero ? 0 : lumas*rd/lumad;
-      int g = zero ? 0 : lumas*gd/lumad;
-      int b = zero ? 0 : lumas*bd/lumad;
-      if (r > 255) r = 255;
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      a = (int)((rgb0>>24) & 255); // don't modify alpha
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_SOFTLIGHT: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int r = rs >= 128 ? (255-(255-rd)*(255-(rs-128))/255) : (rd*(rs+128)/255);
-      int g = gs >= 128 ? (255-(255-gd)*(255-(gs-128))/255) : (gd*(gs+128)/255);
-      int b = bs >= 128 ? (255-(255-bd)*(255-(bs-128))/255) : (bd*(bs+128)/255);
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_HARDLIGHT: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int r = rs >= 128 ? (255-(255-rd)*(255-2*(rs-128))/255) : (rd*(2*rs)/255);
-      int g = gs >= 128 ? (255-(255-gd)*(255-2*(gs-128))/255) : (gd*(2*gs)/255);
-      int b = bs >= 128 ? (255-(255-bd)*(255-2*(bs-128))/255) : (bd*(2*bs)/255);
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_LINEARLIGHT: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int r = rs >= 128 ? (rd+2*(rs-128)) : (rd+2*rs-255);
-      int g = gs >= 128 ? (gd+2*(gs-128)) : (gd+2*gs-255);
-      int b = bs >= 128 ? (bd+2*(bs-128)) : (bd+2*bs-255);
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (r > 255) r = 255;
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      if (r < 0) r = 0;
-      if (g < 0) g = 0;
-      if (b < 0) b = 0;
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_PINLIGHT: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int r = rs >= 128 ? maxi(rd,2*(rs-128)) : mini(rd,2*rs);
-      int g = gs >= 128 ? maxi(gd,2*(gs-128)) : mini(gd,2*gs);
-      int b = bs >= 128 ? maxi(bd,2*(bs-128)) : mini(bd,2*bs);
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (r > 255) r = 255;
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_DIFFERENCE: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      rd -= rs;
-      gd -= gs;
-      bd -= bs;
-      int r = rd < 0 ? -rd : rd;
-      int g = gd < 0 ? -gd : gd;
-      int b = bd < 0 ? -bd : bd;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (r > 255) r = 255;
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_ADDSUB: {
-      int a = (int)(alpha * (int)(rgb1>>24)); 
-      if (a == 0) {col = rgb0; break;}
-      float alpha2 = a/255.f;
-      int r = (int)((int)(rgb0 & 255)+((int)(rgb1 & 255)-128)*alpha2);
-      int g = (int)((int)((rgb0>>8) & 255)+((int)((rgb1>>8) & 255)-128)*alpha2);
-      int b = (int)((int)((rgb0>>16) & 255)+((int)((rgb1>>16) & 255)-128)*alpha2);
-      if (r < 0) r = 0;
-      if (g < 0) g = 0;
-      if (b < 0) b = 0;
-      if (r > 255) r = 255;       
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_OVERLAY: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int r = rd >= 128 ? 255-2*(rd-128)*(255-rs)/255 : 2 * rd * rs / 255;
-      int g = gd >= 128 ? 255-2*(gd-128)*(255-gs)/255 : 2 * gd * gs / 255;
-      int b = bd >= 128 ? 255-2*(bd-128)*(255-bs)/255 : 2 * bd * bs / 255;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_LINEARBURN: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int r = rd + rs - 255;
-      int g = gd + gs - 255;
-      int b = bd + bs - 255;
-      if (r < 0) r = 0;
-      if (g < 0) g = 0;
-      if (b < 0) b = 0;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_COLORBURN: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int r = 255 - (255-rd) * 255 / (rs == 0 ? 1 : rs);
-      int g = 255 - (255-gd) * 255 / (gs == 0 ? 1 : gs);
-      int b = 255 - (255-bd) * 255 / (bs == 0 ? 1 : bs);
-      if (r < 0) r = 0;
-      if (g < 0) g = 0;
-      if (b < 0) b = 0;
-      if (r > 255) r = 255;
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  case PAINTMODE_COLORDODGE: {
-      int rd = (rgb0&255);
-      int gd = ((rgb0>>8)&255);
-      int bd = ((rgb0>>16)&255);
-      int rs = (rgb1&255);
-      int gs = ((rgb1>>8)&255);
-      int bs = ((rgb1>>16)&255);
-      int r = rd * 255 / (rs == 255 ? 1 : 255-rs);
-      int g = gd * 255 / (gs == 255 ? 1 : 255-gs);
-      int b = bd * 255 / (bs == 255 ? 1 : 255-bs);
-      if (r < 0) r = 0;
-      if (g < 0) g = 0;
-      if (b < 0) b = 0;
-      if (r > 255) r = 255;
-      if (g > 255) g = 255;
-      if (b > 255) b = 255;
-      int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
-      r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
-      g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
-      b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
-      if (a>0) a = 255; else a = (rgb0>>24);
-      col = r|(g<<8)|(b<<16)|(a<<24);
-    } break;
-  }
-  return col;
-}
-
-
-static __inline unsigned int applyPixel(unsigned int col, float alpha) {
-  float rd = (float)(col & 255);
-  float gd = (float)((col>>8) & 255);
-  float bd = (float)((col>>16) & 255);
-  int ad = (col>>24) & 255;
-  float rs = foregroundColor.x*255.f;
-  float gs = foregroundColor.y*255.f;
-  float bs = foregroundColor.z*255.f;
-  int as = (int)(foregroundColor.w*alpha*255.f);
-  if (rs < 0) rs = 0;
-  if (gs < 0) gs = 0;
-  if (bs < 0) bs = 0;
-  if (as < 0) as = 0;
-  if (rs > 255) rs = 255;
-  if (gs > 255) gs = 255;
-  if (bs > 255) bs = 255;
-  if (as > 255) as = 255;
-  int a = 255-(255-ad)*(255-as)/255; if (a > 255) a = 255;
-  if (a > 0) {
-    rd *= ad;
-    gd *= ad;
-    bd *= ad;
-    rd /= a;
-    gd /= a;
-    bd /= a;
-  }
-  if (subtractiveColors) {
-    if (subtractiveCMYK) {
-      float ks,kd;
-      toCMYK(rs,gs,bs,ks); toCMYK(rd,gd,bd,kd);
-      float r2 = (rs-rd)*(float)as/255.f+rd;
-      float g2 = (gs-gd)*(float)as/255.f+gd;
-      float b2 = (bs-bd)*(float)as/255.f+bd;
-      float k2 = (ks-kd)*(float)as/255.f+kd;
-      fromCMYK(r2,g2,b2,k2);
-      int r = (int)r2;
-      int g = (int)g2;
-      int b = (int)b2;
-      return (r)|(g<<8)|(b<<16)|(a<<24);
-    } else {
-      toRYB(rs,gs,bs); toRYB(rd,gd,bd);
-      float r2 = (rs-rd)*(float)as/255.f+rd;
-      float g2 = (gs-gd)*(float)as/255.f+gd;
-      float b2 = (bs-bd)*(float)as/255.f+bd;
-      fromRYB(r2,g2,b2);
-      int r = (int)r2;
-      int g = (int)g2;
-      int b = (int)b2;
-      return (r)|(g<<8)|(b<<16)|(a<<24);
-    }
-  } else {
-    int r = ((int)rs-(int)rd)*(int)as/255+(int)rd;
-    int g = ((int)gs-(int)gd)*(int)as/255+(int)gd;
-    int b = ((int)bs-(int)bd)*(int)as/255+(int)bd;
-    return (r)|(g<<8)|(b<<16)|(a<<24);
   }
 }
 
@@ -4397,6 +4403,9 @@ void useTool() {
   if (lockedMouseX) mouseDX = 0;
   if (lockedMouseY) mouseDY = 0;
   switch(tool) {
+  case TOOL_NONE: {
+    if (isPaintAreaActive()) colorGet();
+    } break;
   case TOOL_WAND: {
     useToolWand();
     } break;
