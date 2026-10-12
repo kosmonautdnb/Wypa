@@ -2003,6 +2003,43 @@ void filterBlackWhiteOCR() {
   repaintLayer(l,true);
 }
 
+void filterBayerDither() {
+  Layer *l = currentCanvas->getActiveLayer();
+  if (l == NULL) return;
+  if (locked(l,LOCK_ANY)) return;
+
+  beforeUndoPoint();
+
+  bool hasSelection = l->hasSelection();
+
+  unsigned int bayer[4*4] = {
+    0,8,2,10,
+    12,4,14,6,
+    3,11,1,9,
+    15,7,13,5};
+
+  float *lumis = luminanceValues;
+
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
+        int thresh = bayer[(x % 4)+(y % 4)*4]*256/16;
+        unsigned int col = l->pixels[x+y*l->width];
+        int r = (int)(col & 255);
+        int g = (int)((col>>8) & 255);
+        int b = (int)((col>>16) & 255);
+        int a = (int)((col>>24) & 255);
+        float k = (float)r*lumis[0] + (float)g*lumis[1] + (float)b*lumis[2];
+        int gr = k > thresh ? 255 : 0;
+        l->pixels[x+y*l->width] = gr|(gr<<8)|(gr<<16)|(a<<24);
+      }
+    }
+  }
+  updatedPixels(l);
+  afterUndoPoint();
+  repaintLayer(l,true);
+}
+
 static __inline void lookupInterpolated(unsigned int *colors, int width, int height, float x, float y, float &red, float &green, float &blue, float &alpha) {
   if (width<1||height<1) return;
   int lx = (int)floor(x);

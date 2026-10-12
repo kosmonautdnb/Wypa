@@ -952,6 +952,11 @@
       "Actually not so useful for normal painting, but you may prepare." _N_
       "photographs of text for better readability with it." _N_
     "}" _N_
+    "Dithered black & white{" _N_
+      "Uses a bayer 4x4 dithering to make the layer black white." _N_
+      "Maybe use postprocessing with fast quant quantization to two" _N_
+      "palette colors instead." _N_
+    "}" _N_
     "Selection average color{" _N_
       "Averages all pixels under the selection and paints the averaged" _N_
       "color flat into the selection again." _N_

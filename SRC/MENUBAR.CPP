@@ -454,6 +454,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Clahe lighting",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogClahe(true);}
         if (ImGui::MenuItem("Displacement mapping",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogDisplacementMap(true);}
         if (ImGui::MenuItem("OCR black & white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterBlackWhiteOCR();}
+        if (ImGui::MenuItem("Dithered black & white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterBayerDither();}
         if (ImGui::MenuItem("Selection average color",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionAverageColor(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Selection distance field",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionDistanceField(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Selection vertical gradient",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionVerticalGradient(currentCanvas->getActiveLayer());}

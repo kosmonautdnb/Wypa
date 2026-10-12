@@ -55,6 +55,7 @@ void filterCheckerboard(int w, int h, int xp, int yp);
 void filterHistogramMatchingColored(class Layer *histogramSource);
 void filterSoften();
 void filterBlackWhiteOCR();
+void filterBayerDither();
 void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float displacement1, float displacement2, int type, unsigned char *pixelStates, bool usePixelStates, class Layer *displace);
 void filterWatershed(class Layer *layer);
 void filterSubtract(unsigned int *dest, unsigned int *minuend, unsigned int *subtrahend, unsigned int width, unsigned int height);
