@@ -3718,6 +3718,21 @@ const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,ps
 const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga",".cl2",".cl2",".wyp"};
 LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture,loadCalibration,saveCalibration,saveImage};
 
+static char _lower(char v) {
+  if (v>='A'&&v<='Z') return (char)(v-'A'+'a');
+  return v;
+}
+
+static bool caseInsensitiveLesser(const String &a, const String &b) {
+  int32_t l = a.length();
+  if (b.length()<l) l = b.length();
+  for (int32_t i = 0; i < l; i++) {
+    if (_lower(b[i])==_lower(a[i])) continue;
+    return _lower(b[i])<_lower(a[i]);
+  }
+  return b.length()<a.length();
+}
+
 void sortFileNames(Array<File> &files, int column, bool sortOrder) {
   for (int i = 0; i < (int)files.size(); i++) {
     for (int j = i+1; j < (int)files.size(); j++) {
@@ -3726,8 +3741,8 @@ void sortFileNames(Array<File> &files, int column, bool sortOrder) {
       bool dirHere = files[i].attributes & DOS_ATTR_SUBDIR;
       bool dirThere = files[j].attributes & DOS_ATTR_SUBDIR;
       switch(dirHere?0:column) {
-      case 0: bigger = nameHere < (files[j].name.name + files[j].name.extension); break;
-      case 1: bigger = (files[i].name.extension + files[i].name.name) < (files[j].name.extension + files[j].name.name); break;
+      case 0: bigger = caseInsensitiveLesser(nameHere, (files[j].name.name + files[j].name.extension)); break;
+      case 1: bigger = caseInsensitiveLesser((files[i].name.extension + files[i].name.name), (files[j].name.extension + files[j].name.name)); break;
       case 2: bigger = files[i].size < files[j].size; break;
       case 3: bigger = files[i].date < files[j].date; break;
       }
