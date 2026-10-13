@@ -277,7 +277,7 @@ void Brush::update() {
 double Brush::pixelWidth() {
   double ret = size;
   if (aspect != 0 && size / aspect > ret) ret = size / aspect;
-  if (rotation != 0) ret = size * sqrt(2);
+  if (rotation != 0 || followRotation) ret = size * sqrt(2);
   return ret;
 }
 
@@ -2535,6 +2535,7 @@ void useToolPainting() {
     int layerUpdateY1 = paintToolLayer->height;
     double toolWidth = (brush->pixelWidth()*0.5+brush->randomX) * toolAspectX;
     double toolHeight = (brush->pixelHeight()*0.5+brush->randomY) * toolAspectY;
+
     Vector layerBoundings;
     bool first = true;
     int count = 8;
