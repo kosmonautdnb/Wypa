@@ -47,6 +47,9 @@ void updateTilingGrid(Layer *l, bool visible);
 extern int scrollToTileMapIndex;
 extern bool excludeEmptyTiles;
 
+void addHorizontalOverlayLine(class Layer *l, int lx0, int ly0);
+void addVerticalOverlayLine(class Layer *l, int lx0, int ly0);
+
 #define S_TOOLVIEW_CPP()\
   S_BOOL("excludeEmptyTiles",excludeEmptyTiles);
 

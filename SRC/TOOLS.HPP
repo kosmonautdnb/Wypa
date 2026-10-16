@@ -175,6 +175,8 @@ void toCMYK_(float &r, float &g, float &b, float &k);
 void fromCMYK_(float &c, float &m, float &y, float &k);
 void toRYB_(float &r, float &g, float &b);
 void fromRYB_(float &r, float &y, float &b);
+unsigned int getPaintModeColor_(unsigned int background, unsigned int color, int mode, float alpha);
+unsigned int applyPixel_(unsigned int col, float alpha);
 
 class GradientElement {
 public:
@@ -289,6 +291,7 @@ void reCreateQuantization();
 extern bool fastQuantWithLuma;
 
 extern bool rulersOn;
+extern bool layerInfoOn;
 
 class WatershedPoint {
 public:

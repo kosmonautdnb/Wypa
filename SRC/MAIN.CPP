@@ -164,8 +164,9 @@ void whiteFade() {
   }
 }
 
+bool splashScreenOn = true;
+
 void splashScreen() {
-  static bool splashScreenOn = true;
   static Layer *splash = NULL;
   static GLuint glHandle = 0;
   if (splashScreenOn) {
@@ -378,7 +379,10 @@ int main(int argc, const char *argv[]) {
   b = new Brush(); b->size = 64; b->edginess = 1.0f; b->pressure = 1.5f; brushes.push_back(b);
   b = new Brush(); b->size = 128; b->edginess = 1.0f; b->pressure = 1.5f; brushes.push_back(b);
 
-  if (argc == 2) {
+  bool useFileName = argc == 2;
+  bool useFolder = useFileName && (String(argv[1]).endsWith("/") || String(argv[1]).endsWith("\\"));
+
+  if (useFileName && (!useFolder)) {
     loadImage("",argv[1]);
     if (canvas.empty()) {
       addTempPicture();
@@ -388,6 +392,7 @@ int main(int argc, const char *argv[]) {
       }
     }
     if (refreshMasked) glRefreshMasked(); else glRefresh();
+    splashScreenOn = false;
   }
 
   if (canvas.empty())
@@ -415,6 +420,12 @@ int main(int argc, const char *argv[]) {
   currentCanvas->control.setCanvasTransform(currentCanvas);
   shouldUpdateAll = true;
   SETUPENTITIES(init);
+
+  if (useFileName && useFolder) {
+    selectGalleryFolder(argv[1], "");
+    galleryVisible = true;
+    splashScreenOn = false;
+  }
 
   beforeUndoPoint();
 

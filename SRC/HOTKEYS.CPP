@@ -34,6 +34,7 @@
 #include "LAYERV.HPP"
 #include "UNDO.HPP"
 #include "DIALOGS.HPP"
+#include "TOOLVIEW.HPP"
 #include <math.h>
 
 #define HOTKEY(__char__,__ctrl__,__alt__,__text__) ((__char__) | (((__ctrl__?CONTROLKEY_CTRL:0)|(__alt__?CONTROLKEY_ALT:0))<<16))
@@ -93,6 +94,7 @@ void applyHotKeys() {
     case HOTKEY_TOOL_PAINTBRUSH: {switchTool(TOOL_PAINTBRUSH);} break;
     case HOTKEY_TOOL_ERASER: {switchTool(TOOL_ERASER);} break;
     case HOTKEY_TOOL_FILL: {switchTool(TOOL_FILL);} break;
+    case HOTKEY_TOOL_FORMS: {switchTool(TOOL_FORMS);} break;
     case HOTKEY_TOOL_LINE: {switchTool(TOOL_LINE);} break;
     case HOTKEY_TOOL_GRADIENT: {switchTool(TOOL_GRADIENT);} break;
     case HOTKEY_TOOL_TEXT: {switchTool(TOOL_TEXT);} break;
@@ -121,5 +123,7 @@ void applyHotKeys() {
     case HOTKEY_REFRESH: {shouldUpdateAll = true;} break;
     case HOTKEY_LAYERVISIBLE: {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}} break;
     case HOTKEY_SELECTUNDER: {currentCanvas->selectUnder(mouseX, mouseY); shouldUpdateAll = true;} break;
+    case HOTKEY_OVERLAYX: {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) {double x = mouseX; double y = mouseY; currentCanvas->getLayerPos(l,x,y,x,y); addHorizontalOverlayLine(l,(int)x,(int)y); }} break;
+    case HOTKEY_OVERLAYY: {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) {double x = mouseX; double y = mouseY; currentCanvas->getLayerPos(l,x,y,x,y); addVerticalOverlayLine(l,(int)x,(int)y);}} break;
   }
 }

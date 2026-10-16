@@ -542,6 +542,7 @@ void reCreateQuantization() {
 
 bool fastQuantWithLuma = false;
 bool rulersOn = false;
+bool layerInfoOn = false;
 
 bool watershed = false;
 int watershedSelectedPoint = -1;
@@ -641,7 +642,14 @@ void bakeFormsIntoLayer(Layer *l, int formType) {
       }
       for (int i = 0; i < l->width*l->height; i++) {
         switch(formType) {
-          case FORM_FILLED: {if (selectionPlane->pixels[i]==SELECTEDLINE) l->pixels[i] = getUIntColor(foregroundColor);} break;
+          case FORM_FILLED: {
+            if (selectionPlane->pixels[i]==SELECTEDLINE) {
+              switch(fillMode) {
+                case PAINTMODE_NORMAL: {l->pixels[i] = applyPixel_(l->pixels[i], 1);} break;
+                default: {l->pixels[i] = getPaintModeColor_(l->pixels[i], getUIntColor(foregroundColor), fillMode, 1);} break;
+              }
+            }
+          } break;
           case FORM_SELECTION: {l->pixelStates[i] &= ~PIXELSTATE_SELECTED; if (selectionPlane->pixels[i]==SELECTEDLINE) l->pixelStates[i] |= PIXELSTATE_SELECTED;} break;
         }
       }
@@ -1491,6 +1499,9 @@ static __inline unsigned int applyPixel(unsigned int col, float alpha) {
     return (r)|(g<<8)|(b<<16)|(a<<24);
   }
 }
+
+unsigned int getPaintModeColor_(unsigned int background, unsigned int color, int mode, float alpha) {return getPaintModeColor(background, color, mode, alpha);}
+unsigned int applyPixel_(unsigned int col, float alpha) {return applyPixel(col,alpha);}
 
 double fillColorDistance = 1;
 bool fillAcceptedHasSelection = false;
@@ -3427,6 +3438,16 @@ void toolCanvasStuff() {
       lastC = cy;
     }
 
+  }
+  if (layerInfoOn) {
+    Layer *l = currentCanvas->getActiveLayer();
+    if (l != NULL) {
+      int borderOffset = 16;
+      int x0 = currentCanvas->screenPosX+borderOffset; int y0 = currentCanvas->screenPosY+borderOffset;
+      String text = String::fromInt(l->width) + "," + String::fromInt(l->height);
+      drawText(2, x0+1, y0+1, text.c_str(), 0xff000000, 0, 0);
+      drawText(2, x0, y0, text.c_str(), 0xff0000ff, 0, 0);
+    }
   }
 }
 

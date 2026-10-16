@@ -6,6 +6,15 @@
 "" _N_
 "Remember sliders can be changed by value with CTRL." _N_
 "" _N_
+"Command line{" _N_
+  "You can specify a picture to be load at start as a single" _N_
+  "argument to the program on the commandline." _N_
+  "" _N_
+  "You can see a gallery view of a folder if you use" _N_
+  "the program with a path instead of a filename," _N_
+  "e.g. \"graphics/\" instead of \"graphics/test.wyp\"." _N_
+"}" _N_
+"" _N_
 "Troubleshooting{" _N_
   "You almost always can press CTRL and Escape to exit." _N_
   "" _N_
@@ -725,6 +734,9 @@
     "}" _N_
     "Show rulers{" _N_
       "Displays some pixel position displaying rulers on the top and left." _N_
+    "}" _N_
+    "Show layer info{" _N_
+      "Shows information about the current selected layer, e.g. width/height." _N_
     "}" _N_
     "Transparency pattern fixed{" _N_
       "If enabled, the transparency denoting background pattern is not" _N_

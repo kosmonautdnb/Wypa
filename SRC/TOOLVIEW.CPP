@@ -1260,6 +1260,14 @@ void drawToolTextView() {
   if (roundButton("Load UTF8##DRAWTOOLTEXTUREVIEWTEXTLOADUTF8",true)) {textToSave = ati->textEditText; textToSaveLength = MAXTEXTEDITTEXT; dialogLoadSave(true,DIALOG_LOADTEXTUTF8);} else toolTip("Load an UTF8 based text");
 }
 
+void addHorizontalOverlayLine(Layer *l, int lx0, int ly0) {
+  Overlay *o = new Overlay(); o->type = OVERLAYTYPE_SEPERATINGLINEX; o->layerId = l->id; o->lx0 = lx0; o->ly0 = ly0; currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
+}
+
+void addVerticalOverlayLine(Layer *l, int lx0, int ly0) {
+    Overlay *o = new Overlay(); o->type = OVERLAYTYPE_SEPERATINGLINEY; o->layerId = l->id; o->lx0 = lx0; o->ly0 = ly0; currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
+}
+
 void drawToolOverlaysView() {
   Layer *l = currentCanvas->getActiveLayer();
   if (l == NULL) return;
@@ -1294,21 +1302,13 @@ void drawToolOverlaysView() {
     int lx0=0,ly0=0,lx1=0,ly1=0; bool first = true; for (int y = 0; y < l->height; y++) {for (int x = 0; x < l->width; x++) {if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {if (first || x < lx0) lx0 = x; if (first || y < ly0) ly0 = y; if (first || x > lx1) lx1 = x; if (first || y > ly1) ly1 = y; first = false; } } }
     lx1++;
     ly1++;
-    Overlay *o = new Overlay();
-    o->type = OVERLAYTYPE_SEPERATINGLINEX; o->layerId = l->id;
-    o->lx0 = lx0;
-    o->ly0 = ly0;
-    currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
+    addHorizontalOverlayLine(l, lx0,ly0);
   } toolTip("Add a whole canvas line on y");
   if (roundButton("Add vert. line##DRAWTOOLOVERLAYSVIEWADDYLINE",hasSel)) {
     int lx0=0,ly0=0,lx1=0,ly1=0; bool first = true; for (int y = 0; y < l->height; y++) {for (int x = 0; x < l->width; x++) {if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {if (first || x < lx0) lx0 = x; if (first || y < ly0) ly0 = y; if (first || x > lx1) lx1 = x; if (first || y > ly1) ly1 = y; first = false; } } }
     lx1++;
     ly1++;
-    Overlay *o = new Overlay();
-    o->type = OVERLAYTYPE_SEPERATINGLINEY; o->layerId = l->id;
-    o->lx0 = lx0;
-    o->ly0 = ly0;
-    currentCanvas->overlays.insert(o,0); shouldUpdateAll = true;
+    addVerticalOverlayLine(l, lx0, ly0);
   } else toolTip("Add a whole canvas line on x");
   if (roundButton("Add sprite##DRAWTOOLOVERLAYSVIEWADDSPRITE",hasSel)) {
     int lx0=0,ly0=0,lx1=0,ly1=0; bool first = true; for (int y = 0; y < l->height; y++) {for (int x = 0; x < l->width; x++) {if (l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED) {if (first || x < lx0) lx0 = x; if (first || y < ly0) ly0 = y; if (first || x > lx1) lx1 = x; if (first || y > ly1) ly1 = y; first = false; } } }
@@ -1698,6 +1698,9 @@ void drawToolFormsView() {
     if (roundButton("Draw lines##DRAWTOOLFORMSBAKE", forms.size() > 1)) {beforeUndoPoint(); bakeFormsIntoLayer(l, FORM_LINES); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
     if (roundButton("Make selection##DRAWTOOLFORMSMAKESELECTION", formClosed && forms.size() > 2)) {beforeUndoPoint(); bakeFormsIntoLayer(l,FORM_SELECTION); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
     if (roundButton("Paint filled##DRAWTOOLFORMSPAINTFILLED", formClosed && forms.size() > 2)) {beforeUndoPoint(); bakeFormsIntoLayer(l,FORM_FILLED); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
+    ImGui::Text("Fill"); ImGui::SameLine(); if (ImGui::Combo("##DRAWTOOLFORMSMODECOMBO",&fillMode,paintModeNames,PAINTMODE_COUNT)) {
+    } else toolTip(paintModeNamesFull[fillMode]);
+    if (fillMode != PAINTMODE_COPY) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
   }
   ImGui::Text("Autoselect"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFORMSAUTOSELECT",&formAutoselect)) {if (formAutoselect) formUpdateAutoselect = true; else {l->selectNone(); formClosed = true;}} else toolTip("Always directly make a selection out of the current form");
   ImGui::Separator();

@@ -1278,6 +1278,7 @@ void dialogHalftone(bool openIt) {
 
 void dialogHotkeys(bool openIt) {
   DIALOGSTART("Hotkeys")
+  ImGui::BeginChild("DIALOGHOTKEYSCHILD", ImVec2(main_window_xres*3/4,main_window_yres*3/4));
   HOTKEY_ZOOMPAN
   HOTKEY_ROTATECANVAS
   HOTKEY_ZOOMIN
@@ -1290,6 +1291,7 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_TOOL_PAINTBRUSH
   HOTKEY_TOOL_ERASER
   HOTKEY_TOOL_FILL
+  HOTKEY_TOOL_FORMS
   HOTKEY_TOOL_LINE
   HOTKEY_TOOL_GRADIENT
   HOTKEY_TOOL_TEXT
@@ -1308,6 +1310,8 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_FITCANVAS
   HOTKEY_MOUSELOCKX
   HOTKEY_MOUSELOCKY
+  HOTKEY_OVERLAYX
+  HOTKEY_OVERLAYY
   HOTKEY_FULLSCREEN
   HOTKEY_ERASE
   HOTKEY_FILLCOLOR
@@ -1321,6 +1325,7 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_LAYERVISIBLE
   HOTKEY_CAPTUREMOUSE
   HOTKEY_SELECTUNDER
+  ImGui::EndChild();
   ImGui::Text("You can press <CTRL> on sliders to enter a value");
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
