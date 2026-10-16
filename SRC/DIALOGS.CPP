@@ -3507,8 +3507,8 @@ void dialogNewImage(bool openIt) {
   ImGui::PushItemWidth(7*14);
   ImGui::Text("Type"); ImGui::SameLine(); ImGui::Combo("##DIALOGNEWIMAGETYPE",&type, imageMeasureNames, IMAGEMEASURE_COUNT); toolTip("The measure type for the image creation");
   ImGui::SameLine(); if (roundButton("Rotate##DIALOGNEWIMAGEROTATE",true)) {
-    float t;
-    t = w; w = h; h = t;
+    float t; int ti;
+    ti = w; w = h; h = ti;
     t = wcm; wcm = hcm; hcm = t;
     t = winches; winches = hinches; hinches = t;
   }

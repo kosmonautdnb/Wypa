@@ -501,8 +501,8 @@ int main(int argc, const char *argv[]) {
 
     if (fabs(lastTime-angleDisplayStartTime)<0.5) {
       double x = currentCanvas->screenPosX; double y = currentCanvas->screenPosY;
-      drawText(4, x, y, String::fromInt((int)currentCanvas->control.rotation).c_str(), 0xff000000,0,0);
-      drawText(4, x+2, y+2, String::fromInt((int)currentCanvas->control.rotation).c_str(), 0xff0000ff,0,0);
+      drawText(4, (int)x, (int)y, String::fromInt((int)currentCanvas->control.rotation).c_str(), 0xff000000,0,0);
+      drawText(4, (int)(x+2), (int)(y+2), String::fromInt((int)currentCanvas->control.rotation).c_str(), 0xff0000ff,0,0);
     }
       
     if (refreshMasked) glRefreshMasked(); else glRefresh();

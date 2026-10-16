@@ -2813,8 +2813,8 @@ void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
   int alphaThresh = 1;
   outlineSize += 1.f;
 
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
+  for (int y = 0; y < (int)height; y++) {
+    for (int x = 0; x < (int)width; x++) {
       unsigned char alphaHere = (unsigned char)((source[x+y*width]>>24) & 255);
       if (alphaHere < alphaThresh) {
         bool found = false;
@@ -2839,8 +2839,8 @@ void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
   while(somethingUpdated) {
     somethingUpdated = false;
     counter++; counter &= 15; if (counter == 0) updateStatusBar();
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
+    for (int y = 0; y < (int)height; y++) {
+      for (int x = 0; x < (int)width; x++) {
         unsigned int here = astar_[x+y*width];
         if (here != 0xffffffff) {
           int dx0 = (int)(here & 0xffff) - x;
@@ -2876,8 +2876,8 @@ void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
     }
   }
 
-  for (int y2 = 0; y2 < height; y2++) {
-    for (int x2 = 0; x2 < width; x2++) {
+  for (int y2 = 0; y2 < (int)height; y2++) {
+    for (int x2 = 0; x2 < (int)width; x2++) {
       unsigned char hereAlpha = (unsigned char)((source[x2+y2*width]>>24) & 255);
       if (hereAlpha < alphaThresh) {
         unsigned int astr = astar_[x2+y2*width];
@@ -3090,10 +3090,10 @@ void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
           v *= (float)sqrt(2.0)*dotScale;
           float distX = t->cellToCellCenterX[cell] - (float)x;
           float distY = t->cellToCellCenterY[cell] - (float)y;
-          float dist = sqrt(distX*distX+distY*distY);
+          float dist = (float)sqrt(distX*distX+distY*distY);
           if (v != 0) dist /= v; else dist = 1000.f;
-          float threshTop = cellSize * 0.5+1;
-          float threshBottom = cellSize * 0.5;
+          float threshTop = (float)(cellSize * 0.5+1);
+          float threshBottom = (float)(cellSize * 0.5);
           vals[i] = dist < threshBottom ? 1 : (dist > threshTop ? 0 : 1-(dist-threshBottom)/(threshTop-threshBottom));
         }
         float r = 0, g = r, b = r;

@@ -3874,7 +3874,7 @@ void Canvas::insertGroup() {
   group->length = 0;
   sprintf(group->name,"group");
   groups.push_back(group);
-  selectedGroup = groups.size()-1;
+  selectedGroup = (int)groups.size()-1;
   deSelectAllLayers();
 }
 

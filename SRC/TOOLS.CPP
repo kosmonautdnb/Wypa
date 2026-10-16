@@ -3699,7 +3699,7 @@ void drawCircle(Layer *layer, double canvasX, double canvasY, bool justSelection
                   float mdy = (float)mouseDY;
                   float mDistance = (float)sqrt(mdx*mdx+mdy*mdy);
                   if (mDistance>blurCircleSize) {
-                    float mAngle = (float)atan2(mdx,mdy)+currentCanvas->control.rotation * PI / 180.0;
+                    float mAngle = (float)(atan2(mdx,mdy)+currentCanvas->control.rotation * PI / 180.0);
                     mdx = (float)(sin(mAngle) * blurCircleSize);
                     mdy = (float)(cos(mAngle) * blurCircleSize);
                   }
