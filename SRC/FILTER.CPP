@@ -3142,3 +3142,141 @@ void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
   updatedPixels(layer);
   afterUndoPoint();
 }
+
+void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
+  if (layer == NULL) return;
+  if (locked(layer,LOCK_ANY)) return;
+  beforeUndoPoint();
+
+  Layer *l = layer;
+
+  Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
+  int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
+
+  // calculate the gradient in values
+  float *lumis = luminanceValues;
+  Array<float> values; values.resize(l->width*l->height); int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1}; int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      float sobelX[5] = {0,0,0,0,0};
+      float sobelY[5] = {0,0,0,0,0};
+      for (int y2 = -1; y2 <= 1; y2++) {
+        for (int x2 = -1; x2 <= 1; x2++) {
+          int x3 = x + x2;
+          int y3 = y + y2;
+          if ((unsigned int)x3<(unsigned int)l->width && (unsigned int)y3<(unsigned int)l->height) {
+            unsigned int col = blurred[x3+y3*l->width];
+            int r = col & 255;
+            int g = (col>>8) & 255;
+            int b = (col>>16) & 255;
+            int a = (col>>24) & 255;
+            double sl = r * lumis[0] + g * lumis[1] + b * lumis[2];
+            sobelX[0] += r*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[0] += r*sobelYMat[(x2+1)+(y2+1)*3];
+            sobelX[1] += g*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[1] += g*sobelYMat[(x2+1)+(y2+1)*3];
+            sobelX[2] += b*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[2] += b*sobelYMat[(x2+1)+(y2+1)*3];
+            sobelX[3] += (float)(sl*sobelXMat[(x2+1)+(y2+1)*3]); sobelY[3] += (float)(sl*sobelYMat[(x2+1)+(y2+1)*3]);
+            sobelX[4] += a*sobelXMat[(x2+1)+(y2+1)*3]; sobelY[4] += a*sobelYMat[(x2+1)+(y2+1)*3];
+          }
+        }
+      }
+      if (y == 0 || y == l->height-1) {sobelY[0] = sobelY[1] = sobelY[2] = sobelY[3] = sobelY[4] = 0;}
+      if (x == 0 || x == l->width-1) {sobelX[0] = sobelX[1] = sobelX[2] = sobelX[3] = sobelX[4] = 0;}
+      values[x+y*l->width] = (float)sqrt(sobelX[0]*sobelX[0]+sobelY[0]*sobelY[0]+sobelX[1]*sobelX[1]+sobelY[1]*sobelY[1]+sobelX[2]*sobelX[2]+sobelY[2]*sobelY[2]+sobelX[3]*sobelX[3]+sobelY[3]*sobelY[3]+sobelX[4]*sobelX[4]+sobelY[4]*sobelY[4]);
+    }
+  }
+  float minV = 0; float maxV = 0;
+  for (int i2 = 0; i2 < l->width*l->height; i2++) {
+    float v = values[i2];
+    if (i2==0 || v < minV) minV = v;
+    if (i2==0 || v > maxV) maxV = v;
+  }
+  float scale = maxV-minV;
+  if (scale != 0) {
+    for (int i2 = 0; i2 < l->width*l->height; i2++) {
+      float v = values[i2];
+      v = (v-minV)/scale;
+      values[i2] = v;
+    }
+  }
+
+  initStatusBar();
+
+  Array<WatershedEntry> priorityQueue;
+  Array<unsigned int> labels; labels.resize(layer->width * layer->height); memset(&labels[0],0,sizeof(unsigned int)*labels.size());
+
+  for (int x = 0; x < cellCountX; x++) {
+    for (int y = 0; y < cellCountY; y++) {
+      int lx = (int)(layer->width * ((double)x+0.5) / cellCountX);
+      int ly = (int)(layer->height * ((double)y+0.5) / cellCountY);
+      if ((unsigned int)lx < (unsigned int)layer->width && (unsigned int)ly < (unsigned int)layer->height) {
+        unsigned int label = (unsigned int)((sfrand2d(12345,x*3.2,y*1.2)*0.5+0.5)*0xffffff);
+        label = (label & 0xffffff) | 0xff000000;
+        labels[lx+ly*layer->width] = label;
+        putInPriorityQueue(priorityQueue, lx, ly, values[lx+ly*layer->width]);
+      }
+    }
+  }
+
+  int count = 0;
+  float *values0 = &values[0];
+  unsigned int *labels0 = &labels[0]; int lw = l->width; int lh = l->height;
+  int portion = l->width * l->height / 15; if (portion < 1) portion = 1;
+  while(!priorityQueue.empty()) {
+    if ((count % portion)==0) updateStatusBar();
+    WatershedEntry here = priorityQueue.back(); priorityQueue.pop_back();
+    int x = here.x; int y = here.y;
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 0, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, -1, 0, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 0, 1, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 0, -1, lw, lh);
+
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 1, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, -1, 1, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, 1, -1, lw, lh);
+    proceedWatershed(x,y, priorityQueue, values0, labels0, -1, -1, lw, lh);
+    count++;   
+  }
+
+  // despeckle, doesn't need to be double buffered
+  // the (single pixel) cells already had an asignment which is never overwriten so despeckle removes it
+  Array<unsigned int> prio2; prio2.resize(3*3);
+  unsigned int *prio2_ = &prio2[0];
+  {for (int y = 0; y < l->height; y++) {
+    if ((y % 100)==0) updateStatusBar();
+    for (int x = 0; x < l->width; x++) {
+      for (int y2 = -1; y2 <= 1; y2++) {
+        for (int x2 = -1; x2 <= 1; x2++) {
+          int kx = x + x2;
+          int ky = y + y2;
+          if (kx > (int)l->width-1) kx = (int)l->width-1;
+          if (ky > (int)l->height-1) ky = (int)l->height-1;
+          if (kx < 0) kx = 0;
+          if (ky < 0) ky = 0;
+          prio2_[(x2+1)+(y2+1)*3] = labels[kx+ky*l->width];
+        }
+      }
+      qsort(prio2_, 3*3, sizeof(unsigned int), medianIntSort); // here also medianIntSort is taken
+      unsigned int current = prio2_[0];
+      int currentCount = 0;
+      int currentBest = current;
+      int currentBestCount = currentCount;
+      for (int i = 0; i < 3 * 3+1; i++) {
+        if (i == 3*3 || prio2_[i] != current) {
+          if (currentCount >= currentBestCount) {
+            currentBest = current;
+            currentBestCount = currentCount;
+          }
+          currentCount = 0;
+          current = i == 3 * 3 ? 0 : prio2_[i];
+        }
+        currentCount++;
+      }
+
+      l->pixels[x+y*layer->width] = currentBest;
+    }
+  }}
+
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+}

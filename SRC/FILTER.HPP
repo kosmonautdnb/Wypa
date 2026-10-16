@@ -68,6 +68,7 @@ void filterFillAlphaHoles(class Layer *layer, bool forAlpha);
 void filterTurnToShadow();
 void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width, unsigned int height, float outlineSize, bool antialiasing);
 void filterHalftone(class Layer *layer, float cellSize, int type, float dotScale);
+void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY);
 
 #define S_FILTER_CPP()
 

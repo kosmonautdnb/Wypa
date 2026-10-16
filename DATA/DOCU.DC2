@@ -975,6 +975,13 @@
       "the cellsize parameter the light changes are spread over" _N_
       "bigger regions." _N_
     "}" _N_
+    "Segmentation{" _N_
+      "Does a very simple segmentation algorithm." _N_
+      "It should show different areas with differen content or atleast" _N_
+      "the borders around these areas." _N_
+      "Maybe this algorithm is useful when doing selections, however" _N_
+      "I don't think so." _N_
+    "}" _N_
     "Displacement mapping{" _N_
       "You can select another layer as pixel morph source and" _N_
       "Let the pixels of the current layer morph/move by it's values." _N_

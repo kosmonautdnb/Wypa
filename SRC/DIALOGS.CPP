@@ -209,6 +209,7 @@ void dialogs() {
   dialogResizeLayerByRepetition(false);
   dialogTurnToOutline(false);
   dialogHalftone(false);
+  dialogSegmentation(false);
 }
 
 void drawDialogs() {
@@ -1260,7 +1261,7 @@ void dialogHalftone(bool openIt) {
   }
   DIALOGSTART("Halftone")
   ImGui::PushItemWidth(7*14);
-  ImGui::Text("Cell size (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGHALFTONE", &cellSize)) {;} else toolTip("How many pixels one cell (width/height) of the halftone image should be"); 
+  ImGui::Text("Cell size (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGHALFTONECELLSIZE", &cellSize)) {;} else toolTip("How many pixels one cell (width/height) of the halftone image should be"); 
   if (cellSize < 1) cellSize = 1;
   ImGui::PopItemWidth();
   ImGui::Text("Type"); ImGui::SameLine(); if (ImGui::Combo("##DIALOGHALFTONETYPE",&type,halfToneTypeNames,halfToneTypeCount)) {;} toolTip("In which color mixing mode the halftone should be created");
@@ -1271,6 +1272,31 @@ void dialogHalftone(bool openIt) {
   } else toolTip("Use this outline");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGHALFTONECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogSegmentation(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static int cellCountX = 16;
+  static int cellCountY = 16;
+  if (openIt) {
+  }
+  DIALOGSTART("Segmentation")
+  ImGui::PushItemWidth(7*12);
+  ImGui::Text("Watershed algorithm");
+  ImGui::Text("Cell count in X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGSEGMENTATIONCELLCOUNTX", &cellCountX)) {;} else toolTip("How many segmentation cells should be created over the whole width"); 
+  ImGui::Text("Cell count in Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGSEGMENTATIONCELLCOUNTY", &cellCountY)) {;} else toolTip("How many segmentation cells should be created over the whole height"); 
+  if (cellCountX < 1) cellCountX = 1;
+  if (cellCountY < 1) cellCountY = 1;
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGSEGMENTATIONAPPLY")) {
+    filterSegmentation(l, cellCountX, cellCountY);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Start with the segmentation");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGSEGMENTATIONCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
   DIALOGEND()
