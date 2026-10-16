@@ -67,8 +67,9 @@ enum LAYERMODES {
   LAYERMODE_COLORBURN = 22,
   LAYERMODE_COLORDODGE = 23,
   LAYERMODE_PIGMENT = 24,
+  LAYERMODE_QUADRATIC = 25,
   LAYERMODE_DEFAULT = LAYERMODE_PREMULTIPLIEDALPHA,
-  LAYERMODE_COUNT = 25
+  LAYERMODE_COUNT = 26
 };
 extern const char *layerModeNames[LAYERMODE_COUNT];
 extern const char *layerModeNamesFull[LAYERMODE_COUNT];
@@ -1042,6 +1043,7 @@ extern bool showCanvasDarkened;
 extern bool darkenSelectedTiles;
 extern unsigned int singleLayerId;
 extern bool transparencyFixed;
+extern unsigned short *squareRoot128k;
 
 Layer *layerFromCanvas(Canvas *canvas);
 void repaintLayer(Layer *layer, bool fullUpdate);

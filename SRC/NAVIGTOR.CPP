@@ -130,14 +130,20 @@ void drawNavigator() {
     alphaWarning = false;
     ImGui::TextColored(ImVec4(1, 0, 0, 1), "Very low alpha"); toolTip("You may need to increase alpha(color) for painting");
   } else {
-    if (!captureMouse) {
-      ImGui::TextColored(ImVec4(1, 0, 0, 1), "<F1> for mouse", (int)MEMWARNINGMB); toolTip("You may need to recapture the mouse");
+    if (notFullyOpaqueWarning) {
+      ImGui::TextColored(ImVec4(1, 0, 0, 1), "Not fully opaque"); toolTip("You enabled \"Just blend on fully opaque\" to give you this hint.");
     } else {
-      if (getFreeMemoryInKb() < MEMWARNINGMB * 1024) {
-        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Less than %dmb", (int)MEMWARNINGMB); toolTip("Almost out of memory");
+      if (!captureMouse) {
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "<F1> for mouse", (int)MEMWARNINGMB); toolTip("You may need to recapture the mouse");
+      } else {
+        if (getFreeMemoryInKb() < MEMWARNINGMB * 1024) {
+          ImGui::TextColored(ImVec4(1, 0, 0, 1), "Less than %dmb", (int)MEMWARNINGMB); toolTip("Almost out of memory");
+        }
       }
     }
   }
+  notFullyOpaqueWarning = false;
+
   ImGui::SetCursorPos(ImVec2(cursor.x+sidebar_width - navigatorWidth - 10,cursor.y));
   updateNavigatorImage();
   ImVec2 cursor2 = ImGui::GetCursorScreenPos();

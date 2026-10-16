@@ -42,8 +42,8 @@
 #include "NAVIGTOR.HPP"
 #include <math.h>
 
-const char *paintModeNames[PAINTMODE_COUNT] = {"Normal","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Addsub","Overlay","Burn","ColBurn","ColDodge","Copy"};
-const char *paintModeNamesFull[PAINTMODE_COUNT] = {"Normal painting","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Direct copy of color"};
+const char *paintModeNames[PAINTMODE_COUNT] = {"Normal","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Addsub","Overlay","Burn","ColBurn","ColDodge","Copy","SqrAdd"};
+const char *paintModeNamesFull[PAINTMODE_COUNT] = {"Normal painting","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Direct copy of color","Quadratic addition and square root"};
 
 Array<Brush *> brushes;
 int currentBrush = 0;
@@ -1088,12 +1088,16 @@ void fromCMYK_(float &c, float &m, float &y, float &k) {fromCMYK(c,m,y,k);}
 void toRYB_(float &r, float &g, float &b) {toRYB(r,g,b);}
 void fromRYB_(float &r, float &y, float &b) {fromRYB(r,y,b);}
 
+bool blendsOnlyOnFullyOpaque = true;
+bool notFullyOpaqueWarning = false;
+
 static __inline unsigned int getPaintModeColor(unsigned int background, unsigned int color, int mode, float alpha) {
+  if (alpha < 0) alpha = 0;
+  if (alpha > 1) alpha = 1;
+  if (alpha == 0) return background;
   unsigned int col = 0xffff00ff;
   unsigned int rgb0 = background;
   unsigned int rgb1 = color;
-  if (alpha < 0) alpha = 0;
-  if (alpha > 1) alpha = 1;
   switch(mode) {
   case PAINTMODE_ADD: {
       int a = (int)(alpha * (int)(rgb1>>24)); 
@@ -1438,11 +1442,40 @@ static __inline unsigned int getPaintModeColor(unsigned int background, unsigned
     case PAINTMODE_COPY: {
         col = rgb1;
       } break;
+    case PAINTMODE_QUADRATIC: {
+        int rd = (rgb0&255);
+        int gd = ((rgb0>>8)&255);
+        int bd = ((rgb0>>16)&255);
+        int rs = (rgb1&255);
+        int gs = ((rgb1>>8)&255);
+        int bs = ((rgb1>>16)&255);
+        int r = (int)squareRoot128k[rd*rd+rs*rs];
+        int g = (int)squareRoot128k[gd*gd+gs*gs];
+        int b = (int)squareRoot128k[bd*bd+bs*bs];
+        if (r > 255) r = 255;
+        if (g > 255) g = 255;
+        if (b > 255) b = 255;
+        int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+        r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+        g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+        b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+        if (a>0) a = 255; else a = (rgb0>>24);
+        col = r|(g<<8)|(b<<16)|(a<<24);
+      } break;
+  }
+  if (blendsOnlyOnFullyOpaque && (mode != PAINTMODE_COPY)) { // menu option
+    bool isBackgroundFullyOpaque = (rgb0 & 0xff000000) == 0xff000000;
+    bool isForegroundFullyOpaque = ((rgb1 & 0xff000000) == 0xff000000) && (alpha >= 1);
+    if ((!isBackgroundFullyOpaque) && (!isForegroundFullyOpaque)) {
+      col = rgb0;
+      notFullyOpaqueWarning = true;
+    }
   }
   return col;
 }
 
 static __inline unsigned int applyPixel(unsigned int col, float alpha) {
+  if (alpha <= 0) return col;
   float rd = (float)(col & 255);
   float gd = (float)((col>>8) & 255);
   float bd = (float)((col>>16) & 255);

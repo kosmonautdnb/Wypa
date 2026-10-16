@@ -159,7 +159,8 @@ enum PAINTMODES {
   PAINTMODE_COLORBURN = 18,
   PAINTMODE_COLORDODGE = 19,
   PAINTMODE_COPY = 20,
-  PAINTMODE_COUNT = 21
+  PAINTMODE_QUADRATIC = 21,
+  PAINTMODE_COUNT = 22
 };
 extern const char *paintModeNames[PAINTMODE_COUNT];
 extern const char *paintModeNamesFull[PAINTMODE_COUNT];
@@ -175,6 +176,8 @@ void toCMYK_(float &r, float &g, float &b, float &k);
 void fromCMYK_(float &c, float &m, float &y, float &k);
 void toRYB_(float &r, float &g, float &b);
 void fromRYB_(float &r, float &y, float &b);
+extern bool blendsOnlyOnFullyOpaque;
+extern bool notFullyOpaqueWarning;
 unsigned int getPaintModeColor_(unsigned int background, unsigned int color, int mode, float alpha);
 unsigned int applyPixel_(unsigned int col, float alpha);
 

@@ -93,15 +93,20 @@ bool darkenSelectedTiles = false;
 unsigned int singleLayerId = 0;
 bool transparencyFixed = false;
 
+unsigned short *squareRoot128k = NULL;
+
 void initLayers() {
   selectionPlane = new Layer();
   selectionPlane->init(10,10);
+  squareRoot128k = new unsigned short[256*256*2];
+  for (int i = 0; i < 256*256*2; i++) squareRoot128k[i] = (unsigned short)(sqrt((double)i+0.5*0.5+0.5*0.5) / sqrt(2.0));
 }
 
 void freeLayers() {
   for (int i = 0; i < (int)canvas.size(); i++) delete canvas[i];
   canvas.clear();
   delete selectionPlane;
+  delete[] squareRoot128k;
 }
 
 Matrix inverse2(const Matrix &a) {
@@ -131,8 +136,8 @@ Matrix inverse2(const Matrix &a) {
   return ret;
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment"};
-const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd"};
+const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3"};
 const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image"};
@@ -3505,6 +3510,26 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (r < 0) r = 0;
           if (g < 0) g = 0;
           if (b < 0) b = 0;
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+          if (a>0) a = 255; else a = (rgb0>>24);
+          col = r|(g<<8)|(b<<16)|(a<<24);
+        } break;
+      case LAYERMODE_QUADRATIC: {
+          int rd = (rgb0&255);
+          int gd = ((rgb0>>8)&255);
+          int bd = ((rgb0>>16)&255);
+          int rs = (rgb1&255);
+          int gs = ((rgb1>>8)&255);
+          int bs = ((rgb1>>16)&255);
+          int r = (int)squareRoot128k[rd*rd+rs*rs];
+          int g = (int)squareRoot128k[gd*gd+gs*gs];
+          int b = (int)squareRoot128k[bd*bd+bs*bs];
           if (r > 255) r = 255;
           if (g > 255) g = 255;
           if (b > 255) b = 255;

@@ -541,6 +541,8 @@ void dialogFlaws(bool openIt) {
     "   a lot of memory. This memory can be accessed with it by DOS.\n"
     "   Maybe look into the TinyDocumentation/FreeDOS for explanations.\n"
     "6. Again: Undo is very limited (due to memory) and not all actions have an undo.\n"
+    "7. The non \"Normal\" painting modes for pen/brush don't paint on\n"
+    "   areas in the image where the background has not alpha = 255 (or the brush).\n"
     "\n"
     "I already worked with Wypa some longer times and am not aware of\n"
     "really critical flaws."

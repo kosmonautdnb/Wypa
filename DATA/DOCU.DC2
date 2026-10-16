@@ -44,6 +44,15 @@
   "If you can't fill or paint on a layer it may also be, that" _N_
   "the size is just not big enough. You can increase the layer" _N_
   "size with the \"Layer properties\"." _N_
+  "" _N_
+  "It is best to just paint with non \"Normal\" paint modes only" _N_
+  "on fully opaque picture elements. You get borders around" _N_
+  "the colors if you paint on transparent or a bit transparent" _N_
+  "backgrounds. The same happens if you use \"Alpha\" as layer" _N_
+  "mode instead of \"Premul\". You can convert from \"Alpha\" to" _N_
+  "\"Premul\" by a menu option." _N_
+  "You can enable/disable in the menu \"Just paint blended on fully opaque\"" _N_
+  "to only let you paint on fully opaque areas (alpha = 255)." _N_
 "}" _N_
 "" _N_
 "Source code{" _N_
@@ -771,6 +780,18 @@
       "behaving brush. Maybe not perfect but maybe it helps to feel" _N_
       "more aligned with the non computerized painting you can do" _N_
       "without a machine at all. Maybe some sort of water colors." _N_
+    "}" _N_
+    "Just paint blended on fully opaque{" _N_
+      "If you paint with a pen or a brush it is best to just paint" _N_
+      "on alpha = 255 background except when you have the" _N_
+      "\"Normal\" or \"Copy\" painting mode enabled. You can" _N_
+      "disable this option to paint anyways with other blending" _N_
+      "modes, however you will get borders around your brushes." _N_
+      "The layer blending modes are ok with all anyways." _N_
+      "This option shows you whenever you painted on a" _N_
+      "Not alpha = 255 background with a not alpha = 255 pen/brush." _N_
+      "Maybe it's good to undo if the warning message popped up on" _N_
+      "the right." _N_
     "}" _N_
     "Center to view{" _N_
       "Places the current image onto the center of the \"screen\"." _N_
@@ -1504,6 +1525,7 @@
     "COLBURN = Like Photoshop Color Burn." _N_
     "COLDODGE = Like Photoshop Color Dodge." _N_
     "PIGMENT = Brushes paint with this layer as opacity in layers above." _N_
+    "SQRADD = The colors are squared then added then squarerooted." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_
