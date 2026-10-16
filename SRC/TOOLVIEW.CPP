@@ -1685,6 +1685,9 @@ void drawToolMirrorView() {
   }
 }
 
+Array<FormPoint> formSaved;
+bool formClosedSaved = false;
+
 void drawToolFormsView() {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
 
@@ -1705,6 +1708,17 @@ void drawToolFormsView() {
   ImGui::Text("Autoselect"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFORMSAUTOSELECT",&formAutoselect)) {if (formAutoselect) formUpdateAutoselect = true; else {l->selectNone(); formClosed = true;}} else toolTip("Always directly make a selection out of the current form");
   ImGui::Separator();
   if (roundButton("Reset##DRAWTOOLFORMSCLEAR", forms.size() > 0)) {forms.clear(); formUpdateAutoselect = true; formClosed = false; formCVEdit = false;} else toolTip("Clear the form");
+
+  if (roundButton("Store##DRAWTOOLFORMSSTORE",forms.size() != 0)) {
+    formSaved = forms;
+    formClosedSaved = formClosed;
+  } else toolTip("Rember the current form");
+  ImGui::SameLine();
+  if (roundButton("Load##DRAWTOOLFORMSLOAD",formSaved.size()!=0)) {
+    forms = formSaved;
+    formClosed = formClosedSaved;
+  } else toolTip("Reload the remembered form again");
+
   ImGui::Separator();
   if (!formCVEdit) {
     ImGui::Text("LMouse add/move");
