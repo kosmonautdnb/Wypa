@@ -1075,6 +1075,11 @@ static __inline void fromCMYK(float &c, float &m, float &y, float &k) {
   if (y > 255) y = 255;
 }
 
+void toCMYK_(float &r, float &g, float &b, float &k) {toCMYK(r,g,b,k);}
+void fromCMYK_(float &c, float &m, float &y, float &k) {fromCMYK(c,m,y,k);}
+void toRYB_(float &r, float &g, float &b) {toRYB(r,g,b);}
+void fromRYB_(float &r, float &y, float &b) {fromRYB(r,y,b);}
+
 static __inline unsigned int getPaintModeColor(unsigned int background, unsigned int color, int mode, float alpha) {
   unsigned int col = 0xffff00ff;
   unsigned int rgb0 = background;

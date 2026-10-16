@@ -2906,3 +2906,239 @@ void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
 
   afterUndoPoint();
 }
+
+class HalfToneMap {
+public:
+  HalfToneMap() : angle(0), cellCount(0), cells(NULL), pixelsToCells(NULL), cellToCellCenterX(NULL), cellToCellCenterY(NULL) {;}
+  ~HalfToneMap() {
+    if (cells != NULL) {delete[] cells; cells = NULL;}
+    if (pixelsToCells != NULL) {delete[] pixelsToCells; pixelsToCells = NULL;}
+    if (cellToCellCenterX != NULL) {delete[] cellToCellCenterX; cellToCellCenterX = NULL;}
+    if (cellToCellCenterY != NULL) {delete[] cellToCellCenterY; cellToCellCenterY = NULL;}
+  }
+  float angle;
+  int cellCount;
+  float *cells;
+  int *pixelsToCells;
+  float *cellToCellCenterX;
+  float *cellToCellCenterY;
+};
+
+enum HALFTONEMAPTYPE {
+  HALFTONE_GREY = 0,
+  HALFTONE2_C = 1,
+  HALFTONE2_M = 2,
+  HALFTONE2_Y = 3,
+  HALFTONE2_K = 4,
+  HALFTONE_R = 5,
+  HALFTONE_G = 6,
+  HALFTONE_B = 7,
+  HALFTONE3_R = 8,
+  HALFTONE3_Y = 9,
+  HALFTONE3_B = 10,
+};
+
+static unsigned int *hf_xy = NULL;
+static unsigned int *hf_sortedPixels = NULL;
+static Layer *hf_layer = NULL;
+static int hfSort(const void *p, const void *q)
+{
+  const unsigned int a = *((const unsigned int*)p);
+  const unsigned int b = *((const unsigned int*)q);
+  int ax = a & 0xffff; int ay = (a>>16) & 0xffff;
+  int bx = b & 0xffff; int by = (b>>16) & 0xffff;
+  const unsigned int anew = hf_xy[ax+ay*hf_layer->width];
+  const unsigned int bnew = hf_xy[bx+by*hf_layer->width];
+  if (anew > bnew) return 1;
+  if (anew < bnew) return -1;
+  return 0;
+}
+
+HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
+
+  updateStatusBar();
+
+  HalfToneMap *ret = new HalfToneMap();
+  ret->angle = angle;
+
+  hf_xy = new unsigned int[l->width*l->height];
+  hf_sortedPixels = new unsigned int[l->width*l->height];
+  hf_layer = l;
+
+  double xcosa = cos(angle * PI / 180.0);
+  double xsina = sin(angle * PI / 180.0);
+
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      double x2 = x; double y2 = y;
+      x2 /= (double)(cellSize == 0 ? 1 : cellSize);
+      y2 /= (double)(cellSize == 0 ? 1 : cellSize);
+      double xf = x2 * xcosa - y2 * xsina;
+      double yf = x2 * xsina + y2 * xcosa;
+      int xi = (int)xf; FIXNEG(xi,xf);
+      int yi = (int)yf; FIXNEG(yi,yf);
+      hf_xy[x+y*l->width] = (unsigned int)(xi & 0xffff) | (((unsigned int)(yi  & 0xffff))<<16); // where to put(accumulate) the pixels to (which cell)
+      hf_sortedPixels[x+y*l->width] = (unsigned int)(x & 0xffff) | (((unsigned int)(y  & 0xffff))<<16); // original pixels
+    }
+  }
+  qsort(&hf_sortedPixels[0], l->width * l->height, sizeof(unsigned int), hfSort);
+
+  updateStatusBar();
+
+  ret->pixelsToCells = new int[l->width*l->height];
+  int cellIndex = 0;
+  unsigned int cellValue = 0;
+  for (int i = 0; i < l->width * l->height; i++) {
+    unsigned int x = hf_sortedPixels[i] & 0xffff;
+    unsigned int y = (hf_sortedPixels[i]>>16) & 0xffff;
+    unsigned int v = hf_xy[x+y*l->width];
+    if (cellValue != v || i == 0) {
+      cellValue = v;
+      cellIndex++;
+    }
+    ret->pixelsToCells[x+y*l->width] = cellIndex;
+  }
+  cellIndex++;
+
+  delete[] hf_xy;
+  delete[] hf_sortedPixels;
+
+  ret->cellCount = cellIndex;
+  ret->cells = new float[ret->cellCount*2]; memset(ret->cells, 0, sizeof(float)*ret->cellCount*2);
+  ret->cellToCellCenterX = new float[ret->cellCount]; memset(ret->cellToCellCenterX, 0, sizeof(float)*ret->cellCount);
+  ret->cellToCellCenterY = new float[ret->cellCount]; memset(ret->cellToCellCenterY, 0, sizeof(float)*ret->cellCount);
+  float lumas[3] = {luminanceValues[0], luminanceValues[1], luminanceValues[2]};
+  for (int i2 = 0; i2 < l->width * l->height; i2++) {
+    unsigned int col = l->pixels[i2];
+    float r = (float)(col & 255);
+    float g = (float)((col>>8) & 255);
+    float b = (float)((col>>16) & 255);
+    float a = 0;
+    float v = 0;
+    switch(type) {
+    case HALFTONE_GREY: {v = r*lumas[0] + g*lumas[1] + b*lumas[2];} break;
+    case HALFTONE_R: {v = r;} break;
+    case HALFTONE_G: {v = g;} break;
+    case HALFTONE_B: {v = b;} break;
+    case HALFTONE3_R: {toRYB_(r,g,b); v = r;} break;
+    case HALFTONE3_Y: {toRYB_(r,g,b); v = g;} break;
+    case HALFTONE3_B: {toRYB_(r,g,b); v = b;} break;
+    case HALFTONE2_C: {toCMYK_(r,g,b,a); v = 255-r;} break;
+    case HALFTONE2_M: {toCMYK_(r,g,b,a); v = 255-g;} break;
+    case HALFTONE2_Y: {toCMYK_(r,g,b,a); v = 255-b;} break;
+    case HALFTONE2_K: {toCMYK_(r,g,b,a); v = 255-a;} break;
+    }
+    ret->cells[ret->pixelsToCells[i2]*2 + 0] += v;
+    ret->cells[ret->pixelsToCells[i2]*2 + 1] += 1.f;
+    ret->cellToCellCenterX[ret->pixelsToCells[i2]] += i2 % l->width;
+    ret->cellToCellCenterY[ret->pixelsToCells[i2]] += (int)i2 / (int)l->width;
+  }
+
+  updateStatusBar();
+
+  for (int i3 = 0; i3 < ret->cellCount; i3++) {
+    float val = ret->cells[i3*2+0]; float count = ret->cells[i3*2+1];
+    if (count == 0) {count = 1;}
+    ret->cells[i3] = val / count; // gets into single value from value pair here
+    ret->cellToCellCenterX[i3] /= count;
+    ret->cellToCellCenterY[i3] /= count;
+  }
+
+  return ret;
+}
+
+void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
+  if (layer == NULL) return;
+  if (locked(layer,LOCK_ANY)) return;
+  beforeUndoPoint();
+
+  initStatusBar();
+
+  Array<HalfToneMap *> toneMaps;
+  switch(type) {
+  case 0: {
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE_GREY,45.f,cellSize));
+    } break;
+  case 1: {
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE2_C,15.f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE2_M,75.f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE2_Y,0.f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE2_K,45.f,cellSize));
+    } break;
+  case 2: {
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE_R,22.5f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE_G,45.f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE_B,0.f,cellSize));
+    } break;
+  case 3: {
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE3_R,22.5f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE3_Y,45.f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE3_B,0.f,cellSize));
+    } break;
+  }
+
+  HalfToneMap **_toneMaps = &toneMaps[0]; int _toneMapsCount = (int)toneMaps.size();
+  if (_toneMapsCount <= 4) {
+    for (int y = 0; y < layer->height; y++) {
+      if ((y % 100) == 0) updateStatusBar();
+      for (int x = 0; x < layer->width; x++) {
+        float vals[4] = {0,0,0,0};
+        for (int i = 0; i < _toneMapsCount; i++) {
+          HalfToneMap *t = _toneMaps[i];
+          int cell = t->pixelsToCells[x+y*layer->width];
+          float v = t->cells[cell] / 255.f;
+          v *= (float)sqrt(2.0)*dotScale;
+          float distX = t->cellToCellCenterX[cell] - (float)x;
+          float distY = t->cellToCellCenterY[cell] - (float)y;
+          float dist = sqrt(distX*distX+distY*distY);
+          if (v != 0) dist /= v; else dist = 1000.f;
+          float threshTop = cellSize * 0.5+1;
+          float threshBottom = cellSize * 0.5;
+          vals[i] = dist < threshBottom ? 1 : (dist > threshTop ? 0 : 1-(dist-threshBottom)/(threshTop-threshBottom));
+        }
+        float r = 0, g = r, b = r;
+        switch(type) {
+        case 0: {
+            r = vals[0] * 255.f;
+            g = vals[0] * 255.f;
+            b = vals[0] * 255.f;
+          } break;
+        case 1: {
+            float c = 255-vals[0] * 255.f;
+            float m = 255-vals[1] * 255.f;
+            float y = 255-vals[2] * 255.f;
+            float k = 255-vals[3] * 255.f;
+            fromCMYK_(c,m,y,k);
+            r = c;
+            g = m;
+            b = y;
+          } break;
+        case 2: {
+            r = vals[0] * 255.f;
+            g = vals[1] * 255.f;
+            b = vals[2] * 255.f;
+          } break;
+        case 3: {
+            r = vals[0] * 255.f;
+            g = vals[1] * 255.f;
+            b = vals[2] * 255.f;
+            fromRYB_(r,g,b);
+          } break;
+        }
+        int ri = (int)r; int gi = (int)g; int bi = (int)b;
+        if (ri < 0) ri = 0;
+        if (gi < 0) gi = 0;
+        if (bi < 0) bi = 0;
+        if (ri > 255) ri = 255;
+        if (gi > 255) gi = 255;
+        if (bi > 255) bi = 255;
+        layer->pixels[x+y*layer->width] = ri|(gi<<8)|(bi<<16)|(layer->pixels[x+y*layer->width] & 0xff000000);
+      }
+    }
+  }  
+
+  for (int i = 0; i < toneMaps.size(); i++) {delete toneMaps[i];} toneMaps.clear();
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+}

@@ -987,6 +987,14 @@
       "If you want to change the color you can use postprocessing and" _N_
       "e.g. disable green and change the hue then." _N_
     "}" _N_
+    "Halftone{" _N_
+      "This renders a print like version of the layer. However it is just" _N_
+      "for fun. So to say it doesn't solve a realworld problem." _N_
+      "You can choose between different color mixing modes for the" _N_
+      "halftone. e.g. CMYK is the normal 4 color version people know." _N_
+      "The cellsize lets you specify the size of the circles in pixels." _N_
+      "And the dot scale let's you make the image brighter or darker." _N_
+    "}" _N_
   "}" _N_
   "Pictures{" _N_
     "Here all the currently loaded pictures are visible." _N_

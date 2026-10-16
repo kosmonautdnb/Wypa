@@ -103,6 +103,9 @@ float getFreeMemoryInKb();
 
 extern float luminanceValues[3];
 
+#define FIXNEG(__i__,__f__) {if (__i__ <= 0) {if ((__i__) < 0) {(__i__)--;} else {__i__ = (int)floor(__f__);}}}
+
+
 #ifdef OTHERPLATFORM
 bool initOtherPlatform();
 #endif // OTHERPLATFORM

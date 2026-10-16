@@ -462,6 +462,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Fill selected area by border",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterFillAlphaHoles(currentCanvas->getActiveLayer(), false);}
         if (ImGui::MenuItem("Turn to outline",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogTurnToOutline(true);}
         if (ImGui::MenuItem("Turn to shadow",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterTurnToShadow();}
+        if (ImGui::MenuItem("Halftone",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogHalftone(true);}
         ImGui::EndMenu();
       }
   

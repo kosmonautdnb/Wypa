@@ -208,6 +208,7 @@ void dialogs() {
   dialogDisplacementMap(false);
   dialogResizeLayerByRepetition(false);
   dialogTurnToOutline(false);
+  dialogHalftone(false);
 }
 
 void drawDialogs() {
@@ -1203,7 +1204,6 @@ void dialogTurnToOutline(bool openIt) {
   static Layer *clone = NULL;
   static bool updateLayer = false;
   static bool antialiasing = true;
-  if (l == NULL) return;
   if (openIt) {
     beforeUndoPoint();
     if (clone != NULL) {delete clone; clone = NULL;}
@@ -1242,6 +1242,33 @@ void dialogTurnToOutline(bool openIt) {
     if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (clone != NULL) {delete clone; clone = NULL;}
     shouldUpdateAll = true;
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogHalftone(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  const int halfToneTypeCount = 4;
+  static const char *halfToneTypeNames[halfToneTypeCount] = {"Black/White","CMYK","RGB","RYB"};
+  static int type = 1;
+  static float dotScale = 1.f;
+  static float cellSize = 8;
+  if (openIt) {
+  }
+  DIALOGSTART("Halftone")
+  ImGui::PushItemWidth(7*14);
+  ImGui::Text("Cell size (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGHALFTONE", &cellSize)) {;} else toolTip("How many pixels one cell (width/height) of the halftone image should be"); 
+  if (cellSize < 1) cellSize = 1;
+  ImGui::PopItemWidth();
+  ImGui::Text("Type"); ImGui::SameLine(); if (ImGui::Combo("##DIALOGHALFTONETYPE",&type,halfToneTypeNames,halfToneTypeCount)) {;} toolTip("In which color mixing mode the halftone should be created");
+  ImGui::Text("Dot scale"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHALFTONEDOTSCALE", &dotScale); if (dotScale < 0) dotScale = 0; toolTip("The lesser the scale the less intense is the picture 1 = default");
+  if (ImGui::Button("Apply##DIALOGHALFTONEAPPLY")) {
+    filterHalftone(l, cellSize, type, dotScale);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Use this outline");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGHALFTONECLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
   DIALOGEND()

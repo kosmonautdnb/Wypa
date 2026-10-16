@@ -171,6 +171,10 @@ extern int paintMode;
 
 extern bool subtractiveColors;
 extern bool subtractiveCMYK;
+void toCMYK_(float &r, float &g, float &b, float &k);
+void fromCMYK_(float &c, float &m, float &y, float &k);
+void toRYB_(float &r, float &g, float &b);
+void fromRYB_(float &r, float &y, float &b);
 
 class GradientElement {
 public:
