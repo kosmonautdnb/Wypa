@@ -3260,19 +3260,26 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
       int currentCount = 0;
       int currentBest = current;
       int currentBestCount = currentCount;
+      int count = 0;
+      int smallestCount = 3*3*2;
+      int smallest = current;
+      int sameAsMid = 0;
       for (int i = 0; i < 3 * 3+1; i++) {
         if (i == 3*3 || prio2_[i] != current) {
+          if (currentCount < smallestCount) {smallestCount = currentCount; smallest = current;}
           if (currentCount >= currentBestCount) {
             currentBest = current;
             currentBestCount = currentCount;
           }
+          if (current == labels[x+y*l->width]) sameAsMid++;
+          count++;
           currentCount = 0;
           current = i == 3 * 3 ? 0 : prio2_[i];
         }
         currentCount++;
       }
-
-      l->pixels[x+y*layer->width] = currentBest;
+      bool valid = sameAsMid == 1 || sameAsMid == 2;
+      l->pixels[x+y*layer->width] = valid ? currentBest : labels[x+y*l->width];
     }
   }}
 
