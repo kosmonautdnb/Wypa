@@ -126,29 +126,16 @@ void drawNavigator() {
     ImGui::Text("%d %d",(int)ceil(toolW),(int)ceil(toolH)); toolTip("Width and height");
   }
 
-  static double notFullyOpaqueWarningStay = 0;
   if (alphaWarning) {
     alphaWarning = false;
     ImGui::TextColored(ImVec4(1, 0, 0, 1), "Very low alpha"); toolTip("You may need to increase alpha(color) for painting");
   } else {
-    if (notFullyOpaqueWarning) {
-      if (notFullyOpaqueWarningStay <= 0) notFullyOpaqueWarningStay = 1.0/5.0;
-      ImGui::TextColored(ImVec4(1, 0, 0, 1), "Not fully opaque"); toolTip("You enabled \"Just blend on fully opaque\" to give you this hint.");
+    if (!captureMouse) {
+      ImGui::TextColored(ImVec4(1, 0, 0, 1), "<F1> for mouse", (int)MEMWARNINGMB); toolTip("You may need to recapture the mouse");
     } else {
-      if (!captureMouse) {
-        ImGui::TextColored(ImVec4(1, 0, 0, 1), "<F1> for mouse", (int)MEMWARNINGMB); toolTip("You may need to recapture the mouse");
-      } else {
-        if (getFreeMemoryInKb() < MEMWARNINGMB * 1024) {
-          ImGui::TextColored(ImVec4(1, 0, 0, 1), "Less than %dmb", (int)MEMWARNINGMB); toolTip("Almost out of memory");
-        }
+      if (getFreeMemoryInKb() < MEMWARNINGMB * 1024) {
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Less than %dmb", (int)MEMWARNINGMB); toolTip("Almost out of memory");
       }
-    }
-  }
-  if (notFullyOpaqueWarningStay > 0) {
-    notFullyOpaqueWarningStay -= timeDelta;
-    if (notFullyOpaqueWarningStay <= 0) {
-      notFullyOpaqueWarning = false;
-      notFullyOpaqueWarningStay = 0;
     }
   }
 
