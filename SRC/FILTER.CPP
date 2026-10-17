@@ -3204,14 +3204,13 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   Array<WatershedEntry> priorityQueue;
   Array<unsigned int> labels; labels.resize(layer->width * layer->height); memset(&labels[0],0,sizeof(unsigned int)*labels.size());
 
+  int labelCount = 1;
   for (int x = 0; x < cellCountX; x++) {
     for (int y = 0; y < cellCountY; y++) {
       int lx = (int)(layer->width * ((double)x+0.5) / cellCountX);
       int ly = (int)(layer->height * ((double)y+0.5) / cellCountY);
       if ((unsigned int)lx < (unsigned int)layer->width && (unsigned int)ly < (unsigned int)layer->height) {
-        unsigned int label = (unsigned int)((sfrand2d(12345,x*3.2,y*1.2)*0.5+0.5)*0xffffff);
-        label = (label & 0xffffff) | 0xff000000;
-        labels[lx+ly*layer->width] = label;
+        labels[lx+ly*layer->width] = labelCount; labelCount++;
         putInPriorityQueue(priorityQueue, lx, ly, values[lx+ly*layer->width]);
       }
     }
@@ -3255,33 +3254,59 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
           prio2_[(x2+1)+(y2+1)*3] = labels[kx+ky*l->width];
         }
       }
-      qsort(prio2_, 3*3, sizeof(unsigned int), medianIntSort); // here also medianIntSort is taken
-      unsigned int current = prio2_[0];
+      qsort(prio2_, 3*3, sizeof(unsigned int), medianIntSort);
+      int sameAsMid = 0;
+      int current = prio2_[0];
       int currentCount = 0;
       int currentBest = current;
-      int currentBestCount = currentCount;
-      int count = 0;
-      int smallestCount = 3*3*2;
-      int smallest = current;
-      int sameAsMid = 0;
-      for (int i = 0; i < 3 * 3+1; i++) {
-        if (i == 3*3 || prio2_[i] != current) {
-          if (currentCount < smallestCount) {smallestCount = currentCount; smallest = current;}
-          if (currentCount >= currentBestCount) {
+      int currentBestCount = 0;
+      for (int i = 0; i < 3 * 3 + 1; i++) {
+        if (i == 3 * 3 || prio2_[i] != current) {
+          if (currentCount > currentBestCount) {
             currentBest = current;
             currentBestCount = currentCount;
           }
-          if (current == labels[x+y*l->width]) sameAsMid++;
-          count++;
           currentCount = 0;
           current = i == 3 * 3 ? 0 : prio2_[i];
         }
+        if (i != 3*3 && prio2_[i] == labels[x+y*l->width]) sameAsMid++;
         currentCount++;
       }
-      bool valid = sameAsMid == 1 || sameAsMid == 2;
-      l->pixels[x+y*layer->width] = valid ? currentBest : labels[x+y*l->width];
+      bool shouldFilterOut = sameAsMid == 1 || sameAsMid == 2;
+      blurred[x+y*layer->width] = shouldFilterOut ? currentBest : labels[x+y*l->width];
     }
   }}
+
+  Array<int> red; red.resize(labelCount); red.fill(0);
+  Array<int> green; green.resize(labelCount); green.fill(0);
+  Array<int> blue; blue.resize(labelCount); blue.fill(0);
+  Array<int> alpha; alpha.resize(labelCount); alpha.fill(0);
+  Array<int> weight; weight.resize(labelCount); weight.fill(0);
+
+  for (int i4 = 0; i4 < l->width * l->height; i4++) {
+    unsigned int label = blurred[i4];
+    unsigned int col = l->pixels[i4];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int a = (col>>24) & 255;
+    red[label] += r;
+    green[label] += g;
+    blue[label] += b;
+    alpha[label] += a;
+    weight[label] += 1;
+  }
+
+  for (int i5 = 0; i5 < l->width * l->height; i5++) {
+    unsigned int label = blurred[i5];
+    int w = weight[label];
+    if ( w == 0) w = 1;
+    int r = red[label] / w;
+    int g = green[label] / w;
+    int b = blue[label] / w;
+    int a = alpha[label] / w;
+    l->pixels[i5] = r | (g<<8) | (b<<16) | (a<<24);
+  }
 
   repaintLayer(layer,true);
   updatedPixels(layer);
