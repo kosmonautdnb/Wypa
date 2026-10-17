@@ -1355,6 +1355,7 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_SELECTUNDER
   ImGui::EndChild();
   ImGui::Text("You can press <CTRL> on sliders to enter a value");
+  ImGui::Text("Note: On controls you can also type in e.g. *3 or +3 to change the value");
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
     ImGui::CloseCurrentPopup();
