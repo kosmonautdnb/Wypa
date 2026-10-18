@@ -2164,7 +2164,7 @@ static __inline void putInPriorityQueue(Array<WatershedEntry> &queue, int x, int
 static __inline void proceedWatershed(int x, int y, Array<WatershedEntry> &queue, float *gradient, unsigned int *labels, int dx, int dy, int width, int height) {
   int x0 = x; int y0 = y;
   int x1 = x0 + dx; int y1 = y0 + dy;
-  if ((unsigned int)x0>(unsigned int)width || (unsigned int)y0>(unsigned int)height||(unsigned int)x1>(unsigned int)width || (unsigned int)y1>(unsigned int)height) return;
+  if ((unsigned int)x0>=(unsigned int)width || (unsigned int)y0>=(unsigned int)height||(unsigned int)x1>=(unsigned int)width || (unsigned int)y1>=(unsigned int)height) return;
   unsigned int label0 = labels[x0+y0*width];
   unsigned int label1 = labels[x1+y1*width];
   if (label0 != 0 && label1 == 0) {
@@ -3243,33 +3243,32 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   {for (int y = 0; y < l->height; y++) {
     if ((y % 100)==0) updateStatusBar();
     for (int x = 0; x < l->width; x++) {
+      int prioCount = 0;
       for (int y2 = -1; y2 <= 1; y2++) {
         for (int x2 = -1; x2 <= 1; x2++) {
           int kx = x + x2;
           int ky = y + y2;
-          if (kx > (int)l->width-1) kx = (int)l->width-1;
-          if (ky > (int)l->height-1) ky = (int)l->height-1;
-          if (kx < 0) kx = 0;
-          if (ky < 0) ky = 0;
-          prio2_[(x2+1)+(y2+1)*3] = labels[kx+ky*l->width];
+          if ( ((unsigned int)kx >= (unsigned int)l->width) && ((unsigned int)ky >= (unsigned int)l->height) ) continue;
+          prio2_[prioCount] = labels[kx+ky*l->width];
+          prioCount++;
         }
       }
-      qsort(prio2_, 3*3, sizeof(unsigned int), medianIntSort);
+      qsort(prio2_, prioCount, sizeof(unsigned int), medianIntSort);
       int sameAsMid = 0;
       int current = prio2_[0];
       int currentCount = 0;
       int currentBest = current;
       int currentBestCount = 0;
-      for (int i = 0; i < 3 * 3 + 1; i++) {
-        if (i == 3 * 3 || prio2_[i] != current) {
+      for (int i = 0; i < prioCount + 1; i++) {
+        if (i == prioCount || prio2_[i] != current) {
           if (currentCount > currentBestCount) {
             currentBest = current;
             currentBestCount = currentCount;
           }
           currentCount = 0;
-          current = i == 3 * 3 ? 0 : prio2_[i];
+          current = i == prioCount ? 0 : prio2_[i];
         }
-        if (i != 3*3 && prio2_[i] == labels[x+y*l->width]) sameAsMid++;
+        if (i != prioCount && prio2_[i] == labels[x+y*l->width]) sameAsMid++;
         currentCount++;
       }
       bool shouldFilterOut = sameAsMid == 1 || sameAsMid == 2;
