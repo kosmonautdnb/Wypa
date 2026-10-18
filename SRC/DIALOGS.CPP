@@ -210,6 +210,7 @@ void dialogs() {
   dialogTurnToOutline(false);
   dialogHalftone(false);
   dialogSegmentation(false);
+  dialogFileInfo(false);
 }
 
 void drawDialogs() {
@@ -1300,6 +1301,26 @@ void dialogSegmentation(bool openIt) {
   DIALOGEND()
 }
 
+void dialogFileInfo(bool openIt) {
+  if (openIt) {
+  }
+  DIALOGSTART("File information##FILEINFORMATIONDIALOG2")
+  ImGui::Text("Name:%s",currentFileInfo.fileName.last(40).c_str());
+  ImGui::Text("Ext:%s",currentFileInfo.fileExtension.last(40).c_str());
+  ImGui::Text("Path:%s",currentFileInfo.filePath.last(40).c_str());
+  ImGui::Separator();
+  ImGui::Text("Date:%s",currentFileInfo.fileModificationDate.last(40).c_str());
+  ImGui::Separator();
+  ImGui::Text("Is an image:%s", currentFileInfo.isImage ? "true":"false");
+  ImGui::Text("Width:%d", currentFileInfo.imageWidth);
+  ImGui::Text("Height:%d", currentFileInfo.imageHeight);
+  ImGui::Text("Palette size:%d", currentFileInfo.paletteSize);
+  if (ImGui::Button("Close##DIALOGFILEINFOCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
 #define HOTKEY(__char__,__ctrl__,__alt__,__text__) ImGui::Text("%s",__text__);
 
 void dialogHotkeys(bool openIt) {
@@ -1353,6 +1374,7 @@ void dialogHotkeys(bool openIt) {
   HOTKEY_SELECTUNDER
   ImGui::EndChild();
   ImGui::Text("You can press <CTRL> on sliders to enter a value");
+  ImGui::Text("You can exit at any time (without warning) with <CTRL>+<ESC>");
   ImGui::Text("Note: On controls you can also type in e.g. *3 or +3 to change the value");
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGABOUTCLOSE")) {
@@ -3771,11 +3793,11 @@ const char *lut = "*.cube";
 const char *tga = "*.tga";
 const char *cmapped = ".tga,.pcx,.lbm";
 const char *calib = "*.cl2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text","Load UTF8 text","LUT Color lookup","Export (paletted) tga","Palette from (paletted) picture", "Load calibration", "Save calibration", "Save wyp image as new version"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load","Load","Load","Save","Load","Load","Save","Save"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt,txt,lut,tga,cmapped,calib,calib,img};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga",".cl2",".cl2",".wyp"};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture,loadCalibration,saveCalibration,saveImage};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text","Load UTF8 text","LUT Color lookup","Export (paletted) tga","Palette from (paletted) picture", "Load calibration", "Save calibration", "Save wyp image as new version","File information"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load","Load","Load","Save","Load","Load","Save","Save","Load"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt,txt,lut,tga,cmapped,calib,calib,img,all};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga",".cl2",".cl2",".wyp",""};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture,loadCalibration,saveCalibration,saveImage,fileInfo};
 
 static char _lower(char v) {
   if (v>='A'&&v<='Z') return (char)(v-'A'+'a');

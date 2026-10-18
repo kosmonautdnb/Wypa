@@ -1949,14 +1949,53 @@ bool getPaletteFromLBM(Array<unsigned int> &palette2, const String &dosFileName_
   return false;
 }
 
-void paletteFromPicture(const char *shortPath, const char *longFileName) {
-  bool paletteFound = false; Array<unsigned int> palette2;
+bool paletteFromPictureLoad(Array<unsigned int> &dest, const char *shortPath, const char *longFileName) {
+  bool paletteFound = false; dest.clear();
   String dosFileName_ = dosFileName(String(shortPath)+String(longFileName));
-  if (!paletteFound) paletteFound = getPaletteFromTGA(palette2, dosFileName_);
-  if (!paletteFound) paletteFound = getPaletteFromPCX(palette2, dosFileName_);
-  if (!paletteFound) paletteFound = getPaletteFromLBM(palette2, dosFileName_);
-  if (!paletteFound) return;
+  if (!paletteFound) paletteFound = getPaletteFromTGA(dest, dosFileName_);
+  if (!paletteFound) paletteFound = getPaletteFromPCX(dest, dosFileName_);
+  if (!paletteFound) paletteFound = getPaletteFromLBM(dest, dosFileName_);
+  return paletteFound;
+}
+
+void paletteFromPicture(const char *shortPath, const char *longFileName) {
+  Array<unsigned int> palette2; if (!paletteFromPictureLoad(palette2, shortPath, longFileName)) return;
   loadedSomething();
   palette.resize(palette2.size()); for (int i2 = 0; i2 < (int)palette2.size(); i2++) palette[i2] = getImVec4Color(palette2[i2]);
   showPalette = true;
+}
+
+FileInfo currentFileInfo;
+void fileInfo(const char *shortPath, const char *longFileName) {
+  String fullName = String(shortPath) + longFileName;
+
+  FILE *in = fopen(dosFileName(shortFileName(dosFileName(fullName))).c_str(),"rb");
+  if (in != NULL) {
+    currentFileInfo.fileName = getName(fullName);
+    currentFileInfo.fileExtension = getExtension(fullName);
+    currentFileInfo.filePath = getPath(fullName);
+    fseek(in, 0, SEEK_END); currentFileInfo.fileSize = (int)ftell(in); fseek(in, 0, SEEK_SET);
+    fclose(in);
+    FileTime ft = dosGetFileTime(dosFileName(shortFileName(dosFileName(fullName))));
+    currentFileInfo.fileModificationDate = String::fromInt(ft.day) + "." + String::fromInt(ft.month) + "." + String::fromInt(ft.year);
+    currentFileInfo.fileModificationDate += " " + String::fromInt(ft.hour & 31) + "h:" + String::fromInt(ft.minute) + "m:" + String::fromInt(ft.second)+"s";
+
+    currentFileInfo.isImage = false;
+    currentFileInfo.imageWidth = 0;
+    currentFileInfo.imageHeight = 0;
+    currentFileInfo.paletteSize = 0;
+
+    Layer *l = loadImage(String(shortPath), String(longFileName));
+    if (l != NULL) {
+      // maybe a reverse last layer id count up is necessary
+      currentFileInfo.isImage = true;
+      currentFileInfo.imageWidth = l->width;
+      currentFileInfo.imageHeight = l->height;
+      Array<unsigned int> palette2; bool hasPalette = paletteFromPictureLoad(palette2, shortPath, longFileName);
+      currentFileInfo.paletteSize = hasPalette ? palette2.size() : 0;
+      delete l;
+    }
+
+    dialogFileInfo(true);
+  }
 }

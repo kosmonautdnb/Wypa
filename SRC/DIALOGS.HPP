@@ -78,7 +78,8 @@ enum DIALOGMODE {
   DIALOG_LOADCALIBRATION = 40,
   DIALOG_SAVECALIBRATION = 41,
   DIALOG_SAVEIMAGEASNEWVERSION = 42,
-  DIALOG_COUNT = 43
+  DIALOG_FILEINFORMATION = 43,
+  DIALOG_COUNT = 44
 };
 
 void dialogCanvas(bool openIt);
@@ -133,6 +134,7 @@ void dialogResizeLayerByRepetition(bool openIt);
 void dialogTurnToOutline(bool openIt);
 void dialogHalftone(bool openIt);
 void dialogSegmentation(bool openIt);
+void dialogFileInfo(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);

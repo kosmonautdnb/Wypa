@@ -179,6 +179,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Insert svg layer (experimental)")) {dialogLoadSave(true,DIALOG_INSERTSVG);}
         ImGui::Separator();
         if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
+        if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
         ImGui::Separator();
         if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
         ImGui::Separator();
@@ -209,6 +210,7 @@ void drawMenuBar() {
           if (ImGui::MenuItem("Export tga (paletted)")) {dialogLoadSave(true,DIALOG_EXPORTTGA);}
         }
         if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
+        if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
         ImGui::Separator();
         if (ImGui::MenuItem("Delete all pictures")) {dialogDeleteAllPictures(true);}
         ImGui::Separator();

@@ -109,4 +109,18 @@ void getFileArray(Array<unsigned char> *arr,const String &maybeExtendedFileName)
 void exportTGA(const char *shortPath, const char *longFileName);
 void paletteFromPicture(const char *shortPath, const char *longFileName);
 
+struct FileInfo {
+  String fileName;
+  String filePath;
+  String fileExtension;
+  int fileSize;
+  String fileModificationDate;
+  bool isImage;
+  int imageWidth;
+  int imageHeight;
+  int paletteSize;
+};
+extern FileInfo currentFileInfo;
+void fileInfo(const char *shortPath, const char *longFileName);
+
 #endif //__SERIALZE_HPP__
