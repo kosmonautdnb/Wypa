@@ -2965,8 +2965,13 @@ HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
   hf_sortedPixels = new unsigned int[l->width*l->height];
   hf_layer = l;
 
+  float *hf_pixelCenterX = new float[l->width*l->height];
+  float *hf_pixelCenterY = new float[l->width*l->height];
+
   double xcosa = cos(angle * PI / 180.0);
   double xsina = sin(angle * PI / 180.0);
+  double xcosa_ = cos(-angle * PI / 180.0);
+  double xsina_ = sin(-angle * PI / 180.0);
 
   for (int y = 0; y < l->height; y++) {
     for (int x = 0; x < l->width; x++) {
@@ -2979,6 +2984,13 @@ HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
       int yi = (int)yf; FIXNEG(yi,yf);
       hf_xy[x+y*l->width] = (unsigned int)(xi & 0xffff) | (((unsigned int)(yi  & 0xffff))<<16); // where to put(accumulate) the pixels to (which cell)
       hf_sortedPixels[x+y*l->width] = (unsigned int)(x & 0xffff) | (((unsigned int)(y  & 0xffff))<<16); // original pixels
+
+      double x_ = (double)xi + 0.5;
+      double y_ = (double)yi + 0.5;
+      double xf_ = x_ * xcosa_ - y_ * xsina_;
+      double yf_ = x_ * xsina_ + y_ * xcosa_;
+      hf_pixelCenterX[x+y*l->width] = (float)xf_ * cellSize;
+      hf_pixelCenterY[x+y*l->width] = (float)yf_ * cellSize;
     }
   }
   qsort(&hf_sortedPixels[0], l->width * l->height, sizeof(unsigned int), hfSort);
@@ -3030,9 +3042,14 @@ HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
     }
     ret->cells[ret->pixelsToCells[i2]*2 + 0] += v;
     ret->cells[ret->pixelsToCells[i2]*2 + 1] += 1.f;
-    ret->cellToCellCenterX[ret->pixelsToCells[i2]] += i2 % l->width;
-    ret->cellToCellCenterY[ret->pixelsToCells[i2]] += (int)i2 / (int)l->width;
+    ret->cellToCellCenterX[ret->pixelsToCells[i2]] = hf_pixelCenterX[i2];
+    ret->cellToCellCenterY[ret->pixelsToCells[i2]] = hf_pixelCenterY[i2];
+    //ret->cellToCellCenterX[ret->pixelsToCells[i2]] += i2 % l->width;
+    //ret->cellToCellCenterY[ret->pixelsToCells[i2]] += (int)i2 / (int)l->width;
   }
+
+  delete[] hf_pixelCenterX;
+  delete[] hf_pixelCenterY;
 
   updateStatusBar();
 
@@ -3040,8 +3057,8 @@ HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
     float val = ret->cells[i3*2+0]; float count = ret->cells[i3*2+1];
     if (count == 0) {count = 1;}
     ret->cells[i3] = val / count; // gets into single value from value pair here
-    ret->cellToCellCenterX[i3] /= count;
-    ret->cellToCellCenterY[i3] /= count;
+    //ret->cellToCellCenterX[i3] /= count;
+    //ret->cellToCellCenterY[i3] /= count;
   }
 
   return ret;
