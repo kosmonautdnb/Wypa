@@ -2556,7 +2556,7 @@ void filterSelectionVerticalGradient(Layer *layer) {
   for (int x2 = 0; x2 < layer->width; x2++) {
     int gradientStart = -1;
     for (int y2 = 0; y2 < layer->height+1; y2++) {
-      unsigned char here = y2 < layer->height ? layer->pixelStates[x2+y2*layer->width] : 0;
+      unsigned char here = (unsigned char)(y2 < layer->height ? layer->pixelStates[x2+y2*layer->width] : 0);
       if (here & PIXELSTATE_SELECTED) {
         if (gradientStart < 0) gradientStart = y2;
       } else {
@@ -3137,7 +3137,7 @@ void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
     }
   }  
 
-  for (int i = 0; i < toneMaps.size(); i++) {delete toneMaps[i];} toneMaps.clear();
+  for (int i = 0; i < (int)toneMaps.size(); i++) {delete toneMaps[i];} toneMaps.clear();
   repaintLayer(layer,true);
   updatedPixels(layer);
   afterUndoPoint();
@@ -3255,9 +3255,9 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
       }
       qsort(prio2_, prioCount, sizeof(unsigned int), medianIntSort);
       int sameAsMid = 0;
-      int current = prio2_[0];
+      unsigned int current = prio2_[0];
       int currentCount = 0;
-      int currentBest = current;
+      unsigned int currentBest = current;
       int currentBestCount = 0;
       for (int i = 0; i < prioCount + 1; i++) {
         if (i == prioCount || prio2_[i] != current) {
