@@ -563,6 +563,7 @@ void displayPostProcessedColorItem(const char *id) {
 
 void reGenColorWheel() {
   float h,s,l; getHsl(foregroundColor,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);
+  updateColorSlidersTexture();
 }
 
 void drawColorField() {

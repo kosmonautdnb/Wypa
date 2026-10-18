@@ -678,6 +678,108 @@ void moveSelectedLayersByCanvasPixels(double x, double y) {
   shouldUpdateAll = true;
 }
 
+int startControlKeyId = CONTROLKEY_NONE;
+
+bool selectionToolMoveActive = false;
+double selectionToolMoveStartX = 0;
+double selectionToolMoveStartY = 0;
+
+bool useToolSelectionMove(Layer *activeLayer) {
+  if (!isPaintAreaActive()) return false;
+  if (activeLayer == NULL || locked(activeLayer,LOCK_SELECTION)) return false;
+
+  if (!ImGui::IsMouseDown(1)) { // also handles moveByKey
+    showSelectionPlane = false; showSelectionPlaneBounding = false;
+    if (selectionToolMoveActive) {
+      selectionToolMoveActive = false;
+      int c = startControlKeyId;
+      for (int i = 0; i < activeLayer->width*activeLayer->height; i++) {
+        if (c == CONTROLKEY_NONE) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        if (selectionPlane->pixels[i]!=0) {
+          if (c == CONTROLKEY_NONE || c == CONTROLKEY_SHIFT) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED;
+          if (c == CONTROLKEY_CTRL) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        }
+        if (c == (CONTROLKEY_CTRL|CONTROLKEY_SHIFT)) {
+          if (selectionPlane->pixels[i]!=0&&(activeLayer->pixelStates[i] & PIXELSTATE_SELECTED)) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        }
+      }
+      updatedPixelStates(activeLayer);
+      shouldUpdateAll = true;
+      afterUndoPoint();
+    } 
+  }
+
+  double x = 0, y = 0, moveX = 1, moveY = 1;
+  switch(currentKey) {
+    case '4': {x=-moveX;} break;
+    case '6': {x=+moveX;} break;
+    case '8': {y=-moveY;} break;
+    case '2': {y=+moveY;} break;
+    case '7': {x=-moveX;y=-moveY;} break;
+    case '1': {x=-moveX;y=+moveY;} break;
+    case '9': {x=+moveX;y=-moveY;} break;
+    case '3': {x=+moveX;y=+moveY;} break;
+  }
+  bool moveByKey = x != 0 || y != 0;
+  bool moveByMouse = ImGui::IsMouseDown(1);
+
+  double lx,ly; currentCanvas->getLayerPos(activeLayer,mouseX,mouseY,lx,ly);
+  if (isPaintAreaActive() && (moveByMouse||moveByKey)) {
+    if (!selectionToolMoveActive) {
+      beforeUndoPoint();
+      startControlKeyId = controlKeyId;
+      selectionPlane->init(activeLayer->width, activeLayer->height);
+      selectionPlane->transform = activeLayer->transform;
+      selectionPlane->type = activeLayer->type;
+      selectionPlane->tileSourceLayerId = activeLayer->tileSourceLayerId;
+      selectionToolMoveActive  = true;
+      selectionToolMoveStartX = lx;
+      selectionToolMoveStartY = ly;
+    }
+  }
+
+  if (moveByKey) {
+    lx += x;
+    ly += y;
+  }
+
+  bool tiling = false; int tw = 1, th = 1;
+  if (selectionPlane->type == LAYERTYPE_TILEMAP) {
+    Layer *l2 = currentCanvas->getLayerById(selectionPlane->tileSourceLayerId);
+    if (l2 != NULL) {
+      tw = l2->toolInfo.tilingWidth;
+      th = l2->toolInfo.tilingHeight;
+      if (tw>0&&th>0) tiling = true;
+    }
+  }
+
+  if (selectionToolMoveActive || moveByKey) {
+    showSelectionPlane = true;
+    if (activeLayer->width == selectionPlane->width && activeLayer->height == selectionPlane->height) {
+      int deltaX = (int)(selectionToolMoveStartX-lx);
+      int deltaY = (int)(selectionToolMoveStartY-ly);
+      if (tiling) {
+        deltaX /= tw;
+        deltaY /= th;
+      }
+      for (int y = 0; y < activeLayer->height; y++) {
+        for (int x = 0; x < activeLayer->width; x++) {
+          bool selected = false;
+          int x2 = x + deltaX;
+          int y2 = y + deltaY;
+          if ((unsigned int)x2 < (unsigned int)activeLayer->width && (unsigned int)y2 < (unsigned int)activeLayer->height) {
+            unsigned char p = activeLayer->pixelStates[x2+y2*activeLayer->width];
+            if (p & PIXELSTATE_SELECTED) selected = true;
+          }
+          selectionPlane->pixels[x+y*selectionPlane->width] = selected ? 1 : 0;
+        }
+      }
+    }
+  }
+
+  return selectionToolMoveActive;
+}
+
 double wandAlphaDistance = 20;
 double wandColorDistance = 20;
 bool wandByNeighbors = true;
@@ -702,6 +804,7 @@ bool isWandAccepted(Layer *l,unsigned int destColor, unsigned int checkColor) {
 }
 
 void useSubToolWatershed() {
+
   if (!isPaintAreaActive()) return;
 
   if (ImGui::IsMouseClicked(0)||ImGui::IsMouseClicked(1)) {
@@ -721,6 +824,8 @@ void colorGet() {
 
 void useToolWand() {
 
+  if ((!ImGui::IsMouseDown(1)) && useToolSelectionMove(currentCanvas->getActiveLayer())) return; 
+
   if (watershed) {
     useSubToolWatershed();
     return;
@@ -731,7 +836,6 @@ void useToolWand() {
   colorGet();
 
   if (!ImGui::IsMouseClicked(0)) return;
-
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; if (locked(l,LOCK_SELECTION)) return;
 
   beforeUndoPoint();
@@ -1581,103 +1685,6 @@ double toolW = -1, toolH = -1;
 double toolAspectX = 1;
 double toolAspectY = 1;
 
-int startControlKeyId = CONTROLKEY_NONE;
-
-bool selectionToolMoveActive = false;
-double selectionToolMoveStartX = 0;
-double selectionToolMoveStartY = 0;
-
-bool useToolSelectionMove(Layer *activeLayer) {
-
-  if (!ImGui::IsMouseDown(1)) { // also handles moveByKey
-    showSelectionPlane = false; showSelectionPlaneBounding = false;
-    if (selectionToolMoveActive) {
-      selectionToolMoveActive = false;
-      int c = startControlKeyId;
-      for (int i = 0; i < activeLayer->width*activeLayer->height; i++) {
-        if (c == CONTROLKEY_NONE) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-        if (selectionPlane->pixels[i]!=0) {
-          if (c == CONTROLKEY_NONE || c == CONTROLKEY_SHIFT) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED;
-          if (c == CONTROLKEY_CTRL) activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-        }
-        if (c == (CONTROLKEY_CTRL|CONTROLKEY_SHIFT)) {
-          if (selectionPlane->pixels[i]!=0&&(activeLayer->pixelStates[i] & PIXELSTATE_SELECTED)) activeLayer->pixelStates[i] |= PIXELSTATE_SELECTED; else activeLayer->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-        }
-      }
-      updatedPixelStates(activeLayer);
-      shouldUpdateAll = true;
-    } 
-  }
-
-  double x = 0, y = 0, moveX = 1, moveY = 1;
-  switch(currentKey) {
-    case '4': {x=-moveX;} break;
-    case '6': {x=+moveX;} break;
-    case '8': {y=-moveY;} break;
-    case '2': {y=+moveY;} break;
-    case '7': {x=-moveX;y=-moveY;} break;
-    case '1': {x=-moveX;y=+moveY;} break;
-    case '9': {x=+moveX;y=-moveY;} break;
-    case '3': {x=+moveX;y=+moveY;} break;
-  }
-  bool moveByKey = x != 0 || y != 0;
-
-  double lx,ly; currentCanvas->getLayerPos(activeLayer,mouseX,mouseY,lx,ly);
-  if (isPaintAreaActive() && (ImGui::IsMouseDown(1)||moveByKey)) {
-    if (!selectionToolMoveActive) {
-      startControlKeyId = controlKeyId;
-      selectionPlane->init(activeLayer->width, activeLayer->height);
-      selectionPlane->transform = activeLayer->transform;
-      selectionPlane->type = activeLayer->type;
-      selectionPlane->tileSourceLayerId = activeLayer->tileSourceLayerId;
-      selectionToolMoveActive  = true;
-      selectionToolMoveStartX = lx;
-      selectionToolMoveStartY = ly;
-    }
-  }
-
-  if (moveByKey) {
-    lx += x;
-    ly += y;
-  }
-
-  bool tiling = false; int tw = 1, th = 1;
-  if (selectionPlane->type == LAYERTYPE_TILEMAP) {
-    Layer *l2 = currentCanvas->getLayerById(selectionPlane->tileSourceLayerId);
-    if (l2 != NULL) {
-      tw = l2->toolInfo.tilingWidth;
-      th = l2->toolInfo.tilingHeight;
-      if (tw>0&&th>0) tiling = true;
-    }
-  }
-
-  if (selectionToolMoveActive || moveByKey) {
-    showSelectionPlane = true;
-    if (activeLayer->width == selectionPlane->width && activeLayer->height == selectionPlane->height) {
-      int deltaX = (int)(selectionToolMoveStartX-lx);
-      int deltaY = (int)(selectionToolMoveStartY-ly);
-      if (tiling) {
-        deltaX /= tw;
-        deltaY /= th;
-      }
-      for (int y = 0; y < activeLayer->height; y++) {
-        for (int x = 0; x < activeLayer->width; x++) {
-          bool selected = false;
-          int x2 = x + deltaX;
-          int y2 = y + deltaY;
-          if ((unsigned int)x2 < (unsigned int)activeLayer->width && (unsigned int)y2 < (unsigned int)activeLayer->height) {
-            unsigned char p = activeLayer->pixelStates[x2+y2*activeLayer->width];
-            if (p & PIXELSTATE_SELECTED) selected = true;
-          }
-          selectionPlane->pixels[x+y*selectionPlane->width] = selected ? 1 : 0;
-        }
-      }
-    }
-  }
-
-  return selectionToolMoveActive;
-}
-
 void useToolSelection() {
   if (wasActiveLayerSwitched()) {selectionToolActive = false; selectionToolMoveActive = false; showSelectionPlane = false; showSelectionPlaneBounding = false; toolW = -1; toolH = -1; return;}
 
@@ -1692,9 +1699,9 @@ void useToolSelection() {
   selectionToolLayer = activeLayer;
   if (selectionToolLayer != NULL && selectionToolLayer->width * selectionToolLayer->height==0) return;
 
-  mouseClickUndo();
-
   if ((!selectionToolActive) && useToolSelectionMove(activeLayer)) return; // move the selection
+
+  mouseClickUndo();
 
   bool tiling = false; int tw = 1, th = 1;
   if (selectionPlane->type == LAYERTYPE_TILEMAP) {
@@ -2368,6 +2375,8 @@ void paintSelection(float opacity) {
 }
 
 void useToolPainting() {
+
+  if ((!ImGui::IsMouseDown(1)) && useToolSelectionMove(currentCanvas->getActiveLayer())) return; 
 
   int tool2 = tool;
   if (controlKeyId == CONTROLKEY_CTRL) tool2 = TOOL_ERASER;
