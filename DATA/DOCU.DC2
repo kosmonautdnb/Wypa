@@ -44,6 +44,10 @@
   "If you can't fill or paint on a layer it may also be, that" _N_
   "the size is just not big enough. You can increase the layer" _N_
   "size with the \"Layer properties\"." _N_
+  "" _N_
+  "If brightness and/or contrast affect your color gradings" _N_
+  "transparent pixels, maybe it is a good idea to enable \"Premul layer\"" _N_
+  "in the panel. (This is just for layers with \"Premul\" mode)" _N_
 "}" _N_
 "" _N_
 "Source code{" _N_
