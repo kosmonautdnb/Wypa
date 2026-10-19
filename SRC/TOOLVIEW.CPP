@@ -206,7 +206,6 @@ void drawToolFillView() {
   if (fillMode != PAINTMODE_COPY) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
   float k;
   k = (float)fillColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLFILLCOLORDISTANCE",&k,0,256)) {fillColorDistance = k;} else toolTip("Sameness value for fill area color");
-  ImGui::Text("Use valleys"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFILLVALLEYS",&fillUseValleys)) {} else toolTip("Flow up and down the filling points");
 }
 
 void drawToolSelectionView() {

@@ -231,7 +231,6 @@ extern bool pipetteFromLayer;
 extern bool pipetteWithColorTransform;
 
 extern double fillColorDistance;
-extern bool fillUseValleys;
 extern int fillMode;
 
 enum SELECTIONTOOL {
@@ -362,7 +361,6 @@ void paintSelection(float opacity);
   S_BOOL("pipetteWithColorTransform",pipetteWithColorTransform);\
   S_BOOL("hardEraser",hardEraser);\
   S_DOUBLE("fillColorDistance",fillColorDistance);\
-  S_BOOL("fillUseValleys",fillUseValleys);\
   S_INT("selectionTool",selectionTool);\
   S_BOOL("selectionProportional",selectionProportional);\
   S_FLOAT("lineWidth",lineWidth);\

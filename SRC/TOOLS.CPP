@@ -859,10 +859,10 @@ void useToolWand() {
       for (int y = 0; y < l->height; y++) {
         for (int x = 0; x < l->width; x++) {
           if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
-            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l,l->pixels[x-1+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
-            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l,l->pixels[x+1+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
-            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l,l->pixels[x+(y-1)*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
-            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isWandAccepted(l,l->pixels[x+(y+1)*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
+            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) for (int i = x - 1; i >= 0; i--) if (isWandAccepted(l,l->pixels[i+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[i+y*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) for (int i = x + 1; i < l->width; i++) if (isWandAccepted(l,l->pixels[i+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[i+y*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP)))  for (int i = y - 1; i >= 0; i--) if (isWandAccepted(l,l->pixels[x+i*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+i*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) for (int i = y + 1; i < l->height; i++) if (isWandAccepted(l,l->pixels[x+i*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+i*l->width] |= PIXELSTATE_TEMP;} else break;
           }
         }
       }
@@ -1548,7 +1548,6 @@ unsigned int applyPixel_(unsigned int col, float alpha) {return applyPixel(col,a
 
 double fillColorDistance = 1;
 bool fillAcceptedHasSelection = false;
-bool fillUseValleys = false;
 int fillMode = PAINTMODE_COPY;
 
 bool isFillAccepted(unsigned int here, unsigned int destColor, unsigned int checkColor, unsigned char destPixelState) {
@@ -1557,7 +1556,6 @@ bool isFillAccepted(unsigned int here, unsigned int destColor, unsigned int chec
   int dg = (destColor>>8) & 255;
   int db = (destColor>>16) & 255;
   int da = (destColor>>24) & 255;
-  if (fillUseValleys) checkColor = here;
   int sr = checkColor & 255;
   int sg = (checkColor>>8) & 255;
   int sb = (checkColor>>16) & 255;
@@ -1626,10 +1624,10 @@ void useToolFill() {
         for (int x = 0; x < l->width; x++) {
           if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
             unsigned int c0 = l->pixels[x+y*l->width];
-            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x-1+y*l->width],colorHere,l->pixelStates[x-1+y*l->width])) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
-            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+1+y*l->width],colorHere,l->pixelStates[x+1+y*l->width])) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
-            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+(y-1)*l->width],colorHere,l->pixelStates[x+(y-1)*l->width])) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
-            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted(c0,l->pixels[x+(y+1)*l->width],colorHere,l->pixelStates[x+(y+1)*l->width])) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
+            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) for (int i = x - 1; i >= 0; i--) if (isFillAccepted(c0,l->pixels[i+y*l->width],colorHere,l->pixelStates[i+y*l->width])) {somethingFound = true; l->pixelStates[i+y*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) for (int i = x + 1; i < l->width; i++) if (isFillAccepted(c0,l->pixels[i+y*l->width],colorHere,l->pixelStates[i+y*l->width])) {somethingFound = true; l->pixelStates[i+y*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) for (int i = y - 1; i >= 0; i--) if (isFillAccepted(c0,l->pixels[x+i*l->width],colorHere,l->pixelStates[x+i*l->width])) {somethingFound = true; l->pixelStates[x+i*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) for (int i = y + 1; i < l->height; i++) if (isFillAccepted(c0,l->pixels[x+i*l->width],colorHere,l->pixelStates[x+i*l->width])) {somethingFound = true; l->pixelStates[x+i*l->width] |= PIXELSTATE_TEMP;} else break;
           }
         }
       }
@@ -1650,10 +1648,10 @@ void useToolFill() {
         for (int x = 0; x < l->width; x++) {
           if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
             unsigned int c0 = l->pixels[x+y*l->width];
-            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted1(c0,l->pixels[x-1+y*l->width],colorHere,l->pixelStates[x-1+y*l->width])) {somethingFound = true; l->pixelStates[x-1+y*l->width] |= PIXELSTATE_TEMP;}
-            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted1(c0,l->pixels[x+1+y*l->width],colorHere,l->pixelStates[x+1+y*l->width])) {somethingFound = true; l->pixelStates[x+1+y*l->width] |= PIXELSTATE_TEMP;}
-            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted1(c0,l->pixels[x+(y-1)*l->width],colorHere,l->pixelStates[x+(y-1)*l->width])) {somethingFound = true; l->pixelStates[x+(y-1)*l->width] |= PIXELSTATE_TEMP;}
-            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) if (isFillAccepted1(c0,l->pixels[x+(y+1)*l->width],colorHere,l->pixelStates[x+(y+1)*l->width])) {somethingFound = true; l->pixelStates[x+(y+1)*l->width] |= PIXELSTATE_TEMP;}
+            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) for (int i = x - 1; i >= 0; i--) if (isFillAccepted1(c0,l->pixels[i+y*l->width],colorHere,l->pixelStates[i+y*l->width])) {somethingFound = true; l->pixelStates[i+y*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) for (int i = x + 1; i < l->width; i++) if (isFillAccepted1(c0,l->pixels[i+y*l->width],colorHere,l->pixelStates[i+y*l->width])) {somethingFound = true; l->pixelStates[i+y*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP))) for (int i = y - 1; i >= 0; i--) if (isFillAccepted1(c0,l->pixels[x+i*l->width],colorHere,l->pixelStates[x+i*l->width])) {somethingFound = true; l->pixelStates[x+i*l->width] |= PIXELSTATE_TEMP;} else break;
+            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) for (int i = y + 1; i < l->height; i++) if (isFillAccepted1(c0,l->pixels[x+i*l->width],colorHere,l->pixelStates[x+i*l->width])) {somethingFound = true; l->pixelStates[x+i*l->width] |= PIXELSTATE_TEMP;} else break;
           }
         }
       }
