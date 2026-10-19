@@ -728,6 +728,11 @@
       "The layer size and position is painted as yellow rectangles also" _N_
       "to the screen." _N_
     "}" _N_
+    "Show fields with same color{" _N_
+      "This shows wherever a pixel changed the color to the next" _N_
+      "pixel horizontally or vertically besides. It may be used to" _N_
+      "find little (unwanted) color differences between neighboring pixels." _N_
+    "}" _N_
     "Show grid{" _N_
       "Shows a grid. You may use some keys to snap the mouse to the grid." _N_
       "The grid can be configured in image properties (menu point)\"Image\"." _N_

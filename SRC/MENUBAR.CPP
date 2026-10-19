@@ -400,6 +400,8 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
         if (ImGui::MenuItem("Show canvas darkened",NULL,showCanvasDarkened)) {showCanvasDarkened = !showCanvasDarkened; shouldUpdateAll = true;}
+        if (ImGui::MenuItem("Show fields with same color",NULL,sameColorFieldsOn)) {sameColorFieldsOn = !sameColorFieldsOn; shouldUpdateAll = true;}
+        if (sameColorFieldsOn) ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);
         ImGui::Separator();
         if (ImGui::MenuItem("Vintage color wheel",NULL,alternativeColorWheel)) {alternativeColorWheel = !alternativeColorWheel;reGenColorWheel();}
         if (ImGui::MenuItem("Show skin tone range in hue",NULL,showSkinTone)) {showSkinTone = !showSkinTone;reGenColorWheel();}

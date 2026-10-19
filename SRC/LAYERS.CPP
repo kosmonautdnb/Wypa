@@ -92,6 +92,8 @@ bool showCanvasDarkened = true;
 bool darkenSelectedTiles = false;
 unsigned int singleLayerId = 0;
 bool transparencyFixed = false;
+bool sameColorFieldsOn = false;
+
 
 unsigned short *squareRoot128k = NULL;
 
@@ -5370,6 +5372,24 @@ void blitCanvas() {
       glFrameBuffer[dx+dy*glFrameBufferWidth] = col;
     }
   }
+
+  if (sameColorFieldsOn) {
+    for (int y = 0; y < currentCanvas->height-1; y++) {
+      int dy = y + currentCanvas->screenPosY;
+      if ((unsigned int)dy >= (unsigned int)(glFrameBufferHeight-1)) continue;
+      for (int x = 0; x < currentCanvas->width-1; x++) {
+        int dx = x + currentCanvas->screenPosX;
+        if ((unsigned int)dx >= (unsigned int)(glFrameBufferWidth-1)) continue;
+        unsigned int colHere = glFrameBuffer[dx+dy*glFrameBufferWidth];
+        unsigned int colRight = glFrameBuffer[dx+1+dy*glFrameBufferWidth];
+        unsigned int colBottom = glFrameBuffer[dx+(dy+1)*glFrameBufferWidth];
+        if (colHere != colRight || colHere != colBottom) {
+          glFrameBuffer[dx+dy*glFrameBufferWidth] = (x+y) & 1 ? 0xff0000ff : 0xff000000;
+        }
+      }
+    }
+  }
+
   if (selectionX0>=0 && showSelectionPlaneBounding) {
     selectionX0 -= 1;
     selectionY0 -= 1;

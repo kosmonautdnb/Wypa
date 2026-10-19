@@ -1046,6 +1046,7 @@ extern bool darkenSelectedTiles;
 extern unsigned int singleLayerId;
 extern bool transparencyFixed;
 extern unsigned short *squareRoot128k;
+extern bool sameColorFieldsOn;
 
 Layer *layerFromCanvas(Canvas *canvas);
 void repaintLayer(Layer *layer, bool fullUpdate);
