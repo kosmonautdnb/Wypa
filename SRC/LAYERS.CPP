@@ -136,8 +136,8 @@ Matrix inverse2(const Matrix &a) {
   return ret;
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd"};
-const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand"};
+const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3"};
 const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image"};
@@ -2748,6 +2748,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   bool visible = layer->state.visible;
   float groupOpacity = 1; if (!isVisibleInGroup(canvas, layer, groupOpacity)) visible = false;
   if (layer->mode == LAYERMODE_PIGMENT && (!(singleLayerId!=0 && singleLayerId == layer->id))) return;
+  if (layer->mode == LAYERMODE_WAND && (!(singleLayerId!=0 && singleLayerId == layer->id))) return;
   if ((!canvas->justSingle) && (!visible) && (!(singleLayerId!=0 && singleLayerId == layer->id))) return;
   if (canvas->justSingle && (!layer->state.active)) return;
 
@@ -3918,6 +3919,21 @@ Layer *Canvas::getPigmentLayerForLayer(Layer *layer) {
       for (int j = i+1; j < (int)layers.size(); j++) {
         Layer *l = layers[j];
         if (l->mode == LAYERMODE_PIGMENT) {
+          if (l->state.visible) return l;
+        }
+      }
+    }
+  }
+  return NULL;
+}
+
+Layer *Canvas::getWandLayerForLayer(Layer *layer) {
+  if (layer == NULL) return NULL;
+  for (int i = 0; i < (int)layers.size(); i++) {
+    if (layers[i]->id == layer->id) {
+      for (int j = i+1; j < (int)layers.size(); j++) {
+        Layer *l = layers[j];
+        if (l->mode == LAYERMODE_WAND) {
           if (l->state.visible) return l;
         }
       }

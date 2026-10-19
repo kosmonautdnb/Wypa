@@ -783,6 +783,7 @@ bool useToolSelectionMove(Layer *activeLayer) {
 double wandAlphaDistance = 20;
 double wandColorDistance = 20;
 bool wandByNeighbors = true;
+bool wandLayerOn = false;
 
 bool isWandAccepted(Layer *l,unsigned int destColor, unsigned int checkColor) {
   if (l->type == LAYERTYPE_TILEMAP) return destColor == checkColor;
@@ -836,56 +837,81 @@ void useToolWand() {
   colorGet();
 
   if (!ImGui::IsMouseClicked(0)) return;
-  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return; if (locked(l,LOCK_SELECTION)) return;
+  Layer *l = currentCanvas->getActiveLayer(); 
+  if (l == NULL) return; if (locked(l,LOCK_SELECTION)) return;
+
+  Layer *w = l;
+  if (wandLayerOn && l->type != LAYERTYPE_TILEMAP) {
+    Layer *k = currentCanvas->getWandLayerForLayer(l); if (k != NULL) w = k;
+  }
 
   beforeUndoPoint();
 
-  int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(l, mouseX, mouseY, lx2, ly2);
-  if (l->type == LAYERTYPE_TILEMAP) {Layer *l2 = currentCanvas->getLayerById(l->tileSourceLayerId); if (l2 != NULL) {lx2 /= l2->toolInfo.tilingWidth; ly2 /= l2->toolInfo.tilingHeight;}}
+  int lx, ly; double lx2, ly2; currentCanvas->getLayerPos(w, mouseX, mouseY, lx2, ly2);
+  if (w->type == LAYERTYPE_TILEMAP) {Layer *w2 = currentCanvas->getLayerById(w->tileSourceLayerId); if (w2 != NULL) {lx2 /= w2->toolInfo.tilingWidth; ly2 /= w2->toolInfo.tilingHeight;}}
   lx = (int)floor(lx2); ly = (int)floor(ly2);
-  if ((unsigned int)lx>=(unsigned int)l->width||(unsigned int)ly>=(unsigned int)l->height) return;
-  unsigned int colorHere = l->pixels[lx+ly*l->width];
-  if (controlKeyId == CONTROLKEY_NONE) for (int i = 0; i < l->width*l->height; i++) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+  if ((unsigned int)lx>=(unsigned int)w->width||(unsigned int)ly>=(unsigned int)w->height) return;
+  unsigned int colorHere = w->pixels[lx+ly*w->width];
 
   if (wandByNeighbors) {
     initStatusBar();
-    for (int i2 = 0; i2 < l->width*l->height; i2++) l->pixelStates[i2] &= ~PIXELSTATE_TEMP;
-    l->pixelStates[lx+ly*l->width] |= PIXELSTATE_TEMP;
-    l->pixelStates[lx+ly*l->width] |= PIXELSTATE_SELECTED;
+    for (int i2 = 0; i2 < w->width * w->height; i2++) w->pixelStates[i2] &= ~PIXELSTATE_TEMP;
+    w->pixelStates[lx+ly*w->width] |= PIXELSTATE_TEMP;
     bool somethingFound = true;
     int counter = 0;
     while(somethingFound) {
       somethingFound = false;
-      for (int y = 0; y < l->height; y++) {
-        for (int x = 0; x < l->width; x++) {
-          if (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) {
-            if (x>0&&(!(l->pixelStates[x-1+y*l->width] & PIXELSTATE_TEMP))) for (int i = x - 1; i >= 0; i--) if (isWandAccepted(l,l->pixels[i+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[i+y*l->width] |= PIXELSTATE_TEMP;} else break;
-            if (x<l->width-1&&(!(l->pixelStates[x+1+y*l->width] & PIXELSTATE_TEMP))) for (int i = x + 1; i < l->width; i++) if (isWandAccepted(l,l->pixels[i+y*l->width],colorHere)) {somethingFound = true; l->pixelStates[i+y*l->width] |= PIXELSTATE_TEMP;} else break;
-            if (y>0&&(!(l->pixelStates[x+(y-1)*l->width] & PIXELSTATE_TEMP)))  for (int i = y - 1; i >= 0; i--) if (isWandAccepted(l,l->pixels[x+i*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+i*l->width] |= PIXELSTATE_TEMP;} else break;
-            if (y<l->height-1&&(!(l->pixelStates[x+(y+1)*l->width] & PIXELSTATE_TEMP))) for (int i = y + 1; i < l->height; i++) if (isWandAccepted(l,l->pixels[x+i*l->width],colorHere)) {somethingFound = true; l->pixelStates[x+i*l->width] |= PIXELSTATE_TEMP;} else break;
+      for (int y = 0; y < w->height; y++) {
+        for (int x = 0; x < w->width; x++) {
+          if (w->pixelStates[x+y*w->width] & PIXELSTATE_TEMP) {
+            if (x>0&&(!(w->pixelStates[x-1+y*w->width] & PIXELSTATE_TEMP))) for (int i = x - 1; i >= 0; i--) if (isWandAccepted(w,w->pixels[i+y*w->width],colorHere)) {somethingFound = true; w->pixelStates[i+y*w->width] |= PIXELSTATE_TEMP;} else break;
+            if (x<w->width-1&&(!(w->pixelStates[x+1+y*w->width] & PIXELSTATE_TEMP))) for (int i = x + 1; i < w->width; i++) if (isWandAccepted(w,w->pixels[i+y*w->width],colorHere)) {somethingFound = true; w->pixelStates[i+y*w->width] |= PIXELSTATE_TEMP;} else break;
+            if (y>0&&(!(w->pixelStates[x+(y-1)*w->width] & PIXELSTATE_TEMP)))  for (int i = y - 1; i >= 0; i--) if (isWandAccepted(w,w->pixels[x+i*w->width],colorHere)) {somethingFound = true; w->pixelStates[x+i*w->width] |= PIXELSTATE_TEMP;} else break;
+            if (y<w->height-1&&(!(w->pixelStates[x+(y+1)*w->width] & PIXELSTATE_TEMP))) for (int i = y + 1; i < w->height; i++) if (isWandAccepted(w,w->pixels[x+i*w->width],colorHere)) {somethingFound = true; w->pixelStates[x+i*w->width] |= PIXELSTATE_TEMP;} else break;
           }
         }
       }
       counter++; if ((counter % 100)==0) updateStatusBar();
     }
-    for (int i = 0; i < l->width*l->height; i++) {
-      if (controlKeyId == CONTROLKEY_NONE) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-      if (l->pixelStates[i] & PIXELSTATE_TEMP) {
-        if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) l->pixelStates[i] |= PIXELSTATE_SELECTED;
-        if (controlKeyId == CONTROLKEY_CTRL) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-      }
-      if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {
-        if ((l->pixelStates[i] & PIXELSTATE_TEMP)&&(l->pixelStates[i] & PIXELSTATE_SELECTED)) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+    Matrix m = w->transform.transformation * inverse2(l->transform.transformation);
+    for (int y = 0; y < l->height; y++) {
+      for (int x = 0; x < l->width; x++) {
+        int i = x + y * l->width;
+        int lx = (int)(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
+        int ly = (int)(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
+        if (lx == 0) lx = (int)floor(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
+        if (ly == 0) ly = (int)floor(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
+        if (w == l) {lx = x; ly = y;}
+        bool selected = false; if ((unsigned int)lx < w->width && (unsigned int)ly < w->height) selected = w->pixelStates[lx+ly*w->width] & PIXELSTATE_TEMP ? true : false;
+        if (controlKeyId == CONTROLKEY_NONE) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        if (selected) {
+          if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) l->pixelStates[i] |= PIXELSTATE_SELECTED;
+          if (controlKeyId == CONTROLKEY_CTRL) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        }
+        if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {
+          if (selected&&(l->pixelStates[i] & PIXELSTATE_SELECTED)) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        }
       }
     }
   } else {
-    for (int i = 0; i < l->width*l->height; i++) {bool yes = isWandAccepted(l,l->pixels[i],colorHere); if (yes) {
+    Matrix m = w->transform.transformation * inverse2(l->transform.transformation);
+    for (int y = 0; y < l->height; y++) {
+      for (int x = 0; x < l->width; x++) {
+        int i = x + y * l->width;
+        int lx = (int)(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
+        int ly = (int)(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
+        if (lx == 0) lx = (int)floor(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
+        if (ly == 0) ly = (int)floor(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
+        if (w == l) {lx = x; ly = y;}
+        bool selected = false; if ((unsigned int)lx < w->width && (unsigned int)ly < w->height) selected = isWandAccepted(w,w->pixels[lx+ly*w->width],colorHere) ? true : false;
         if (controlKeyId == CONTROLKEY_NONE) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-        if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) l->pixelStates[i] |= PIXELSTATE_SELECTED;
-        if (controlKeyId == CONTROLKEY_CTRL) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
-      }
-      if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {
-        if (yes && (l->pixelStates[i] & PIXELSTATE_SELECTED)) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        if (selected) {
+          if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) l->pixelStates[i] |= PIXELSTATE_SELECTED;
+          if (controlKeyId == CONTROLKEY_CTRL) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        }
+        if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {
+          if (selected && (l->pixelStates[i] & PIXELSTATE_SELECTED)) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+        }
       }
     }
   }

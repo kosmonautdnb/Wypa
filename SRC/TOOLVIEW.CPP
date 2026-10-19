@@ -143,6 +143,13 @@ void drawToolWandView() {
       k = (float)wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
     }
     ImGui::Text("Surrounding"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors)) {} else toolTip("Use only surrounding areas");
+    Layer *w = currentCanvas->getWandLayerForLayer(l);
+    if (w != NULL) {
+      ImGui::Text("Use wand layer"); if (wandLayerOn) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
+      ImGui::SameLine(); ImGui::Checkbox("##DRAWTOOLWANDVIEWWANDLAYERON",&wandLayerOn);
+    } else {
+      ImGui::Text("No wand layer");
+    }
     ImGui::Separator();
     ImGui::Text("By selecting:");
     if (roundButton("Segmentation",true)) {

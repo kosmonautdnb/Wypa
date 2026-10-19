@@ -68,8 +68,9 @@ enum LAYERMODES {
   LAYERMODE_COLORDODGE = 23,
   LAYERMODE_PIGMENT = 24,
   LAYERMODE_QUADRATIC = 25,
+  LAYERMODE_WAND = 26,
   LAYERMODE_DEFAULT = LAYERMODE_PREMULTIPLIEDALPHA,
-  LAYERMODE_COUNT = 26
+  LAYERMODE_COUNT = 27
 };
 extern const char *layerModeNames[LAYERMODE_COUNT];
 extern const char *layerModeNamesFull[LAYERMODE_COUNT];
@@ -905,6 +906,7 @@ public:
   void insertGroup();
   void deleteGroup();
   Layer *getPigmentLayerForLayer(Layer *layer);
+  Layer *getWandLayerForLayer(Layer *layer);
 
   void mirrorHorizontally();
   void mirrorVertically();

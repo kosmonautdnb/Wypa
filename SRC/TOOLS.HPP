@@ -226,6 +226,7 @@ extern Gradient gradient;
 extern double wandAlphaDistance;
 extern double wandColorDistance;
 extern bool wandByNeighbors;
+extern bool wandLayerOn;
 
 extern bool pipetteFromLayer;
 extern bool pipetteWithColorTransform;
