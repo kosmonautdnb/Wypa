@@ -1999,3 +1999,7 @@ void fileInfo(const char *shortPath, const char *longFileName) {
     dialogFileInfo(true);
   }
 }
+
+void findFile(const char *shortPath, const char *longFileName) {
+    dialogFindFile(true, shortPath, longFileName);
+}

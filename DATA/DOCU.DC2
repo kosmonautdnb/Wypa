@@ -226,6 +226,14 @@
     "Delete all pictures{" _N_
       "Closes all open pictures and lets you have an empty workspace again." _N_
     "}" _N_
+    "File information{" _N_
+      "Prints information of a file e.g. width/height in pixels." _N_
+    "}" _N_
+    "Find file{" _N_
+      "Let's you find a file in a folder withing it's subfolders." _N_
+      "The file to search is just a partial part of the filename to find." _N_
+      "The search is case agnostic, meaning small and big letters are the same." _N_
+    "}" _N_
     "Save user interface screenshot{" _N_
       "This saves the current screen (without the open menubar)" _N_
       "there is an aspect ratio correction applied to have the png" _N_

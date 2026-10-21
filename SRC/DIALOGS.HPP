@@ -79,7 +79,8 @@ enum DIALOGMODE {
   DIALOG_SAVECALIBRATION = 41,
   DIALOG_SAVEIMAGEASNEWVERSION = 42,
   DIALOG_FILEINFORMATION = 43,
-  DIALOG_COUNT = 44
+  DIALOG_FINDFILE = 44,
+  DIALOG_COUNT = 45
 };
 
 void dialogCanvas(bool openIt);
@@ -136,6 +137,7 @@ void dialogHalftone(bool openIt);
 void dialogMedianize(bool openIt);
 void dialogSegmentation(bool openIt);
 void dialogFileInfo(bool openIt);
+void dialogFindFile(bool openIt, const char *shortPath2, const char *longFileName2);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);

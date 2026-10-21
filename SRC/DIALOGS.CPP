@@ -212,6 +212,7 @@ void dialogs() {
   dialogMedianize(false);
   dialogSegmentation(false);
   dialogFileInfo(false);
+  dialogFindFile(false, NULL, NULL);
 }
 
 void drawDialogs() {
@@ -1377,6 +1378,57 @@ void dialogFileInfo(bool openIt) {
   } else toolTip("Just close this view");
   DIALOGEND()
 }
+
+void dialogFindFile(bool openIt, const char *shortPath2, const char *longFileName2) {
+  static String folder, fileName;
+  static Array<String> folders;
+  static Array<String> found;
+  if (openIt) {
+    folder = shortPath2 != NULL ? String(shortPath2) : "";
+    fileName = longFileName2 != NULL ? String(longFileName2) : "";
+    folders.clear();
+    folders.push_back(folder);
+    found.clear();
+  }
+  DIALOGSTART("Find file##FINDFILEDIALOG2")
+
+  String currentFolder = "";
+  if (!folders.empty()) {
+    String f = folders.back(); folders.pop_back();
+    currentFolder = f;
+    Array<File> current = dosGetFiles(shortFileName(f));
+    if (f.startsWith(folder)) f = f.substr(folder.length());
+
+    for (int i = 0; i < current.size(); i++) {
+      if (current[i].name.name == "." || current[i].name.name == "..") continue;
+      String fileName2 = longFileName(current[i].name.full);
+      if (current[i].attributes & DOS_ATTR_SUBDIR) {
+        folders.insert(fileName2+"\\",0);
+      } else {
+        String fn = getName(fileName2)+getExtension(fileName2);
+        if (toLower(fn).find(toLower(fileName))>=0) found.push_back(fileName2);
+      }
+    }
+  }
+
+  ImGui::Text("Looking for a file with this in it's name:\"%s\"", fileName.last(80).c_str());
+  ImGui::Text("Base folder:\"%s\"",folder.last(80).c_str());
+  if (!currentFolder.empty()) ImGui::TextColored(ImVec4(1,0,0,1),"Processing folder:\"%s\"", currentFolder.last(80).c_str());
+  ImGui::Separator();
+  ImGui::BeginChild("DIALOGFINDFILECHILD",ImVec2(main_window_xres * 3/4, main_window_yres*3/4));
+  for (int i = 0; i < found.size(); i++) {
+    ImGui::TextWrapped("%s",found[i].c_str());
+  }
+  ImGui::EndChild();
+  ImGui::Separator();
+  if (ImGui::Button("Close##DIALOGFINDFILECLOSE")) {
+    folders.clear();
+    found.clear();
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
 
 #define HOTKEY(__char__,__ctrl__,__alt__,__text__) ImGui::Text("%s",__text__);
 
@@ -3822,11 +3874,11 @@ const char *lut = "*.cube";
 const char *tga = "*.tga";
 const char *cmapped = ".tga,.pcx,.lbm";
 const char *calib = "*.cl2";
-const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text","Load UTF8 text","LUT Color lookup","Export (paletted) tga","Palette from (paletted) picture", "Load calibration", "Save calibration", "Save wyp image as new version","File information"};
-const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load","Load","Load","Save","Load","Load","Save","Save","Load"};
-const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt,txt,lut,tga,cmapped,calib,calib,img,all};
-const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga",".cl2",".cl2",".wyp",""};
-LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture,loadCalibration,saveCalibration,saveImage,fileInfo};
+const char *dialogCaption[DIALOG_COUNT] = {"NO MODE","Import image","Insert image layer(s)","Export layer(s)","Export png","Load palette","Save palette","Export layer(s) raw","Insert psd","Load gradient","Save gradient","Insert svg","Load brush shape svg","Load brush","Save brush","Load brushes","Save brushes","Load image","Save image", "Add font", "Save font","Load gradient curves","Save gradient curves","Load tiling anim","Save tiling anim","Load tilemap","Save tilemap","Select gallery folder","Import folder into single layer","Load color matrix","Save color matrix","Load histogram","Color transfer","Load histogram per channel","Save text","Copy/paste text","Load UTF8 text","LUT Color lookup","Export (paletted) tga","Palette from (paletted) picture", "Load calibration", "Save calibration", "Save wyp image as new version","File information","Find file"};
+const char *proceedButton[DIALOG_COUNT] = {"<button>", "Load","Load","Save","Save","Load","Save","Save","Load","Load","Save","Load","Load","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Load","Save","Select","Select","Load","Save","Load","Load","Load","Save","Load","Load","Load","Save","Load","Load","Save","Save","Load","Load"};
+const char *dialogFileTypes[DIALOG_COUNT] = {"",imgs,imgs,png,png,pal,pal,png,psd,grad,grad,svg,svg,brush,brush,brush,brush,img,img,fnt,fnt,gradientCrv,gradientCrv,png,png,tilemap,tilemap,"","",colorMatrix,colorMatrix,imgs,imgs,imgs,txt,txt,txt,lut,tga,cmapped,calib,calib,img,all,all};
+const char *dialogDefaultExtension[DIALOG_COUNT] = {"","","",".png",".png",".pa2",".pa2",".png",".psd",".gr2",".gr2",".svg",".svg",".br2",".br2",".br2",".br2",".wyp",".wyp",".ttf",".ttf",".cr2",".cr2",".png",".png",".tm2",".tm2","","",".cm2",".cm2",".png",".png",".png",".txt",".txt",".txt",".cube",".tga",".tga",".cl2",".cl2",".wyp","",""};
+LOADSAVEFUNC funcs[DIALOG_COUNT] = {NULL, importImage,insertImageLayers,exportLayers,exportPNG,loadPalette,savePalette,exportLayersRawDialogOpen,insertPSD,loadGradient,saveGradient,insertSVG,loadBrushShape,loadBrush,saveBrush,loadBrushes,saveBrushes,loadImage,saveImage,loadFont,saveFont,loadGradientCurve,saveGradientCurve,loadTilingAnim,saveTilingAnim,loadTileMap,saveTileMap,selectGalleryFolder,importFolder,loadColorMatrix,saveColorMatrix,histogramMatch,colorTransfer,histogramMatchingColored,saveText,loadText,loadTextUTF8,loadLUT,exportTGA,paletteFromPicture,loadCalibration,saveCalibration,saveImage,fileInfo,findFile};
 
 static char _lower(char v) {
   if (v>='A'&&v<='Z') return (char)(v-'A'+'a');

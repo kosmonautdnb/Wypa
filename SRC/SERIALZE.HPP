@@ -121,6 +121,8 @@ struct FileInfo {
   int paletteSize;
 };
 extern FileInfo currentFileInfo;
+
 void fileInfo(const char *shortPath, const char *longFileName);
+void findFile(const char *shortPath, const char *longFileName);
 
 #endif //__SERIALZE_HPP__

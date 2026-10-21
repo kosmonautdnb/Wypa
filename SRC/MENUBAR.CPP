@@ -180,6 +180,7 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
         if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
+        if (ImGui::MenuItem("Find file")) {dialogLoadSave(true,DIALOG_FINDFILE);}
         ImGui::Separator();
         if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
         ImGui::Separator();
@@ -211,6 +212,7 @@ void drawMenuBar() {
         }
         if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
         if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
+        if (ImGui::MenuItem("Find file")) {dialogLoadSave(true,DIALOG_FINDFILE);}
         ImGui::Separator();
         if (ImGui::MenuItem("Delete all pictures")) {dialogDeleteAllPictures(true);}
         ImGui::Separator();

@@ -523,7 +523,7 @@ int main(int argc, const char *argv[]) {
       double a = glSeconds(); while(fabs(glSeconds()-a)<1.0/30.0) {;}
     }
   }
-
+  glClear(GL_COLOR_BUFFER_BIT); if (refreshMasked) glRefreshMasked(); else glRefresh();
   glDone();
 
   printf("Wypa version %d.%02d! (Why you polish abstracts)\n",version / 100, version % 100);
