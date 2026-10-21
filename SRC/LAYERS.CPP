@@ -94,7 +94,6 @@ unsigned int singleLayerId = 0;
 bool transparencyFixed = false;
 bool sameColorFieldsOn = false;
 
-
 unsigned short *squareRoot128k = NULL;
 
 void initLayers() {
@@ -5276,6 +5275,7 @@ void blitCanvas() {
           col = r|(g<<8)|(b<<16)|0xff000000;
         }
       }
+
       if (lx3 < currentCanvas->canvasX0 || ly3 < currentCanvas->canvasY0 || lx3 >= currentCanvas->canvasX1 || ly3 >= currentCanvas->canvasY1) {
         if (!(currentCanvas->pixelStates[x+y*currentCanvas->width] & PIXELSTATE_CANVAS_OVERLAY)) {
           if (showCanvasDarkened) {
@@ -5309,7 +5309,7 @@ void blitCanvas() {
       }
 
       if (state & (PIXELSTATE_SELECTED|PIXELSTATE_OUTLINE|PIXELSTATE_CANVAS_GRID)) {
-        if (x != 0 && x != currentCanvas->width-1 && y != 0 && y != currentCanvas->height-1) {
+        if (x > 0 && x < currentCanvas->width-1 && y > 0 && y < currentCanvas->height-1) {
           unsigned char before = state;
           state &= currentCanvas->pixelStates[x-1+y*currentCanvas->width];
           state &= currentCanvas->pixelStates[x+(y-1)*currentCanvas->width];

@@ -782,7 +782,7 @@ bool useToolSelectionMove(Layer *activeLayer) {
 
 double wandAlphaDistance = 20;
 double wandColorDistance = 20;
-bool wandByNeighbors = true;
+bool wandByNeighbors = false;
 bool wandLayerOn = false;
 
 bool isWandAccepted(Layer *l,unsigned int destColor, unsigned int checkColor) {

@@ -257,6 +257,7 @@ void drawLayerView() {
 #define GROUPINS 6
   Group *currentGroup = NULL;
   for (int i = 0; i < (int)currentCanvas->layers.size()+1; i++) { // there is a break with // !!! below
+
     for (int j = 0; j < (int)currentCanvas->groups.size(); j++) {
       Group *group = currentCanvas->groups[j];
       if (group->index == i) {
@@ -324,11 +325,23 @@ void drawLayerView() {
       }
     }
     if (i >= (int)currentCanvas->layers.size()) break; // !!!
+
+    Layer *l = currentCanvas->layers[i];
+    String additional = "";
+    if (currentCanvas->getActiveLayer()==l) {
+      switch(l->mode) {
+        case LAYERMODE_OPMOD:
+        case LAYERMODE_PIGMENT:
+        case LAYERMODE_WAND: {
+          additional = "[single view]";
+          if (singleLayerId != l->id) {singleLayerId = l->id; shouldUpdateAll = true;}
+        } break;
+      }
+    }
+
     bool belongsToGroup = false;
     if (offCounter > 0) {offCounter--; continue;}
     if (onCounter > 0) {onCounter--; belongsToGroup = true;}
-
-    Layer *l = currentCanvas->layers[i];
 
     ImVec2 cursor = ImGui::GetCursorScreenPos();
 
@@ -354,7 +367,7 @@ void drawLayerView() {
     ImGui::GetIO().MouseClicked[0] = (ImGui::GetIO().MouseClicked[0] && (l->state.imGuiActive))||(ImGui::GetIO().MouseDoubleClicked[0] && (!l->state.imGuiActive));
     if (ImGui::IsWindowHovered() && currentKey == GL_VK_F2) ImGui::GetIO().MouseClicked[0] = true;
     if (locked(l,LOCK_PERMANENT)) {ImGui::Text(">"); ImGui::SameLine();}
-    ImGui::InputText(combined(String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX); toolTip("%s%s layer name",locked(l,LOCK_USER) ? "(locked)":"",layerTypeNames[l->type]);
+    ImGui::InputText(combined(String("##LAYERVIEWCHILDNAME")+String::fromInt(i)).c_str(),l->name,LAYERNAMEMAX); toolTip("%s%s%s layer name",additional.c_str(),locked(l,LOCK_USER) ? "(locked)":"",layerTypeNames[l->type]);
     l->state.imGuiActive = ImGui::IsItemActive();
     ImGui::GetIO().MouseClicked[0] = a;
     ImGui::SetCursorScreenPos(ImVec2(cursor.x,cursor.y));
@@ -401,6 +414,7 @@ void drawLayerView() {
       l->toolInfo.blink = false;
       ImGui::GetWindowDrawList()->AddRectFilled(cursor,ImVec2(cursor.x+sidebar_width,cursor.y + CELLSIZE),0x8000ff00);
     }
+
     ImVec2 p0; p0.x = cursor.x+sidebar_width-16-layerThumbWidth; p0.y = cursor.y; 
     ImVec2 p1; p1.x = cursor.x+sidebar_width-16; p1.y = cursor.y + CELLSIZE;
     ImGui::GetWindowDrawList()->AddImage((ImTextureID)layerTextureIds[i],p0,p1,ImVec2(0,0),ImVec2(1,1));
