@@ -440,35 +440,43 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Noise",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterNoise();}
         if (ImGui::MenuItem("Checkerboard",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogCheckerboard(true);}
         if (ImGui::MenuItem("Hatching",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogSchraffur(true);}
-        if (ImGui::MenuItem("Edge detect",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterMorphologicalEdgeDetect();}
+        ImGui::Separator();
         if (ImGui::MenuItem("Blur",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogBlur(true);}
-        if (ImGui::MenuItem("Pixelate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelate(true);}
-        if (ImGui::MenuItem("Alpha soften",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterAlphaSoften();}
-        if (ImGui::MenuItem("Turn to glow",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogGlow(true);}
+        if (ImGui::MenuItem("Antialiasing XBR2x (slow)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterXBRAntialias();}
         if (ImGui::MenuItem("Strong soften",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSoften();}
-        if (ImGui::MenuItem("Emboss",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogEmboss(true);}
-        if (ImGui::MenuItem("Keying/matte",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogKeying(true);}
+        if (ImGui::MenuItem("Alpha soften",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterAlphaSoften();}
         if (ImGui::MenuItem("Denoise",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterDenoise();}
         if (ImGui::MenuItem("Sharpen and grain",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSharpen();}
-        if (ImGui::MenuItem("Antialiasing XBR2x (slow)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterXBRAntialias();}
+        ImGui::Separator();
+        if (ImGui::MenuItem("Keying/matte",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogKeying(true);}
+        if (ImGui::MenuItem("Edge detect",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterMorphologicalEdgeDetect();}
+        if (ImGui::MenuItem("Turn to glow",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogGlow(true);}
         if (ImGui::MenuItem("Pixelart inflate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelArtInflate(true);}
         if (ImGui::MenuItem("Histogram matching (brightness)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCH);}
         if (ImGui::MenuItem("Histogram light (colored)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCHINGCOLORED);}
-        if (ImGui::MenuItem("Sepia",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSepia();}
         if (ImGui::MenuItem("Color transfer (monochrome)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_COLORTRANSFER);}
         if (ImGui::MenuItem("Clahe lighting",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogClahe(true);}
-        if (ImGui::MenuItem("Segmentation",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogSegmentation(true);}
         if (ImGui::MenuItem("Displacement mapping",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogDisplacementMap(true);}
+        ImGui::Separator();
+        if (ImGui::MenuItem("Segmentation",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogSegmentation(true);}
+        ImGui::Separator();
         if (ImGui::MenuItem("OCR black & white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterBlackWhiteOCR();}
         if (ImGui::MenuItem("Dithered black & white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterBayerDither();}
+        ImGui::Separator();
         if (ImGui::MenuItem("Selection average color",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionAverageColor(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Selection distance field",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionDistanceField(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Selection vertical gradient",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionVerticalGradient(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Patch alpha holes",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterFillAlphaHoles(currentCanvas->getActiveLayer(), true);}
         if (ImGui::MenuItem("Fill selected area by border",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterFillAlphaHoles(currentCanvas->getActiveLayer(), false);}
+        ImGui::Separator();
         if (ImGui::MenuItem("Turn to outline",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogTurnToOutline(true);}
         if (ImGui::MenuItem("Turn to shadow",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterTurnToShadow();}
+        ImGui::Separator();
+        if (ImGui::MenuItem("Sepia",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSepia();}
+        if (ImGui::MenuItem("Pixelate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelate(true);}
         if (ImGui::MenuItem("Halftone",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogHalftone(true);}
+        if (ImGui::MenuItem("Medianize",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogMedianize(true);}
+        if (ImGui::MenuItem("Emboss",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogEmboss(true);}
         ImGui::EndMenu();
       }
   

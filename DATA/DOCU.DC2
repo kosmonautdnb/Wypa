@@ -1023,6 +1023,11 @@
       "The cellsize lets you specify the size of the circles in pixels." _N_
       "And the dot scale let's you make the image brighter or darker." _N_
     "}" _N_
+    "Medianize{" _N_
+      "Calculates the median color for the cells. And chooses the" _N_
+      "pixel color by the distance to the nearest mediancolor from the" _N_
+      "surrounding cells." _N_
+    "}" _N_
   "}" _N_
   "Pictures{" _N_
     "Here all the currently loaded pictures are visible." _N_

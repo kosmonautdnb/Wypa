@@ -209,6 +209,7 @@ void dialogs() {
   dialogResizeLayerByRepetition(false);
   dialogTurnToOutline(false);
   dialogHalftone(false);
+  dialogMedianize(false);
   dialogSegmentation(false);
   dialogFileInfo(false);
 }
@@ -1200,16 +1201,46 @@ void dialogResizeLayerByRepetition(bool openIt) {
   DIALOGEND()
 }
 
+void cropTwo(Layer *base, Layer *cropToo) {
+  if (locked(base,LOCK_ANY)) return;
+  if (locked(cropToo,LOCK_ANY)) return;
+  if (base->width != cropToo->width || base->height != cropToo->height) return;
+  float alphaThreshold = 0.5;
+  bool first = true;
+  int minX = 0, minY = 0, maxX = 0, maxY = 0;
+  for (int y = 0; y < base->height; y++) {
+    for (int x = 0; x < base->width; x++) {
+      int a = base->pixels[x+y*base->width]>>24;
+      if (a >= alphaThreshold) {
+        if (first || x < minX) minX = x;
+        if (first || y < minY) minY = y;
+        if (first || x > maxX) maxX = x;
+        if (first || y > maxY) maxY = y;
+        first = false;
+      }
+    }
+  }
+  maxX++;
+  maxY++;
+  int w = base->width; int h = base->height;
+  base->enlargenLayerBy(-minX,-minY,-(w-maxX),-(h-maxY));
+  cropToo->enlargenLayerBy(-minX,-minY,-(w-maxX),-(h-maxY));
+  shouldUpdateAll = true;
+}
+
 void dialogTurnToOutline(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static float outlineSize = 1;
   static Layer *clone = NULL;
+  static Layer *restoreClone = NULL;
   static bool updateLayer = false;
   static bool antialiasing = true;
   if (openIt) {
     beforeUndoPoint();
     if (clone != NULL) {delete clone; clone = NULL;}
+    if (restoreClone != NULL) {delete restoreClone; restoreClone = NULL;}
     clone = l->clone();
+    restoreClone = l->clone();
     updateLayer = true;
   }
   DIALOGSTART("Turn to outline")
@@ -1226,14 +1257,18 @@ void dialogTurnToOutline(bool openIt) {
   if (updateLayer) {
     updateLayer = false;
     if (l->width == clone->width && l->height == clone->height && (!locked(l,LOCK_ANY))) {
+      int e = (int)(outlineSize + 1);
+      l->enlargenLayerBy(e, e, e, e);
+      clone->enlargenLayerBy(e, e, e, e);
       filterOutline(&l->pixels[0],&clone->pixels[0], l->width, l->height, outlineSize, antialiasing);
-      updatedPixels(l);
+      cropTwo(l, clone);
       repaintLayer(l,true);
     }
   }
 
   if (apply) {
     if (clone != NULL) {delete clone; clone = NULL;}
+    if (restoreClone != NULL) {delete restoreClone; restoreClone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
     updatedPixels(l);
@@ -1241,8 +1276,9 @@ void dialogTurnToOutline(bool openIt) {
   } else toolTip("Use this outline");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGTURNTOOUTLINECLOSE")) {
-    if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
+    if (!locked(l,LOCK_ANY)) {l->getContentFromOtherLayer(restoreClone); l->transform = restoreClone->transform;}
     if (clone != NULL) {delete clone; clone = NULL;}
+    if (restoreClone != NULL) {delete restoreClone; restoreClone = NULL;}
     shouldUpdateAll = true;
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
@@ -1268,9 +1304,30 @@ void dialogHalftone(bool openIt) {
   if (ImGui::Button("Apply##DIALOGHALFTONEAPPLY")) {
     filterHalftone(l, cellSize, type, dotScale);
     ImGui::CloseCurrentPopup();
-  } else toolTip("Use this outline");
+  } else toolTip("Use this halftone setting");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGHALFTONECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogMedianize(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float cellSize = 8;
+  if (openIt) {
+  }
+  DIALOGSTART("Medianize")
+  ImGui::PushItemWidth(7*14);
+  ImGui::Text("Cell size (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGMEDIANIZECELLSIZE", &cellSize)) {;} else toolTip("How many pixels one cell (width/height) of a median center should be"); 
+  if (cellSize < 1) cellSize = 1;
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGMEDIANIZEAPPLY")) {
+    filterMedianize(l, cellSize);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Use this medianize setting");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGMEDIANIZECLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
   DIALOGEND()
@@ -2487,33 +2544,6 @@ enum BLURTYPES {
   BLURTYPE_COUNT = 5
 };
 
-void cropTwo(Layer *base, Layer *cropToo) {
-  if (locked(base,LOCK_ANY)) return;
-  if (locked(cropToo,LOCK_ANY)) return;
-  if (base->width != cropToo->width || base->height != cropToo->height) return;
-  float alphaThreshold = 0.5;
-  bool first = true;
-  int minX = 0, minY = 0, maxX = 0, maxY = 0;
-  for (int y = 0; y < base->height; y++) {
-    for (int x = 0; x < base->width; x++) {
-      int a = base->pixels[x+y*base->width]>>24;
-      if (a >= alphaThreshold) {
-        if (first || x < minX) minX = x;
-        if (first || y < minY) minY = y;
-        if (first || x > maxX) maxX = x;
-        if (first || y > maxY) maxY = y;
-        first = false;
-      }
-    }
-  }
-  maxX++;
-  maxY++;
-  int w = base->width; int h = base->height;
-  base->enlargenLayerBy(-minX,-minY,-(w-maxX),-(h-maxY));
-  cropToo->enlargenLayerBy(-minX,-minY,-(w-maxX),-(h-maxY));
-  shouldUpdateAll = true;
-}
-
 void dialogBlur(bool openIt) {
   static Layer *clone = NULL;
   static Layer *restoreClone = NULL;
@@ -2641,7 +2671,6 @@ void dialogBlur(bool openIt) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGBLURCLOSE")) {
-    //if ((!locked(l,LOCK_ANY)) && clone->width==l->width&&clone->height==l->height) memcpy(l->pixels,clone->pixels,l->width*l->height*sizeof(unsigned int));
     if (!locked(l,LOCK_ANY)) {l->getContentFromOtherLayer(restoreClone);l->transform = restoreClone->transform;}
     if (clone != NULL) {delete clone; clone = NULL;}
     if (restoreClone != NULL) {delete restoreClone; restoreClone = NULL;}

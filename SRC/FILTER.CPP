@@ -2802,7 +2802,6 @@ void filterTurnToShadow() {
 }
 
 void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width, unsigned int height, float outlineSize, bool antialiasing) {
-  beforeUndoPoint();
 
   initStatusBar();
   memset(dest,0,width*height*sizeof(unsigned int));
@@ -2904,7 +2903,6 @@ void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
     }
   }
 
-  afterUndoPoint();
 }
 
 class HalfToneMap {
@@ -3155,6 +3153,110 @@ void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
   }  
 
   for (int i = 0; i < (int)toneMaps.size(); i++) {delete toneMaps[i];} toneMaps.clear();
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+}
+
+float luminanceDist(unsigned int col1, unsigned int col2) {
+  int ra = (int)(col1 & 255);
+  int ba = (int)((col1>>8) & 255);
+  int ga = (int)((col1>>16) & 255);
+  int aa = (int)((col1>>24) & 255);
+
+  int rb = (int)(col2 & 255);
+  int bb = (int)((col2>>8) & 255);
+  int gb = (int)((col2>>16) & 255);
+  int ab = (int)((col2>>24) & 255);
+
+  float *lumis = luminanceValues;
+  float la = (float)ra*lumis[0] + (float)ba*lumis[1] + (float)ga*lumis[2] + aa;
+  float lb = (float)rb*lumis[0] + (float)bb*lumis[1] + (float)gb*lumis[2] + ab;
+  return lb - la;
+}
+
+int colorDistSqr(unsigned int col1, unsigned int col2) {
+  int ra = (int)(col1 & 255);
+  int ba = (int)((col1>>8) & 255);
+  int ga = (int)((col1>>16) & 255);
+  int aa = (int)((col1>>24) & 255);
+  int rb = (int)(col2 & 255);
+  int bb = (int)((col2>>8) & 255);
+  int gb = (int)((col2>>16) & 255);
+  int ab = (int)((col2>>24) & 255);
+  ra -= rb; ga -= gb; ba -= bb; aa -= ab;
+  return ra*ra + ga*ga + ba*ba + aa*aa;
+}
+
+int medianColorSort(const void *p, const void *q)
+{
+  const unsigned int a = *((const unsigned int*)p);
+  const unsigned int b = *((const unsigned int*)q);
+  float d = luminanceDist(a,b);
+  if (d < 0) return -1;
+  if (d > 0) return 1;
+  return 0;
+}
+
+
+void filterMedianize(Layer *layer, float cellSize) {
+  if (layer == NULL) return;
+  if (locked(layer,LOCK_ANY)) return;
+  beforeUndoPoint();
+  Layer *l = layer;
+
+  int cellX = (int)cellSize;
+  int cellY = (int)cellSize;
+
+  int cellCountX = (l->width + cellX - 1) / cellX;
+  int cellCountY = (l->height + cellY - 1) / cellY;
+
+  Array<unsigned int> medianColorsForCell; medianColorsForCell.resize(cellCountX*cellCountY);
+  Array<unsigned int> cellToSort; cellToSort.resize(cellX*cellY);
+
+  {for (int y = 0; y < cellCountY; y++) {
+    for (int x = 0; x < cellCountX; x++) {
+      int w = 0;
+      for (int y2 = 0; y2 < cellY; y2++) {
+        for (int x2 = 0; x2 < cellX; x2++) {
+          int lx = x * cellX + x2;
+          int ly = y * cellY + y2;
+          if ((unsigned int)lx < (unsigned int)l->width && (unsigned int)ly < (unsigned int)l->height) {
+            cellToSort[w] = l->pixels[lx+ly*l->width]; 
+            w++;
+          }
+        }
+      }
+      if (w > 0) {
+        if (w > 1) qsort(&cellToSort[0],w,sizeof(unsigned int),medianColorSort);
+        medianColorsForCell[x+y*cellCountX] = cellToSort[w/2];
+      }
+    }
+  }}
+
+  {for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      unsigned int col = l->pixels[x+y*l->width];
+      unsigned int color = col;
+      int cx = x / cellX; int cy = y / cellY;
+      int lowestColorDist = 256*256*5;
+      for (int y2 = -1; y2 <= 1; y2++) {
+        for (int x2 = -1; x2 <= 1; x2++) {
+          int lx = cx + x2;
+          int ly = cy + y2;
+          if ((unsigned int)lx<(unsigned int)cellCountX && (unsigned int)ly<(unsigned int)cellCountY) {
+            int dist = colorDistSqr(col, medianColorsForCell[lx+ly*cellCountX]);
+            if (dist < lowestColorDist) {
+              lowestColorDist = dist;
+              color = medianColorsForCell[lx+ly*cellCountX];
+            }
+          }
+        }
+      }
+      l->pixels[x+y*l->width] = color;
+    }
+  }}
+
   repaintLayer(layer,true);
   updatedPixels(layer);
   afterUndoPoint();
