@@ -1288,8 +1288,8 @@ void dialogTurnToOutline(bool openIt) {
 
 void dialogHalftone(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
-  const int halfToneTypeCount = 4;
-  static const char *halfToneTypeNames[halfToneTypeCount] = {"Black/White","CMYK","RGB","RYB"};
+  const int halfToneTypeCount = 5;
+  static const char *halfToneTypeNames[halfToneTypeCount] = {"Black/White","CMYK","RGB","RYB","RGB stylish"};
   static int type = 1;
   static float dotScale = 1.f;
   static float cellSize = 8;

@@ -3090,6 +3090,11 @@ void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
     toneMaps.push_back(getHalftoneMap(layer,HALFTONE3_Y,45.f,cellSize));
     toneMaps.push_back(getHalftoneMap(layer,HALFTONE3_B,0.f,cellSize));
     } break;
+  case 4: {
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE_R,45.f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE_G,45.f,cellSize));
+    toneMaps.push_back(getHalftoneMap(layer,HALFTONE_B,45.f,cellSize));
+    } break;
   }
 
   HalfToneMap **_toneMaps = &toneMaps[0]; int _toneMapsCount = (int)toneMaps.size();
@@ -3128,6 +3133,7 @@ void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
             g = m;
             b = y;
           } break;
+        case 4:
         case 2: {
             r = vals[0] * 255.f;
             g = vals[1] * 255.f;
