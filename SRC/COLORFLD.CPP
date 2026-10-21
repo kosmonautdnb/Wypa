@@ -566,6 +566,23 @@ void reGenColorWheel() {
   updateColorSlidersTexture();
 }
 
+void showPaletteEntryNr() {
+  unsigned int col = getUIntColor(foregroundColor);
+  static unsigned int lastCol = 0x12345678;
+  static int entry = -1;
+  if (col != lastCol) {
+    lastCol = col;
+    entry = -1;
+    for (int i = 0; i < (int)palette.size(); i++) {
+      if (getUIntColor(palette[i]) == col) {entry = i; break;}
+    }
+  }
+  if (entry >= 0) {
+    ImGui::SameLine();
+    ImGui::Text("[%d]",entry);
+  }
+}
+
 void drawColorField() {
   if (fullScreen) return;
   if (colorWheelAspectRatio != aspectRatio) initColorField();
@@ -628,7 +645,7 @@ void drawColorField() {
           foregroundColor = c3;
           addUsedColor(foregroundColor);
         }
-      }
+      } else toolTip("Color:%d",i);
       if (getUIntColor(palette[i])==colorTraceBacks[1]) {
         ImVec2 p00 = ImGui::GetItemRectMin();
         ImVec2 p11 = ImGui::GetItemRectMax();
@@ -666,6 +683,7 @@ void drawColorField() {
       float h,s,l;
       getHsl(*c,&h,&s,&l); updateColorWheel(h,0,0,NULL,NULL,NULL);
     }
+    showPaletteEntryNr();
     colorDisplay(&foregroundColor);
   }
   ImGui::End();
