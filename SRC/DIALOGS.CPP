@@ -209,6 +209,7 @@ void dialogs() {
   dialogResizeLayerByRepetition(false);
   dialogTurnToOutline(false);
   dialogHalftone(false);
+  dialogSprinkled(false);
   dialogMedianize(false);
   dialogSegmentation(false);
   dialogFileInfo(false);
@@ -1308,6 +1309,34 @@ void dialogHalftone(bool openIt) {
   } else toolTip("Use this halftone setting");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGHALFTONECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogSprinkled(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float dotMinScale = 4.f;
+  static float dotMaxScale = 8.f;
+  if (openIt) {
+  }
+  DIALOGSTART("Sprinkled")
+  ImGui::TextColored(ImVec4(1,0,0,1),"This filter is currently mega slow with really big pictures");
+  ImGui::PushItemWidth(7*14);
+  ImGui::Text("Min sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEDMINRADIUS", &dotMinScale)) {;} else toolTip("Smallest sprinkle size(radius)."); 
+  ImGui::Text("Max sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEDMAXRADIUS", &dotMaxScale)) {;} else toolTip("Biggest sprinkle size(radius)."); 
+  if (dotMinScale > dotMaxScale) dotMinScale = dotMaxScale;
+  if (dotMaxScale < dotMinScale) dotMaxScale = dotMinScale;
+  // currently this algorithm is too slow on big pictures e.g. full HD so we reduce it's performance impact with a minimum size of 4 here
+  if (dotMinScale < 4) dotMinScale = 4;
+  if (dotMaxScale < 4) dotMaxScale = 4;
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGSPRINKLEDAPPLY")) {
+    filterSprinkled(l, dotMinScale, dotMaxScale);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Use this sprinkled setting");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGSPRINKLEDCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
   DIALOGEND()

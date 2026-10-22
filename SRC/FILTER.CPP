@@ -3436,3 +3436,143 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   updatedPixels(layer);
   afterUndoPoint();
 }
+
+void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
+  if (layer == NULL) return;
+  if (locked(layer,LOCK_ANY)) return;
+  beforeUndoPoint();
+  Layer *l = layer;
+
+  if (minRad < 1) minRad = 1;
+  if (maxRad < 1) maxRad = 1;
+
+  for (int i = 0; i < l->width*l->height; i++) l->pixelStates[i] |= PIXELSTATE_TEMP;
+
+  Array<unsigned int> potentialPixels; potentialPixels.resize(l->width * l->height);
+  for (int y = 0; y < (int)l->height; y++) {
+    for (int x = 0; x < (int)l->width; x++) {
+      potentialPixels[x+y*l->width] = (unsigned int)x | ((unsigned int)y << 16);
+    }
+  }
+
+  int potentialPixelsCount = (int)potentialPixels.size();
+
+  Array<float> red; red.resize(l->width*l->height); red.fill(0);
+  Array<float> green; green.resize(l->width*l->height); green.fill(0);
+  Array<float> blue; blue.resize(l->width*l->height); blue.fill(0);
+  Array<float> alpha; alpha.resize(l->width*l->height); alpha.fill(0);
+  Array<float> weight; weight.resize(l->width*l->height); weight.fill(0);
+
+  int count = 0;
+  initStatusBar();
+
+  srand(0);
+  unsigned int portionSize = potentialPixelsCount / 15; if (portionSize < 1) portionSize = 1;
+  unsigned int lastPortion = potentialPixelsCount / portionSize;
+
+  Array<float> k; int ks = 0; float *kd = &k[0];
+
+  while(potentialPixelsCount > 0) {
+    unsigned int portion = (unsigned int)potentialPixelsCount / portionSize; 
+    if (portion != lastPortion) updateStatusBar(); 
+    lastPortion = portion;
+
+    int i = ((int)rand()+(int)rand()*510+(int)rand()*11100) % potentialPixelsCount; // doesn't have to be fully 32 bit
+
+    float centerX = (float)(potentialPixels[i] & 0xffff);
+    float centerY = (float)((potentialPixels[i]>>16) & 0xffff);
+    float circleSize = (float)(rand() % RAND_MAX)/(float)RAND_MAX;
+    circleSize *= circleSize;
+    float radius = minRad + circleSize*(maxRad - minRad);
+
+    int ri = (int)(radius + 1);
+    int cx = (int)(centerX);
+    int cy = (int)(centerY);
+    float threshTop = radius+1;
+    float threshTop2 = threshTop*threshTop;
+    float threshBottom = radius;
+
+    float r = 0, g = 0, b = 0, a = 0, w = 0;
+    int ki = 0;
+    for (int y = -ri + cy; y <= ri + cy; y++) {
+      float dy = (float)y - centerY;
+      dy *= dy;
+      for (int x = -ri + cx; x <= ri + cx; x++) {
+        float dx = (float)x - centerX;
+        float d = sqrt(dx*dx+dy); 
+        float shade = d < threshBottom ? 1 : (d > threshTop ? 0 : 1-(d-threshBottom)/(threshTop-threshBottom));
+        if (ki >= ks) {ks = ki+1; k.resize(ks); kd = &k[0];}
+        kd[ki] = shade; ki++;
+        if (shade > 0) {
+          if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
+            unsigned int col = l->pixels[x+y*l->width]; 
+            l->pixelStates[x+y*l->width] &= ~PIXELSTATE_TEMP;
+            float h = shade;
+            r += (float)(col & 255) * h;
+            g += (float)((col>>8) & 255) * h;
+            b += (float)((col>>16) & 255) * h;
+            a += (float)((col>>24) & 255) * h;
+            w += h;
+          }
+        }
+      }
+    }
+
+    if (w > 0) {
+      ki = 0;
+      for (int y = -ri + cy; y <= ri + cy; y++) {
+        for (int x = -ri + cx; x <= ri + cx; x++) {
+          float shade = kd[ki]; ki++;
+          if (shade > 0) {
+            if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
+              int j = x + y * l->width;
+              red[j] += r*shade;
+              green[j] += g*shade;
+              blue[j] += b*shade;
+              alpha[j] += a*shade;
+              weight[j] += w*shade;
+            }
+          }
+        }
+      }
+    }
+
+    for (int j = 0; j < potentialPixelsCount; j++) {
+      int x = (int)(potentialPixels[j] & 0xffff);
+      int y = (int)((potentialPixels[j]>>16) & 0xffff);
+      bool marked = false;
+      if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
+        if ( (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) == 0 ) marked = true;
+      } else {marked = true;}
+      if (marked) {
+        potentialPixelsCount--;
+        if (potentialPixelsCount >= 0 && j >= 0) {
+          potentialPixels[j] = potentialPixels[potentialPixelsCount];
+        }
+        j--;
+      }
+    }
+  }
+
+  for (int j = 0; j < l->width * l->height; j++) {
+    float w = weight[j]; if (w == 0) w = 1;
+    int r = (int)(red[j]/w);
+    int g = (int)(green[j]/w);
+    int b = (int)(blue[j]/w);
+    int a = (int)(alpha[j]/w);
+    if (r < 0) r = 0;
+    if (g < 0) g = 0;
+    if (b < 0) b = 0;
+    if (a < 0) a = 0;
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+    if (a > 255) a = 255;
+    l->pixels[j] = r|(g<<8)|(b<<16)|(a<<24);
+  }
+
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  updatedPixelStates(layer);
+  afterUndoPoint();
+}
