@@ -133,10 +133,16 @@ void drawLayerView() {
   Layer *currentLayer = currentCanvas->getActiveLayer();
   if (currentLayer != NULL) {
     ImGui::PushItemWidth(7*8+16);
+
+    int modeBefore = currentLayer->mode;
+
     int mode = currentLayer->mode - 1; if (ImGui::Combo("##DRAWLAYERVIEWTRANSPARENCYTYPE",&mode, &(layerModeNames[1]), LAYERMODE_COUNT-1)) {
       currentLayer->mode = mode + 1;
       repaintLayer(currentLayer,true);
     } else toolTip("Layer paint mode: %s",layerModeNamesFull[currentLayer->mode]);
+
+    updatedLayerMode(currentLayer, modeBefore, currentLayer->mode);
+
     if (currentLayer->mode == LAYERMODE_OPMOD) {
       ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x40ff8040);
     }

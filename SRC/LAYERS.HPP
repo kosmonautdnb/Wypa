@@ -1048,6 +1048,8 @@ extern bool transparencyFixed;
 extern unsigned short *squareRoot128k;
 extern bool sameColorFieldsOn;
 
+void updatedLayerMode(Layer *l, int modeFrom, int modeTo);
+
 Layer *layerFromCanvas(Canvas *canvas);
 void repaintLayer(Layer *layer, bool fullUpdate);
 void blitCanvas();

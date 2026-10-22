@@ -998,6 +998,11 @@ void Layer::pixelXLineEor(int x0, int y0, int x1, int y1, unsigned int _eor, boo
   updatedPixels(this);
 }
 
+void updatedLayerMode(Layer *l, int modeFrom, int modeTo) {
+  if (modeFrom != LAYERMODE_PREMULTIPLIEDALPHA && modeTo == LAYERMODE_PREMULTIPLIEDALPHA) l->colorTransform.premul = true;
+  if (modeFrom == LAYERMODE_PREMULTIPLIEDALPHA && modeTo != LAYERMODE_PREMULTIPLIEDALPHA) l->colorTransform.premul = false;
+}
+
 void Layer::init(int width, int height) {
   if (width*height == 0) return;
   colorTransform = ColorTransform();
@@ -1006,6 +1011,7 @@ void Layer::init(int width, int height) {
   state.clear();
   mode = LAYERMODE_DEFAULT;
   type = LAYERTYPE_BASIC;
+  updatedLayerMode(this, LAYERMODE_UNDEFINED, mode);
   sourceLayerId = 0;
   setContentSize(width, height);
 }
@@ -1871,6 +1877,7 @@ void Layer::convertToPremul() {
     b = b * a / 255;
     pixels[i] = r|(g<<8)|(b<<16)|(a<<24);
   }
+  updatedLayerMode(this, mode, LAYERMODE_PREMULTIPLIEDALPHA);
   mode = LAYERMODE_PREMULTIPLIEDALPHA;
   updatedPixels(this);
 }
@@ -3855,6 +3862,7 @@ void Canvas::insertTextLayer() {
   Layer *l = new Layer();
   l->invalidateContent();
   l->mode = LAYERMODE_PREMULTIPLIEDALPHA;
+  updatedLayerMode(l, LAYERMODE_UNDEFINED, l->mode);
   l->type = LAYERTYPE_TEXT;
   l->state.lockBits = LOCK_TEXT;
   sprintf(l->name,"text");
