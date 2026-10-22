@@ -289,6 +289,7 @@ void filterMorphologicalEdgeDetect() {
   memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
   int posX[5] ={0,-1,1,0,0};
   int posY[5] ={0,0,0,-1,1};
+  bool first2 = true;
   for (int y = 0; y < l->height; y++) {
     for (int x = 0; x < l->width; x++) {
       int i3 = x + y * l->width;
@@ -314,8 +315,9 @@ void filterMorphologicalEdgeDetect() {
           }
         }
         int k = (int)(maxv-minv);
-        if (first || k > maxv2) maxv2 = (float)k;
-        if (first || k < minv2) minv2 = (float)k;
+        if (first2 || k > maxv2) maxv2 = (float)k;
+        if (first2 || k < minv2) minv2 = (float)k;
+        first2 = false;
         l->pixels[i3] = k;
       }
     }
@@ -3449,6 +3451,7 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
   for (int i = 0; i < l->width*l->height; i++) l->pixelStates[i] |= PIXELSTATE_TEMP;
 
   Array<unsigned int> potentialPixels; potentialPixels.resize(l->width * l->height);
+  unsigned int *potentialPixels_ = &potentialPixels[0];
   for (int y = 0; y < (int)l->height; y++) {
     for (int x = 0; x < (int)l->width; x++) {
       potentialPixels[x+y*l->width] = (unsigned int)x | ((unsigned int)y << 16);
@@ -3462,6 +3465,11 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
   Array<float> blue; blue.resize(l->width*l->height); blue.fill(0);
   Array<float> alpha; alpha.resize(l->width*l->height); alpha.fill(0);
   Array<float> weight; weight.resize(l->width*l->height); weight.fill(0);
+  float *red_ = &red[0];
+  float *green_ = &green[0];
+  float *blue_ = &blue[0];
+  float *alpha_ = &alpha[0];
+  float *weight_ = &weight[0];
 
   int count = 0;
   initStatusBar();
@@ -3479,8 +3487,8 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
 
     int i = ((int)rand()+(int)rand()*510+(int)rand()*11100) % potentialPixelsCount; // doesn't have to be fully 32 bit
 
-    float centerX = (float)(potentialPixels[i] & 0xffff);
-    float centerY = (float)((potentialPixels[i]>>16) & 0xffff);
+    float centerX = (float)(potentialPixels_[i] & 0xffff);
+    float centerY = (float)((potentialPixels_[i]>>16) & 0xffff);
     float circleSize = (float)(rand() % RAND_MAX)/(float)RAND_MAX;
     circleSize *= circleSize;
     float radius = minRad + circleSize*(maxRad - minRad);
@@ -3526,11 +3534,11 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
           if (shade > 0) {
             if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
               int j = x + y * l->width;
-              red[j] += r*shade;
-              green[j] += g*shade;
-              blue[j] += b*shade;
-              alpha[j] += a*shade;
-              weight[j] += w*shade;
+              red_[j] += r*shade;
+              green_[j] += g*shade;
+              blue_[j] += b*shade;
+              alpha_[j] += a*shade;
+              weight_[j] += w*shade;
             }
           }
         }
@@ -3538,8 +3546,8 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
     }
 
     for (int j = 0; j < potentialPixelsCount; j++) {
-      int x = (int)(potentialPixels[j] & 0xffff);
-      int y = (int)((potentialPixels[j]>>16) & 0xffff);
+      int x = (int)(potentialPixels_[j] & 0xffff);
+      int y = (int)((potentialPixels_[j]>>16) & 0xffff);
       bool marked = false;
       if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
         if ( (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) == 0 ) marked = true;
@@ -3547,7 +3555,7 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
       if (marked) {
         potentialPixelsCount--;
         if (potentialPixelsCount >= 0 && j >= 0) {
-          potentialPixels[j] = potentialPixels[potentialPixelsCount];
+          potentialPixels_[j] = potentialPixels_[potentialPixelsCount];
         }
         j--;
       }
@@ -3555,11 +3563,11 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
   }
 
   for (int j = 0; j < l->width * l->height; j++) {
-    float w = weight[j]; if (w == 0) w = 1;
-    int r = (int)(red[j]/w);
-    int g = (int)(green[j]/w);
-    int b = (int)(blue[j]/w);
-    int a = (int)(alpha[j]/w);
+    float w = weight_[j]; if (w == 0) w = 1;
+    int r = (int)(red_[j]/w);
+    int g = (int)(green_[j]/w);
+    int b = (int)(blue_[j]/w);
+    int a = (int)(alpha_[j]/w);
     if (r < 0) r = 0;
     if (g < 0) g = 0;
     if (b < 0) b = 0;
@@ -3574,5 +3582,59 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
   repaintLayer(layer,true);
   updatedPixels(layer);
   updatedPixelStates(layer);
+  afterUndoPoint();
+}
+
+void filterComic(class Layer *layer, float steps, bool sat) {
+  if (layer == NULL) return;
+  if (locked(layer,LOCK_ANY)) return;
+  beforeUndoPoint();
+
+  if (steps < 1) steps = 1;
+                                                                                                       
+  Array<float> hue; hue.resize(layer->width * layer->height);
+  Array<float> saturation; saturation.resize(layer->width * layer->height);
+  Array<float> lightness; lightness.resize(layer->width * layer->height);
+
+  float minLightness = 1.f;
+  float maxLightness = 0.f;
+
+  {for (int i = 0; i < layer->width * layer->height; i++) {
+    unsigned int col = layer->pixels[i];
+    ImVec4 rgb = getImVec4Color(col);
+    getHsl(rgb, &hue[i], &saturation[i], &lightness[i]);
+    if (lightness[i] < minLightness) minLightness = lightness[i];
+    if (lightness[i] > maxLightness) maxLightness = lightness[i];
+  }}
+
+  float lightnessRange = maxLightness - minLightness;
+
+  {for (int i = 0; i < layer->width * layer->height; i++) {
+    double h = hue[i];
+    double s = saturation[i];
+    double l = lightness[i];
+    l = l - minLightness; if (lightnessRange > 0) l /= lightnessRange;
+    int k = (int)(l * steps);
+    l = l - (double)k / (double)steps;
+    l = l / 2.0; l = 0;
+    l = l + (double)k / (double)steps;
+    l = l * lightnessRange; l = l + minLightness;
+    if (sat) {
+      s = 1 - s;
+      s = s*s*s;
+      s = 1 - s;
+    }
+    ImVec4 rgb = hsl(h,s,l);
+    unsigned int col = getUIntColor(rgb);
+    layer->pixels[i] = (col & 0x00ffffff) | (layer->pixels[i] & 0xff000000);
+  }}
+
+  Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
+  int kernel = 2; 
+  filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
+  filterMedianBlur(layer->pixels, &blurred[0], layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
+
+  repaintLayer(layer,true);
+  updatedPixels(layer);
   afterUndoPoint();
 }

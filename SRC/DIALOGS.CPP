@@ -210,6 +210,7 @@ void dialogs() {
   dialogTurnToOutline(false);
   dialogHalftone(false);
   dialogSprinkled(false);
+  dialogComic(false);
   dialogMedianize(false);
   dialogSegmentation(false);
   dialogFileInfo(false);
@@ -1337,6 +1338,29 @@ void dialogSprinkled(bool openIt) {
   } else toolTip("Use this sprinkled setting");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGSPRINKLEDCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogComic(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float steps = 8;
+  static bool saturation = true;
+  if (openIt) {
+  }
+  DIALOGSTART("Comic shader")
+  ImGui::PushItemWidth(7*14);
+  ImGui::Text("Brightness steps"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGCOMICSTEPS", &steps)) {;} else toolTip("How many lighting nuances the shader should have."); 
+  if (steps<1) steps = 1;
+  ImGui::PopItemWidth();
+  ImGui::Text("Increase saturation"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGCOMICSAT",&saturation)) {;} else toolTip("Make comic shader output more colorful");
+  if (ImGui::Button("Apply##DIALOGCOMICAPPLY")) {
+    filterComic(l, steps, saturation);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Use this comic shader setting");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGCOMICCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
   DIALOGEND()

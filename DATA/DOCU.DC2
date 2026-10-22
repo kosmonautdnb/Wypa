@@ -1031,6 +1031,17 @@
       "The cellsize lets you specify the size of the circles in pixels." _N_
       "And the dot scale let's you make the image brighter or darker." _N_
     "}" _N_
+    "Sprinkled{" _N_
+      "Some sort of artistical interpretion of the layer as consisting" _N_
+      "of colored dots. If you use it on big pictures it can get really" _N_
+      "slow currently. Maybe it's somehow good to blur pictures" _N_
+      "in an somehow more artistical way." _N_
+    "}" _N_
+    "Comic{" _N_
+      "This comic shader misses outlines. However it lets you choose" _N_
+      "a number of brightness steps for the final image and increases" _N_
+      "the colorfulness of the layer/image." _N_
+    "}" _N_
     "Medianize{" _N_
       "Calculates the median color for the cells. And chooses the" _N_
       "pixel color by the distance to the nearest mediancolor from the" _N_

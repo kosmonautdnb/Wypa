@@ -478,6 +478,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Pixelate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelate(true);}
         if (ImGui::MenuItem("Halftone",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogHalftone(true);}
         if (ImGui::MenuItem("Sprinkled",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogSprinkled(true);}
+        if (ImGui::MenuItem("Comic",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogComic(true);}
         if (ImGui::MenuItem("Medianize",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogMedianize(true);}
         if (ImGui::MenuItem("Emboss",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogEmboss(true);}
         ImGui::EndMenu();

@@ -71,6 +71,7 @@ void filterHalftone(class Layer *layer, float cellSize, int type, float dotScale
 void filterMedianize(class Layer *layer, float cellSize);
 void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY);
 void filterSprinkled(class Layer *layer, float minRad, float maxRad);
+void filterComic(class Layer *layer, float steps, bool sat);
 
 #define S_FILTER_CPP()
 

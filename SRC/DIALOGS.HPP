@@ -135,6 +135,7 @@ void dialogResizeLayerByRepetition(bool openIt);
 void dialogTurnToOutline(bool openIt);
 void dialogHalftone(bool openIt);
 void dialogSprinkled(bool openIt);
+void dialogComic(bool openIt);
 void dialogMedianize(bool openIt);
 void dialogSegmentation(bool openIt);
 void dialogFileInfo(bool openIt);
