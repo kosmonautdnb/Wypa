@@ -292,6 +292,20 @@ void dosShell() {
     default: {glVesa(main_window_xres,main_window_yres,16); glRefresh();}
   }
 }
+
+void redFlash() {
+  double a = glSeconds();   
+  for (int i = 0; i < glFrameBufferWidth * glFrameBufferHeight; i++) {
+    unsigned int col = glFrameBuffer[i];
+    int r = (col & 255) / 4 + 0xc0;
+    int g = (col >> 8) & 255;
+    int b = (col >> 16) & 255;
+    int a = (col >> 24) & 255;
+    glFrameBuffer[i] = r|(g<<8)|(b<<16)|(a<<24);
+  }
+  if (refreshMasked) glRefreshMasked(); else glRefresh();
+  while(fabs(glSeconds()-a)<1.0/30.0*2) {;}
+}
   
 int main(int argc, const char *argv[]) {
 
@@ -380,7 +394,7 @@ int main(int argc, const char *argv[]) {
   b = new Brush(); b->size = 128; b->edginess = 1.0f; b->pressure = 1.5f; brushes.push_back(b);
 
   bool useFileName = argc == 2;
-  bool useFolder = useFileName && (String(argv[1]).endsWith("/") || String(argv[1]).endsWith("\\"));
+  String fnm = String(argv[1]); bool useFolder = useFileName && (fnm.endsWith("/") || fnm.endsWith("\\"));
 
   if (useFileName && (!useFolder)) {
     loadImage("",argv[1]);

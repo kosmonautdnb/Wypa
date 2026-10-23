@@ -77,9 +77,9 @@ void clearPreview() {
 void showCanvasPreviewToolTip(Canvas *canvas) {
   if (!showToolTips) return;
   if (ImGui::IsItemHovered()) {
-    for (int y = 0; y < previewHeight; y++) {
+    for (int y = 0; y < (int)previewHeight; y++) {
       int sy = (y*canvas->height)/previewHeight;
-      for (int x = 0; x < previewWidth; x++) {
+      for (int x = 0; x < (int)previewWidth; x++) {
         int sx = (x*canvas->width)/previewWidth;
         preview[x+y*previewWidth] = canvas->pixels[sx+sy*canvas->width];
       }
@@ -1264,6 +1264,7 @@ void dialogTurnToOutline(bool openIt) {
       l->enlargenLayerBy(e, e, e, e);
       clone->enlargenLayerBy(e, e, e, e);
       filterOutline(&l->pixels[0],&clone->pixels[0], l->width, l->height, outlineSize, antialiasing);
+      if (escapeWasPressed) {apply = false; escapeWasPressed = false;}
       cropTwo(l, clone);
       repaintLayer(l,true);
     }
@@ -1452,7 +1453,7 @@ void dialogFindFile(bool openIt, const char *shortPath2, const char *longFileNam
     Array<File> current = dosGetFiles(shortFileName(f));
     if (f.startsWith(folder)) f = f.substr(folder.length());
 
-    for (int i = 0; i < current.size(); i++) {
+    for (int i = 0; i < (int)current.size(); i++) {
       if (current[i].name.name == "." || current[i].name.name == "..") continue;
       String fileName2 = longFileName(current[i].name.full);
       if (current[i].attributes & DOS_ATTR_SUBDIR) {
@@ -1469,7 +1470,7 @@ void dialogFindFile(bool openIt, const char *shortPath2, const char *longFileNam
   if (!currentFolder.empty()) ImGui::TextColored(ImVec4(1,0,0,1),"Processing folder:\"%s\"", currentFolder.last(80).c_str());
   ImGui::Separator();
   ImGui::BeginChild("DIALOGFINDFILECHILD",ImVec2(main_window_xres * 3/4, main_window_yres*3/4));
-  for (int i = 0; i < found.size(); i++) {
+  for (int i = 0; i < (int)found.size(); i++) {
     ImGui::TextWrapped("%s",found[i].c_str());
   }
   ImGui::EndChild();
@@ -2755,6 +2756,7 @@ void dialogBlur(bool openIt) {
         case BLURTYPE_ITERATIVE: {filterIterativeBlur(l->pixels,clone->pixels, l->width, l->height, iterativeSteps, l->pixelStates,l->hasSelection());} break;
         case BLURTYPE_MEDIAN: {filterMedianBlur(l->pixels,clone->pixels, l->width, l->height, medianWidth, medianHeight,l->pixelStates,l->hasSelection(), medianCircular, medianContours);} break;
       }
+      if (escapeWasPressed) {apply = false; escapeWasPressed = false;}
       if (highPass) {
         filterSubtract(l->pixels,clone->pixels,l->pixels,l->width,l->height);
         filterSetAlpha(l->pixels,l->width,l->height,255);
@@ -2809,8 +2811,8 @@ void dialogPixelate(bool openIt) {
 
 void dialogGlow(bool openIt) {
   static Layer *clone = NULL;
-  static float gaussX = 0;
-  static float  gaussY = 0;
+  static float gaussX = 16;
+  static float  gaussY = 16;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static bool updateBlur = false;
 
@@ -2818,28 +2820,30 @@ void dialogGlow(bool openIt) {
     beforeUndoPoint();
     if (clone != NULL) {delete clone; clone = NULL;}
     clone = l->clone();
-    gaussX = 16;
-    gaussY = 16;
-    updateBlur = true;
+    updateBlur = false;
   }
   DIALOGSTART("Turn to glow");
-
+  if (roundButton("Preview##DIALOGGLOWPREVIEW",true)) {updateBlur = true;}
   ImGui::PushItemWidth(64);
-  ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSX",&gaussX,0,0,2)) {updateBlur = true;} else toolTip("The gauss cell width of the smoothing"); if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
-  ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSY",&gaussY,0,0,2)) {updateBlur = true;} else toolTip("The gauss cell height of the smoothing"); if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
+  ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSX",&gaussX,0,0,2)) {;} else toolTip("The gauss cell width of the smoothing"); if (gaussX<1) gaussX = 1; if (gaussX>16384) gaussX = 16384;
+  ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGGLOWGAUSSY",&gaussY,0,0,2)) {;} else toolTip("The gauss cell height of the smoothing"); if (gaussY<1) gaussY = 1; if (gaussY>16384) gaussY = 16384;
   ImGui::PopItemWidth();
 
-  if (updateBlur) {
-    if (!ImGui::IsAnyItemActive()) {
-      updateBlur = false;
-      if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
-        filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());
+  bool apply = false;
+  if (ImGui::Button("Apply##DIALOGGLOWAPPLY")) {apply = true;}
+
+  if (updateBlur || apply) {
+    updateBlur = false;
+    if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
+      filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());
+      if (escapeWasPressed) {apply = false; escapeWasPressed = false;} else {
         l->greyScale();
-        repaintLayer(l,true);
       }
+      repaintLayer(l,true);
     }
   }
-  if (ImGui::Button("Apply##DIALOGGLOWAPPLY")) {
+
+  if (apply) {
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;

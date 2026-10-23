@@ -41,6 +41,8 @@ void clearUndos();
 void undo();
 void redo();
 
+void revertToBeforeUndoPoint();
+
 #define S_UNDO_CPP()
 
 #endif // __UNDO_HPP__

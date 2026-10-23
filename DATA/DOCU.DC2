@@ -823,6 +823,8 @@
     "}" _N_
   "}" _N_
   "Filter{" _N_
+    "You can stop most filters with the escape key." _N_
+    "" _N_
     "Difference clouds{" _N_
       "Creates a pseudo fractal mountain scape like thing." _N_
       "You may use it several times to bring variation." _N_

@@ -497,8 +497,9 @@ bool serializeCanvas(Array<Canvas*> &canvas, bool save, String *string) {
 
 
 int statusBarProgress = 0;
+bool escapeWasPressed = false;
 
-void updateStatusBar() {
+bool updateStatusBar() {
   int statusBarHeight = 16;
   int statusBarWidth = main_window_xres / 4;
   int statusBarX0 = glFrameBufferWidth/2-statusBarWidth/2;
@@ -517,10 +518,14 @@ void updateStatusBar() {
   }
   statusBarProgress++;
   if (refreshMasked) glRefreshMasked(); else glRefresh();
+  escapeWasPressed = false;
+  if (glNextKey() == GL_VK_ESCAPE) {escapeWasPressed = true; return true;}
+  return false;
 }
 
 void initStatusBar() {
   statusBarProgress = 0;
+  escapeWasPressed = false;
   updateStatusBar();
 }
 

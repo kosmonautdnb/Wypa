@@ -52,10 +52,13 @@ void initFilter() {
 void freeFilter() {
 }
 
-void filterDifferenceClouds() {
+void redFlash();
+#define UPDATESTATUSBARWITHBREAK(__func__) {if (updateStatusBar()) {__func__; redFlash(); return false;}}
+
+bool filterDifferenceClouds() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   Array<float> values;
   values.resize(l->width*l->height);
@@ -92,7 +95,7 @@ void filterDifferenceClouds() {
         values[x+y*l->width] += v*mul;
       }
     }
-    updateStatusBar();
+    UPDATESTATUSBARWITHBREAK();
     seed += 571;
     seed *= 3;
     seed &= 0xffff;
@@ -145,6 +148,7 @@ void filterDifferenceClouds() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
 // KISS (Keep it simple stupid) random numbers by George Marsaglia
@@ -162,10 +166,10 @@ unsigned int noise32() {
   return noise_x + noise_y + noise_z;
 }
 
-void filterNoise() {
+bool filterNoise() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   //srand(0);
@@ -179,12 +183,13 @@ void filterNoise() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterSobelEdgeDetect() {
+bool filterSobelEdgeDetect() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   Array<float> values;
   values.resize(l->width*l->height*3);
@@ -274,12 +279,13 @@ void filterSobelEdgeDetect() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterMorphologicalEdgeDetect() {
+bool filterMorphologicalEdgeDetect() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   float maxv2 = 0;
@@ -336,12 +342,13 @@ void filterMorphologicalEdgeDetect() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterAlphaSoften() {
+bool filterAlphaSoften() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   Array<unsigned int> source;
@@ -384,15 +391,16 @@ void filterAlphaSoften() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int boxW, int boxH, unsigned char *pixelStates, bool usePixelStates) {
-  if (boxW < 1 || boxH < 1 || boxW >= width*1.5 || boxH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+bool filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int boxW, int boxH, unsigned char *pixelStates, bool usePixelStates) {
+  if (boxW < 1 || boxH < 1 || boxW >= width*1.5 || boxH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return false;}
   initStatusBar();
   Array<unsigned int> blurred;
   blurred.resize(width*height*5);
   for (int y = 0; y < (int)height; y++) {
-    if ((y & 15)==0) updateStatusBar();
+    if ((y & 15)==0) UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     for (int x = 0; x < (int)width; x++) {
       int w = 0;
       int r = 0;
@@ -419,7 +427,7 @@ void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
     }
   }
   for (int y4 = 0; y4 < (int)height; y4++) {
-    if ((y4 & 15)==0) updateStatusBar();
+    if ((y4 & 15)==0) UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     for (int x4 = 0; x4 < (int)width; x4++) {
       if ((!usePixelStates)||(pixelStates[x4+y4*width] & PIXELSTATE_SELECTED)) {
         int w = 0;
@@ -456,16 +464,17 @@ void filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
       }
     }
   }
+  return true;
 }
 
-void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radialAngle, float radialSize, unsigned char *pixelStates, bool usePixelStates) {
-  if (radialSize < 1 || radialSize > width+height) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+bool filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radialAngle, float radialSize, unsigned char *pixelStates, bool usePixelStates) {
+  if (radialSize < 1 || radialSize > width+height) {memcpy(dest,source,width*height*sizeof(unsigned int)); return false;}
   initStatusBar();
   float r = (float)(-radialAngle * PI * 2 / 360.0);
   float stepX = (float)sin(r);
   float stepY = (float)cos(r);
   for (int y4 = 0; y4 < (int)height; y4++) {
-    if ((y4 & 15)==0) updateStatusBar();
+    if ((y4 & 15)==0) UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     for (int x4 = 0; x4 < (int)width; x4++) {
       if ((!usePixelStates)||(pixelStates[x4+y4*width] & PIXELSTATE_SELECTED)) {
         int r = 0;
@@ -503,6 +512,7 @@ void filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int widt
       }
     }
   }
+  return true;
 }
 
 float gaussianTap5Weight0 = 0.054f;
@@ -680,9 +690,9 @@ void bloomYFiltered(unsigned int *buffer, unsigned int width, unsigned int heigh
 }
 
 
-void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radiusX, float radiusY, unsigned char *pixelStates, bool usePixelStates) {
+bool filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radiusX, float radiusY, unsigned char *pixelStates, bool usePixelStates) {
 
-  if (radiusX < 1 || radiusY < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+  if (radiusX < 1 || radiusY < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return false;}
 
   double passesX = log(radiusX)/log(2.0);
   double passesY = log(radiusY)/log(2.0);
@@ -690,32 +700,33 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
   int px = (int)floor(passesX);
   int py = (int)floor(passesY);
 
-  if (px < 1 || py < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+  if (px < 1 || py < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return false;}
 
   initStatusBar();
 
-  unsigned int *bloomBuffer = new unsigned int[width*height]; for (int i0 = 0; i0 < (int)(width*height); i0++) bloomBuffer[i0] = source[i0];
+  Array<unsigned int> bloomBuffer2; bloomBuffer2.resize(width*height);
+  unsigned int *bloomBuffer = &bloomBuffer2[0]; for (int i0 = 0; i0 < (int)(width*height); i0++) bloomBuffer[i0] = source[i0];
 
   if (passesX > px) {
-    updateStatusBar();
+    UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     float kernelSize = (float)passesX;
     bloomXFiltered(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   for (int i1 = px-1; i1 >= 0; i1--) {
-    updateStatusBar();
+    UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     float kernelSize = (float)pow(2,i1);
     bloomX(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   if (passesY > py) {
-    updateStatusBar();
+    UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     float kernelSize = (float)passesY;
     bloomYFiltered(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
 
   for (int i2 = py-1; i2 >= 0; i2--) {
-    updateStatusBar();
+    UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     float kernelSize = (float)pow(2,i2);
     bloomY(bloomBuffer,width,height,kernelSize*2,kernelSize*1);
   }
@@ -726,11 +737,11 @@ void filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
     }
   }
 
-  delete[] bloomBuffer;
+  return true;
 }
 
-void filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int steps, unsigned char *pixelStates, bool usePixelStates) {
-  if (steps < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+bool filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int steps, unsigned char *pixelStates, bool usePixelStates) {
+  if (steps < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return false;}
   initStatusBar();
   Array<unsigned int> f;
   f.resize(width*height);
@@ -739,7 +750,7 @@ void filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int w
   int posY[5] ={0,0,0,-1,1};
   for (int i = 0; i < steps; i++) {
     for (int y4 = 0; y4 < (int)height; y4++) {
-      if ((y4 & 15)==0) updateStatusBar();
+      if ((y4 & 15)==0) UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
       for (int x4 = 0; x4 < (int)width; x4++) {
         if ((!usePixelStates)||(pixelStates[x4+y4*width] & PIXELSTATE_SELECTED)) {
           int r = 0;
@@ -779,6 +790,7 @@ void filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int w
     }
     memcpy(&f[0],dest,width*height*sizeof(unsigned int));
   }
+  return true;
 }
 
 int medianIntSort(const void *p, const void *q)
@@ -790,8 +802,8 @@ int medianIntSort(const void *p, const void *q)
   return 0;
 }
 
-void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates, bool circular, bool keepSelection) {
-  if (medianW < 1 || medianH < 1 || medianW >= width*1.5 || medianH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return;}
+bool filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates, bool circular, bool keepSelection) {
+  if (medianW < 1 || medianH < 1 || medianW >= width*1.5 || medianH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return false;}
   // dest and source are different here
   memcpy(dest,source,width*height*sizeof(unsigned int));
   const int mw = (medianW*2+1) * (medianH*2+1);
@@ -801,7 +813,7 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
   Array<int> countSort; countSort.resize(256); int *countSort2 = &countSort[0];
   initStatusBar();
   for (int y = 0; y < (int)height; y++) {
-    if ((y % 100)==0) updateStatusBar();
+    if ((y % 100)==0) UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     bool reScan = true; bool scanned = false;
     for (int x = 0; x < (int)width; x++) {
       if (scanned) {
@@ -911,9 +923,10 @@ void filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
       }
     }
   }
+  return true;
 }
 
-void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates) {
+bool filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates) {
   int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1};
   int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
 
@@ -982,9 +995,10 @@ void filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
       }
     }
   }
+  return true;
 }
 
-void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert) {
+bool filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert) {
   int rm = channel == 0 ? 1 : 0;
   int gm = channel == 1 ? 1 : 0;
   int bm = channel == 2 ? 1 : 0;
@@ -1017,9 +1031,10 @@ void filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int wi
       }
     }
   }
+  return true;
 }
 
-void filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, unsigned int color, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert) {
+bool filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, unsigned int color, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert) {
   int cr = color & 255;
   int cg = (color>>8) & 255;
   int cb = (color>>16) & 255;
@@ -1056,14 +1071,15 @@ void filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int wid
       }
     }
   }
+  return true;
 }
 
-void filterDenoise() {
+bool filterDenoise() {
   int posX[5] = {0,1,-1,0,0};
   int posY[5] = {0,0,0,1,-1};
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   Array<unsigned int> copy;
   copy.resize(l->width*l->height);
   memcpy(&copy[0],l->pixels,l->width*l->height*sizeof(unsigned int));
@@ -1109,12 +1125,13 @@ void filterDenoise() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterSharpen() {
+bool filterSharpen() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   Array<unsigned int> source;
@@ -1173,13 +1190,14 @@ void filterSharpen() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterXBRAntialias() {
+bool filterXBRAntialias() {
   // this algorithm could take very long
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   int w = l->width, h = l->height;
   int x0 = 0; int x1 = w; int y0 = 0; int y1 = h;
   bool hasSelection = l->hasSelection();
@@ -1198,10 +1216,10 @@ void filterXBRAntialias() {
     }
     x1++;
     y1++;
-    if (x0 < 0 || y0 < 0 || x1 <= 0 || y1 <= 0) return;
+    if (x0 < 0 || y0 < 0 || x1 <= 0 || y1 <= 0) return false;
     w = x1 - x0;
     h = y1 - y0;
-    if (w <= 0 || h <= 0) return;
+    if (w <= 0 || h <= 0) return false;
     source.resize(w*h);
     for (int y2 = 0; y2 < h; y2++) {
       for (int x2 = 0; x2 < w; x2++) {
@@ -1236,13 +1254,14 @@ void filterXBRAntialias() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterSuperXBR() {
+bool filterSuperXBR() {
   // this algorithm could take very long
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   int w = l->width, h = l->height;
   Array<unsigned int> source;
@@ -1253,12 +1272,13 @@ void filterSuperXBR() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterEagle() {
+bool filterEagle() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   int w = l->width, h = l->height;
   Array<unsigned int> source;
@@ -1270,12 +1290,13 @@ void filterEagle() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterEpx() {
+bool filterEpx() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   int w = l->width, h = l->height;
   Array<unsigned int> source;
@@ -1286,16 +1307,17 @@ void filterEpx() {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
 double __round(double v) {
   return floor(v+0.5);
 }
 
-void filterHistogramMatching(Layer *histogramSource) {
+bool filterHistogramMatching(Layer *histogramSource) {
   Layer *a = currentCanvas->getActiveLayer();
-  if (a == NULL) return;
-  if (locked(a,LOCK_ANY)) return;
+  if (a == NULL) return false;
+  if (locked(a,LOCK_ANY)) return false;
 
   Layer *l = histogramSource;
 
@@ -1376,13 +1398,14 @@ void filterHistogramMatching(Layer *histogramSource) {
   updatedPixels(a);
   afterUndoPoint();
   repaintLayer(a,true);
+  return true;
 }
 
-void filterClahe(float claheConstant, int cellSize) {
+bool filterClahe(float claheConstant, int cellSize) {
   // not a perfect Clahe implementation
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
 
   int tileW = cellSize;
   int tileH = cellSize;
@@ -1407,7 +1430,7 @@ void filterClahe(float claheConstant, int cellSize) {
   for (int y = 0; y < l->height; y += tileH) {
     vcount++;
     int tileH2 = tileH; if (y + tileH2 > l->height) tileH2 = l->height - y;
-    updateStatusBar();
+    UPDATESTATUSBARWITHBREAK();
     hcount = 0;
     for (int x = 0; x < l->width; x += tileW) {
       hcount++;
@@ -1496,7 +1519,7 @@ void filterClahe(float claheConstant, int cellSize) {
   double lk = sqrt(tileW*tileW+tileH*tileH);
   {for (int y = 0, ky = 0; y < l->height; y += tileH,ky++) {
     int tileH2 = tileH; if (y + tileH2 > l->height) tileH2 = l->height - y;
-    updateStatusBar();
+    updateStatusBar(); // pixels are modified so no break allowed
     for (int x = 0, kx = 0; x < l->width; x += tileW,kx++) {
       int tileW2 = tileW; if (x + tileW2 > l->width) tileW2 = l->width - x;
 
@@ -1551,12 +1574,13 @@ void filterClahe(float claheConstant, int cellSize) {
   updatedPixels(l);
   afterUndoPoint();
   repaintLayer(l,true);
+  return true;
 }
 
-void filterColorTransfer(class Layer *colorSource) {
+bool filterColorTransfer(class Layer *colorSource) {
   Layer *al = currentCanvas->getActiveLayer();
-  if (al == NULL) return;
-  if (locked(al,LOCK_ANY)) return;
+  if (al == NULL) return false;
+  if (locked(al,LOCK_ANY)) return false;
   int bins = 256;
   Array<float> sourceColors; sourceColors.resize(bins*4); memset(&sourceColors[0],0,sourceColors.size() * sizeof(float));
   Array<unsigned int> binColors; binColors.resize(bins); memset(&binColors[0],0,binColors.size() * sizeof(unsigned int));
@@ -1624,12 +1648,13 @@ void filterColorTransfer(class Layer *colorSource) {
   updatedPixels(al);
   afterUndoPoint();
   repaintLayer(al,true);
+  return true;
 }
 
-void filterSepia() {
+bool filterSepia() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
 
   beforeUndoPoint();
   for (int i = 0; i < l->width*l->height; i++) {
@@ -1648,19 +1673,20 @@ void filterSepia() {
   updatedPixels(l);
   afterUndoPoint();
   repaintLayer(l,true);
+  return true;
 }
 
-void filterSchraffur(float blackLineWidth, float transparentLineWidth, float angle, bool binary) {
+bool filterSchraffur(float blackLineWidth, float transparentLineWidth, float angle, bool binary) {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   double angle2 = (double)angle * PI / 180.0;
   double ax = cos(angle2);
   double ay = -sin(angle2);
   // since pixel size is different at e.g. 45 degrees (0.707..), the whole image gets warbled in !binary mode
   // this routine is currently very suboptimal
   double all = (double)blackLineWidth + (double)transparentLineWidth;
-  if (all <= 0 || blackLineWidth <= 0 || transparentLineWidth <= 0) return;
+  if (all <= 0 || blackLineWidth <= 0 || transparentLineWidth <= 0) return false;
   bool hasSelection = l->hasSelection();
   beforeUndoPoint();
   for (int y = 0; y < l->height; y++) {
@@ -1701,13 +1727,14 @@ void filterSchraffur(float blackLineWidth, float transparentLineWidth, float ang
   updatedPixels(l);
   afterUndoPoint();
   repaintLayer(l,true);
+  return true;
 }
 
-void filterCheckerboard(int w, int h, int xp, int yp) {
+bool filterCheckerboard(int w, int h, int xp, int yp) {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
-  if (w <= 0 || h <= 0) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
+  if (w <= 0 || h <= 0) return false;
 
   bool hasSelection = l->hasSelection();
 
@@ -1724,12 +1751,13 @@ void filterCheckerboard(int w, int h, int xp, int yp) {
   updatedPixels(l);
   afterUndoPoint();
   repaintLayer(l,true);
+  return true;
 }
 
-void filterHistogramMatchingColored(Layer *histogramSource) {
+bool filterHistogramMatchingColored(Layer *histogramSource) {
   Layer *a = currentCanvas->getActiveLayer();
-  if (a == NULL) return;
-  if (locked(a,LOCK_ANY)) return;
+  if (a == NULL) return false;
+  if (locked(a,LOCK_ANY)) return false;
 
   Layer *l = histogramSource;
 
@@ -1816,6 +1844,7 @@ void filterHistogramMatchingColored(Layer *histogramSource) {
   updatedPixels(a);
   afterUndoPoint();
   repaintLayer(a,true);
+  return true;
 }
 
 int medianLumaSort(const void *p, const void *q)
@@ -1827,10 +1856,10 @@ int medianLumaSort(const void *p, const void *q)
   return 0;
 }
 
-void filterSoften() {
+bool filterSoften() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
 
   int medianW = 4, medianH = 4;
   int width = l->width;
@@ -1849,7 +1878,7 @@ void filterSoften() {
   beforeUndoPoint();
   initStatusBar();
   for (int y = 0; y < (int)height; y++) {
-    if ((y % 100)==0) updateStatusBar();
+    if ((y % 100)==0) UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     bool reScan = true; bool scanned = false;
     for (int x = 0; x < (int)width; x++) {
       if (scanned) {
@@ -1940,12 +1969,13 @@ void filterSoften() {
   updatedPixels(l);
   afterUndoPoint();
   repaintLayer(l,true);
+  return true;
 }
 
-void filterBlackWhiteOCR() {
+bool filterBlackWhiteOCR() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
 
   beforeUndoPoint();
   int kernel = 4;
@@ -1959,7 +1989,7 @@ void filterBlackWhiteOCR() {
   bool hasSelection = l->hasSelection();
 
   for (int y = 0; y < l->height; y++) {
-    if ((y % 100)==0) updateStatusBar();
+    if ((y % 100)==0) UPDATESTATUSBARWITHBREAK(memcpy(l->pixels,&source[0],l->width*l->height*sizeof(unsigned int)));
     for (int x = 0; x < l->width; x++) {
       if ((!hasSelection)||(l->pixelStates[x+y*l->width] & PIXELSTATE_SELECTED)) {
         int siz = 0;
@@ -2003,12 +2033,13 @@ void filterBlackWhiteOCR() {
   updatedPixels(l);
   afterUndoPoint();
   repaintLayer(l,true);
+  return true;
 }
 
-void filterBayerDither() {
+bool filterBayerDither() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
 
   beforeUndoPoint();
 
@@ -2040,6 +2071,7 @@ void filterBayerDither() {
   updatedPixels(l);
   afterUndoPoint();
   repaintLayer(l,true);
+  return true;
 }
 
 static __inline void lookupInterpolated(unsigned int *colors, int width, int height, float x, float y, float &red, float &green, float &blue, float &alpha) {
@@ -2076,8 +2108,8 @@ static __inline void lookupInterpolated(unsigned int *colors, int width, int hei
   alpha = (float)((ab - at) * fy + at);
 }
 
-void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float displacement1, float displacement2, int type, unsigned char *pixelStates, bool usePixelStates, Layer *displace) {
-  if (displace == NULL) return;
+bool filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float displacement1, float displacement2, int type, unsigned char *pixelStates, bool usePixelStates, Layer *displace) {
+  if (displace == NULL) return false;
   for (int y = 0; y < (int)height; y++) {
     for (int x = 0; x < (int)width; x++) {
       if ((!usePixelStates)||(pixelStates[x+y*width] & PIXELSTATE_SELECTED)) {
@@ -2121,6 +2153,7 @@ void filterDisplacementMap(unsigned int *dest,unsigned int *source, unsigned int
       }
     }
   }
+  return true;
 }
 
 class WatershedEntry {
@@ -2175,11 +2208,11 @@ static __inline void proceedWatershed(int x, int y, Array<WatershedEntry> &queue
   }
 }
 
-void filterWatershed(class Layer *layer) { // actually does the segmentation
+bool filterWatershed(class Layer *layer) { // actually does the segmentation
 
   Layer *l = layer;
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
    
   Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
   int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
@@ -2261,7 +2294,7 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
       l->pixelStates[i4] &= ~PIXELSTATE_SELECTED;
     }
     for (int y = 0; y < l->height; y++) {
-      if ((y % 50)==0) updateStatusBar();
+      if ((y % 50)==0) UPDATESTATUSBARWITHBREAK();
       for (int x = 0; x < l->width; x++) {
         unsigned int b = labels[x+y*l->width];
         if (b != 0) {
@@ -2290,7 +2323,7 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
   unsigned int *labels0 = &labels[0]; int lw = l->width; int lh = l->height;
   int portion = l->width * l->height / 15; if (portion < 1) portion = 1;
   while(!priorityQueue.empty()) {
-    if ((count % portion)==0) updateStatusBar();
+    if ((count % portion)==0) updateStatusBar(); // pixelstates are modified so no break
     WatershedEntry here = priorityQueue.back(); priorityQueue.pop_back();
     int x = here.x; int y = here.y;
     proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 0, lw, lh);
@@ -2319,9 +2352,10 @@ void filterWatershed(class Layer *layer) { // actually does the segmentation
   repaintLayer(l,true);
   updatedPixelStates(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterSubtract(unsigned int *dest, unsigned int *minuend, unsigned int *subtrahend, unsigned int width, unsigned int height) {
+bool filterSubtract(unsigned int *dest, unsigned int *minuend, unsigned int *subtrahend, unsigned int width, unsigned int height) {
   for (int i = 0; i < (int)(width * height); i++) {
     unsigned int col0 = minuend[i];
     unsigned int col1 = subtrahend[i];
@@ -2343,21 +2377,23 @@ void filterSubtract(unsigned int *dest, unsigned int *minuend, unsigned int *sub
     if (a > 255) a = 255;
     dest[i] = r|(g<<8)|(b<<16)|(a<<24);
   }
+  return true;
 }
 
-void filterSetAlpha(unsigned int *dest, unsigned int width, unsigned int height, int alpha) {
+bool filterSetAlpha(unsigned int *dest, unsigned int width, unsigned int height, int alpha) {
   if (alpha < 0) alpha = 0;
   if (alpha > 255) alpha = 255;
   for (int i = 0; i < (int)(width * height); i++) {
     dest[i] = (dest[i] & 0x00ffffff)|(alpha<<24);
   }
+  return true;
 }
 
-void filterSelectionDistanceField(Layer *layer) {
+bool filterSelectionDistanceField(Layer *layer) {
   Layer *l = layer;
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
-  if (!l->hasSelection()) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
+  if (!l->hasSelection()) return false;
 
   beforeUndoPoint();
 
@@ -2390,7 +2426,7 @@ void filterSelectionDistanceField(Layer *layer) {
   int maxDist = 0;
   while(somethingUpdated) {
     somethingUpdated = false;
-    counter++; counter &= 15; if (counter == 0) updateStatusBar();
+    counter++; counter &= 15; if (counter == 0) UPDATESTATUSBARWITHBREAK();
     maxDist = 0;
     for (int y = 0; y < layer->height; y++) {
       for (int x = 0; x < layer->width; x++) {
@@ -2448,13 +2484,14 @@ void filterSelectionDistanceField(Layer *layer) {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterSelectionAverageColor(Layer *layer) {
+bool filterSelectionAverageColor(Layer *layer) {
   Layer *l = layer;
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
-  if (!l->hasSelection()) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
+  if (!l->hasSelection()) return false;
 
   beforeUndoPoint();
 
@@ -2495,13 +2532,14 @@ void filterSelectionAverageColor(Layer *layer) {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterPixelate(int cellSizeX, int cellSizeY) {
+bool filterPixelate(int cellSizeX, int cellSizeY) {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
-  if (cellSizeX < 1 || cellSizeY < 1) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
+  if (cellSizeX < 1 || cellSizeY < 1) return false;
 
   beforeUndoPoint();
   int countX = l->width / cellSizeX + 1;
@@ -2545,13 +2583,14 @@ void filterPixelate(int cellSizeX, int cellSizeY) {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterSelectionVerticalGradient(Layer *layer) {
+bool filterSelectionVerticalGradient(Layer *layer) {
   Layer *l = layer;
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
-  if (!l->hasSelection()) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
+  if (!l->hasSelection()) return false;
 
   beforeUndoPoint();
 
@@ -2580,15 +2619,16 @@ void filterSelectionVerticalGradient(Layer *layer) {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
 
-void filterFillAlphaHoles(class Layer *layer, bool forAlpha) {
+bool filterFillAlphaHoles(class Layer *layer, bool forAlpha) {
   Layer *l = layer;
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
 
-  bool hasSelection = l->hasSelection(); if ((!forAlpha) && (!hasSelection)) return;
+  bool hasSelection = l->hasSelection(); if ((!forAlpha) && (!hasSelection)) return false;
 
   initStatusBar();
   beforeUndoPoint();
@@ -2790,20 +2830,22 @@ void filterFillAlphaHoles(class Layer *layer, bool forAlpha) {
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterTurnToShadow() {
+bool filterTurnToShadow() {
   Layer *l = currentCanvas->getActiveLayer();
-  if (l == NULL) return;
-  if (locked(l,LOCK_ANY)) return;
+  if (l == NULL) return false;
+  if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
   for (int i = 0; i < l->width*l->height; i++) l->pixels[i] = l->pixels[i] & 0xff000000;
   repaintLayer(l,true);
   updatedPixels(l);
   afterUndoPoint();
+  return true;
 }
 
-void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width, unsigned int height, float outlineSize, bool antialiasing) {
+bool filterOutline(unsigned int *dest, unsigned int *source, unsigned int width, unsigned int height, float outlineSize, bool antialiasing) {
 
   initStatusBar();
   memset(dest,0,width*height*sizeof(unsigned int));
@@ -2839,7 +2881,7 @@ void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
   int outlineSizeSqr = (int)((outlineSize+1)*(outlineSize+1));
   while(somethingUpdated) {
     somethingUpdated = false;
-    counter++; counter &= 15; if (counter == 0) updateStatusBar();
+    counter++; counter &= 15; if (counter == 0) UPDATESTATUSBARWITHBREAK();
     for (int y = 0; y < (int)height; y++) {
       for (int x = 0; x < (int)width; x++) {
         unsigned int here = astar_[x+y*width];
@@ -2904,7 +2946,7 @@ void filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
       } else dest[x2+y2*width] = 0xffffffff;
     }
   }
-
+  return true;
 }
 
 class HalfToneMap {
@@ -2956,7 +2998,7 @@ static int hfSort(const void *p, const void *q)
 
 HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
 
-  updateStatusBar();
+  updateStatusBar(); // no need for a break
 
   HalfToneMap *ret = new HalfToneMap();
   ret->angle = angle;
@@ -2995,7 +3037,7 @@ HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
   }
   qsort(&hf_sortedPixels[0], l->width * l->height, sizeof(unsigned int), hfSort);
 
-  updateStatusBar();
+  updateStatusBar(); // no need for a break
 
   ret->pixelsToCells = new int[l->width*l->height];
   int cellIndex = 0;
@@ -3051,7 +3093,7 @@ HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
   delete[] hf_pixelCenterX;
   delete[] hf_pixelCenterY;
 
-  updateStatusBar();
+  updateStatusBar(); // no need for a break
 
   for (int i3 = 0; i3 < ret->cellCount; i3++) {
     float val = ret->cells[i3*2+0]; float count = ret->cells[i3*2+1];
@@ -3064,9 +3106,9 @@ HalfToneMap *getHalftoneMap(Layer *l, int type, float angle, float cellSize) {
   return ret;
 }
 
-void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
-  if (layer == NULL) return;
-  if (locked(layer,LOCK_ANY)) return;
+bool filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
   beforeUndoPoint();
 
   initStatusBar();
@@ -3102,7 +3144,7 @@ void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
   HalfToneMap **_toneMaps = &toneMaps[0]; int _toneMapsCount = (int)toneMaps.size();
   if (_toneMapsCount <= 4) {
     for (int y = 0; y < layer->height; y++) {
-      if ((y % 100) == 0) updateStatusBar();
+      if ((y % 100) == 0) updateStatusBar(); // no need for a break
       for (int x = 0; x < layer->width; x++) {
         float vals[4] = {0,0,0,0};
         for (int i = 0; i < _toneMapsCount; i++) {
@@ -3164,6 +3206,7 @@ void filterHalftone(Layer *layer, float cellSize, int type, float dotScale) {
   repaintLayer(layer,true);
   updatedPixels(layer);
   afterUndoPoint();
+  return true;
 }
 
 float luminanceDist(unsigned int col1, unsigned int col2) {
@@ -3207,9 +3250,9 @@ int medianColorSort(const void *p, const void *q)
 }
 
 
-void filterMedianize(Layer *layer, float cellSize) {
-  if (layer == NULL) return;
-  if (locked(layer,LOCK_ANY)) return;
+bool filterMedianize(Layer *layer, float cellSize) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
   beforeUndoPoint();
   Layer *l = layer;
 
@@ -3268,17 +3311,19 @@ void filterMedianize(Layer *layer, float cellSize) {
   repaintLayer(layer,true);
   updatedPixels(layer);
   afterUndoPoint();
+  return true;
 }
 
-void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
-  if (layer == NULL) return;
-  if (locked(layer,LOCK_ANY)) return;
+bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
   beforeUndoPoint();
 
   Layer *l = layer;
 
   Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
   int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
+  if (escapeWasPressed) return false;
 
   // calculate the gradient in values
   float *lumis = luminanceValues;
@@ -3348,7 +3393,7 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   unsigned int *labels0 = &labels[0]; int lw = l->width; int lh = l->height;
   int portion = l->width * l->height / 15; if (portion < 1) portion = 1;
   while(!priorityQueue.empty()) {
-    if ((count % portion)==0) updateStatusBar();
+    if ((count % portion)==0) UPDATESTATUSBARWITHBREAK();
     WatershedEntry here = priorityQueue.back(); priorityQueue.pop_back();
     int x = here.x; int y = here.y;
     proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 0, lw, lh);
@@ -3368,7 +3413,7 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   Array<unsigned int> prio2; prio2.resize(3*3);
   unsigned int *prio2_ = &prio2[0];
   {for (int y = 0; y < l->height; y++) {
-    if ((y % 100)==0) updateStatusBar();
+    if ((y % 100)==0) UPDATESTATUSBARWITHBREAK();
     for (int x = 0; x < l->width; x++) {
       int prioCount = 0;
       for (int y2 = -1; y2 <= 1; y2++) {
@@ -3437,11 +3482,12 @@ void filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   repaintLayer(layer,true);
   updatedPixels(layer);
   afterUndoPoint();
+  return true;
 }
 
-void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
-  if (layer == NULL) return;
-  if (locked(layer,LOCK_ANY)) return;
+bool filterSprinkled(class Layer *layer, float minRad, float maxRad) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
   beforeUndoPoint();
   Layer *l = layer;
 
@@ -3471,7 +3517,6 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
   float *alpha_ = &alpha[0];
   float *weight_ = &weight[0];
 
-  int count = 0;
   initStatusBar();
 
   srand(0);
@@ -3482,7 +3527,7 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
 
   while(potentialPixelsCount > 0) {
     unsigned int portion = (unsigned int)potentialPixelsCount / portionSize; 
-    if (portion != lastPortion) updateStatusBar(); 
+    if (portion != lastPortion) UPDATESTATUSBARWITHBREAK(); 
     lastPortion = portion;
 
     int i = ((int)rand()+(int)rand()*510+(int)rand()*11100) % potentialPixelsCount; // doesn't have to be fully 32 bit
@@ -3497,7 +3542,6 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
     int cx = (int)(centerX);
     int cy = (int)(centerY);
     float threshTop = radius+1;
-    float threshTop2 = threshTop*threshTop;
     float threshBottom = radius;
 
     float r = 0, g = 0, b = 0, a = 0, w = 0;
@@ -3583,11 +3627,12 @@ void filterSprinkled(class Layer *layer, float minRad, float maxRad) {
   updatedPixels(layer);
   updatedPixelStates(layer);
   afterUndoPoint();
+  return true;
 }
 
-void filterComic(class Layer *layer, float steps, bool sat) {
-  if (layer == NULL) return;
-  if (locked(layer,LOCK_ANY)) return;
+bool filterComic(class Layer *layer, float steps, bool sat) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
   beforeUndoPoint();
 
   if (steps < 1) steps = 1;
@@ -3632,9 +3677,12 @@ void filterComic(class Layer *layer, float steps, bool sat) {
   Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
   int kernel = 2; 
   filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
+  if (escapeWasPressed) {revertToBeforeUndoPoint(); return false;}
   filterMedianBlur(layer->pixels, &blurred[0], layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
+  if (escapeWasPressed) {revertToBeforeUndoPoint(); return false;}
 
   repaintLayer(layer,true);
   updatedPixels(layer);
   afterUndoPoint();
+  return true;
 }

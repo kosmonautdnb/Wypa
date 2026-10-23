@@ -33,7 +33,8 @@ extern bool longFileNames;
 
 String fromLocalFileName(const String &str);
 
-void updateStatusBar();
+extern bool escapeWasPressed;
+bool updateStatusBar();
 void initStatusBar();
 
 String longFileName(const String &a);
