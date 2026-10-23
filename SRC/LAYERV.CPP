@@ -124,6 +124,11 @@ void maybeBlinkLayer(Layer *l) {
 
 bool showSomethingToFitAnim = true;
 
+void blitSliderBackground(float sliderWidth) {
+  ImVec2 b = ImGui::GetCursorScreenPos(); b.x += 2; b.y += 2;
+  ImGui::GetWindowDrawList()->AddRectFilledMultiColor(b, ImVec2(b.x+sliderWidth,b.y+13), 0xff000000, 0xffffffff, 0xffffffff, 0xff000000);
+}
+
 void drawLayerView() {
   if (singleLayerId != 0) {singleLayerId = 0; shouldUpdateAll = true;}
   if (fullScreen) return;
@@ -155,13 +160,17 @@ void drawLayerView() {
 
     ImGui::PopItemWidth();
     ImGui::SameLine();
-    ImGui::PushItemWidth((float)(sidebar_width-(7*8+16)-16));
+    float sw = (float)(sidebar_width-(7*8+16)-16);
+    blitSliderBackground(sw); 
+    ImGui::PushItemWidth(sw);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0,0,0,0));
     float alpha = currentLayer->state.alpha; if (ImGui::SliderFloat("##DRAWLAERVIEWTRANSPARENCYALPHA",&alpha,0,1)) {
       if (alpha < 0) alpha = 0;
       if (alpha > 1) alpha = 1;
       currentLayer->state.alpha = alpha;
       repaintLayer(currentLayer,true);
     } else toolTip("Layer opacity");
+    ImGui::PopStyleColor();
     ImGui::PopItemWidth();
   } else {
     if ((unsigned int)currentCanvas->selectedGroup < (unsigned int)currentCanvas->groups.size()) {

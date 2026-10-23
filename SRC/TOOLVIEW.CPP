@@ -1705,7 +1705,7 @@ void drawToolFormsView() {
   }
 
   if (!formAutoselect) {
-    if (roundButton("Draw lines##DRAWTOOLFORMSBAKE", forms.size() > 1)) {beforeUndoPoint(); bakeFormsIntoLayer(l, FORM_LINES); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
+    if (roundButton("Draw raw lines##DRAWTOOLFORMSBAKE", forms.size() > 1)) {beforeUndoPoint(); bakeFormsIntoLayer(l, FORM_LINES); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
     if (roundButton("Make selection##DRAWTOOLFORMSMAKESELECTION", formClosed && forms.size() > 2)) {beforeUndoPoint(); bakeFormsIntoLayer(l,FORM_SELECTION); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
     if (roundButton("Paint filled##DRAWTOOLFORMSPAINTFILLED", formClosed && forms.size() > 2)) {beforeUndoPoint(); bakeFormsIntoLayer(l,FORM_FILLED); afterUndoPoint(); shouldUpdateAll = true;} else toolTip("Paint the outline into the layer");
     ImGui::Text("Fill"); ImGui::SameLine(); if (ImGui::Combo("##DRAWTOOLFORMSMODECOMBO",&fillMode,paintModeNames,PAINTMODE_COUNT)) {
