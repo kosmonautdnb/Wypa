@@ -921,6 +921,40 @@ void useToolWand() {
   afterUndoPoint();
 }
 
+void selectByColor(Layer *l, unsigned int color) {
+  if (l == NULL || locked(l,LOCK_SELECTION)) return;
+  //if (!isPaintAreaActive()) return;
+
+  Layer *w = l;
+  if (wandLayerOn && l->type != LAYERTYPE_TILEMAP) {
+    Layer *k = currentCanvas->getWandLayerForLayer(l); if (k != NULL) w = k;
+  }
+  beforeUndoPoint();
+  Matrix m = w->transform.transformation * inverse2(l->transform.transformation);
+  for (int y = 0; y < l->height; y++) {
+    for (int x = 0; x < l->width; x++) {
+      int i = x + y * l->width;
+      int lx = (int)(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
+      int ly = (int)(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
+      if (lx == 0) lx = (int)floor(x*m.m[0+0*4]+y*m.m[0+1*4]+m.m[0+3*4]);
+      if (ly == 0) ly = (int)floor(x*m.m[1+0*4]+y*m.m[1+1*4]+m.m[1+3*4]);
+      if (w == l) {lx = x; ly = y;}
+      bool selected = false; if ((unsigned int)lx < (unsigned int)w->width && (unsigned int)ly < (unsigned int)w->height) selected = w->pixels[lx+ly*w->width] == color ? true : false;
+      if (controlKeyId == CONTROLKEY_NONE) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      if (selected) {
+        if (controlKeyId == CONTROLKEY_NONE || controlKeyId == CONTROLKEY_SHIFT) l->pixelStates[i] |= PIXELSTATE_SELECTED;
+        if (controlKeyId == CONTROLKEY_CTRL) l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      }
+      if (controlKeyId == (CONTROLKEY_SHIFT|CONTROLKEY_CTRL)) {
+        if (selected && (l->pixelStates[i] & PIXELSTATE_SELECTED)) l->pixelStates[i] |= PIXELSTATE_SELECTED; else l->pixelStates[i] &= ~PIXELSTATE_SELECTED;
+      }
+    }
+  }
+  repaintLayer(l,true);
+  updatedPixelStates(l);
+  afterUndoPoint();
+}
+
 void placeCorner(double mouseX, double mouseY) {
   beforeUndoPoint();
   Array<Layer *> selected;

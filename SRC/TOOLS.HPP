@@ -308,6 +308,8 @@ extern bool watershedSelectionInside;
 extern bool watershedSelectionOutside;
 extern Array<WatershedPoint> watershedPoints;
 
+void selectByColor(class Layer *l, unsigned int color);
+
 class FormPoint {
 public:
   FormPoint() : x(0), y(0) {memset(bezierX,0,sizeof(bezierX)); memset(bezierY,0,sizeof(bezierY));}

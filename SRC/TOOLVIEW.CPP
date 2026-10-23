@@ -128,7 +128,7 @@ void repaintGradientTexture(Gradient *gradient) {
 }
 
 void drawToolWandView() {
-  Layer *l = currentCanvas->getActiveLayer(); if (l != NULL && locked(l,LOCK_PIXELS_AND_TILEMAP)) return;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL || locked(l,LOCK_PIXELS_AND_TILEMAP)) return;
   if (!watershed) {
     if (controlKeyId == CONTROLKEY_SHIFT) {ImGui::Text("Add selection");} 
     else
@@ -142,6 +142,7 @@ void drawToolWandView() {
       k = (float)wandColorDistance; ImGui::Text("Color distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWCOLORDISTANCE",&k,0,256)) {wandColorDistance = k;} else toolTip("Sameness value for color");
       k = (float)wandAlphaDistance; ImGui::Text("Alpha distance"); if (ImGui::SliderFloat("##DRAWTOOLWANDVIEWALPHADISTANCE",&k,0,256)) {wandAlphaDistance = k;} else toolTip("Sameness value for transparency");
     }
+    if (roundButton("By paint color##DRAWTOOLWANDVIEWPAINTCOLOR",true)) selectByColor(l, getUIntColor(foregroundColor));
     ImGui::Text("Surrounding"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLWANDVIEWNEIGHBORS",&wandByNeighbors)) {} else toolTip("Use only surrounding areas");
     Layer *w = currentCanvas->getWandLayerForLayer(l);
     if (w != NULL) {
