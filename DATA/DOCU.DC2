@@ -346,6 +346,14 @@
       "the \"Gray World\" algorithm is one of the most basic" _N_
       "white balance algorithms and may stress the wrong colors." _N_
     "}" _N_
+    "Turn white to alpha{" _N_
+      "Makes the whole layer(s) as to be the same when a" _N_
+      "completely white layer is transparently shining through." _N_
+    "}" _N_
+    "Turn black to alpha{" _N_
+      "Makes the whole layer(s) as to be the same when a" _N_
+      "completely black layer is transparently shining through." _N_
+    "}" _N_
     "Undo enabled{" _N_
       "You may disable undo. Undo uses rather much memory and is" _N_
       "not available for any operation in Wypa." _N_

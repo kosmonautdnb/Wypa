@@ -1958,6 +1958,73 @@ void Layer::convertToBitmap(Canvas *canvas) {
   updatedPixelStates(this);
 }
 
+void Layer::convertColorToAlpha(bool white) {
+  bool premul = mode == LAYERMODE_PREMULTIPLIEDALPHA;
+  for (int i = 0; i < (int)(width * height); i++) {
+    unsigned int col = pixels[i];
+    float r = (float)(col & 255);
+    float g = (float)((col>>8) & 255);
+    float b = (float)((col>>16) & 255);
+    float a = (float)((col>>24) & 255);
+    float a0 = a;
+
+    if (premul) {
+      if (a != 0) {
+        r = r * 255.f / a;
+        g = g * 255.f / a;
+        b = b * 255.f / a;
+      }
+    }
+
+    float whiteLevel = r;
+    if (g < whiteLevel) whiteLevel = g;
+    if (b < whiteLevel) whiteLevel = b;
+  
+    float blackLevel = r;
+    if (g > blackLevel) blackLevel = g;
+    if (b > blackLevel) blackLevel = b;
+    blackLevel = 255 - blackLevel;
+
+    if (white) {
+      r = r - whiteLevel;
+      g = g - whiteLevel;
+      b = b - whiteLevel;
+      a = 255.f-whiteLevel;
+    } else {
+      a = 255.f-blackLevel;
+    }
+
+    if (!premul) {
+      float scale = a; if (scale != 0) scale = 255.f / scale;
+      r = r * scale;
+      g = g * scale;
+      b = b * scale;
+    }
+
+    if (premul) {
+      r = r * a0 / 255.f;
+      g = g * a0 / 255.f;
+      b = b * a0 / 255.f;
+      a = a * a0 / 255.f;
+    } else {
+      a = a * a0 / 255.f;
+    }
+
+    int ri = (int)r; int gi = (int)g; int bi = (int)b; int ai = (int)a;
+    if (ri < 0) ri = 0;
+    if (gi < 0) gi = 0;
+    if (bi < 0) bi = 0;
+    if (ai < 0) ai = 0;
+    if (ri > 255) ri = 255;
+    if (gi > 255) gi = 255;
+    if (bi > 255) bi = 255;
+    if (ai > 255) ai = 255;
+
+    pixels[i] = ri | (gi << 8) | (bi <<16) | (ai << 24);
+  }
+  updatedPixels(this);
+}
+
 void Layer::setLayerPos(double x, double y) {
   for (int i = 0; i < 5; i++) { // maybe it's not perfect?
     Vector b = boundingBox();
@@ -4154,6 +4221,16 @@ void Canvas::convertFromTilemapToBitmap() {
   }
   shouldUpdateAll = true;
 }
+
+void Canvas::convertColorToAlpha(bool white) {
+  for (int i = 0; i < (int)layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      layers[i]->convertColorToAlpha(white);
+    }
+  }
+  shouldUpdateAll = true;
+}
+
 
 void Canvas::resizeCanvas(double w, double h, bool quantizeLayers, int interpolation) {
   double w2 = canvasX1 - canvasX0;

@@ -616,6 +616,7 @@ public:
   Layer *clone();
   void convertToPremul();
   void convertToBitmap(class Canvas *canvas);
+  void convertColorToAlpha(bool white);
 
   void setLayerPos(double x, double y);
   void setLayerSize(double width, double height);
@@ -929,6 +930,7 @@ public:
   void quantizeLayers();
   void convertFromAlphaToPremul();
   void convertFromTilemapToBitmap();
+  void convertColorToAlpha(bool white);
 
   void selectAll();
   void selectNone(bool all);
