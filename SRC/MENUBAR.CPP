@@ -259,7 +259,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Color balance",NULL,false,count == 1)) {dialogColorBalance(true);}
         if (ImGui::MenuItem("Simple white balance",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->whiteBalance();afterUndoPoint();}
         if (ImGui::MenuItem("Invert color",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertColor();afterUndoPoint();}
-        if (ImGui::MenuItem("Invert alpha",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertAlpha();afterUndoPoint();}
+        if (ImGui::MenuItem("Invert alpha (no premul)",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertAlpha();afterUndoPoint();}
         if (ImGui::MenuItem("Turn white to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(true);afterUndoPoint();}
         if (ImGui::MenuItem("Turn black to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(false);afterUndoPoint();}
         ImGui::Separator();

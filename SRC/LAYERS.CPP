@@ -1194,8 +1194,7 @@ unsigned int invertColor2(unsigned int col) {
 }
 
 unsigned int invertAlpha2(unsigned int col) {
-  int a = 255 - ((col>>24) & 255);
-  return (col & 0x00ffffff)|(a<<24);
+  return (col & 0x00ffffff)|((255 - ((col>>24) & 255))<<24);
 }
 
 void Layer::invertColor() {

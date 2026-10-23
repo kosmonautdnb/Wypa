@@ -336,9 +336,12 @@
       "selected) by using red = 255-red, green = 255-green," _N_
       "blue = 255-blue." _N_
     "}" _N_
-    "Invert alpha{" _N_
+    "Invert alpha (no premul){" _N_
       "Inverts the selected area (or the whole area if nothing is" _N_
       " selected) by using alpha(transparency) = 255-alpha." _N_
+      "It doesn't work well with layermode PREMUL since" _N_
+      "color information would be destructed there by inverting" _N_
+      "alpha." _N_
     "}" _N_
     "Simple white balance{" _N_
       "Applies the very simple \"Gray World\" algorithm." _N_
