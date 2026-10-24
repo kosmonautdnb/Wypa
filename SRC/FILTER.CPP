@@ -2295,7 +2295,7 @@ bool filterWatershed(class Layer *layer) { // actually does the segmentation
       l->pixelStates[i4] &= ~PIXELSTATE_SELECTED;
     }
     for (int y = 0; y < l->height; y++) {
-      if ((y % 50)==0) UPDATESTATUSBARWITHBREAK();
+      if ((y % 50)==0) UPDATESTATUSBARWITHBREAK(revertToBeforeUndoPoint());
       for (int x = 0; x < l->width; x++) {
         unsigned int b = labels[x+y*l->width];
         if (b != 0) {
@@ -2324,7 +2324,7 @@ bool filterWatershed(class Layer *layer) { // actually does the segmentation
   unsigned int *labels0 = &labels[0]; int lw = l->width; int lh = l->height;
   int portion = l->width * l->height / 15; if (portion < 1) portion = 1;
   while(!priorityQueue.empty()) {
-    if ((count % portion)==0) UPDATESTATUSBARWITHBREAK();
+    if ((count % portion)==0) UPDATESTATUSBARWITHBREAK(revertToBeforeUndoPoint());
     WatershedEntry here = priorityQueue.back(); priorityQueue.pop_back();
     int x = here.x; int y = here.y;
     proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 0, lw, lh);
