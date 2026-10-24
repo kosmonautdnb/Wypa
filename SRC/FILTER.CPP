@@ -2216,6 +2216,7 @@ bool filterWatershed(class Layer *layer) { // actually does the segmentation
    
   Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
   int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
+  if (escapeWasPressed) return false;
 
   // calculate the gradient in values
   float *lumis = luminanceValues;
@@ -2323,7 +2324,7 @@ bool filterWatershed(class Layer *layer) { // actually does the segmentation
   unsigned int *labels0 = &labels[0]; int lw = l->width; int lh = l->height;
   int portion = l->width * l->height / 15; if (portion < 1) portion = 1;
   while(!priorityQueue.empty()) {
-    if ((count % portion)==0) updateStatusBar(); // pixelstates are modified so no break
+    if ((count % portion)==0) UPDATESTATUSBARWITHBREAK();
     WatershedEntry here = priorityQueue.back(); priorityQueue.pop_back();
     int x = here.x; int y = here.y;
     proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 0, lw, lh);
