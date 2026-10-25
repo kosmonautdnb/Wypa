@@ -60,8 +60,7 @@ bool filterDifferenceClouds() {
   if (l == NULL) return false;
   if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
-  Array<float> values;
-  values.resize(l->width*l->height);
+  Array<float> values; Templated<float>::arrayResize(values,l->width*l->height);
   for (int i = 0; i < (int)values.size(); i++) values[i] = 0;
   int tileSize = l->width;
   if (l->height > tileSize) tileSize = l->height;
@@ -191,8 +190,7 @@ bool filterSobelEdgeDetect() {
   if (l == NULL) return false;
   if (locked(l,LOCK_ANY)) return false;
   beforeUndoPoint();
-  Array<float> values;
-  values.resize(l->width*l->height*3);
+  Array<float> values; Templated<float>::arrayResize(values,l->width*l->height*3);
   int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1};
   int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
   for (int y = 0; y < l->height; y++) {
@@ -291,7 +289,7 @@ bool filterMorphologicalEdgeDetect() {
   float maxv2 = 0;
   float minv2 = 0;
   Array<unsigned int> source;
-  source.resize(l->width*l->height);
+  Templated<unsigned int>::arrayResize(source,l->width*l->height);
   memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
   int posX[5] ={0,-1,1,0,0};
   int posY[5] ={0,0,0,-1,1};
@@ -352,7 +350,7 @@ bool filterAlphaSoften() {
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   Array<unsigned int> source;
-  source.resize(l->width*l->height);
+  Templated<unsigned int>::arrayResize(source,l->width*l->height);
   memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
   int posX[5] ={0,-1,1,0,0};
   int posY[5] ={0,0,0,-1,1};
@@ -398,7 +396,7 @@ bool filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
   if (boxW < 1 || boxH < 1 || boxW >= width*1.5 || boxH >= height*1.5) {memcpy(dest,source,width*height*sizeof(unsigned int)); return false;}
   initStatusBar();
   Array<unsigned int> blurred;
-  blurred.resize(width*height*5);
+  Templated<unsigned int>::arrayResize(blurred,width*height*5);
   for (int y = 0; y < (int)height; y++) {
     if ((y & 15)==0) UPDATESTATUSBARWITHBREAK(memcpy(dest,source,width*height*sizeof(unsigned int)));
     for (int x = 0; x < (int)width; x++) {
@@ -704,7 +702,8 @@ bool filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
 
   initStatusBar();
 
-  Array<unsigned int> bloomBuffer2; bloomBuffer2.resize(width*height);
+  Array<unsigned int> bloomBuffer2; Templated<unsigned int>::arrayResize(bloomBuffer2, width*height);
+
   unsigned int *bloomBuffer = &bloomBuffer2[0]; for (int i0 = 0; i0 < (int)(width*height); i0++) bloomBuffer[i0] = source[i0];
 
   if (passesX > px) {
@@ -743,8 +742,7 @@ bool filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width
 bool filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int steps, unsigned char *pixelStates, bool usePixelStates) {
   if (steps < 1) {memcpy(dest,source,width*height*sizeof(unsigned int)); return false;}
   initStatusBar();
-  Array<unsigned int> f;
-  f.resize(width*height);
+  Array<unsigned int> f; Templated<unsigned int>::arrayResize(f,width*height);
   memcpy(&f[0],source,width*height*sizeof(unsigned int));
   int posX[5] ={0,-1,1,0,0};
   int posY[5] ={0,0,0,-1,1};
@@ -807,9 +805,9 @@ bool filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int widt
   // dest and source are different here
   memcpy(dest,source,width*height*sizeof(unsigned int));
   const int mw = (medianW*2+1) * (medianH*2+1);
-  Array<unsigned int> medianx; medianx.resize(mw); unsigned int *medianx2 = &medianx[0];
-  Array<unsigned char> medianxs; medianxs.resize(mw); unsigned char *medianxs2 = &medianxs[0];
-  Array<int> medians; medians.resize(mw*3); int *medians2 = &medians[0];
+  Array<unsigned int> medianx;  Templated<unsigned int>::arrayResize(medianx, mw); unsigned int *medianx2 = &medianx[0];
+  Array<unsigned char> medianxs;  Templated<unsigned char>::arrayResize(medianxs, mw); unsigned char *medianxs2 = &medianxs[0];
+  Array<int> medians;  Templated<int>::arrayResize(medians, mw * 3); int *medians2 = &medians[0];
   Array<int> countSort; countSort.resize(256); int *countSort2 = &countSort[0];
   initStatusBar();
   for (int y = 0; y < (int)height; y++) {
@@ -931,7 +929,7 @@ bool filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, u
   int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
 
   Array<float> temp;
-  temp.resize(width*height*2);
+  Templated<float>::arrayResize(temp, width*height*2);
   for (int i = 0; i < (int)(width*height); i++) {
     unsigned int col = source[i];
     int r = col & 255;
@@ -1081,7 +1079,7 @@ bool filterDenoise() {
   if (l == NULL) return false;
   if (locked(l,LOCK_ANY)) return false;
   Array<unsigned int> copy;
-  copy.resize(l->width*l->height);
+  Templated<unsigned int>::arrayResize(copy, l->width*l->height);
   memcpy(&copy[0],l->pixels,l->width*l->height*sizeof(unsigned int));
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
@@ -1135,7 +1133,7 @@ bool filterSharpen() {
   beforeUndoPoint();
   bool hasSelection = l->hasSelection();
   Array<unsigned int> source;
-  source.resize(l->width*l->height);
+  Templated<unsigned int>::arrayResize(source, l->width*l->height);
   memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
   int posX[5] ={0,-1,1,0,0};
   int posY[5] ={0,0,0,-1,1};
@@ -1220,18 +1218,18 @@ bool filterXBRAntialias() {
     w = x1 - x0;
     h = y1 - y0;
     if (w <= 0 || h <= 0) return false;
-    source.resize(w*h);
+    Templated<unsigned int>::arrayResize(source, w*h);
     for (int y2 = 0; y2 < h; y2++) {
       for (int x2 = 0; x2 < w; x2++) {
         source[x2+y2*w] = l->pixels[x2+x0+(y2+y0)*l->width];
       }
     }
   } else {
-    source.resize(w*h);
+    Templated<unsigned int>::arrayResize(source, w*h);
     memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
   }
   beforeUndoPoint();
-  Array<unsigned int> dest; dest.resize(w*2*h*2);
+  Array<unsigned int> dest; Templated<unsigned int>::arrayResize(dest, w*2*h*2);
   superXBR(&source[0],&dest[0],w,h); // somehow this algorithm is a bit broken, sorry.. Not my fault currently..
 
   for (int y = 0; y < h; y++) {
@@ -1265,7 +1263,7 @@ bool filterSuperXBR() {
   beforeUndoPoint();
   int w = l->width, h = l->height;
   Array<unsigned int> source;
-  source.resize(w*h);
+  Templated<unsigned int>::arrayResize(source, w*h);
   memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
   l->setContentSize(w*2, h*2);
   superXBR(&source[0],l->pixels,w,h); // somehow this algorithm is a bit broken, sorry.. Not my fault currently..
@@ -1282,7 +1280,7 @@ bool filterEagle() {
   beforeUndoPoint();
   int w = l->width, h = l->height;
   Array<unsigned int> source;
-  source.resize(w*h);
+  Templated<unsigned int>::arrayResize(source, w*h);
   memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
   l->setContentSize(w*2, h*2);
   //eagle(&source[0],l->pixels,w,h);
@@ -1300,7 +1298,7 @@ bool filterEpx() {
   beforeUndoPoint();
   int w = l->width, h = l->height;
   Array<unsigned int> source;
-  source.resize(w*h);
+  Templated<unsigned int>::arrayResize(source, w*h);
   memcpy(&source[0],l->pixels,w*h*sizeof(unsigned int));
   l->setContentSize(w*2, h*2);
   epx(&source[0],l->pixels,w,h);
@@ -1864,7 +1862,7 @@ bool filterSoften() {
   int medianW = 4, medianH = 4;
   int width = l->width;
   int height = l->height;
-  Array<unsigned int> source2; source2.resize(l->width*l->height); memcpy(&source2[0],l->pixels,l->width*l->height*sizeof(unsigned int)); 
+  Array<unsigned int> source2; Templated<unsigned int>::arrayResize(source2, l->width*l->height); memcpy(&source2[0],l->pixels,l->width*l->height*sizeof(unsigned int)); 
   unsigned int *source = &source2[0];
   unsigned int *dest = l->pixels;
   bool usePixelStates = l->hasSelection();
@@ -1982,7 +1980,7 @@ bool filterBlackWhiteOCR() {
   float *lumis = luminanceValues;
 
   Array<unsigned int> source;
-  source.resize(l->width*l->height);
+  Templated<unsigned int>::arrayResize(source, l->width*l->height);
   memcpy(&source[0],l->pixels,l->width*l->height*sizeof(unsigned int));
 
   initStatusBar();
@@ -2214,13 +2212,13 @@ bool filterWatershed(class Layer *layer) { // actually does the segmentation
   if (l == NULL) return false;
   if (locked(l,LOCK_ANY)) return false;
    
-  Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
+  Array<unsigned int> blurred; Templated<unsigned int>::arrayResize(blurred, layer->width*layer->height);
   int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
   if (escapeWasPressed) return false;
 
   // calculate the gradient in values
   float *lumis = luminanceValues;
-  Array<float> values; values.resize(l->width*l->height); int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1}; int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
+  Array<float> values; Templated<float>::arrayResize(values, l->width*l->height); int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1}; int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
   for (int y = 0; y < l->height; y++) {
     for (int x = 0; x < l->width; x++) {
       float sobelX[5] = {0,0,0,0,0};
@@ -2268,7 +2266,7 @@ bool filterWatershed(class Layer *layer) { // actually does the segmentation
 
   Array<WatershedPoint> watershedPoints2; watershedPoints2 = watershedPoints;
   Array<WatershedEntry> priorityQueue;
-  Array<unsigned int> labels; labels.resize(layer->width * layer->height); memset(&labels[0],0,sizeof(unsigned int)*labels.size());
+  Array<unsigned int> labels; Templated<unsigned int>::arrayResize(labels, layer->width*layer->height); memset(&labels[0],0,sizeof(unsigned int)*labels.size());
   for (int i = 0; i < (int)watershedPoints2.size(); i++) {
     WatershedPoint *p = &watershedPoints2[i];
     double cx = p->x, cy = p->y; currentCanvas->getLayerPosFromCanvasPos(layer,cx,cy,cx,cy);
@@ -2400,7 +2398,7 @@ bool filterSelectionDistanceField(Layer *layer) {
 
   initStatusBar();
 
-  Array<unsigned int> astar; astar.resize(layer->width*layer->height); memset(&astar[0],0xff,astar.size() * sizeof(unsigned int));
+  Array<unsigned int> astar; Templated<unsigned int>::arrayResize(astar, layer->width*layer->height); memset(&astar[0],0xff,astar.size() * sizeof(unsigned int));
   unsigned int *astar_ = &astar[0];
 
   for (int y = 0; y < layer->height; y++) {
@@ -2545,8 +2543,8 @@ bool filterPixelate(int cellSizeX, int cellSizeY) {
   beforeUndoPoint();
   int countX = l->width / cellSizeX + 1;
   int countY = l->height / cellSizeY + 1;
-  Array<Vector> collected; collected.resize(countX*countY);
-  Array<unsigned int> collectedW; collectedW.resize(countX*countY); collectedW.fill(0);
+  Array<Vector> collected; Templated<Vector>::arrayResize(collected, countX*countY); collected.resize(countX*countY);
+  Array<unsigned int> collectedW; Templated<unsigned int>::arrayResize(collectedW, countX*countY); collectedW.fill(0);
 
   bool hasSelection = l->hasSelection();
 
@@ -2634,7 +2632,7 @@ bool filterFillAlphaHoles(class Layer *layer, bool forAlpha) {
   initStatusBar();
   beforeUndoPoint();
 
-  Array<float> p2; p2.resize(l->width*l->height*5); p2.fill(0);
+  Array<float> p2; Templated<float>::arrayResize(p2, l->width*l->height*5); p2.fill(0);
 
   for (int x2 = 0; x2 < l->width; x2++) {
     int gradientStart = -1;
@@ -2851,7 +2849,7 @@ bool filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
   initStatusBar();
   memset(dest,0,width*height*sizeof(unsigned int));
 
-  Array<unsigned int> astar; astar.resize(width*height); memset(&astar[0],0xff,astar.size() * sizeof(unsigned int));
+  Array<unsigned int> astar; Templated<unsigned int>::arrayResize(astar, width*height); memset(&astar[0],0xff,astar.size() * sizeof(unsigned int));
   unsigned int *astar_ = &astar[0];
 
   int alphaThresh = 1;
@@ -3263,8 +3261,8 @@ bool filterMedianize(Layer *layer, float cellSize) {
   int cellCountX = (l->width + cellX - 1) / cellX;
   int cellCountY = (l->height + cellY - 1) / cellY;
 
-  Array<unsigned int> medianColorsForCell; medianColorsForCell.resize(cellCountX*cellCountY);
-  Array<unsigned int> cellToSort; cellToSort.resize(cellX*cellY);
+  Array<unsigned int> medianColorsForCell; Templated<unsigned int>::arrayResize(medianColorsForCell, cellCountX*cellCountY);
+  Array<unsigned int> cellToSort; Templated<unsigned int>::arrayResize(cellToSort, cellX*cellY);
 
   {for (int y = 0; y < cellCountY; y++) {
     for (int x = 0; x < cellCountX; x++) {
@@ -3322,13 +3320,13 @@ bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
 
   Layer *l = layer;
 
-  Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
+  Array<unsigned int> blurred; Templated<unsigned int>::arrayResize(blurred, layer->width*layer->height);
   int kernel = 1; filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
   if (escapeWasPressed) return false;
 
   // calculate the gradient in values
   float *lumis = luminanceValues;
-  Array<float> values; values.resize(l->width*l->height); int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1}; int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
+  Array<float> values; Templated<float>::arrayResize(values, l->width*l->height); int sobelXMat[3*3] = {+1,+0,-1, +2,+0,-2, +1,+0,-1}; int sobelYMat[3*3] = {+1,+2,+1, 0,0,0, -1,-2,-1};
   for (int y = 0; y < l->height; y++) {
     for (int x = 0; x < l->width; x++) {
       float sobelX[5] = {0,0,0,0,0};
@@ -3375,7 +3373,7 @@ bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   initStatusBar();
 
   Array<WatershedEntry> priorityQueue;
-  Array<unsigned int> labels; labels.resize(layer->width * layer->height); memset(&labels[0],0,sizeof(unsigned int)*labels.size());
+  Array<unsigned int> labels; Templated<unsigned int>::arrayResize(labels, layer->width*layer->height); memset(&labels[0],0,sizeof(unsigned int)*labels.size());
 
   int labelCount = 1;
   for (int x = 0; x < cellCountX; x++) {
@@ -3449,11 +3447,11 @@ bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
     }
   }}
 
-  Array<int> red; red.resize(labelCount); red.fill(0);
-  Array<int> green; green.resize(labelCount); green.fill(0);
-  Array<int> blue; blue.resize(labelCount); blue.fill(0);
-  Array<int> alpha; alpha.resize(labelCount); alpha.fill(0);
-  Array<int> weight; weight.resize(labelCount); weight.fill(0);
+  Array<int> red; Templated<int>::arrayResize(red, labelCount); red.fill(0);
+  Array<int> green; Templated<int>::arrayResize(green, labelCount); ; green.fill(0);
+  Array<int> blue; Templated<int>::arrayResize(blue, labelCount);  blue.fill(0);
+  Array<int> alpha; Templated<int>::arrayResize(alpha, labelCount);  alpha.fill(0);
+  Array<int> weight; Templated<int>::arrayResize(weight, labelCount); ; weight.fill(0);
 
   for (int i4 = 0; i4 < l->width * l->height; i4++) {
     unsigned int label = blurred[i4];
@@ -3497,7 +3495,7 @@ bool filterSprinkled(class Layer *layer, float minRad, float maxRad) {
 
   for (int i = 0; i < l->width*l->height; i++) l->pixelStates[i] |= PIXELSTATE_TEMP;
 
-  Array<unsigned int> potentialPixels; potentialPixels.resize(l->width * l->height);
+  Array<unsigned int> potentialPixels; Templated<unsigned int>::arrayResize(potentialPixels, l->width*l->height);
   unsigned int *potentialPixels_ = &potentialPixels[0];
   for (int y = 0; y < (int)l->height; y++) {
     for (int x = 0; x < (int)l->width; x++) {
@@ -3507,11 +3505,11 @@ bool filterSprinkled(class Layer *layer, float minRad, float maxRad) {
 
   int potentialPixelsCount = (int)potentialPixels.size();
 
-  Array<float> red; red.resize(l->width*l->height); red.fill(0);
-  Array<float> green; green.resize(l->width*l->height); green.fill(0);
-  Array<float> blue; blue.resize(l->width*l->height); blue.fill(0);
-  Array<float> alpha; alpha.resize(l->width*l->height); alpha.fill(0);
-  Array<float> weight; weight.resize(l->width*l->height); weight.fill(0);
+  Array<float> red; Templated<float>::arrayResize(red, l->width * l->height); red.fill(0);
+  Array<float> green; Templated<float>::arrayResize(green, l->width * l->height); green.fill(0);
+  Array<float> blue; Templated<float>::arrayResize(blue, l->width * l->height); blue.fill(0);
+  Array<float> alpha; Templated<float>::arrayResize(alpha, l->width * l->height); alpha.fill(0);
+  Array<float> weight; Templated<float>::arrayResize(weight, l->width * l->height); weight.fill(0);
   float *red_ = &red[0];
   float *green_ = &green[0];
   float *blue_ = &blue[0];
@@ -3638,9 +3636,9 @@ bool filterComic(class Layer *layer, float steps, bool sat) {
 
   if (steps < 1) steps = 1;
                                                                                                        
-  Array<float> hue; hue.resize(layer->width * layer->height);
-  Array<float> saturation; saturation.resize(layer->width * layer->height);
-  Array<float> lightness; lightness.resize(layer->width * layer->height);
+  Array<float> hue; Templated<float>::arrayResize(hue, layer->width * layer->height);
+  Array<float> saturation; Templated<float>::arrayResize(saturation, layer->width * layer->height);
+  Array<float> lightness; Templated<float>::arrayResize(lightness, layer->width * layer->height);
 
   float minLightness = 1.f;
   float maxLightness = 0.f;
@@ -3675,7 +3673,7 @@ bool filterComic(class Layer *layer, float steps, bool sat) {
     layer->pixels[i] = (col & 0x00ffffff) | (layer->pixels[i] & 0xff000000);
   }}
 
-  Array<unsigned int> blurred; blurred.resize(layer->width*layer->height);
+  Array<unsigned int> blurred; Templated<unsigned int>::arrayResize(blurred, layer->width * layer->height);
   int kernel = 2; 
   filterMedianBlur(&blurred[0], layer->pixels, layer->width, layer->height, kernel, kernel, layer->pixelStates, false, false, false);
   if (escapeWasPressed) {revertToBeforeUndoPoint(); return false;}

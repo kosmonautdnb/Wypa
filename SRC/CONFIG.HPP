@@ -26,6 +26,7 @@
 
 #include "STL/TYPES.HPP"
 #include "STL/STRING.HPP"
+#include "STL/ARRAY.HPP"
 
 #ifndef PI
 #define PI 3.14159265358979323846
@@ -102,6 +103,15 @@ extern char tempBuffer[256];
 float getFreeMemoryInKb();
 
 extern float luminanceValues[3];
+
+template<class T>
+class Templated {
+public:
+  static void arrayResize(Array<T> &arr, size_t numElements) {
+    arr.reAlloc(numElements);
+    arr.usedSize = numElements;
+  }
+};
 
 #define FIXNEG(__i__,__f__) {if ((__i__) <= 0) {if ((__i__)==0) (__i__) = (int)floor(__f__); else if ((__f__)!=(__i__)) (__i__)--;}}
 
