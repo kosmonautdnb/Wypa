@@ -1729,6 +1729,7 @@ void dialogDeletePicture(bool openIt) {
   if (ImGui::Button("Delete##DIALOGDELETEPICTUREDELETE")) {
     for (int i = 0; i < (int)canvas.size(); i++) {
       if (canvas[i] == currentCanvas) {
+        for (int j = 0; j < (int)canvas[i]->layers.size(); j++) if (canvas[i]->layers[j] != NULL) canvas[i]->layers[j]->colorTransform.onCanvasDelete(canvas[i]);
         delete canvas[i];
         canvas.erase(i,1);
         if (i < (int)canvas.size()) currentCanvas = canvas[i]; 

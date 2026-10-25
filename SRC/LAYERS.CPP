@@ -104,6 +104,7 @@ void initLayers() {
 }
 
 void freeLayers() {
+  {for (int i = 0; i < (int)canvas.size(); i++) for (int j = 0; j < (int)canvas[i]->layers.size(); j++) if (canvas[i]->layers[j] != NULL) canvas[i]->layers[j]->colorTransform.onCanvasDelete(canvas[i]);}
   for (int i = 0; i < (int)canvas.size(); i++) delete canvas[i];
   canvas.clear();
   delete selectionPlane;
@@ -263,6 +264,34 @@ void TransformationState::aspect(double aspect) {
 void TransformationState::pixelSize(double x, double y) {
   if (x == 0 || y == 0) return;
   scaleAround(1.0/x,1.0/y,0,0);
+}
+
+ColorTransform copiedColorTransform;
+
+void ColorTransform::onCanvasDelete(Canvas *c) {
+  if (c == NULL) return;
+  // the luts are a bit problematic so handle them "with care" here
+  Array<float> *lt = this->lut; if (lt != NULL) {
+    bool lutAlsoInOtherCanvas = false;
+    if (copiedColorTransform.lut == lt) lutAlsoInOtherCanvas = true;
+    if (copyLayer != NULL && copyLayer->colorTransform.lut == lt) lutAlsoInOtherCanvas = true;
+    for (int i = 0; i < (int)canvas.size(); i++) {
+      if (canvas[i] != c) {
+        for (int j = 0; j < (int)canvas[i]->layers.size(); j++) {
+          if (canvas[i]->layers[j]->colorTransform.lut == lt) {
+            lutAlsoInOtherCanvas = true;
+            break;
+          }
+        }
+      }
+    }
+    for (int j = 0; j < (int)c->layers.size(); j++) {
+      if (c->layers[j]->colorTransform.lut == lt) c->layers[j]->colorTransform.lut = NULL;
+    }
+    if (!lutAlsoInOtherCanvas) {
+      delete lt;
+    }
+  }
 }
 
 float *ColorTransform::processingGet() {
@@ -2362,8 +2391,6 @@ void Layer::quantize(const Array<unsigned int> &colors) {
   colorTransform.useQuantization = false;
   shouldUpdateAll = true;
 }
-
-ColorTransform copiedColorTransform;
 
 void Layer::copyColorTransform() {
   copiedColorTransform = colorTransform;

@@ -215,6 +215,7 @@ public:
     lut = NULL;
     reset();
   }
+  void onCanvasDelete(class Canvas *c);
   float colorMatrix[4*5];
   bool channelR,channelG,channelB,channelA;
   bool premul;
