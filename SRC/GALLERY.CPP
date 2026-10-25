@@ -182,14 +182,17 @@ public:
     glDisable(GL_TEXTURE_2D);
 
     String s = String(longFileName(fileName)).last(20).c_str();
+    String s2 = String::fromInt(width) + "x" + String::fromInt(height);
 
     int bottom3 = bottom + 12;
     for (int y = -1; y <= 1; y++) {
       for (int x = -1; x <= 1; x++) {
         drawText(3,left+x*3,bottom3+y*3,s.c_str(),0xff000000,0,0);
+        drawText(3,left+x*3,bottom3+y*3+20,s2.c_str(),0xff000000,0,0);
       } 
     }
     drawText(3,left,bottom3,s.c_str(),0xff0000ff,0,0);
+    drawText(3,left,bottom3+20,s2.c_str(),0xff0000ff,0,0);
   }
 };
 
