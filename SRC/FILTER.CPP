@@ -95,7 +95,7 @@ bool filterDifferenceClouds() {
         values[x+y*l->width] += v*mul;
       }
     }
-    UPDATESTATUSBARWITHBREAK();
+    UPDATESTATUSBARWITHBREAK(;);
     seed += 571;
     seed *= 3;
     seed &= 0xffff;
@@ -1430,7 +1430,7 @@ bool filterClahe(float claheConstant, int cellSize) {
   for (int y = 0; y < l->height; y += tileH) {
     vcount++;
     int tileH2 = tileH; if (y + tileH2 > l->height) tileH2 = l->height - y;
-    UPDATESTATUSBARWITHBREAK();
+    UPDATESTATUSBARWITHBREAK(;);
     hcount = 0;
     for (int x = 0; x < l->width; x += tileW) {
       hcount++;
@@ -2427,7 +2427,7 @@ bool filterSelectionDistanceField(Layer *layer) {
   int maxDist = 0;
   while(somethingUpdated) {
     somethingUpdated = false;
-    counter++; counter &= 15; if (counter == 0) UPDATESTATUSBARWITHBREAK();
+    counter++; counter &= 15; if (counter == 0) UPDATESTATUSBARWITHBREAK(;);
     maxDist = 0;
     for (int y = 0; y < layer->height; y++) {
       for (int x = 0; x < layer->width; x++) {
@@ -2882,7 +2882,7 @@ bool filterOutline(unsigned int *dest, unsigned int *source, unsigned int width,
   int outlineSizeSqr = (int)((outlineSize+1)*(outlineSize+1));
   while(somethingUpdated) {
     somethingUpdated = false;
-    counter++; counter &= 15; if (counter == 0) UPDATESTATUSBARWITHBREAK();
+    counter++; counter &= 15; if (counter == 0) UPDATESTATUSBARWITHBREAK(;);
     for (int y = 0; y < (int)height; y++) {
       for (int x = 0; x < (int)width; x++) {
         unsigned int here = astar_[x+y*width];
@@ -3394,7 +3394,7 @@ bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   unsigned int *labels0 = &labels[0]; int lw = l->width; int lh = l->height;
   int portion = l->width * l->height / 15; if (portion < 1) portion = 1;
   while(!priorityQueue.empty()) {
-    if ((count % portion)==0) UPDATESTATUSBARWITHBREAK();
+    if ((count % portion) == 0) UPDATESTATUSBARWITHBREAK(;);
     WatershedEntry here = priorityQueue.back(); priorityQueue.pop_back();
     int x = here.x; int y = here.y;
     proceedWatershed(x,y, priorityQueue, values0, labels0, 1, 0, lw, lh);
@@ -3414,7 +3414,7 @@ bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   Array<unsigned int> prio2; prio2.resize(3*3);
   unsigned int *prio2_ = &prio2[0];
   {for (int y = 0; y < l->height; y++) {
-    if ((y % 100)==0) UPDATESTATUSBARWITHBREAK();
+    if ((y % 100) == 0) UPDATESTATUSBARWITHBREAK(;);
     for (int x = 0; x < l->width; x++) {
       int prioCount = 0;
       for (int y2 = -1; y2 <= 1; y2++) {
@@ -3528,7 +3528,7 @@ bool filterSprinkled(class Layer *layer, float minRad, float maxRad) {
 
   while(potentialPixelsCount > 0) {
     unsigned int portion = (unsigned int)potentialPixelsCount / portionSize; 
-    if (portion != lastPortion) UPDATESTATUSBARWITHBREAK(); 
+    if (portion != lastPortion) UPDATESTATUSBARWITHBREAK(;);
     lastPortion = portion;
 
     int i = ((int)rand()+(int)rand()*510+(int)rand()*11100) % potentialPixelsCount; // doesn't have to be fully 32 bit
@@ -3552,7 +3552,7 @@ bool filterSprinkled(class Layer *layer, float minRad, float maxRad) {
       dy *= dy;
       for (int x = -ri + cx; x <= ri + cx; x++) {
         float dx = (float)x - centerX;
-        float d = sqrt(dx*dx+dy); 
+        float d = (float)sqrt(dx*dx+dy); 
         float shade = d < threshBottom ? 1 : (d > threshTop ? 0 : 1-(d-threshBottom)/(threshTop-threshBottom));
         if (ki >= ks) {ks = ki+1; k.resize(ks); kd = &k[0];}
         kd[ki] = shade; ki++;

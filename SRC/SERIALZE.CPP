@@ -1997,7 +1997,7 @@ void fileInfo(const char *shortPath, const char *longFileName) {
       currentFileInfo.imageWidth = l->width;
       currentFileInfo.imageHeight = l->height;
       Array<unsigned int> palette2; bool hasPalette = paletteFromPictureLoad(palette2, shortPath, longFileName);
-      currentFileInfo.paletteSize = hasPalette ? palette2.size() : 0;
+      currentFileInfo.paletteSize = hasPalette ? (int)palette2.size() : 0;
       delete l;
     }
 
