@@ -44,6 +44,8 @@ The newest **DJGPP** here is around **3 times** faster than WatcomC++11.
 
 Please be aware that Wypa needs a lot of memory, as stated in the inapp documentation and needs a fairly fast PC. It may already run well with an **around 1600Mhz** setup.
 
+If you don't have a DOS based PC with above 128Mb (maybe better **200Mb**) it makes no sense to try to edit e.g. 1920x1080 pictures. The program has no small memory option at all. It's just for editing pictures like the bigger programs on other systems do with GPUs and a lot more of memory free. Just a tiny program to have somehow equal options on a Dos based system.
+
 ## DosBOX and DosBOX-X
 
 Generally it is not suitable to run Wypa in an emulation like DosBOX (or DosBOX-X) since it will be much too slow.
