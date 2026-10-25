@@ -460,29 +460,31 @@ void redo() {
 }
 
 void revertToBeforeUndoPoint() {
-  UndoPacket *p = &packetBeforeUndo;
-  Canvas *c = p->undoCanvas;
-  bool valid = false; for (int j = 0; j < (int)canvas.size(); j++) {if (canvas[j] == c) {valid = true; break;}}
-  if (!valid) return;
-  for (int i = 0; i < (int)p->undoLayers.size(); i++) {
-    Layer *source = p->undoLayers[i];
-    for (int j = 0; j < (int)c->layers.size(); j++) {
-      Layer *dest = c->layers[j];
-      if (dest->id == source->id) {
-        int newWidth = source->width;
-        int newHeight = source->height;
-        if (newHeight != dest->height || newWidth != dest->width) {
-          dest->init(newWidth,newHeight);
+  if (useUndo) {
+    UndoPacket *p = &packetBeforeUndo;
+    Canvas *c = p->undoCanvas;
+    bool valid = false; for (int j = 0; j < (int)canvas.size(); j++) {if (canvas[j] == c) {valid = true; break;}}
+    if (!valid) return;
+    for (int i = 0; i < (int)p->undoLayers.size(); i++) {
+      Layer *source = p->undoLayers[i];
+      for (int j = 0; j < (int)c->layers.size(); j++) {
+        Layer *dest = c->layers[j];
+        if (dest->id == source->id) {
+          int newWidth = source->width;
+          int newHeight = source->height;
+          if (newHeight != dest->height || newWidth != dest->width) {
+            dest->init(newWidth,newHeight);
+          }
+          memcpy(dest->pixelStates, source->pixelStates, dest->width*dest->height*sizeof(unsigned char));
+          memcpy(dest->pixels, source->pixels, dest->width*dest->height*sizeof(unsigned int));
+          dest->colorTransform = source->colorTransform;
+          dest->transform = source->transform;
+          dest->toolInfo = source->toolInfo;
+          dest->state = source->state;
+          dest->type = source->type;
+          dest->mode = source->mode;
+          break;
         }
-        memcpy(dest->pixelStates, source->pixelStates, dest->width*dest->height*sizeof(unsigned char));
-        memcpy(dest->pixels, source->pixels, dest->width*dest->height*sizeof(unsigned int));
-        dest->colorTransform = source->colorTransform;
-        dest->transform = source->transform;
-        dest->toolInfo = source->toolInfo;
-        dest->state = source->state;
-        dest->type = source->type;
-        dest->mode = source->mode;
-        break;
       }
     }
   }

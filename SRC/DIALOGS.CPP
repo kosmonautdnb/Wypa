@@ -547,9 +547,16 @@ void dialogFlaws(bool openIt) {
     "   a lot of memory. This memory can be accessed with it by DOS.\n"
     "   Maybe look into the TinyDocumentation/FreeDOS for explanations.\n"
     "6. Again: Undo is very limited (due to memory) and not all actions have an undo.\n"
+    "7. You need a very fast DOS based PC. Maybe above 1600Mhz will already work well.\n"
+    "   atleast a compile with the latest DJGPP should do.\n"
     "\n"
-    "I already worked with Wypa some longer times and am not aware of\n"
-    "really critical flaws."
+    "!!!Memory consumption is exceedingly high with undo functionality and e.g. 1920x1080\n"
+    "pictures. Currently there is no workaround for that and you would be good to have\n"
+    "a good DPMI (Dos) Host with around 200Mb of memory accessible for that like HDPMI32I.exe!!!\n"
+    "If you disable undo, maybe you can get it to work well with around 128Mb for 1920x1080 already.\n"
+    "\n"
+    "I already worked with Wypa some longer times and am not aware of really critical flaws here.\n"
+    "(I have a fast PC and somehow atleast 1GB of memory accessible in DOS.)\n"
   );
   ImGui::Separator();
   if (ImGui::Button("Close##DIALOGWHATFORCLOSE")) {

@@ -326,6 +326,8 @@ void drawGalleryView() {
   ImGui::SameLine();
   if (roundButton(">>",true)) {destIndex++; galleryScrollTo = destIndex;} else toolTip("Scroll to the image beyond");
   ImGui::Separator();
+  if (roundButton("Exit##GALLERYVIEWEXIT",true)) {galleryVisible = false;}
+  ImGui::Separator();
 
   GalleryEntry *a = gallery[0];
   if (currentIndex < 0) currentIndex = 0;

@@ -184,7 +184,7 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
         ImGui::Separator();
-        if (ImGui::MenuItem("Undo enabled", NULL, useUndo, true)) { useUndo = !useUndo; }
+        if (ImGui::MenuItem("Undo enabled", NULL, useUndo, true)) { useUndo = !useUndo; if (!useUndo) clearUndos();}
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
         ImGui::EndMenu();
@@ -265,7 +265,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Turn white to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(true);afterUndoPoint();}
         if (ImGui::MenuItem("Turn black to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(false);afterUndoPoint();}
         ImGui::Separator();
-        if (ImGui::MenuItem("Undo enabled",NULL,useUndo,true)) {useUndo = !useUndo;}
+        if (ImGui::MenuItem("Undo enabled",NULL,useUndo,true)) {useUndo = !useUndo; if (!useUndo) clearUndos();}
         ImGui::EndMenu();
       } else {
         ImVec2 minB = ImGui::GetItemRectMin();
@@ -529,7 +529,7 @@ void drawMenuBar() {
       if (ImGui::MenuItem("Hotkeys")) {dialogHotkeys(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
-      if (ImGui::MenuItem("Flaws")) {dialogFlaws(true);}
+      if (ImGui::MenuItem("Flaws (e.g. memory consumption)")) {dialogFlaws(true);}
       if (ImGui::MenuItem("Puls4r game creation suite")) {dialogSuite(true);}
       if (ImGui::MenuItem("Tiny documentation")) {dialogDocumentation(true);}
       if (ImGui::MenuItem("What's Wypa for?")) {dialogWhatFor(true);}
