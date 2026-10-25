@@ -3919,6 +3919,7 @@ void Canvas::eraseLayer(Layer *layer) {
       shouldUpdateAll = true;
     }
   }
+  if (layer != NULL) delete layer;
 }
 
 void Canvas::insertTextLayer() {
