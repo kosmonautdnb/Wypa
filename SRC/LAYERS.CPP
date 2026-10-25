@@ -3912,14 +3912,16 @@ void Canvas::insertLayer(Layer *layer, int position) {
 }
 
 void Canvas::eraseLayer(Layer *layer) {
+  bool found = false;
   for (int i = 0; i < (int)layers.size(); i++) {
     if (layers[i] == layer) {
       layers.erase(i,1);
+      found = true;
       i--;
       shouldUpdateAll = true;
     }
   }
-  if (layer != NULL) delete layer;
+  if (found && layer != NULL) delete layer;
 }
 
 void Canvas::insertTextLayer() {
