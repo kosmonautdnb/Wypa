@@ -184,6 +184,8 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
         ImGui::Separator();
+        if (ImGui::MenuItem("Undo enabled", NULL, useUndo, true)) { useUndo = !useUndo; }
+        ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
         ImGui::EndMenu();
       }
