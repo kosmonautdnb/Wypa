@@ -3421,7 +3421,7 @@ bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
         for (int x2 = -1; x2 <= 1; x2++) {
           int kx = x + x2;
           int ky = y + y2;
-          if ( ((unsigned int)kx >= (unsigned int)l->width) && ((unsigned int)ky >= (unsigned int)l->height) ) continue;
+          if ( ((unsigned int)kx >= (unsigned int)l->width) || ((unsigned int)ky >= (unsigned int)l->height) ) continue;
           prio2_[prioCount] = labels[kx+ky*l->width];
           prioCount++;
         }
