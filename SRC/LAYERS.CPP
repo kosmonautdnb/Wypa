@@ -143,8 +143,8 @@ float noise2d(unsigned int x, unsigned int y) {
   return (float)(k & 0x7fffff)/(float)0x7fffff;
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve"};
-const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve","Off"};
+const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha","More luminance blends down layers below"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3"};
 const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image"};
@@ -3528,7 +3528,7 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = rgb1 & 255;
           int g = (rgb1>>8) & 255;
           int b = (rgb1>>16) & 255;
-          int k = (int)((r + g + b)/3 * alpha);
+          int k = (int)((float)(r + g + b)/3 * alpha);
           canvas->opacityMod[x+y*canvas->width] = (unsigned char)k;
           col = canvas->pixels[x+y*canvas->width];
         } break;
@@ -3658,6 +3658,21 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           float d = noise2d(lx,ly);
            float alpha2 = a/255.f;
           col = d <= alpha2 ? (rgb1|0xff000000) : rgb0;
+        } break;
+      case LAYERMODE_OFF: {
+          int r = rgb1 & 255;
+          int g = (rgb1>>8) & 255;
+          int b = (rgb1>>16) & 255;
+          int k = 255-(int)((float)(r + g + b)/3 * alpha);
+          int r2 = rgb0 & 255;
+          int g2 = (rgb0>>8) & 255;
+          int b2 = (rgb0>>16) & 255;
+          int a2 = (rgb0>>24) & 255;
+          r2 = (int)(r2 * k / 255);
+          g2 = (int)(g2 * k / 255);
+          b2 = (int)(b2 * k / 255);
+          a2 = k;
+          col = r2|(g2<<8)|(b2<<16)|(a2<<24);
         } break;
       }
       if (darken) {col = ((col>>3) & 0x001f1f1f)|(col & 0xff000000);}
