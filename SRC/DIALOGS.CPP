@@ -215,6 +215,7 @@ void dialogs() {
   dialogSegmentation(false);
   dialogFileInfo(false);
   dialogFindFile(false, NULL, NULL);
+  dialogBlackAndWhiteCurves(false);
 }
 
 void drawDialogs() {
@@ -1487,6 +1488,61 @@ void dialogFindFile(bool openIt, const char *shortPath2, const char *longFileNam
     found.clear();
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogBlackAndWhiteCurves(bool openIt) {
+  static Layer *clone = NULL;
+  static float gaussX = 2;
+  static float  gaussY = 2;
+  static float antialias = 1.f;
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static bool updatedValues = false;
+
+  if (openIt) {
+    beforeUndoPoint();
+    if (clone != NULL) {delete clone; clone = NULL;}
+    clone = l->clone();
+    updatedValues = true;
+  }
+  DIALOGSTART("Black and white curvyness");
+
+  ImGui::PushItemWidth(64);
+  bool test = roundButton("Preview##DIALOGBLURTEST",true);
+  ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLACKANDWHITECURVYNESSGAUSSX",&gaussX,0,0,2)) {updatedValues = true;} else toolTip("The width of the gaussian blur cell"); if (gaussX<0) gaussX = 0; if (gaussX>16384) gaussX = 16384;
+  ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLACKANDWHITECURVYNESSGAUSSY",&gaussY,0,0,2)) {updatedValues = true;} else toolTip("The height of the gaussian blur cell"); if (gaussY<0) gaussY = 0; if (gaussY>16384) gaussY = 16384;
+  ImGui::Text("Antialias spread"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLACKANDWHITECURVYNESSANTIALIAS",&antialias,0,0,2)) {updatedValues = true;} else toolTip("How much the black white should be antialiased"); if (antialias<0) antialias = 0; if (antialias>255) antialias = 255;
+  ImGui::PopItemWidth();
+
+  bool apply = false;
+  if (ImGui::Button("Apply##DIALOGBLACKANDWHITECURVYNESSAPPLY")) {
+    apply = true;
+  } else toolTip("Apply this curvyness to the layer");
+
+  if (test||(apply && updatedValues)) {
+    if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
+      updatedValues = false;
+      filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());
+      filterLuminanceBlackWhite(l, 128.f - antialias, 128.f + antialias);
+      if (escapeWasPressed) {apply = false; escapeWasPressed = false;}
+      repaintLayer(l,true);
+    }
+  }
+
+  if (apply) {
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+    updatedPixels(l);
+    afterUndoPoint();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGBLACKANDWHITECURVYNESSCLOSE")) {
+    if (!locked(l,LOCK_ANY)) {l->getContentFromOtherLayer(clone);l->transform = clone->transform;}
+    if (clone != NULL) {delete clone; clone = NULL;}
+    ImGui::CloseCurrentPopup();
+    shouldUpdateAll = true;
+  } else toolTip("Don't apply a curvyness here");
   DIALOGEND()
 }
 

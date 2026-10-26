@@ -1006,6 +1006,12 @@
       "Maybe use postprocessing with fast quant quantization to two" _N_
       "palette colors instead." _N_
     "}" _N_
+    "Black & white curvyness{" _N_
+      "If you have a raw shape or pixels and want to make a smoothly" _N_
+      "outlined shape out of it you can take this filter." _N_
+      "It takes a raw input picture and blurs it and converts the smooth" _N_
+      "blurred shape back to black and white." _N_
+    "}" _N_
     "Selection average color{" _N_
       "Averages all pixels under the selection and paints the averaged" _N_
       "color flat into the selection again." _N_
@@ -1562,6 +1568,7 @@
     "        Wand tool and the currentlayer is above this layer. You can" _N_
     "        just take the selections from this layer instead of the active layer." _N_
     "DISSOLVE = The pixels are shown or not shown randomly judged by their alpha." _N_
+    "OFF = Blends out all underlying layers by luminance. Could later be used with MASK." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_

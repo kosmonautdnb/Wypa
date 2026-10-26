@@ -75,6 +75,7 @@ bool filterMedianize(class Layer *layer, float cellSize);
 bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY);
 bool filterSprinkled(class Layer *layer, float minRad, float maxRad);
 bool filterComic(class Layer *layer, float steps, bool sat);
+bool filterLuminanceBlackWhite(class Layer *layer, float luminanceBridgeBottom, float luminanceBridgeTop);
 
 #define S_FILTER_CPP()
 

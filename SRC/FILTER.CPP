@@ -3686,3 +3686,32 @@ bool filterComic(class Layer *layer, float steps, bool sat) {
   afterUndoPoint();
   return true;
 }
+
+bool filterLuminanceBlackWhite(class Layer *layer, float luminanceBridgeBottom, float luminanceBridgeTop) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  float *lumis = luminanceValues;
+  Layer *l = layer;
+  bool hasSelection = l->hasSelection();
+  for (int i = 0; i < (int)(l->width * l->height); i++) {
+    if ((!hasSelection) || (l->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = l->pixels[i];
+      int r = col & 255;
+      int g = (col>>8) & 255;
+      int b = (col>>16) & 255;
+      float m = (float)r * lumis[0] +  (float)g * lumis[1] +  (float)b * lumis[2];
+      float v = 0;
+      if (m > luminanceBridgeBottom && m <= luminanceBridgeTop) {
+        float s = luminanceBridgeTop - luminanceBridgeBottom;
+        if (s <= 0) s = 1;
+        v = 255.f * (m - luminanceBridgeBottom) / s;
+      }
+      if (m > luminanceBridgeTop) v = 255.f;
+      int grey = (int)v;
+      if (grey < 0) grey = 0;
+      if (grey > 255) grey = 255;
+      l->pixels[i] = grey|(grey<<8)|(grey<<16)|(col & 0xff000000);
+    }
+  }
+  return true;
+}
