@@ -27,6 +27,9 @@
 void initFilter();
 void freeFilter();
 
+void initNoise32();
+unsigned int noise32();
+
 bool filterDifferenceClouds();
 bool filterNoise();
 bool filterSobelEdgeDetect();

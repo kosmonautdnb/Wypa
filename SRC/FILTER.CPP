@@ -47,6 +47,7 @@ float sfrand2d(int seed,float x, float y) {
 }
 
 void initFilter() {
+  initNoise32();
 }
 
 void freeFilter() {

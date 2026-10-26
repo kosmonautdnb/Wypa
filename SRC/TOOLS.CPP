@@ -40,10 +40,11 @@
 #define __HMAP_IMPLEMENTATION__
 #include "STL/HMAP.HPP"
 #include "NAVIGTOR.HPP"
+#include "FILTER.HPP"
 #include <math.h>
 
-const char *paintModeNames[PAINTMODE_COUNT] = {"Normal","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Addsub","Overlay","Burn","ColBurn","ColDodge","Copy","SqrAdd"};
-const char *paintModeNamesFull[PAINTMODE_COUNT] = {"Normal painting","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Direct copy of color","Quadratic addition and square root"};
+const char *paintModeNames[PAINTMODE_COUNT] = {"Normal","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Addsub","Overlay","Burn","ColBurn","ColDodge","Copy","SqrAdd","Dissolve"};
+const char *paintModeNamesFull[PAINTMODE_COUNT] = {"Normal painting","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Direct copy of color","Quadratic addition and square root","Randomly visible by alpha"};
 
 Array<Brush *> brushes;
 int currentBrush = 0;
@@ -1528,6 +1529,13 @@ static __inline unsigned int getPaintModeColor(unsigned int background, unsigned
       g = (g - gd) * a2 + gd;
       b = (b - bd) * a2 + bd;
     } break;
+    case PAINTMODE_DISSOLVE: {
+      float a2 = alpha * as;
+      if (a2 <= 0.0001f) {return rgb0;}
+      if (a2 >= 0.9999f) {return rgb1|0xff000000;}
+      float d = (float)(noise32() & 0x7fffff)/(float)0x7fffff;
+      return d <= a2 ? (rgb1|0xff000000) : rgb0;
+    } // no break needed
   }
 
   if (premul) {

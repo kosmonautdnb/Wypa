@@ -1561,6 +1561,7 @@
     "WAND = When used with the Wand tool and visible and enabled in the." _N_
     "        Wand tool and the currentlayer is above this layer. You can" _N_
     "        just take the selections from this layer instead of the active layer." _N_
+    "DISSOLVE = The pixels are shown or not shown randomly judged by their alpha." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_
