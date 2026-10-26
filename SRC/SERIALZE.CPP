@@ -128,12 +128,12 @@ void loadArray(Array<char> *arr, FILE *in) {
   fseek(in,0,SEEK_END);
   unsigned int fileLen = ftell(in);
   fseek(in,0,SEEK_SET);
-  arr->resize(fileLen);
+  Templated<char>::arrayResize(*arr,fileLen);
   fread(&(*arr)[0],1,fileLen,in);
 }
 
 void readJson(Array<char> *arr, String *string) {
-  arr->resize(string->length()+1);
+  Templated<char>::arrayResize(*arr,string->length()+1);
   (*arr)[string->length()] = 0x00;
   for (int i = 0; i < string->length(); i++) {
     (*arr)[i] = (*string)[i];
@@ -549,7 +549,7 @@ void getFileArray(Array<unsigned char> *arr,const String &maybeExtendedFileName)
   fseek(in,0,SEEK_END);
   unsigned int fileLen = ftell(in);
   fseek(in,0,SEEK_SET);
-  arr->resize(fileLen);
+  Templated<unsigned char>::arrayResize(*arr,fileLen);
   fread(&(*arr)[0],1,fileLen,in);
   fclose(in);
 }
@@ -985,7 +985,7 @@ bool readZippedFile(const char *shortPath, const char *longFileName, const char 
       if (mz_zip_reader_file_stat(&zip, i, &file_stat)) {
         String a = (const char *)file_stat.m_filename; a = toLower(unixFileName(a));
         if (a == toLookFor) {
-          array.resize((size_t)file_stat.m_uncomp_size);
+          Templated<unsigned char>::arrayResize(array,(size_t)file_stat.m_uncomp_size);
           if (mz_zip_reader_extract_to_mem(&zip,i, &(array[0]), array.size(), MZ_ZIP_FLAG_ASCII_FILENAME)) {
             ret = true;
           }
@@ -1087,7 +1087,7 @@ const char *readZipLongFileName = "";
 void stbi_write_func_array(void *context, void *data, int size) {
   Array<unsigned char> *arr = (Array<unsigned char> *)context;
   if (arr != NULL) {
-    arr->resize(size);
+    Templated<unsigned char>::arrayResize(*arr, size);
     memcpy(&((*arr)[0]),data,size);
   }
 }
@@ -1664,7 +1664,7 @@ void loadLUT(const char *shortPath, const char *longFileName) {
                 l->colorTransform.lutBSize = s;
                 lutSize = s*s*s*3;
                 currentEntry = 0;
-                l->colorTransform.lut->resize(lutSize);
+                Templated<float>::arrayResize(*l->colorTransform.lut,lutSize);
                 dest = &((*l->colorTransform.lut)[0]);
               }
             }
