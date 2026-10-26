@@ -328,7 +328,9 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Apply alpha mask to below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}
         ImGui::Separator();
         if (ImGui::MenuItem("Convert layer(s) from alpha to premul",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromAlphaToPremul();afterUndoPoint();}
+        if (ImGui::MenuItem("Convert layer(s) from premul to alpha (don't)",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromPremulToAlpha();afterUndoPoint();}
         if (ImGui::MenuItem("Convert layer(s) from tilemap to bitmap",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromTilemapToBitmap();afterUndoPoint();}
+        ImGui::Separator();
         if (ImGui::MenuItem("Quantized palette from layer",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogQuantizePalette(true);}
         if (ImGui::MenuItem("Quantize layer(s) to palette",NULL,false,one)) {beforeUndoPoint();currentCanvas->quantizeLayers();afterUndoPoint();}
         ImGui::Separator();
@@ -458,11 +460,12 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Edge detect",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterMorphologicalEdgeDetect();}
         if (ImGui::MenuItem("Turn to glow",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogGlow(true);}
         if (ImGui::MenuItem("Pixelart inflate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelArtInflate(true);}
+        if (ImGui::MenuItem("Clahe lighting",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogClahe(true);}
+        if (ImGui::MenuItem("Displacement mapping",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogDisplacementMap(true);}
+        ImGui::Separator();
         if (ImGui::MenuItem("Histogram matching (brightness)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCH);}
         if (ImGui::MenuItem("Histogram light (colored)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCHINGCOLORED);}
         if (ImGui::MenuItem("Color transfer (monochrome)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_COLORTRANSFER);}
-        if (ImGui::MenuItem("Clahe lighting",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogClahe(true);}
-        if (ImGui::MenuItem("Displacement mapping",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogDisplacementMap(true);}
         ImGui::Separator();
         if (ImGui::MenuItem("Segmentation",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogSegmentation(true);}
         ImGui::Separator();

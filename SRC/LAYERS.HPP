@@ -618,6 +618,7 @@ public:
   void bakeLayer(int interpolation);
   Layer *clone();
   void convertToPremul();
+  void convertToAlpha();
   void convertToBitmap(class Canvas *canvas);
   void convertColorToAlpha(bool white);
 
@@ -932,6 +933,7 @@ public:
   void applyAlphaMaskToBelow();
   void quantizeLayers();
   void convertFromAlphaToPremul();
+  void convertFromPremulToAlpha();
   void convertFromTilemapToBitmap();
   void convertColorToAlpha(bool white);
 

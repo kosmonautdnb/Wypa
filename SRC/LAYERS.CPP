@@ -1915,6 +1915,29 @@ void Layer::convertToPremul() {
   updatedPixels(this);
 }
 
+void Layer::convertToAlpha() {
+  if (mode != LAYERMODE_PREMULTIPLIEDALPHA) return;
+  for (int i = 0; i < width * height; i++) {
+    unsigned int col = pixels[i];
+    int r = col & 255;
+    int g = (col>>8) & 255;
+    int b = (col>>16) & 255;
+    int a = (col>>24) & 255;
+    if (a != 0) {
+      r = r * 255 / a;
+      g = g * 255 / a;
+      b = b * 255 / a;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+    }
+    pixels[i] = r|(g<<8)|(b<<16)|(a<<24);
+  }
+  updatedLayerMode(this, mode, LAYERMODE_ALPHA);
+  mode = LAYERMODE_ALPHA;
+  updatedPixels(this);
+}
+
 void Layer::convertToBitmap(Canvas *canvas) {
   bool tiles = type == LAYERTYPE_TILEMAP; if (!tiles) return;
   Layer *layer = this;
@@ -4269,6 +4292,16 @@ void Canvas::convertFromAlphaToPremul() {
     if (layers[i]->state.selected || layers[i]->state.active) {
       layers[i]->mode = LAYERMODE_ALPHA;
       layers[i]->convertToPremul();
+    }
+  }
+  shouldUpdateAll = true;
+}
+
+void Canvas::convertFromPremulToAlpha() {
+  for (int i = 0; i < (int)layers.size(); i++) {
+    if (layers[i]->state.selected || layers[i]->state.active) {
+      layers[i]->mode = LAYERMODE_PREMULTIPLIEDALPHA;
+      layers[i]->convertToAlpha();
     }
   }
   shouldUpdateAll = true;

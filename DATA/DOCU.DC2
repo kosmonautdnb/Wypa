@@ -550,6 +550,10 @@
       "a normal alpha blending (normal) picture into the premul" _N_
       "mode." _N_
     "}" _N_
+    "Convert layer(s) from premul to alpha (don't){" _N_
+      "If you convert from premul to alpha the colors on the transparent" _N_
+      "sections will get worse. It is not a good idea to do that." _N_
+    "}" _N_
     "Quantized palette from layer{" _N_
       "You can enter a color count and reduce the current layer" _N_
       "to this color count. With the preview button you can see the" _N_
@@ -1568,6 +1572,7 @@
     "        Wand tool and the currentlayer is above this layer. You can" _N_
     "        just take the selections from this layer instead of the active layer." _N_
     "DISSOLVE = The pixels are shown or not shown randomly judged by their alpha." _N_
+    "        Maybe it is a good idea to convert Premul layers to Alpha before using this." _N_
     "OFF = Blends out all underlying layers by luminance. Could later be used with MASK." _N_
   "}" _N_
   "" _N_
