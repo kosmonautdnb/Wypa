@@ -144,7 +144,7 @@ void drawLayerView() {
 
     const int itemCount = LAYERMODES_ORDERED_COUNT; static int ordering[itemCount] = {LAYERMODES_ORDERED}; static const char *namesOrdered[itemCount];
     int mode = 0; for (int i = 0; i < itemCount; i++) {namesOrdered[i] = layerModeNames[ordering[i]]; if (ordering[i] == currentLayer->mode) mode = i;}
-    if (ImGui::Combo("##DRAWLAYERVIEWTRANSPARENCYTYPE",&mode, &(namesOrdered[0]), LAYERMODE_COUNT-1)) {
+    if (ImGui::Combo("##DRAWLAYERVIEWTRANSPARENCYTYPE",&mode, &(namesOrdered[0]), itemCount)) {
       currentLayer->mode = ordering[mode];
       repaintLayer(currentLayer,true);
     } else toolTip("Layer paint mode: %s",layerModeNamesFull[currentLayer->mode]);
