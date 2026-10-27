@@ -109,6 +109,7 @@ void toolTipLayerPreview(Layer *l) {
     updateLayerTexture(l, layerPreview);
     ImGui::BeginTooltip();
     ImGui::Image((ImTextureID)layerPreview,ImVec2((float)layerPreviewWidth,(float)(layerPreviewHeight*aspectRatio*main_window_yres/main_window_xres/layerPreviewAspect)));
+    ImGui::Text("%dx%d",l->width,l->height);
     ImGui::EndTooltip();
   }
 }
