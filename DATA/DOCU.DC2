@@ -436,7 +436,7 @@
       "\"Pictures\"." _N_
       "No undo." _N_
     "}" _N_
-    "Duplicate picture (merged){" _N_
+    "Duplicate picture (flattened){" _N_
       "Copies the picture merged down to a single layer." _N_
       "The copied picture can be accessed with the menu point" _N_
       "\"Pictures\"." _N_
@@ -1574,6 +1574,9 @@
     "DISSOLVE = The pixels are shown or not shown randomly judged by their alpha." _N_
     "        Maybe it is a good idea to convert Premul layers to Alpha before using this." _N_
     "OFF = Blends out all underlying layers by luminance. Could later be used with MASK." _N_
+    "DARKERC = Just chooses the darker color by luminance." _N_
+    "LIGHTERC = Just chooses the lighter color by luminance." _N_
+    "DIVIDE = Divides the background by the paint color." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_

@@ -143,8 +143,8 @@ float noise2d(unsigned int x, unsigned int y) {
   return (float)(k & 0x7fffff)/(float)0x7fffff;
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve","Off"};
-const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha","More luminance blends down layers below"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve","Off","DarkerC","LighterC","Divide"};
+const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha","More luminance blends down layers below","Darker color","Lighter color","Divide by color"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3"};
 const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image"};
@@ -2965,6 +2965,8 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
   bool useTransparentColor = layer->colorTransform.useTransparentColor;
   unsigned int transparentColor = layer->colorTransform.transparentColor;
 
+  float *lumis = luminanceValues;
+
   bool showSelection = true;
   if (showOnlyActiveLayersSelection) {
     showSelection = layer->state.selected || layer->state.active;
@@ -3696,6 +3698,67 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           b2 = (int)(b2 * k / 255);
           a2 = k;
           col = r2|(g2<<8)|(b2<<16)|(a2<<24);
+        } break;
+      case LAYERMODE_DARKER: {
+          int rd = (rgb0&255);
+          int gd = ((rgb0>>8)&255);
+          int bd = ((rgb0>>16)&255);
+          int rs = (rgb1&255);
+          int gs = ((rgb1>>8)&255);
+          int bs = ((rgb1>>16)&255);
+          float ld = (float)rd * lumis[0] + (float)gd * lumis[1] + (float)bd * lumis[2];
+          float ls = (float)rs * lumis[0] + (float)gs * lumis[1] + (float)bs * lumis[2];
+          int r = ls < ld ? rs : rd;
+          int g = ls < ld ? gs : gd;
+          int b = ls < ld ? bs : bd;
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+          if (a>0) a = 255; else a = (rgb0>>24);
+          col = r|(g<<8)|(b<<16)|(a<<24);
+        } break;
+      case LAYERMODE_LIGHTER: {
+          int rd = (rgb0&255);
+          int gd = ((rgb0>>8)&255);
+          int bd = ((rgb0>>16)&255);
+          int rs = (rgb1&255);
+          int gs = ((rgb1>>8)&255);
+          int bs = ((rgb1>>16)&255);
+          float ld = (float)rd * lumis[0] + (float)gd * lumis[1] + (float)bd * lumis[2];
+          float ls = (float)rs * lumis[0] + (float)gs * lumis[1] + (float)bs * lumis[2];
+          int r = ls >= ld ? rs : rd;
+          int g = ls >= ld ? gs : gd;
+          int b = ls >= ld ? bs : bd;
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+          if (a>0) a = 255; else a = (rgb0>>24);
+          col = r|(g<<8)|(b<<16)|(a<<24);
+        } break;
+      case LAYERMODE_DIVIDE: {
+          int rd = (rgb0&255);
+          int gd = ((rgb0>>8)&255);
+          int bd = ((rgb0>>16)&255);
+          int rs = (rgb1&255);
+          int gs = ((rgb1>>8)&255);
+          int bs = ((rgb1>>16)&255);
+          if (rs == 0) rs = 1;
+          if (gs == 0) gs = 1;
+          if (bs == 0) bs = 1;
+          int r = rd * 255 / rs;
+          int g = gd * 255 / gs;
+          int b = bd * 255 / bs;
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+          if (a>0) a = 255; else a = (rgb0>>24);
+          col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
       }
       if (darken) {col = ((col>>3) & 0x001f1f1f)|(col & 0xff000000);}

@@ -43,8 +43,8 @@
 #include "FILTER.HPP"
 #include <math.h>
 
-const char *paintModeNames[PAINTMODE_COUNT] = {"Normal","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Addsub","Overlay","Burn","ColBurn","ColDodge","Copy","SqrAdd","Dissolve"};
-const char *paintModeNamesFull[PAINTMODE_COUNT] = {"Normal painting","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Direct copy of color","Quadratic addition and square root","Randomly visible by alpha"};
+const char *paintModeNames[PAINTMODE_COUNT] = {"Normal","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Addsub","Overlay","Burn","ColBurn","ColDodge","Copy","SqrAdd","Dissolve","DarkerC","LighterC","Divide"};
+const char *paintModeNamesFull[PAINTMODE_COUNT] = {"Normal painting","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Direct copy of color","Quadratic addition and square root","Randomly visible by alpha","Darker color","Lighter color","Divide by color"};
 
 Array<Brush *> brushes;
 int currentBrush = 0;
@@ -1282,6 +1282,8 @@ static __inline unsigned int getPaintModeColor(unsigned int background, unsigned
     }
   }
 
+  float *lumis = luminanceValues;
+
   switch(mode) {
     case PAINTMODE_COPY: {
         return rgb1;
@@ -1536,6 +1538,40 @@ static __inline unsigned int getPaintModeColor(unsigned int background, unsigned
       float d = (float)(noise32() & 0x7fffff)/(float)0x7fffff;
       return d <= a2 ? (rgb1|0xff000000) : rgb0;
     } // no break needed
+    case PAINTMODE_DARKER: {
+      float a2 = alpha * as;
+      float ls = rs * lumis[0] + gs * lumis[1] + bs * lumis[2];
+      float ld = rd * lumis[0] + gd * lumis[1] + bd * lumis[2];
+      r = ls < ld ? rs : rd;
+      g = ls < ld ? gs : gd;
+      b = ls < ld ? bs : bd;
+      r = (r - rd) * a2 + rd;
+      g = (g - gd) * a2 + gd;
+      b = (b - bd) * a2 + bd;
+    } break;
+    case PAINTMODE_LIGHTER: {
+      float a2 = alpha * as;
+      float ls = rs * lumis[0] + gs * lumis[1] + bs * lumis[2];
+      float ld = rd * lumis[0] + gd * lumis[1] + bd * lumis[2];
+      r = ls >= ld ? rs : rd;
+      g = ls >= ld ? gs : gd;
+      b = ls >= ld ? bs : bd;
+      r = (r - rd) * a2 + rd;
+      g = (g - gd) * a2 + gd;
+      b = (b - bd) * a2 + bd;
+    } break;
+    case PAINTMODE_DIVIDE: {
+      float a2 = alpha * as;
+      r = rs == 0 ? 1 : rd / rs;
+      g = gs == 0 ? 1 : gd / gs;
+      b = bs == 0 ? 1 : bd / bs;
+      if (r > 1) r = 1;
+      if (g > 1) g = 1;
+      if (b > 1) b = 1;
+      r = (r - rd) * a2 + rd;
+      g = (g - gd) * a2 + gd;
+      b = (b - bd) * a2 + bd;
+    } break;
   }
 
   if (premul) {

@@ -294,7 +294,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Fit canvas to selection")) {currentCanvas->fitCanvasToSelection();}
         ImGui::Separator();
         if (ImGui::MenuItem("Duplicate picture")) {duplicatePicture(false);}
-        if (ImGui::MenuItem("Duplicate picture (merged)")) {duplicatePicture(true);}
+        if (ImGui::MenuItem("Duplicate picture (flattened)")) {duplicatePicture(true);}
         ImGui::EndMenu();
       }
       if (ImGui::BeginMenu("Layer")) {
