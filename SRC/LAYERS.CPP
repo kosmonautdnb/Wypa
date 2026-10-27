@@ -39,6 +39,7 @@
 #include "STL/CHARSET.HPP"
 #include "DIALOGS.HPP" // for gradiation curves
 #include "GALLERY.HPP"
+#include "STL/SUPERXBR.HPP"
 #include <math.h>
 
 unsigned int pixelsUpdateCounter = 0;
@@ -146,8 +147,8 @@ float noise2d(unsigned int x, unsigned int y) {
 const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve","Off","DarkerC","LighterC","Divide"};
 const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha","More luminance blends down layers below","Darker color","Lighter color","Divide by color"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
-const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3"};
-const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image"};
+const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3","XAveraging"};
+const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image","For XBR minifying(very slow)"};
 
 void LayerState::clear() {
   active = false;
@@ -1622,8 +1623,23 @@ void Layer::bakeLayer(int interpolation) {
   int y1 = (int)floor(b.w);
   int newWidth = x1-x0;
   int newHeight = y1-y0;
+
   if (newWidth<1) return;
   if (newHeight<1) return;
+
+  if (interpolation == INTERPOLATION_XBRINTERAREA) {
+    initStatusBar();
+    int w = width, h = height;
+    Array<unsigned int> source; Templated<unsigned int>::arrayResize(source, w*h);
+    memcpy(&source[0],pixels,width*height*sizeof(unsigned int));
+    setContentSize(w*2, h*2);
+    superXBR(&source[0],pixels,w,h);
+    Matrix s; s.scale3(Vector(2,2,1));
+    Matrix t; s.translate(Vector(0.5,0.5,1));
+    transform.transformation = inverse2(t) * s * t * transform.transformation;
+    transform.update();
+    updateStatusBar();
+  }
 
   unsigned char *beforeS = new unsigned char[width*height];
   unsigned int *beforeP = new unsigned int[width*height];
@@ -1793,6 +1809,7 @@ void Layer::bakeLayer(int interpolation) {
   transform.update();
 
   switch(interpolation) {
+    case INTERPOLATION_XBRINTERAREA:
     case INTERPOLATION_INTERAREA: {
       unsigned int *accumulationBuffer = new unsigned int[width*height*5]; 
       memset(accumulationBuffer,0,width*height*5*sizeof(unsigned int));

@@ -1523,7 +1523,7 @@ void dialogBlackAndWhiteCurves(bool openIt) {
     if (clone->width == l->width && clone->height == l->height && (!locked(l,LOCK_ANY))) {
       updatedValues = false;
       filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());
-      filterLuminanceBlackWhite(l, 128.f - antialias, 128.f + antialias);
+      if (!escapeWasPressed) filterLuminanceBlackWhite(l, 128.f - antialias, 128.f + antialias);
       if (escapeWasPressed) {apply = false; escapeWasPressed = false;}
       repaintLayer(l,true);
     }
