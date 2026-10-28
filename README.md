@@ -46,7 +46,7 @@ Please be aware that Wypa needs a lot of memory, as stated in the inapp document
 
 If you don't have a DOS based PC with above 128Mb (maybe better **200Mb**) it makes no sense to try to edit e.g. 1920x1080 pictures. The program has no small memory option at all. It's just for editing pictures like the bigger programs on other systems do with GPUs and a lot more of memory free. Just a tiny program to have somehow equal options on a Dos based system.
 
-Your computer should have a branch prediction and maybe even a good cache. Most computers after 2000s maybe should do. Mine is around 2010s.
+Your computer should have a branch prediction and maybe even a good cache. Most computers after 2000s maybe should do. Mine is around 2010s. No SIMD/MMX, Multithreading or native GraphicsUnit used.
 
 ## DosBOX and DosBOX-X
 
