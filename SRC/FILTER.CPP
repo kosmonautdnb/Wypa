@@ -3723,6 +3723,7 @@ bool filterSprinkleBlackWhite(class Layer *layer, float minRad, float maxRad, bo
       r /= w;
       g /= w;
       b /= w;
+      a /= w;
       float luma = r*lumis[0] + g * lumis[1] + b * lumis[2];
       float radius2 = radius * luma * dotScale / 255.f;
       float threshTop2 = radius2+1; float threshBottom2 = radius2;
@@ -3737,7 +3738,7 @@ bool filterSprinkleBlackWhite(class Layer *layer, float minRad, float maxRad, bo
               red_[j] += r*shade;
               green_[j] += g*shade;
               blue_[j] += b*shade;
-              //alpha_[j] += 255*shade;
+              alpha_[j] += a*shade;
               //weight_[j] += 1*shade;
               weight_[j] += 1*shade;
             }
@@ -3895,7 +3896,7 @@ bool filterCache(class Layer *layer, int leftRight, int topBottom, unsigned int 
   return true;
 }
 
-static __inline voronoiCheck(unsigned int *p, int x, int y, int x2, int y2, int w, int h, unsigned char *d, unsigned char frameNr) {
+static __inline bool voronoiCheck(unsigned int *p, int x, int y, int x2, int y2, int w, int h, unsigned char *d, unsigned char frameNr) {
   if ((unsigned int)x2 >= (unsigned int)w || (unsigned int)y2 >= (unsigned int)h) return false;
   unsigned int posHere = p[x+y*w]; unsigned int posThere = p[x2+y2*w];
   int ax = (int)(posHere & 0x7fff); int ay = (int)((posHere>>16) & 0x7fff);
