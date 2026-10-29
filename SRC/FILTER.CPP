@@ -3637,7 +3637,7 @@ bool filterSprinkled(class Layer *layer, float minRad, float maxRad, int maxCoun
   return true;
 }
 
-bool filterSprinkleBlackWhite(class Layer *layer, float minRad, float maxRad, bool colored, float dotScale) {
+bool filterSprinkleBlackWhite(class Layer *layer, float minRad, float maxRad, bool colored, float dotScale, bool normalizeColors) {
   if (layer == NULL) return false;
   if (locked(layer,LOCK_ANY)) return false;
   beforeUndoPoint();
@@ -3728,7 +3728,12 @@ bool filterSprinkleBlackWhite(class Layer *layer, float minRad, float maxRad, bo
       float radius2 = radius * luma * dotScale / 255.f;
       float threshTop2 = radius2+1; float threshBottom2 = radius2;
       int ri2 = (int)(radius2+1);
-      if (!colored) {r = g = b = 255;}
+      if (!colored) {r = g = b = 255;} else {
+        if (normalizeColors) {
+          float l = luma/255.f;
+          if (l != 0) {r /= l; g /= l; b /= l;}
+        }
+      }
       for (int y = -ri2 + cy; y <= ri2 + cy; y++) {float dy = (float)y - centerY; dy *= dy;
         for (int x = -ri2 + cx; x <= ri2 + cx; x++) {float dx = (float)x - centerX; float d = (float)sqrt(dx*dx+dy); 
           float shade = d < threshBottom2 ? 1 : (d > threshTop2 ? 0 : 1-(d-threshBottom2)/(threshTop2-threshBottom2));

@@ -1403,6 +1403,7 @@ void dialogSprinkleBlackWhite(bool openIt) {
   static float dotMaxScale = 8.f;
   static float dotScale = 1.f;
   static bool blackWhite = false;
+  static bool normalizeColors = true;
   if (openIt) {
   }
   DIALOGSTART("Pointilyze")
@@ -1412,6 +1413,9 @@ void dialogSprinkleBlackWhite(bool openIt) {
   ImGui::Text("Max sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEBLACKWHITEMAXRADIUS", &dotMaxScale)) {;} else toolTip("Biggest sprinkle size(radius)"); 
   ImGui::Text("Dot size increase factor"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEBLACKWHITESIZEINC", &dotScale)) {;} else toolTip("How much the resulting circles should be made bigger"); 
   ImGui::Text("Black & white"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGSSPRINKLEBLACKWHITECOLORED",&blackWhite)) {;} else toolTip("Do you black & white or colors");
+  if (!blackWhite) {
+    ImGui::Text("Normalize colors"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGSSPRINKLEBLACKWHITENORMCOL",&normalizeColors)) {;} else toolTip("Should the colors keep their shininess");
+  }
   if (dotScale > 2.f) dotScale = 2.f;
   if (dotScale < 0.01f) dotScale = 0.01f;
   if (dotMinScale > dotMaxScale) dotMinScale = dotMaxScale;
@@ -1421,7 +1425,7 @@ void dialogSprinkleBlackWhite(bool openIt) {
   if (dotMaxScale < 4) dotMaxScale = 4;
   ImGui::PopItemWidth();
   if (ImGui::Button("Apply##DIALOGSPRINKLEBLACKWHITEAPPLY")) {
-    filterSprinkleBlackWhite(l, dotMinScale, dotMaxScale, !blackWhite, dotScale);
+    filterSprinkleBlackWhite(l, dotMinScale, dotMaxScale, !blackWhite, dotScale, normalizeColors);
     ImGui::CloseCurrentPopup();
   } else toolTip("Use this sprinkle black & white setting");
   ImGui::SameLine();

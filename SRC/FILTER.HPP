@@ -74,7 +74,7 @@ bool filterHalftone(class Layer *layer, float cellSize, int type, float dotScale
 bool filterMedianize(class Layer *layer, float cellSize);
 bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY);
 bool filterSprinkled(class Layer *layer, float minRad, float maxRad, int maxCount);
-bool filterSprinkleBlackWhite(class Layer *layer, float minRad, float maxRad, bool colored, float dotScale);
+bool filterSprinkleBlackWhite(class Layer *layer, float minRad, float maxRad, bool colored, float dotScale, bool normalizeColors);
 bool filterComic(class Layer *layer, float steps, bool sat);
 bool filterLuminanceBlackWhite(class Layer *layer, float luminanceBridgeBottom, float luminanceBridgeTop);
 bool filterCache(class Layer *layer, int leftRight, int topBottom, unsigned int color);
