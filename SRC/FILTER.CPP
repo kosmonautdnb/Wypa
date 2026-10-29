@@ -3485,7 +3485,7 @@ bool filterSegmentation(class Layer *layer, int cellCountX, int cellCountY) {
   return true;
 }
 
-bool filterSprinkled(class Layer *layer, float minRad, float maxRad) {
+bool filterSprinkled(class Layer *layer, float minRad, float maxRad, int maxCount) {
   if (layer == NULL) return false;
   if (locked(layer,LOCK_ANY)) return false;
   beforeUndoPoint();
@@ -3604,23 +3604,183 @@ bool filterSprinkled(class Layer *layer, float minRad, float maxRad) {
         j--;
       }
     }
+
+    if (maxCount > 0) {
+      maxCount--;
+      if (maxCount <= 0) break;
+    }
   }
 
   for (int j = 0; j < l->width * l->height; j++) {
-    float w = weight_[j]; if (w == 0) w = 1;
-    int r = (int)(red_[j]/w);
-    int g = (int)(green_[j]/w);
-    int b = (int)(blue_[j]/w);
-    int a = (int)(alpha_[j]/w);
-    if (r < 0) r = 0;
-    if (g < 0) g = 0;
-    if (b < 0) b = 0;
-    if (a < 0) a = 0;
-    if (r > 255) r = 255;
-    if (g > 255) g = 255;
-    if (b > 255) b = 255;
-    if (a > 255) a = 255;
-    l->pixels[j] = r|(g<<8)|(b<<16)|(a<<24);
+    float w = weight_[j]; 
+    if (w != 0) {
+      int r = (int)(red_[j]/w);
+      int g = (int)(green_[j]/w);
+      int b = (int)(blue_[j]/w);
+      int a = (int)(alpha_[j]/w);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (a < 0) a = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a > 255) a = 255;
+      l->pixels[j] = r|(g<<8)|(b<<16)|(a<<24);
+    }
+  }
+
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  updatedPixelStates(layer);
+  afterUndoPoint();
+  return true;
+}
+
+bool filterSprinkleBlackWhite(class Layer *layer, float minRad, float maxRad, bool colored, float dotScale) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  beforeUndoPoint();
+  Layer *l = layer;
+
+  if (minRad < 1) minRad = 1;
+  if (maxRad < 1) maxRad = 1;
+
+  for (int i = 0; i < l->width*l->height; i++) l->pixelStates[i] |= PIXELSTATE_TEMP;
+
+  Array<unsigned int> potentialPixels; Templated<unsigned int>::arrayResize(potentialPixels, l->width*l->height);
+  unsigned int *potentialPixels_ = &potentialPixels[0];
+  for (int y = 0; y < (int)l->height; y++) {
+    for (int x = 0; x < (int)l->width; x++) {
+      potentialPixels[x+y*l->width] = (unsigned int)x | ((unsigned int)y << 16);
+    }
+  }
+
+  int potentialPixelsCount = (int)potentialPixels.size();
+
+  Array<float> red; Templated<float>::arrayResize(red, l->width * l->height); red.fill(0);
+  Array<float> green; Templated<float>::arrayResize(green, l->width * l->height); green.fill(0);
+  Array<float> blue; Templated<float>::arrayResize(blue, l->width * l->height); blue.fill(0);
+  Array<float> alpha; Templated<float>::arrayResize(alpha, l->width * l->height); alpha.fill(0);
+  Array<float> weight; Templated<float>::arrayResize(weight, l->width * l->height); weight.fill(0);
+  float *red_ = &red[0];
+  float *green_ = &green[0];
+  float *blue_ = &blue[0];
+  float *alpha_ = &alpha[0];
+  float *weight_ = &weight[0];
+
+  initStatusBar();
+
+  srand(0);
+  unsigned int portionSize = potentialPixelsCount / 15; if (portionSize < 1) portionSize = 1;
+  unsigned int lastPortion = potentialPixelsCount / portionSize;
+
+  float *lumis = luminanceValues;
+
+  while(potentialPixelsCount > 0) {
+    unsigned int portion = (unsigned int)potentialPixelsCount / portionSize; 
+    if (portion != lastPortion) UPDATESTATUSBARWITHBREAK(;);
+    lastPortion = portion;
+
+    int i = ((int)rand()+(int)rand()*510+(int)rand()*11100) % potentialPixelsCount; // doesn't have to be fully 32 bit
+
+    float centerX = (float)(potentialPixels_[i] & 0xffff);
+    float centerY = (float)((potentialPixels_[i]>>16) & 0xffff);
+    float circleSize = (float)(rand() % RAND_MAX)/(float)RAND_MAX;
+    circleSize *= circleSize;
+    float radius = minRad + circleSize*(maxRad - minRad);
+
+    int ri = (int)(radius + 1);
+    int cx = (int)(centerX);
+    int cy = (int)(centerY);
+    float threshTop = radius+1;
+    float threshBottom = radius;
+
+    float r = 0, g = 0, b = 0, a = 0, w = 0;
+    for (int y = -ri + cy; y <= ri + cy; y++) {
+      float dy = (float)y - centerY;
+      dy *= dy;
+      for (int x = -ri + cx; x <= ri + cx; x++) {
+        float dx = (float)x - centerX;
+        float d = (float)sqrt(dx*dx+dy); 
+        float shade = d < threshBottom ? 1 : (d > threshTop ? 0 : 1-(d-threshBottom)/(threshTop-threshBottom));
+        if (shade > 0) {
+          if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
+            unsigned int col = l->pixels[x+y*l->width]; 
+            l->pixelStates[x+y*l->width] &= ~PIXELSTATE_TEMP;
+            float h = shade;
+            r += (float)(col & 255) * h;
+            g += (float)((col>>8) & 255) * h;
+            b += (float)((col>>16) & 255) * h;
+            a += (float)((col>>24) & 255) * h;
+            w += h;
+          }
+        }
+      }
+    }
+
+    if (w > 0) {
+      r /= w;
+      g /= w;
+      b /= w;
+      float luma = r*lumis[0] + g * lumis[1] + b * lumis[2];
+      float radius2 = radius * luma * dotScale / 255.f;
+      float threshTop2 = radius2+1; float threshBottom2 = radius2;
+      int ri2 = (int)(radius2+1);
+      if (!colored) {r = g = b = 255;}
+      for (int y = -ri2 + cy; y <= ri2 + cy; y++) {float dy = (float)y - centerY; dy *= dy;
+        for (int x = -ri2 + cx; x <= ri2 + cx; x++) {float dx = (float)x - centerX; float d = (float)sqrt(dx*dx+dy); 
+          float shade = d < threshBottom2 ? 1 : (d > threshTop2 ? 0 : 1-(d-threshBottom2)/(threshTop2-threshBottom2));
+          if (shade > 0) {
+            if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
+              int j = x + y * l->width;
+              red_[j] += r*shade;
+              green_[j] += g*shade;
+              blue_[j] += b*shade;
+              //alpha_[j] += 255*shade;
+              //weight_[j] += 1*shade;
+              weight_[j] += 1*shade;
+            }
+          }
+        }
+      }
+    }
+
+    for (int j = 0; j < potentialPixelsCount; j++) {
+      int x = (int)(potentialPixels_[j] & 0xffff);
+      int y = (int)((potentialPixels_[j]>>16) & 0xffff);
+      bool marked = false;
+      if ((unsigned int)x < (unsigned int)l->width && (unsigned int)y < (unsigned int)l->height) {
+        if ( (l->pixelStates[x+y*l->width] & PIXELSTATE_TEMP) == 0 ) marked = true;
+      } else {marked = true;}
+      if (marked) {
+        potentialPixelsCount--;
+        if (potentialPixelsCount >= 0 && j >= 0) {
+          potentialPixels_[j] = potentialPixels_[potentialPixelsCount];
+        }
+        j--;
+      }
+    }
+  }
+
+  for (int j = 0; j < l->width * l->height; j++) {
+    float w = weight_[j]; 
+    if (w != 0) {
+      if (w < 1) w = 1;
+      int r = (int)(red_[j]/w);
+      int g = (int)(green_[j]/w);
+      int b = (int)(blue_[j]/w);
+      int a = 255;//(int)(alpha_[j]/w);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (a < 0) a = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      if (a > 255) a = 255;
+      l->pixels[j] = r|(g<<8)|(b<<16)|(a<<24);
+    } else l->pixels[j] = 0xff000000;
   }
 
   repaintLayer(layer,true);
@@ -3713,5 +3873,141 @@ bool filterLuminanceBlackWhite(class Layer *layer, float luminanceBridgeBottom, 
       l->pixels[i] = grey|(grey<<8)|(grey<<16)|(col & 0xff000000);
     }
   }
+  return true;
+}
+
+bool filterCache(class Layer *layer, int leftRight, int topBottom, unsigned int color) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  beforeUndoPoint();
+
+  for (int y = 0; y < layer->height; y++) {
+    for (int x = 0; x < layer->width; x++) {
+      bool cache = false;
+      if (x < leftRight || x >= layer->width-leftRight) cache = true;
+      if (y < topBottom || y >= layer->height-topBottom) cache = true;
+      if (cache) layer->pixels[x+y*layer->width] = color;
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+  return true;
+}
+
+static __inline voronoiCheck(unsigned int *p, int x, int y, int x2, int y2, int w, int h, unsigned char *d, unsigned char frameNr) {
+  if ((unsigned int)x2 >= (unsigned int)w || (unsigned int)y2 >= (unsigned int)h) return false;
+  unsigned int posHere = p[x+y*w]; unsigned int posThere = p[x2+y2*w];
+  int ax = (int)(posHere & 0x7fff); int ay = (int)((posHere>>16) & 0x7fff);
+  int bx = (int)(posThere & 0x7fff); int by = (int)((posThere>>16) & 0x7fff);
+  bool somethingFilledAlready = posThere & 0x00008000;
+  if (!somethingFilledAlready) {
+    p[x2+y2*w] = 0x80008000|(ax|(ay<<16));
+    d[x2+y2*w] = frameNr;
+    return true;
+  } else {
+    double a = (double)(x2-ax)*(x2-ax)+(y2-ay)*(y2-ay);
+    double b = (double)(x2-bx)*(x2-bx)+(y2-by)*(y2-by);
+    if (a < b) {
+      p[x2+y2*w] = (ax|(ay<<16)) | 0x80008000; 
+      d[x2+y2*w] = frameNr; 
+      return true;
+    }
+  }
+  return false;
+}
+
+bool filterVoronoi(class Layer *layer, int pointCount) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  int w = (int)layer->width;
+  int h = (int)layer->height;
+  if (w < 1 || h < 1 || pointCount < 1) return false;
+  beforeUndoPoint();
+  int wh = (int)(w * h);
+  Array<unsigned int> k; Templated<unsigned int>::arrayResize(k,wh); k.fill(0);
+  unsigned int *p = &k[0];
+
+  Array<unsigned int> c; Templated<unsigned int>::arrayResize(c,wh); c.fill(0);
+  Array<unsigned char> d; Templated<unsigned char>::arrayResize(d,wh); d.fill(0);
+  unsigned char *d_ = &d[0];
+
+  Array<unsigned int> red; Templated<unsigned int>::arrayResize(red,pointCount); red.fill(0);
+  Array<unsigned int> green; Templated<unsigned int>::arrayResize(green,pointCount); green.fill(0);
+  Array<unsigned int> blue; Templated<unsigned int>::arrayResize(blue,pointCount); blue.fill(0);
+  Array<unsigned int> alpha; Templated<unsigned int>::arrayResize(alpha,pointCount); alpha.fill(0);
+  Array<unsigned int> weight; Templated<unsigned int>::arrayResize(weight,pointCount); weight.fill(0);
+
+  initNoise32();
+  unsigned char frameNr = 1;
+  for (int j = 0; j < pointCount; j++) {
+    int x = noise32() % w;
+    int y = noise32() % h;
+    p[x+y*w] = x|(y<<16)|0x80000000;
+    c[x+y*w] = j;
+  }
+
+  bool somethingFilled = false;
+  do {
+    somethingFilled = false;
+    for (int i = 0; i < wh; i++) {
+      if (d_[i] != frameNr) {
+        if (p[i] & 0x80000000) {
+          int x = i % w;
+          int y = i / w;
+          p[i] = p[i] & (~0x80000000);
+          if (voronoiCheck(p,x,y,x-1,y,w,h,d_,frameNr)) somethingFilled = true;
+          if (voronoiCheck(p,x,y,x+1,y,w,h,d_,frameNr)) somethingFilled = true;
+          if (voronoiCheck(p,x,y,x,y-1,w,h,d_,frameNr)) somethingFilled = true;
+          if (voronoiCheck(p,x,y,x,y+1,w,h,d_,frameNr)) somethingFilled = true;
+        }
+      }
+    }
+    frameNr = (unsigned char)((frameNr + 1) & 255);
+  } while(somethingFilled);
+
+  for (int n = 0; n < wh; n++) {
+    unsigned int r = p[n];
+    int x = r & 0x7fff;
+    int y = (r>>16) & 0x7fff;
+    int cell = 0;
+    if ((unsigned int)x<(unsigned int)w&&(unsigned int)y<(unsigned int)h) {
+      cell = c[x+y*w];
+      if (cell >= pointCount) cell = 0;
+    }
+    p[n] = cell;
+  }
+
+  for (int l = 0; l < wh; l++) {
+    unsigned int cell = p[l];
+    if (cell < (unsigned int)pointCount) {
+      unsigned int col = layer->pixels[l];
+      int r = col & 255;
+      int g = (col>>8) & 255;
+      int b = (col>>16) & 255;
+      int a = (col>>24) & 255;
+      red[cell] += r;
+      green[cell] += g;
+      blue[cell] += b;
+      alpha[cell] += a;
+      weight[cell] += 1;
+    }
+  }
+
+  for (int m = 0; m < wh; m++) {
+    unsigned int cell = p[m];
+    if (cell < (unsigned int)pointCount) {
+      int w = weight[cell]; if (w < 1) w = 1;
+      int r = red[cell] / w;
+      int g = green[cell] / w;
+      int b = blue[cell] / w;
+      int a = alpha[cell] / w;
+      layer->pixels[m] = r | (g << 8) | (b <<16) | (a <<24);
+    }
+  }
+
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
   return true;
 }

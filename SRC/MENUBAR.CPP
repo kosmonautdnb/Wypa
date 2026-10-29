@@ -448,6 +448,7 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Noise",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterNoise();}
         if (ImGui::MenuItem("Checkerboard",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogCheckerboard(true);}
         if (ImGui::MenuItem("Hatching",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogSchraffur(true);}
+        if (ImGui::MenuItem("Letterbox",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogCache(true);}
         ImGui::Separator();
         if (ImGui::MenuItem("Blur",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogBlur(true);}
         if (ImGui::MenuItem("Antialiasing XBR2x (slow)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterXBRAntialias();}
@@ -486,7 +487,9 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Pixelate",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogPixelate(true);}
         if (ImGui::MenuItem("Halftone",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogHalftone(true);}
         if (ImGui::MenuItem("Sprinkled",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogSprinkled(true);}
+        if (ImGui::MenuItem("Pointilyze",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogSprinkleBlackWhite(true);}
         if (ImGui::MenuItem("Comic",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogComic(true);}
+        if (ImGui::MenuItem("Voronoi",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogVoronoi(true);}
         if (ImGui::MenuItem("Medianize",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogMedianize(true);}
         if (ImGui::MenuItem("Emboss",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogEmboss(true);}
         ImGui::EndMenu();

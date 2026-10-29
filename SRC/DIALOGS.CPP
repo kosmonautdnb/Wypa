@@ -201,6 +201,7 @@ void dialogs() {
   dialogPixelArtInflate(false);
   dialogClahe(false);
   dialogSchraffur(false);
+  dialogCache(false);
   dialogCheckerboard(false);
   dialogFontGlyphs(false, NULL);
   dialogCopyPasteLoadedText(false);
@@ -210,12 +211,14 @@ void dialogs() {
   dialogTurnToOutline(false);
   dialogHalftone(false);
   dialogSprinkled(false);
+  dialogSprinkleBlackWhite(false);
   dialogComic(false);
   dialogMedianize(false);
   dialogSegmentation(false);
   dialogFileInfo(false);
   dialogFindFile(false, NULL, NULL);
   dialogBlackAndWhiteCurves(false);
+  dialogVoronoi(false);
 }
 
 void drawDialogs() {
@@ -939,6 +942,42 @@ void dialogSchraffur(bool openIt) {
   DIALOGEND()
 }
 
+void dialogCache(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static int imageWidth = 0;
+  static int imageHeight = 0;
+  static int cacheFactor1 = 16;
+  static int cacheFactor2 = 9;
+  if (openIt) {
+    imageWidth = l->width;
+    imageHeight = l->height;
+  }
+  DIALOGSTART("Letterbox")
+  ImGui::PushItemWidth(7*9);
+  ImGui::Text("Cache image width %d",imageWidth); toolTip("How big is the reference frame in pixels (width)"); if (imageWidth<1) imageWidth = 1;
+  ImGui::Text("Cache image height %d",imageHeight); toolTip("How big is the reference frame in pixels (height)"); if (imageHeight<1) imageHeight = 1;
+  ImGui::Separator();
+  ImGui::Text("Cache ratio"); ImGui::SameLine(); ImGui::InputInt("##DIALOGCACHEF1",&cacheFactor1,0,0); toolTip("First part of the ration e.g. 16 for (16:9)"); if (cacheFactor1<1) cacheFactor1 = 1;
+  ImGui::SameLine();ImGui::Text(":"); ImGui::SameLine(); ImGui::InputInt("##DIALOGCACHEF2",&cacheFactor2,0,0); toolTip("Second part of the ration e.g. 9 for (16:9)"); if (cacheFactor2<1) cacheFactor2 = 1;
+  double aspect1 = imageHeight != 0 ? (double)imageWidth/(double)imageHeight : 1;
+  double aspect2 = cacheFactor1 != 0 ? (double)cacheFactor1/(double)cacheFactor2 : 1;
+  double diff = aspect2 != 0 ? aspect1 / aspect2 : 1;
+  int topBottom = (int)((imageHeight * diff - imageHeight)*0.5); topBottom = topBottom < 0 ? -topBottom : 0;
+  int leftRight = (int)((imageWidth / diff  - imageWidth)*0.5); leftRight = leftRight < 0 ? -leftRight : 0;
+  ImGui::Text("Top/bottom border:%d pixels",topBottom);
+  ImGui::Text("Left/right border:%d pixels",leftRight);
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGCACHEAPPLY")) {
+    filterCache(l, leftRight, topBottom, 0xff000000);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Create a cache");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGCACHECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't create a cache image");
+  DIALOGEND()
+}
+
 void dialogCheckerboard(bool openIt) {
   static int cellWidth = 8;
   static int cellHeight = 8;
@@ -1328,13 +1367,19 @@ void dialogSprinkled(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static float dotMinScale = 4.f;
   static float dotMaxScale = 8.f;
+  static int sprinkleCount = 2000;
+  static bool useCount = false;
   if (openIt) {
   }
   DIALOGSTART("Sprinkled")
   ImGui::TextColored(ImVec4(1,0,0,1),"This filter is currently mega slow with really big pictures");
   ImGui::PushItemWidth(7*14);
-  ImGui::Text("Min sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEDMINRADIUS", &dotMinScale)) {;} else toolTip("Smallest sprinkle size(radius)."); 
-  ImGui::Text("Max sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEDMAXRADIUS", &dotMaxScale)) {;} else toolTip("Biggest sprinkle size(radius)."); 
+  ImGui::Text("Min sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEDMINRADIUS", &dotMinScale)) {;} else toolTip("Smallest sprinkle size(radius)"); 
+  ImGui::Text("Max sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEDMAXRADIUS", &dotMaxScale)) {;} else toolTip("Biggest sprinkle size(radius)"); 
+  ImGui::Text("With count"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGSSPRINKLECOUNTON",&useCount)) {;} else toolTip("Do you want a specific count of sprinkles");
+  if (useCount!=0) {
+    ImGui::Text("Sprinkle count"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGSPRINKLECOUNT", &sprinkleCount,0,0)) {;} else toolTip("How many sprinkles to paint maximal"); 
+  }
   if (dotMinScale > dotMaxScale) dotMinScale = dotMaxScale;
   if (dotMaxScale < dotMinScale) dotMaxScale = dotMinScale;
   // currently this algorithm is too slow on big pictures e.g. full HD so we reduce it's performance impact with a minimum size of 4 here
@@ -1342,11 +1387,45 @@ void dialogSprinkled(bool openIt) {
   if (dotMaxScale < 4) dotMaxScale = 4;
   ImGui::PopItemWidth();
   if (ImGui::Button("Apply##DIALOGSPRINKLEDAPPLY")) {
-    filterSprinkled(l, dotMinScale, dotMaxScale);
+    filterSprinkled(l, dotMinScale, dotMaxScale, useCount ? sprinkleCount : 0);
     ImGui::CloseCurrentPopup();
   } else toolTip("Use this sprinkled setting");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGSPRINKLEDCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Just close this view");
+  DIALOGEND()
+}
+
+void dialogSprinkleBlackWhite(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float dotMinScale = 4.f;
+  static float dotMaxScale = 8.f;
+  static float dotScale = 1.f;
+  static bool blackWhite = false;
+  if (openIt) {
+  }
+  DIALOGSTART("Pointilyze")
+  ImGui::TextColored(ImVec4(1,0,0,1),"This filter is currently mega slow with really big pictures");
+  ImGui::PushItemWidth(7*14);
+  ImGui::Text("Min sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEBLACKWHITEMINRADIUS", &dotMinScale)) {;} else toolTip("Smallest sprinkle size(radius)"); 
+  ImGui::Text("Max sprinkle radius (pixels)"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEBLACKWHITEMAXRADIUS", &dotMaxScale)) {;} else toolTip("Biggest sprinkle size(radius)"); 
+  ImGui::Text("Dot size increase factor"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGSPRINKLEBLACKWHITESIZEINC", &dotScale)) {;} else toolTip("How much the resulting circles should be made bigger"); 
+  ImGui::Text("Black & white"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGSSPRINKLEBLACKWHITECOLORED",&blackWhite)) {;} else toolTip("Do you black & white or colors");
+  if (dotScale > 2.f) dotScale = 2.f;
+  if (dotScale < 0.01f) dotScale = 0.01f;
+  if (dotMinScale > dotMaxScale) dotMinScale = dotMaxScale;
+  if (dotMaxScale < dotMinScale) dotMaxScale = dotMinScale;
+  // currently this algorithm is too slow on big pictures e.g. full HD so we reduce it's performance impact with a minimum size of 4 here
+  if (dotMinScale < 4) dotMinScale = 4;
+  if (dotMaxScale < 4) dotMaxScale = 4;
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGSPRINKLEBLACKWHITEAPPLY")) {
+    filterSprinkleBlackWhite(l, dotMinScale, dotMaxScale, !blackWhite, dotScale);
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Use this sprinkle black & white setting");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGSPRINKLEBLACKWHITECLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Just close this view");
   DIALOGEND()
@@ -1542,6 +1621,29 @@ void dialogBlackAndWhiteCurves(bool openIt) {
     if (clone != NULL) {delete clone; clone = NULL;}
     ImGui::CloseCurrentPopup();
     shouldUpdateAll = true;
+  } else toolTip("Don't apply a curvyness here");
+  DIALOGEND()
+}
+
+void dialogVoronoi(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static int pointCount = 10000;
+
+  if (openIt) {
+  }
+  DIALOGSTART("Voronoi");
+
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Point/cell count"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGVORONOIPOINTCOUNT",&pointCount,0,0)) {;} else toolTip("How many randomly positioned voronoi cells should be created"); if (pointCount<0) pointCount = 0; if (pointCount>100*100*100) pointCount = 100*100*100;
+  ImGui::PopItemWidth();
+
+  if (ImGui::Button("Apply##DIALOGVORONOIAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    filterVoronoi(l, pointCount);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGVORONOICLOSE")) {
+    ImGui::CloseCurrentPopup();
   } else toolTip("Don't apply a curvyness here");
   DIALOGEND()
 }

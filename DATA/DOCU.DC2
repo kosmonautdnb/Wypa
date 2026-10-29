@@ -870,6 +870,12 @@
       "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_
+    "Letterbox{" _N_
+      "Let's you add a simple letterbox around the image/layer." _N_
+      "The letterbox size is calculated by the aspect ratio you specify." _N_
+      "However it is not 100 percent perfect so better use video cut" _N_
+      "programs if you need a subpixel perfect letterbox." _N_
+    "}" _N_
     "Edge detect{" _N_
       "Use the morphological gradient to detect edges." _N_
       "The layer is turned into some outlines." _N_
@@ -1060,10 +1066,19 @@
       "slow currently. Maybe it's somehow good to blur pictures" _N_
       "in an somehow more artistical way." _N_
     "}" _N_
+    "Pointylize{" _N_
+      "Turns your picture into a dotted version." _N_
+      "Black and white or colored. You can specify the random cell sizes." _N_
+      "And an additional scale for the dots that are made of the cells." _N_
+    "}" _N_
     "Comic{" _N_
       "This comic shader misses outlines. However it lets you choose" _N_
       "a number of brightness steps for the final image and increases" _N_
       "the colorfulness of the layer/image." _N_
+    "}" _N_
+    "Voronoi{" _N_
+      "Calculates Voronoi cells by the number of cells you specified." _N_
+      "The Voronoi cells are filled with the average color of each cell." _N_
     "}" _N_
     "Medianize{" _N_
       "Calculates the median color for the cells. And chooses the" _N_
