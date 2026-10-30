@@ -64,7 +64,7 @@ bool filterWatershed(class Layer *layer);
 bool filterSubtract(unsigned int *dest, unsigned int *minuend, unsigned int *subtrahend, unsigned int width, unsigned int height);
 bool filterSetAlpha(unsigned int *dest, unsigned int width, unsigned int height, int alpha);
 bool filterSelectionDistanceField(class Layer *layer);
-bool filterSelectionAverageColor(class Layer *layer);
+bool filterSelectionAverageColor(class Layer *layer, bool withLight);
 bool filterPixelate(int cellSizeX, int cellSizeY);
 bool filterSelectionVerticalGradient(class Layer *layer);
 bool filterFillAlphaHoles(class Layer *layer, bool forAlpha);

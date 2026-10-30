@@ -474,7 +474,8 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Dithered black & white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterBayerDither();}
         if (ImGui::MenuItem("Black & white curvyness",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogBlackAndWhiteCurves(true);}
         ImGui::Separator();
-        if (ImGui::MenuItem("Selection average color",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionAverageColor(currentCanvas->getActiveLayer());}
+        if (ImGui::MenuItem("Selection average color",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionAverageColor(currentCanvas->getActiveLayer(),false);}
+        if (ImGui::MenuItem("Selection average color with light",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionAverageColor(currentCanvas->getActiveLayer(),true);}
         if (ImGui::MenuItem("Selection distance field",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionDistanceField(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Selection vertical gradient",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterSelectionVerticalGradient(currentCanvas->getActiveLayer());}
         if (ImGui::MenuItem("Patch alpha holes",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {filterFillAlphaHoles(currentCanvas->getActiveLayer(), true);}

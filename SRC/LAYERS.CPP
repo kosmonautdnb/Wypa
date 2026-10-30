@@ -5521,18 +5521,11 @@ void blitCanvas() {
           lx = (int)(x*aspect); 
           ly = y;
         }
-        lx /= 4;
-        ly /= 4;
-        int k = (lx + ly) & 1;
-        if (k) {
-          int r = col & 0xff;
-          int g = (col>>8) & 0xff;
-          int b = (col>>16) & 0xff;
-          int a = (col>>24) & 0xff;
-          int aadd = 64*(255-a);
-          r = (r*a+aadd)/255;
-          col = r|(g<<8)|(b<<16)|0xff000000;
-        }
+        int a = (col>>24) & 0xff; int aadd = ((((lx>>2)+(ly>>2))&1) ? 64 : 128)*(255-a);
+        int r = ((col & 255)*a+aadd)/255;
+        int g = (((col>>8) & 255)*a+aadd)/255;
+        int b = (((col>>16) & 255)*a+aadd)/255;
+        col = r|(g<<8)|(b<<16)|0xff000000;
       }
 
       if (lx3 < currentCanvas->canvasX0 || ly3 < currentCanvas->canvasY0 || lx3 >= currentCanvas->canvasX1 || ly3 >= currentCanvas->canvasY1) {

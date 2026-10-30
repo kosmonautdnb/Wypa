@@ -1026,6 +1026,11 @@
       "Averages all pixels under the selection and paints the averaged" _N_
       "color flat into the selection again." _N_
     "}" _N_
+    "Selection average color with light{" _N_
+      "Averages all pixels under the selection and paints the averaged" _N_
+      "color flat into the selection again but with lighting changes." _N_
+      "You may use this to clean an area of noisy colors/hues." _N_
+    "}" _N_
     "Selection distance field{" _N_
       "Makes a smooth black white gradient in the borders of the selection." _N_
     "}" _N_

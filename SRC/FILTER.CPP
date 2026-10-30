@@ -2487,7 +2487,7 @@ bool filterSelectionDistanceField(Layer *layer) {
   return true;
 }
 
-bool filterSelectionAverageColor(Layer *layer) {
+bool filterSelectionAverageColor(Layer *layer, bool withLight) {
   Layer *l = layer;
   if (l == NULL) return false;
   if (locked(l,LOCK_ANY)) return false;
@@ -2519,11 +2519,23 @@ bool filterSelectionAverageColor(Layer *layer) {
     int bi = (int)b;
     int ai = (int)a;
     unsigned int col = ri|(gi<<8)|(bi<<16)|(ai<<24);
+
+    ImVec4 col3 = getImVec4Color(col); float h2=0,s2=0,l2=0; getHsl(col3, &h2, &s2 ,&l2);
+
     for (int y2 = 0; y2 < layer->height; y2++) {
       for (int x2 = 0; x2 < layer->width; x2++) {
         unsigned char here = layer->pixelStates[x2+y2*layer->width];
         if (here & PIXELSTATE_SELECTED) {
-          layer->pixels[x2+y2*layer->width] = col;
+          if (!withLight) {
+            layer->pixels[x2+y2*layer->width] = col;
+          } else {
+            unsigned int col = layer->pixels[x2+y2*layer->width];
+            ImVec4 col2 = getImVec4Color(col); float h=0,s=0,l=0; getHsl(col2, &h, &s ,&l);
+            h = h2;
+            s = s2;
+            col2 = hsl((double)h,(double)s,(double)l);
+            layer->pixels[x2+y2*layer->width] = getUIntColor(col2);
+          }
         }
       }
     }
