@@ -144,7 +144,7 @@ void drawMenuBar() {
     ImGui::Image((ImTextureID)0,ImVec2((float)(svg->w+7*5),(float)svg->h),ImVec2(0,0),ImVec2(0,0),ImVec4(0,0,0,0));
     if (ImGui::IsItemHovered()&&ImGui::IsMouseClicked(0)) {dialogAbout(true);}
     cursor.y += 1;
-    ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1));
+    ImGui::GetWindowDrawList()->AddImage((ImTextureID)svg->glHandle,ImVec2(cursor.x+0,cursor.y+0),ImVec2(cursor.x+svg->w,cursor.y+svg->h),ImVec2(0,0),ImVec2(1,1),0xff808080);
     toolTip("Info: Wypa version %d.%02d", version / 100, version % 100);
     ImGui::SameLine();
     cursor2.x += svg->w+3;
