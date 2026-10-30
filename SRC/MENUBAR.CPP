@@ -164,6 +164,11 @@ void drawMenuBar() {
     static bool loadedAnything = false; if (!loadedAnything) {for (int i1 = 0; i1 < (int)canvas.size(); i1++) {if (canvas[i1]->layers.size() > 0) loadedAnything = true;}}
     static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
 
+    bool mouseCapturingAvailable = true;
+#if defined(__WATCOMC__) || defined(__DJGPP__)
+    mouseCapturingAvailable = false; // mouse capturing from host OS maybe only available in non DOS builds
+#endif
+
     if (!loadedAnything) {
       if (ImGui::BeginMenu("File")) {
         on = true;
@@ -182,8 +187,10 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
         if (ImGui::MenuItem("Find file")) {dialogLoadSave(true,DIALOG_FINDFILE);}
         ImGui::Separator();
-        if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
-        ImGui::Separator();
+        if (mouseCapturingAvailable) {
+          if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
+          ImGui::Separator();
+        }
         if (ImGui::MenuItem("Undo enabled", NULL, useUndo, true)) { useUndo = !useUndo; if (!useUndo) clearUndos();}
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
@@ -229,7 +236,9 @@ void drawMenuBar() {
 #endif // __DJGPP__
         if (hasShell && ImGui::MenuItem("Open a shell")) {dosShell();}
         if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
-        if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
+        if (mouseCapturingAvailable) {
+          if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
         ImGui::EndMenu();

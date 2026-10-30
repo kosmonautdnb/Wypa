@@ -167,7 +167,8 @@ void drawLayerView() {
     blitSliderBackground(sw); 
     ImGui::PushItemWidth(sw);
     ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0,0,0,0));
-    float alpha = currentLayer->state.alpha; if (ImGui::SliderFloat("##DRAWLAERVIEWTRANSPARENCYALPHA",&alpha,0,1)) {
+    float alpha = currentLayer->state.alpha*100.f; if (ImGui::SliderFloat("##DRAWLAERVIEWTRANSPARENCYALPHA",&alpha,0,100.f,"%.2f%%")) {
+      alpha /= 100.f;
       if (alpha < 0) alpha = 0;
       if (alpha > 1) alpha = 1;
       currentLayer->state.alpha = alpha;

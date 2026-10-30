@@ -46,7 +46,7 @@ double aspectRatio = 16.0/9.0;
 const char *logFileName = "WYPA.LOG";
 String appFolder;
 bool refreshMasked = true;
-int version = 101;
+int version = 102; const char *versionDesc = "First complete \"alpha\" version";
 bool captureMouse = true;
 double zoomStep = 1.25;
 double scrollKeyPixels = main_window_xres/20;
@@ -171,7 +171,7 @@ void showDebugWindow() {
   ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,0,0,1));
   ImGui::Text("Undo stack %.02fkb", undoStackBytes/1024.f);
   ImGui::Text("Layers %.02fkb", getLayersByteCount()/1024.f);
-  ImGui::Text("Framebuffer %.02fkb",getWatcomGLBytes()/1024.f);
+  ImGui::Text("Framebuffer(%dx%d) %.02fkb",glFrameBufferWidth,glFrameBufferHeight,getWatcomGLBytes()/1024.f);
   ImGui::Text("Additional memory %.02fkb",additionalSize/1024.f);
   ImGui::Text("Maybe free memory %.04fmb (maybe not reliable)", getAdditionalMemoryFreeBytes()/1024.f/1024.f);
   ImGui::Text("FPS %.02f (please compile with the newest DJGPP if that's a problem)",fps);

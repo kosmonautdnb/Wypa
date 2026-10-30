@@ -70,6 +70,7 @@ extern const char *appName;
 extern String appFolder;
 extern unsigned int controlKeyId;
 extern int version;
+extern const char *versionDesc;
 extern bool captureMouse;
 
 extern uint32_t main_window_xres;

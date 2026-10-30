@@ -4949,7 +4949,8 @@ Layer *Canvas::getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, b
 
   copyCanvas->layers = layers;
   hilightSelection = false; // !!
-  overlaysOn = false;
+  overlaysOn = false; // !!
+  singleLayerId = 0; // !!
   unsigned int modeBefore = LAYERMODE_UNDEFINED; if (!copyCanvas->layers.empty()) {modeBefore = copyCanvas->layers.back()->mode; if (modeBefore != LAYERMODE_OPMOD) copyCanvas->layers.back()->mode = LAYERMODE_COPY;}
   copyCanvas->update(true);
 

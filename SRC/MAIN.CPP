@@ -200,7 +200,11 @@ void splashScreen() {
       ImVec2 m2 = ImGui::GetItemRectMin();
       String text2 = String("Version ")+String::fromInt(version / 100) + String(".") + String((version%100)<10 ? "0" : "") + String::fromInt(version % 100);
       ImVec2 textSize = ImGui::CalcTextSize(text2.c_str());
+
       ImVec2 textPos;
+      textPos.x = m2.x + 24;
+      textPos.y = m.y - textSize.y - 4;
+      ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),ImGui::GetWindowFontSize(),textPos,0xff000000,versionDesc);
       textPos.x = m.x - textSize.x - 4;
       textPos.y = m.y - textSize.y - 4;
       ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowFont(),ImGui::GetWindowFontSize(),textPos,0xff000000,text2.c_str());
