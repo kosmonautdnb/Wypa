@@ -148,10 +148,10 @@ void textWidthHeight(const char *text, int *w, int *h) {
 
 double scrollborderSize = 10;
 void scrollByCanvasBorders() {
-  if (mouseX < currentCanvas->screenPosX + scrollborderSize)  currentCanvas->control.moveByPixels(currentCanvas,scrollKeyPixels,0);
-  if (mouseX > currentCanvas->screenPosX + currentCanvas->width - scrollborderSize)  currentCanvas->control.moveByPixels(currentCanvas,-scrollKeyPixels,0);
-  if (mouseY < currentCanvas->screenPosY + scrollborderSize)  currentCanvas->control.moveByPixels(currentCanvas,0,scrollKeyPixels);
-  if (mouseY > currentCanvas->screenPosY + currentCanvas->height - scrollborderSize)  currentCanvas->control.moveByPixels(currentCanvas,0,-scrollKeyPixels);
+  if (mouseX < currentCanvas->screenPosX + scrollborderSize)  {currentCanvas->control.moveByPixels(currentCanvas,scrollKeyPixels,0); tinyWait();}
+  if (mouseX > currentCanvas->screenPosX + currentCanvas->width - scrollborderSize)  {currentCanvas->control.moveByPixels(currentCanvas,-scrollKeyPixels,0); tinyWait();}
+  if (mouseY < currentCanvas->screenPosY + scrollborderSize)  {currentCanvas->control.moveByPixels(currentCanvas,0,scrollKeyPixels); tinyWait();}
+  if (mouseY > currentCanvas->screenPosY + currentCanvas->height - scrollborderSize)  {currentCanvas->control.moveByPixels(currentCanvas,0,-scrollKeyPixels); tinyWait();}
 }
 
 float sampleDistanceField(float *field, double dx, double dy, int fieldWidth, int fieldHeight) {
