@@ -1446,6 +1446,8 @@
     "Make a selection on the current active layer out of the shape." _N_
     "You also can fill the shape with the current set color." _N_
     "Points can also be removed." _N_
+    "" _N_
+    "If you need antialiased shapes switch the fillmode from Copy to Normal." _N_
   "}" _N_
 "}" _N_
 "Navigator{" _N_
