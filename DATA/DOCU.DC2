@@ -1591,6 +1591,7 @@
     "WAND = When used with the Wand tool and visible and enabled in the." _N_
     "        Wand tool and the currentlayer is above this layer. You can" _N_
     "        just take the selections from this layer instead of the active layer." _N_
+    "INVERSE = Inverts the RGB channels of the background by the current color." _N_
     "DISSOLVE = The pixels are shown or not shown randomly judged by their alpha." _N_
     "        Maybe it is a good idea to convert Premul layers to Alpha before using this." _N_
     "OFF = Blends out all underlying layers by luminance. Could later be used with MASK." _N_

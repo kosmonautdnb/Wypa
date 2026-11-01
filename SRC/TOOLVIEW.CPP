@@ -764,7 +764,9 @@ void drawToolMagicView() {
     if (t->lut != NULL) {
       ImGui::SameLine(); ImGui::Text("3D %d", t->lutRSize);
       ImGui::Text("Influence");
-      if (ImGui::SliderFloat("##DRAWTOOLMAGICLUTINFLUENCE",&t->lutInfluence,0,1)) {shouldUpdateAll = true;} else toolTip("How strong the LUT is against the normal color");
+      float i1 = t->lutInfluence*100.f;
+      if (ImGui::SliderFloat("##DRAWTOOLMAGICLUTINFLUENCE",&i1,0,100.f,"%.2f%%")) {shouldUpdateAll = true;} else toolTip("How strong the LUT is against the normal color");
+      t->lutInfluence = i1 / 100.f;
     }
   }
 
@@ -1712,6 +1714,9 @@ void drawToolFormsView() {
     } else toolTip(paintModeNamesFull[fillMode]);
     if (fillMode != PAINTMODE_COPY) {ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);}
   }
+  if (!formAutoselect) {
+    ImGui::Text("Form closed"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFORMSCLOSED", &formClosed)) {;} else toolTip("Is the form a path or a \"ring\"");
+  }
   ImGui::Text("Autoselect"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFORMSAUTOSELECT",&formAutoselect)) {if (formAutoselect) formUpdateAutoselect = true; else {l->selectNone(); formClosed = true;}} else toolTip("Always directly make a selection out of the current form");
   ImGui::Separator();
   if (roundButton("Reset##DRAWTOOLFORMSCLEAR", forms.size() > 0)) {forms.clear(); formUpdateAutoselect = true; formClosed = false; formCVEdit = false;} else toolTip("Clear the form");
@@ -1737,9 +1742,6 @@ void drawToolFormsView() {
   }
   ImGui::Text("Ctrl = invisible");
   ImGui::Separator();
-  if (!formAutoselect) {
-    ImGui::Text("Form closed"); ImGui::SameLine(); if (ImGui::Checkbox("##DRAWTOOLFORMSCLOSED", &formClosed)) {;} else toolTip("Is the form a path or a \"ring\"");
-  }
   if (roundButton(formCVEdit ? "Modify vertices##DRAWTOOLFORMSCVSON" : "Modify CVs##DRAWTOOLFORMSCVSON", true)) {formCVEdit = !formCVEdit;} else toolTip("Modify the bezier spline handles of the points or the actual vertices");
   ImGui::Separator();
   ImGui::Text("Point count %d",forms.size()); toolTip("Form point count");
