@@ -582,9 +582,8 @@ void formSpline(FormPoint &p0, FormPoint &p1, bool blinkOn) {
 #define EORLINE 2
 #define SELECTEDLINE 4
 
-void formSplineLayer(Layer *l, FormPoint &p0, FormPoint &p1, unsigned int color, int formType) {
+void formSplineLayer(FormPoint &p0, FormPoint &p1, unsigned int color, int formType) {
   const int TESSEL = 64;
-  if (l == NULL) return;
   double sx0 = p0.x; double sy0 = p0.y; currentCanvas->getScreenPos(sx0,sy0,sx0,sy0);
   double sx1 = p0.x + p0.bezierX[1]; double sy1 = p0.y + p0.bezierY[1]; currentCanvas->getScreenPos(sx1,sy1,sx1,sy1);
   double sx2 = p1.x + p1.bezierX[0]; double sy2 = p1.y + p1.bezierY[0]; currentCanvas->getScreenPos(sx2,sy2,sx2,sy2);
@@ -601,9 +600,9 @@ void formSplineLayer(Layer *l, FormPoint &p0, FormPoint &p1, unsigned int color,
     currentCanvas->getCanvasPos(kx1,ky1,kx1,ky1);
     switch(formType) {
     case FORM_LINES: {
-      currentCanvas->getLayerPosFromCanvasPos(l,kx0,ky0,kx0,ky0);
-      currentCanvas->getLayerPosFromCanvasPos(l,kx1,ky1,kx1,ky1);
-      l->pixelLine((int)kx0, (int)ky0, (int)kx1, (int)ky1, color);
+      currentCanvas->getLayerPosFromCanvasPos(selectionPlane,kx0,ky0,kx0,ky0);
+      currentCanvas->getLayerPosFromCanvasPos(selectionPlane,kx1,ky1,kx1,ky1);
+      selectionPlane->pixelLine((int)kx0, (int)ky0, (int)kx1, (int)ky1, color);
     } break;
     case FORM_FILLED:
     case FORM_SELECTION: {
@@ -632,13 +631,39 @@ void bakeFormsIntoLayer(Layer *l, int formType) {
   selectionPlane->transform.transformation = s * selectionPlane->transform.transformation;
   selectionPlane->transform.update();
 
-  {for (int i = 0; i < (int)forms.size()-((formClosed||formAutoselect) ? 0 : 1); i++) {
+  unsigned int c = getUIntColor(foregroundColor);
+  for (int i = 0; i < (int)forms.size()-((formClosed||formAutoselect) ? 0 : 1); i++) {
     int i0 = i;
     int i1 = (i + 1) % forms.size();
-    formSplineLayer(l,forms[i0],forms[i1], getUIntColor(foregroundColor), formType); // lines are not upscaled
-  }}
+    formSplineLayer(forms[i0],forms[i1], c, formType); // lines are not upscaled
+  }
 
   switch(formType) {
+    case FORM_LINES: {
+      for (int y = 0; y < l->height; y++) {
+        for (int x = 0; x < l->width; x++) {
+          int i = x + y * l->width;
+          int count = 0;
+          for (int y2 = 0; y2 < scaleUp; y2++) {
+            for (int x2 = 0; x2 < scaleUp; x2++) {
+              int x3 = x*scaleUp + x2;
+              int y3 = y*scaleUp + y2;
+              if ((unsigned int)x3 < (unsigned int)selectionPlane->width && (unsigned int)y3 < (unsigned int)selectionPlane->height) {
+                unsigned int col = selectionPlane->pixels[x3+y3*selectionPlane->width];
+                if (col == c) count++;
+              }
+            }
+          }
+          float brightness = (float)count / (float)(scaleUp*scaleUp-1);
+          if (brightness > 0) {
+            switch(fillMode) {
+              case PAINTMODE_NORMAL: {l->pixels[i] = applyPixel_(l->pixels[i], brightness);} break;
+              default: {l->pixels[i] = getPaintModeColor_(l->pixels[i], getUIntColor(foregroundColor), fillMode, brightness, l->mode == LAYERMODE_PREMULTIPLIEDALPHA);} break;
+            }
+          }
+        }
+      }
+    } break;
     case FORM_FILLED:
     case FORM_SELECTION: {
       for (int y = 0; y < selectionPlane->height; y++) {
@@ -667,6 +692,11 @@ void bakeFormsIntoLayer(Layer *l, int formType) {
           }
           float brightness = (float)count / (float)(scaleUp*scaleUp-1);
           switch(formType) {
+            case FORM_LINES: {
+              if (brightness > 0) {
+                l->pixels[i] = getUIntColor(foregroundColor);
+              }
+            } break;
             case FORM_FILLED: {
               if (brightness > 0) {
                 switch(fillMode) {
@@ -682,6 +712,7 @@ void bakeFormsIntoLayer(Layer *l, int formType) {
     } break;
   }
   switch(formType) {
+    case FORM_LINES:
     case FORM_FILLED: {updatedPixels(l);} break;
     case FORM_SELECTION: {updatedPixelStates(l);} break;
   }
