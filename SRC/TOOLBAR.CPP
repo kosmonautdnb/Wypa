@@ -34,6 +34,7 @@
 #include "TOOLS.HPP"
 #include "COLORFLD.HPP"
 #include "IMGUI/IMGUIGL.HPP"
+#include <math.h>
 
 int toolbar_width = 32;
 int tool = TOOL_NONE;
@@ -42,7 +43,10 @@ bool fullScreen = false;
 
 const char *toolNames[TOOL_COUNT] = {"No tool","Selection","Pencil","Paintbrush","Eraser","Magic wand","Move","Gradient","Pipette","Postprocessing","Fill","Line","Text","Measure","Tileset","Blur","Overlays","Modify","Tilemap","Mirror","Forms"};
 
+int toolStates[TOOL_COUNT]; double toolHighlightDuration[TOOL_COUNT]; // just for fun
+
 void initToolBar() {
+  for (int i = 0; i < TOOL_COUNT; i++) {toolStates[i] = 4; toolHighlightDuration[i] = 0;}
 }
 
 void freeToolBar() {
@@ -110,7 +114,25 @@ bool toolBarButton(const char *svgName, int toolIndex) {
   }
   if (currentCanvas->layers.size()==0) disabled = true;
   if (selected && disabled) {switchTool(TOOL_NONE);}
+
   bool ret = imageButton(svgName, combined(String("##TOOLBARBUTTONINDEXI")+String::fromInt(toolIndex)).c_str(), selected, highlighted, disabled);
+
+  if ((unsigned int)toolIndex < (unsigned int)TOOL_COUNT) {
+    bool mouseOver = ImGui::IsItemHovered();
+    if (toolHighlightDuration[toolIndex] > 0) {
+      int a = (int)(sin(toolHighlightDuration[toolIndex]*PI)*255.0); if (a > 255) a = 255;
+      unsigned int col = 0x000000ff + (a<<24);
+      ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),col);
+      toolHighlightDuration[toolIndex] -= (double)timeDelta*1.0/0.25;
+    }
+    int state = (selected ? 1 : 0) + (highlighted ? 2 : 0) + (disabled ? 4 : 0) + (mouseOver ? 8 : 0);
+    if (state != toolStates[toolIndex]) {
+      if ((state & 4) != (toolStates[toolIndex] & 4)) toolHighlightDuration[toolIndex] = 1.0;
+      if ((state & 8) != (toolStates[toolIndex] & 8)) {if (state & 8) {toolHighlightDuration[toolIndex] = 1.0;}}
+      toolStates[toolIndex] = state;
+    }
+  }
+
   if (ret && !disabled) {switchTool(toolIndex);}
   return ret;
 }
