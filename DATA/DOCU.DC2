@@ -1600,6 +1600,7 @@
     "DARKERC = Just chooses the darker color by luminance." _N_
     "LIGHTERC = Just chooses the lighter color by luminance." _N_
     "DIVIDE = Divides the background by the paint color." _N_
+    "THRESH = All colors RGB below the paint color RGB get 0." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_

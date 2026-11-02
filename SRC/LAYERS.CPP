@@ -144,8 +144,8 @@ float noise2d(unsigned int x, unsigned int y) {
   return (float)(k & 0x7fffff)/(float)0x7fffff;
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve","Off","DarkerC","LighterC","Divide","Inverse"};
-const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha","More luminance blends down layers below","Darker color","Lighter color","Divide by color","Negative color"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve","Off","DarkerC","LighterC","Divide","Inverse","Thresh"};
+const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha","More luminance blends down layers below","Darker color","Lighter color","Divide by color","Negative color","Thresholding"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3","XAveraging"};
 const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image","For XBR minifying(very slow)"};
@@ -3790,6 +3790,23 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           int r = (255-rd)*rs / 255;
           int g = (255-gd)*gs / 255;
           int b = (255-bd)*bs / 255;
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0>>16) & 255);
+          if (a>0) a = 255; else a = (rgb0>>24);
+          col = r|(g<<8)|(b<<16)|(a<<24);
+        } break;
+      case LAYERMODE_THRESH: {
+          int rd = (rgb0&255);
+          int gd = ((rgb0>>8)&255);
+          int bd = ((rgb0>>16)&255);
+          int rs = (rgb1&255);
+          int gs = ((rgb1>>8)&255);
+          int bs = ((rgb1>>16)&255);
+          int r = rd >= rs ? rd : 0;
+          int g = gd >= gs ? gd : 0;
+          int b = bd >= bs ? bd : 0;
           int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
           r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
           g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);

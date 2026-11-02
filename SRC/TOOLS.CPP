@@ -716,6 +716,7 @@ void bakeFormsIntoLayer(Layer *l, int formType) {
     case FORM_FILLED: {updatedPixels(l);} break;
     case FORM_SELECTION: {updatedPixelStates(l);} break;
   }
+  selectionPlane->init(l->width, l->height); // resize to a smaller size again (scaleUp)
 }
 
 void moveSelectedLayersByCanvasPixels(double x, double y) {

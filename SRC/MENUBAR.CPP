@@ -338,13 +338,13 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Add layer")) {dialogAddLayer(true);}
         if (ImGui::MenuItem("Insert layer like this layer",NULL,false,count == 1)) {currentCanvas->insertLayerLikeThisLayer();}
         if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
+        if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {dialogDuplicate(true);}
         ImGui::Separator();
         if (ImGui::BeginMenu("Special layers")) {
           if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); switchTool(TOOL_TEXT);}
           if (ImGui::MenuItem("Insert adjustment layer")) {currentCanvas->insertAdjustmentLayer(); }
           bool tileMapPossible = count == 1 && (currentCanvas->getActiveLayer() != NULL && currentCanvas->getActiveLayer()->type == LAYERTYPE_BASIC);
           if (ImGui::MenuItem("Insert tilemap layer with this layers tiles",NULL,false,tileMapPossible)) {dialogInsertTileMapLayer(true); }
-          if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {dialogDuplicate(true);}
           if (ImGui::MenuItem("Duplicate layer as reference",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->duplicateLayerAsReference(currentCanvas->getActiveLayer());}
           if (ImGui::MenuItem("Insert merge of layer(s)",NULL,false,count > 0)) {currentCanvas->insertMergeOfLayers();}
           ImGui::Separator();
