@@ -164,10 +164,17 @@ void drawMenuBar() {
     static bool loadedAnything = false; if (!loadedAnything) {for (int i1 = 0; i1 < (int)canvas.size(); i1++) {if (canvas[i1]->layers.size() > 0) loadedAnything = true;}}
     static double k = 0; k += timeDelta; k = fmod(k,2*100); int k2 = (int)(k*4);
 
+    bool hasShell = false;
     bool mouseCapturingAvailable = true;
 #if defined(__WATCOMC__) || defined(__DJGPP__)
     mouseCapturingAvailable = false; // mouse capturing from host OS maybe only available in non DOS builds
-#endif
+    hasShell = true;
+#ifdef __WATCOMC__
+#if __WATCOMC__ < 1200
+    hasShell = false;
+#endif // __WATCOMC__
+#endif // __WATCOMC__
+#endif // defined(__WATCOMC__) || defined(__DJGPP__)
 
     if (!loadedAnything) {
       if (ImGui::BeginMenu("File")) {
@@ -177,20 +184,29 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Load wyp image")) {dialogLoadSave(true,DIALOG_LOADIMAGE);}
         if (ImGui::MenuItem("Load any image as a single layer")) {dialogLoadSave(true,DIALOG_IMPORTIMAGE);}
         ImGui::Separator();
-        if (ImGui::MenuItem("Import folder into single layer")) {dialogImportFolder(true);}
-        ImGui::Separator();
-        if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
-        if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
-        if (ImGui::MenuItem("Insert svg layer (experimental)")) {dialogLoadSave(true,DIALOG_INSERTSVG);}
-        ImGui::Separator();
-        if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
-        if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
-        if (ImGui::MenuItem("Find file")) {dialogLoadSave(true,DIALOG_FINDFILE);}
-        ImGui::Separator();
-        if (mouseCapturingAvailable) {
-          if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
-          ImGui::Separator();
+        if (ImGui::BeginMenu("Insert layer(s) from")) {
+          if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
+          if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
+          if (ImGui::MenuItem("Insert svg layer (experimental)")) {dialogLoadSave(true,DIALOG_INSERTSVG);}
+          ImGui::EndMenu();
         }
+        ImGui::Separator();
+        if (ImGui::BeginMenu("Specialized/palettized")) {
+          if (ImGui::MenuItem("Import folder into single layer")) {dialogImportFolder(true);}
+          if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
+          ImGui::EndMenu();
+        }
+        ImGui::Separator();
+        if (ImGui::BeginMenu("Operating system")) {
+          if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
+          if (ImGui::MenuItem("Find file")) {dialogLoadSave(true,DIALOG_FINDFILE);}
+          ImGui::Separator();
+          if (mouseCapturingAvailable) {
+            if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
+          }
+          ImGui::EndMenu();
+        }
+        ImGui::Separator();
         if (ImGui::MenuItem("Undo enabled", NULL, useUndo, true)) { useUndo = !useUndo; if (!useUndo) clearUndos();}
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
@@ -206,39 +222,37 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Save as new version",NULL,false, !lastUsedImageFileName.empty())) {dialogLoadSave(true,DIALOG_SAVEIMAGEASNEWVERSION);}
         if (ImGui::MenuItem("Load any image as a single layer")) {dialogLoadSave(true,DIALOG_IMPORTIMAGE);}
         ImGui::Separator();
-        if (ImGui::MenuItem("Import folder into single layer")) {dialogImportFolder(true);}
-        ImGui::Separator();
-        if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
-        if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
-        if (ImGui::MenuItem("Insert svg layer (experimental)")) {dialogLoadSave(true,DIALOG_INSERTSVG);}
+        if (ImGui::BeginMenu("Insert layer(s) from")) {
+          if (ImGui::MenuItem("Insert image layer(s)")) {dialogLoadSave(true,DIALOG_INSERTIMAGELAYERS);}
+          if (ImGui::MenuItem("Insert psd layers (experimental)")) {dialogLoadSave(true,DIALOG_INSERTPSD);}
+          if (ImGui::MenuItem("Insert svg layer (experimental)")) {dialogLoadSave(true,DIALOG_INSERTSVG);}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Export png")) {dialogLoadSave(true,DIALOG_EXPORTPNG);}
         if (ImGui::MenuItem("Save selected layer(s) as single png")) {dialogLoadSave(true,DIALOG_EXPORTLAYERS);}
         if (ImGui::MenuItem("Save selected layer(s) as multiple pngs")) {dialogLoadSave(true,DIALOG_EXPORTLAYERSRAW);}
         ImGui::Separator();
-        if (palette.size()>0 && palette.size()<=256) {
-          if (ImGui::MenuItem("Export tga (paletted)")) {dialogLoadSave(true,DIALOG_EXPORTTGA);}
+        if (ImGui::BeginMenu("Specialized/palettized")) {
+          if (ImGui::MenuItem("Import folder into single layer")) {dialogImportFolder(true);}
+          if (palette.size()>0 && palette.size()<=256) {
+            if (ImGui::MenuItem("Export tga (paletted)")) {dialogLoadSave(true,DIALOG_EXPORTTGA);}
+          }
+          if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
+          ImGui::EndMenu();
         }
-        if (ImGui::MenuItem("Palette from (paletted) image")) {dialogLoadSave(true,DIALOG_PALETTEFROMPICTURE);}
-        if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
-        if (ImGui::MenuItem("Find file")) {dialogLoadSave(true,DIALOG_FINDFILE);}
+        if (ImGui::BeginMenu("Operating system")) {
+          if (ImGui::MenuItem("Show file information")) {dialogLoadSave(true,DIALOG_FILEINFORMATION);}
+          if (ImGui::MenuItem("Find file")) {dialogLoadSave(true,DIALOG_FINDFILE);}
+          if (hasShell && ImGui::MenuItem("Open a shell")) {dosShell();}
+          if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
+          if (mouseCapturingAvailable) {
+            if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
+          }
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Delete all pictures")) {dialogDeleteAllPictures(true);}
-        ImGui::Separator();
-        bool hasShell = false;
-#ifdef __DJGPP__
-        hasShell = true;
-#endif // __DJGPP__
-#ifdef __WATCOMC__
-#if __WATCOMC__ >= 1200
-        hasShell = true;
-#endif
-#endif // __DJGPP__
-        if (hasShell && ImGui::MenuItem("Open a shell")) {dosShell();}
-        if (ImGui::MenuItem("Save user interface screenshot")) {screenShot = 2;}
-        if (mouseCapturingAvailable) {
-          if (ImGui::MenuItem("Captured mouse", "<F1>", captureMouse)) { captureMouse = !captureMouse; }
-        }
         ImGui::Separator();
         if (ImGui::MenuItem("Exit Wypa")) {dialogExit(true);}
         ImGui::EndMenu();
@@ -262,17 +276,23 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Antialias selected",NULL,false,hasSelection)) {beforeUndoPoint();currentCanvas->antialiasSelected();afterUndoPoint();}
         ImGui::Separator();
-        if (ImGui::MenuItem("Normalize",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->normalize();afterUndoPoint();}
-        if (ImGui::MenuItem("Greyscale",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->greyScale();afterUndoPoint();}
-        if (ImGui::MenuItem("Contrast and brightness",NULL,false,count == 1)) {dialogContrastAndBrightness(true);}
-        if (ImGui::MenuItem("Color matrix",NULL,false,count == 1)) {dialogColorMatrixDirect(true);}
-        if (ImGui::MenuItem("Gradiation curves",NULL,false,count == 1)) {dialogGradiationCurves(true);}
-        if (ImGui::MenuItem("Color balance",NULL,false,count == 1)) {dialogColorBalance(true);}
-        if (ImGui::MenuItem("Simple white balance",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->whiteBalance();afterUndoPoint();}
-        if (ImGui::MenuItem("Invert color",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertColor();afterUndoPoint();}
-        if (ImGui::MenuItem("Invert alpha (no premul)",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertAlpha();afterUndoPoint();}
-        if (ImGui::MenuItem("Turn white to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(true);afterUndoPoint();}
-        if (ImGui::MenuItem("Turn black to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(false);afterUndoPoint();}
+        if (ImGui::BeginMenu("Simple color modifications")) {
+          if (ImGui::MenuItem("Normalize",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->normalize();afterUndoPoint();}
+          if (ImGui::MenuItem("Greyscale",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->greyScale();afterUndoPoint();}
+          if (ImGui::MenuItem("Contrast and brightness",NULL,false,count == 1)) {dialogContrastAndBrightness(true);}
+          if (ImGui::MenuItem("Color matrix",NULL,false,count == 1)) {dialogColorMatrixDirect(true);}
+          if (ImGui::MenuItem("Gradiation curves",NULL,false,count == 1)) {dialogGradiationCurves(true);}
+          if (ImGui::MenuItem("Color balance",NULL,false,count == 1)) {dialogColorBalance(true);}
+          if (ImGui::MenuItem("Simple white balance",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->whiteBalance();afterUndoPoint();}
+          if (ImGui::MenuItem("Invert color",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertColor();afterUndoPoint();}
+          if (ImGui::MenuItem("Invert alpha (no premul)",NULL,false,count>0)) {beforeUndoPoint();currentCanvas->invertAlpha();afterUndoPoint();}
+          ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Transparency")) {
+          if (ImGui::MenuItem("Turn white to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(true);afterUndoPoint();}
+          if (ImGui::MenuItem("Turn black to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(false);afterUndoPoint();}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Undo enabled",NULL,useUndo,true)) {useUndo = !useUndo; if (!useUndo) clearUndos();}
         ImGui::EndMenu();
@@ -290,17 +310,20 @@ void drawMenuBar() {
       }
       if (ImGui::BeginMenu("Image")) {
         on = true;
-        if (ImGui::MenuItem("Mirror horizontally")) {currentCanvas->mirrorHorizontally();}
-        if (ImGui::MenuItem("Mirror vertically")) {currentCanvas->mirrorVertically();}
-        if (ImGui::MenuItem("Rotate +90 degrees")) {currentCanvas->rotate90DegreesForward();}
-        if (ImGui::MenuItem("Rotate -90 degrees")) {currentCanvas->rotate90DegreesBackward();}
-        ImGui::Separator();
         if (ImGui::MenuItem("Image properties")) {dialogCanvas(true);}
         if (ImGui::MenuItem("Resize image")) {dialogImageResize(true);}
         ImGui::Separator();
         if (ImGui::MenuItem("Fit canvas to layers")) {currentCanvas->fitCanvasToLayers();}
         if (ImGui::MenuItem("Crop canvas by alpha")) {currentCanvas->cropCanvasByAlpha(1);}
         if (ImGui::MenuItem("Fit canvas to selection")) {currentCanvas->fitCanvasToSelection();}
+        ImGui::Separator();
+        if (ImGui::BeginMenu("Transform image")) {
+          if (ImGui::MenuItem("Mirror horizontally")) {currentCanvas->mirrorHorizontally();}
+          if (ImGui::MenuItem("Mirror vertically")) {currentCanvas->mirrorVertically();}
+          if (ImGui::MenuItem("Rotate +90 degrees")) {currentCanvas->rotate90DegreesForward();}
+          if (ImGui::MenuItem("Rotate -90 degrees")) {currentCanvas->rotate90DegreesBackward();}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Duplicate picture")) {duplicatePicture(false);}
         if (ImGui::MenuItem("Duplicate picture (flattened)")) {duplicatePicture(true);}
@@ -316,12 +339,19 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Insert layer like this layer",NULL,false,count == 1)) {currentCanvas->insertLayerLikeThisLayer();}
         if (ImGui::MenuItem("Delete layer(s)",NULL,false,one)) {dialogDeleteLayers(true);}
         ImGui::Separator();
-        if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); switchTool(TOOL_TEXT);}
-        if (ImGui::MenuItem("Insert adjustment layer")) {currentCanvas->insertAdjustmentLayer(); }
-        bool tileMapPossible = count == 1 && (currentCanvas->getActiveLayer() != NULL && currentCanvas->getActiveLayer()->type == LAYERTYPE_BASIC);
-        if (ImGui::MenuItem("Insert tilemap layer with this layers tiles",NULL,false,tileMapPossible)) {dialogInsertTileMapLayer(true); }
-        if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {dialogDuplicate(true);}
-        if (ImGui::MenuItem("Duplicate layer as reference",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->duplicateLayerAsReference(currentCanvas->getActiveLayer());}
+        if (ImGui::BeginMenu("Special layers")) {
+          if (ImGui::MenuItem("Insert text layer")) {currentCanvas->insertTextLayer(); switchTool(TOOL_TEXT);}
+          if (ImGui::MenuItem("Insert adjustment layer")) {currentCanvas->insertAdjustmentLayer(); }
+          bool tileMapPossible = count == 1 && (currentCanvas->getActiveLayer() != NULL && currentCanvas->getActiveLayer()->type == LAYERTYPE_BASIC);
+          if (ImGui::MenuItem("Insert tilemap layer with this layers tiles",NULL,false,tileMapPossible)) {dialogInsertTileMapLayer(true); }
+          if (ImGui::MenuItem("Duplicate layer(s)",NULL,false,one)) {dialogDuplicate(true);}
+          if (ImGui::MenuItem("Duplicate layer as reference",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->duplicateLayerAsReference(currentCanvas->getActiveLayer());}
+          if (ImGui::MenuItem("Insert merge of layer(s)",NULL,false,count > 0)) {currentCanvas->insertMergeOfLayers();}
+          ImGui::Separator();
+          if (ImGui::MenuItem("Insert group")) {currentCanvas->insertGroup();}
+          if (ImGui::MenuItem("Delete group", NULL, false, currentCanvas->selectedGroup>=0)) {currentCanvas->deleteGroup();}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
         if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
@@ -329,33 +359,46 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Copy layer(s)",NULL,false,one)) {currentCanvas->copy();}
         if (ImGui::MenuItem("Paste",NULL,false,copyLayer != NULL)) {currentCanvas->paste();}
+        ImGui::Separator();
         if (ImGui::MenuItem("Bake layer(s) (and rasterize)",NULL,false,one)) {dialogBakeLayers(true);}
-        ImGui::Separator();
         if (ImGui::MenuItem("Merge down layer(s)",NULL,false,count > 1)) {dialogMergeDown(true);}
-        if (ImGui::MenuItem("Insert merge of layer(s)",NULL,false,count > 0)) {currentCanvas->insertMergeOfLayers();}
-        if (ImGui::MenuItem("Insert alpha mask above layer(s)",NULL,false,count > 0)) {currentCanvas->insertAlphaMasks();}
-        if (ImGui::MenuItem("Apply alpha mask to below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}
         ImGui::Separator();
-        if (ImGui::MenuItem("Convert layer(s) from alpha to premul",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromAlphaToPremul();afterUndoPoint();}
-        if (ImGui::MenuItem("Convert layer(s) from premul to alpha (don't)",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromPremulToAlpha();afterUndoPoint();}
-        if (ImGui::MenuItem("Convert layer(s) from tilemap to bitmap",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromTilemapToBitmap();afterUndoPoint();}
+        if (ImGui::BeginMenu("Alpha masks")) {
+          if (ImGui::MenuItem("Insert alpha mask above layer(s)",NULL,false,count > 0)) {currentCanvas->insertAlphaMasks();}
+          if (ImGui::MenuItem("Apply alpha mask to below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
-        if (ImGui::MenuItem("Quantized palette from layer",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogQuantizePalette(true);}
-        if (ImGui::MenuItem("Quantize layer(s) to palette",NULL,false,one)) {beforeUndoPoint();currentCanvas->quantizeLayers();afterUndoPoint();}
+        if (ImGui::BeginMenu("Convert layer(s)")) {
+          if (ImGui::MenuItem("Convert layer(s) from alpha to premul",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromAlphaToPremul();afterUndoPoint();}
+          if (ImGui::MenuItem("Convert layer(s) from premul to alpha (don't)",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromPremulToAlpha();afterUndoPoint();}
+          if (ImGui::MenuItem("Convert layer(s) from tilemap to bitmap",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromTilemapToBitmap();afterUndoPoint();}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
-        if (ImGui::MenuItem("Mirror horizontally",NULL,false,one)) {currentCanvas->mirrorHorizontallyLayers();}
-        if (ImGui::MenuItem("Mirror vertically",NULL,false,one)) {currentCanvas->mirrorVerticallyLayers();}
-        if (ImGui::MenuItem("Rotate +90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesForwardLayers();}
-        if (ImGui::MenuItem("Rotate -90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesBackwardLayers();}
+        if (ImGui::BeginMenu("Color reduce")) {
+          if (ImGui::MenuItem("Quantized palette from layer",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogQuantizePalette(true);}
+          if (ImGui::MenuItem("Quantize layer(s) to palette",NULL,false,one)) {beforeUndoPoint();currentCanvas->quantizeLayers();afterUndoPoint();}
+          ImGui::EndMenu();
+        }
+        ImGui::Separator();
+        if (ImGui::BeginMenu("Transform layer(s)")) {
+          if (ImGui::MenuItem("Mirror horizontally",NULL,false,one)) {currentCanvas->mirrorHorizontallyLayers();}
+          if (ImGui::MenuItem("Mirror vertically",NULL,false,one)) {currentCanvas->mirrorVerticallyLayers();}
+          if (ImGui::MenuItem("Rotate +90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesForwardLayers();}
+          if (ImGui::MenuItem("Rotate -90 degrees",NULL,false,one)) {currentCanvas->rotate90DegreesBackwardLayers();}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Layer properties",NULL,false,currentCanvas->getActiveLayer()!=NULL)) {dialogUpdateLayer(true);}
         if (ImGui::MenuItem("Crop layer(s) by alpha",NULL,false,one)) {beforeUndoPoint();currentCanvas->cropLayersByAlpha(1);afterUndoPoint();}
         if (ImGui::MenuItem("Resize layer by repetition",NULL,false,count == 1 && currentCanvas->getActiveLayer()!=NULL)) {dialogResizeLayerByRepetition(true);}
         ImGui::Separator();
-        if (ImGui::MenuItem("Insert group")) {currentCanvas->insertGroup();}
-        if (ImGui::MenuItem("Delete group", NULL, false, currentCanvas->selectedGroup>=0)) {currentCanvas->deleteGroup();}
-        if (ImGui::MenuItem("Lock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(true);}
-        if (ImGui::MenuItem(oneLocked ? "*Unlock layer(s)##DRAWMENUBARUNLOCK" : "Unlock layer(s)##DRAWMENUBARUNLOCK",NULL,false,one)) {currentCanvas->lockLayers(false);}
+        if (ImGui::BeginMenu("Lock/unlock layer(s)")) {
+          if (ImGui::MenuItem("Lock layer(s)",NULL,false,one)) {currentCanvas->lockLayers(true);}
+          if (ImGui::MenuItem(oneLocked ? "*Unlock layer(s)##DRAWMENUBARUNLOCK" : "Unlock layer(s)##DRAWMENUBARUNLOCK",NULL,false,one)) {currentCanvas->lockLayers(false);}
+          ImGui::EndMenu();
+        }
         ImGui::EndMenu();
       }
       if (ImGui::BeginMenu("Selection")) {
@@ -373,8 +416,11 @@ void drawMenuBar() {
         if (ImGui::MenuItem("Selection as outline")) {beforeUndoPoint(); currentCanvas->selectionAsOutline(); afterUndoPoint();}
         if (ImGui::MenuItem("Extrude selection")) {dialogExtrudeSelection(true);}
         ImGui::Separator();
-        if (ImGui::MenuItem("Apply selections to layer",NULL,false,count>1&&(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->getLayerSelectionFromLayers(currentCanvas->getActiveLayer());}
-        if (ImGui::MenuItem("Clear all other layer selections",NULL,false,(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->clearAllOtherLayerSelections(currentCanvas->getActiveLayer());}
+        if (ImGui::BeginMenu("Layer selection options")) {
+          if (ImGui::MenuItem("Apply selections to active layer",NULL,false,count>1&&(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->getLayerSelectionFromLayers(currentCanvas->getActiveLayer());}
+          if (ImGui::MenuItem("Clear all other layer selections",NULL,false,(currentCanvas->getActiveLayer()!=NULL))) {currentCanvas->clearAllOtherLayerSelections(currentCanvas->getActiveLayer());}
+          ImGui::EndMenu();
+        }
         ImGui::EndMenu();
       } else {
         ImVec2 minB = ImGui::GetItemRectMin();
@@ -395,56 +441,78 @@ void drawMenuBar() {
         for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected || currentCanvas->layers[i]->state.active) {count++;}
         if (ImGui::MenuItem("Gallery",NULL,galleryVisible)) {galleryVisible = !galleryVisible;}
         ImGui::Separator();
-        if (ImGui::MenuItem("Monitor calibration",NULL,hasMonitorCalibration)) {dialogMonitorGamma(true);}
-        if (ImGui::MenuItem("Dither calibrated monitor colors",NULL,monitorColorsDithered&&hasMonitorCalibration,hasMonitorCalibration)) {monitorColorsDithered = !monitorColorsDithered; shouldUpdateAll = true; reGenMonitorGamma();}
-        selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9",NULL,&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
+        if (ImGui::BeginMenu("Monitor setup")) {
+          if (ImGui::MenuItem("Monitor calibration",NULL,hasMonitorCalibration)) {dialogMonitorGamma(true);}
+          if (ImGui::MenuItem("Dither calibrated monitor colors",NULL,monitorColorsDithered&&hasMonitorCalibration,hasMonitorCalibration)) {monitorColorsDithered = !monitorColorsDithered; shouldUpdateAll = true; reGenMonitorGamma();}
+          selected = aspectRatio == 16.0/9.0; if (ImGui::MenuItem("Aspect ratio 16:9",NULL,&selected)) {aspectRatio = selected?16.0/9.0:(double)glFrameBufferWidth/glFrameBufferHeight; reloadIcons(); reScaleTexts(); shouldUpdateAll = true;}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
-        if (ImGui::MenuItem("Zoom 100%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,100.f);}
-        if (ImGui::MenuItem("Zoom 200%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,200.f);}
-        if (ImGui::MenuItem("Canvas rotation 0 degrees",NULL,false,currentCanvas->control.rotation != 0)) {currentCanvas->control.rotation = 0; shouldUpdateAll = true;}
-        ImGui::Separator();
+        if (ImGui::BeginMenu("Rotation & zoom")) {
+          if (ImGui::MenuItem("Zoom to 100%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,100.f);}
+          if (ImGui::MenuItem("Zoom to 200%")) {currentCanvas->control.zoomTo(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,200.f);}
+          ImGui::Separator();
+          if (ImGui::MenuItem("Canvas rotation to 0 degrees",NULL,false,currentCanvas->control.rotation != 0)) {currentCanvas->control.rotation = 0; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Rotate canvas by +45 degrees")) {currentCanvas->control.addAngle(currentCanvas,45);}
+          if (ImGui::MenuItem("Rotate canvas by -45 degrees")) {currentCanvas->control.addAngle(currentCanvas,-45);}
+          ImGui::EndMenu();
+        }
         if (ImGui::MenuItem("Zoom in (+)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,zoomStep);}
         if (ImGui::MenuItem("Zoom out (-)")) {currentCanvas->control.zoomBy(currentCanvas,canvasPixelCenterX,canvasPixelCenterY,1.f/zoomStep);}
-        if (ImGui::MenuItem("Rotate canvas +45 degrees")) {currentCanvas->control.addAngle(currentCanvas,45);}
-        if (ImGui::MenuItem("Rotate canvas -45 degrees")) {currentCanvas->control.addAngle(currentCanvas,-45);}
         ImGui::Separator();
-        static bool wasStored = false;
-        if (ImGui::MenuItem("Store scroll")) {currentCanvas->storeScroll(); wasStored = true;}
-        if (ImGui::MenuItem("Restore scroll",NULL,false,wasStored)) {currentCanvas->restoreScroll(); shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Scroll to layer origin",NULL, false, count == 1)) {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;}
+        if (ImGui::BeginMenu("View locations")) {
+          static bool wasStored = false;
+          if (ImGui::MenuItem("Fit to view")) {currentCanvas->fitCanvas(); shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Center view")) {currentCanvas->centerCanvas(); shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Scroll to layer origin",NULL, false, count == 1)) {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;}
+          ImGui::Separator();
+          if (ImGui::MenuItem("Store scroll setting")) {currentCanvas->storeScroll(); wasStored = true;}
+          if (ImGui::MenuItem("Restore scroll setting",NULL,false,wasStored)) {currentCanvas->restoreScroll(); shouldUpdateAll = true;}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
-        if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Show canvas darkened",NULL,showCanvasDarkened)) {showCanvasDarkened = !showCanvasDarkened; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Show fields with same color",NULL,sameColorFieldsOn)) {sameColorFieldsOn = !sameColorFieldsOn; shouldUpdateAll = true;}
-        if (sameColorFieldsOn) ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);
+        if (ImGui::BeginMenu("Workspace appearance")) {
+          if (ImGui::MenuItem("Show layer shapes",NULL,currentCanvas->layerShapesOn)) {currentCanvas->layerShapesOn = !currentCanvas->layerShapesOn; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Show canvas darkened",NULL,showCanvasDarkened)) {showCanvasDarkened = !showCanvasDarkened; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Show layer info",NULL,layerInfoOn)) {layerInfoOn = !layerInfoOn; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Transparency pattern fixed",NULL,transparencyFixed)) {transparencyFixed = !transparencyFixed; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Visible undo/redo",NULL,visibleUndo)) {visibleUndo = !visibleUndo; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Visible layer switch",NULL,visibleLayerSwitch)) {visibleLayerSwitch = !visibleLayerSwitch; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Animated fitting button",NULL,showSomethingToFitAnim)) {showSomethingToFitAnim = !showSomethingToFitAnim;}
+          ImGui::Separator();
+          if (ImGui::MenuItem("Show fields with same color",NULL,sameColorFieldsOn)) {sameColorFieldsOn = !sameColorFieldsOn; shouldUpdateAll = true;}
+          if (sameColorFieldsOn) ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(),ImGui::GetItemRectMax(),0x800000ff);
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
-        if (ImGui::MenuItem("Vintage color wheel",NULL,alternativeColorWheel)) {alternativeColorWheel = !alternativeColorWheel;reGenColorWheel();}
-        if (ImGui::MenuItem("Show skin tone range in hue",NULL,showSkinTone)) {showSkinTone = !showSkinTone;reGenColorWheel();}
+        if (ImGui::BeginMenu("Color wheel appearance")) {
+          if (ImGui::MenuItem("Vintage color wheel",NULL,alternativeColorWheel)) {alternativeColorWheel = !alternativeColorWheel;reGenColorWheel();}
+          if (ImGui::MenuItem("Show skin tone range in hue",NULL,showSkinTone)) {showSkinTone = !showSkinTone;reGenColorWheel();}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
-        if (ImGui::MenuItem("Show grid",NULL,currentCanvas->gridOn)) {currentCanvas->gridOn = !currentCanvas->gridOn; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Show rulers",NULL,rulersOn)) {rulersOn = !rulersOn; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Show layer info",NULL,layerInfoOn)) {layerInfoOn = !layerInfoOn; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Transparency pattern fixed",NULL,transparencyFixed)) {transparencyFixed = !transparencyFixed; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Visible undo/redo",NULL,visibleUndo)) {visibleUndo = !visibleUndo; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Visible layer switch",NULL,visibleLayerSwitch)) {visibleLayerSwitch = !visibleLayerSwitch; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Animated fitting button",NULL,showSomethingToFitAnim)) {showSomethingToFitAnim = !showSomethingToFitAnim;}
+        if (ImGui::BeginMenu("Color transfer functions")) {
+          int colorMixingMode = (subtractiveColors ? 2 : 0) + (subtractiveCMYK ? 1 : 0);
+          if (ImGui::MenuItem("Clay color mixing (opacity)",NULL,colorMixingMode == 2)) {if (colorMixingMode != 2) colorMixingMode = 2; else colorMixingMode = 0; subtractiveCMYK = false; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("Glaze color mixing (opacity)",NULL,colorMixingMode == 3)) {if (colorMixingMode != 3) colorMixingMode = 3; else colorMixingMode = 0; shouldUpdateAll = true;}
+          subtractiveColors = colorMixingMode & 2 ? true : false;
+          subtractiveCMYK = colorMixingMode & 1 ? true : false;
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
-        int colorMixingMode = (subtractiveColors ? 2 : 0) + (subtractiveCMYK ? 1 : 0);
-        if (ImGui::MenuItem("Clay color mixing (opacity)",NULL,colorMixingMode == 2)) {if (colorMixingMode != 2) colorMixingMode = 2; else colorMixingMode = 0; subtractiveCMYK = false; shouldUpdateAll = true;}
-        if (ImGui::MenuItem("Glaze color mixing (opacity)",NULL,colorMixingMode == 3)) {if (colorMixingMode != 3) colorMixingMode = 3; else colorMixingMode = 0; shouldUpdateAll = true;}
-        subtractiveColors = colorMixingMode & 2 ? true : false;
-        subtractiveCMYK = colorMixingMode & 1 ? true : false;
+        if (ImGui::BeginMenu("Special")) {
+          if (ImGui::MenuItem("Show only selected layer(s) selection",NULL,showOnlyActiveLayersSelection)) {showOnlyActiveLayersSelection = !showOnlyActiveLayersSelection; shouldUpdateAll = true;}
+          if (ImGui::MenuItem("FastQuant/Quantize with luminance",NULL,fastQuantWithLuma)) {fastQuantWithLuma = !fastQuantWithLuma; shouldUpdateAll = true; updatePalette();}
+          if (ImGui::MenuItem("Sort palette by luminance",NULL)) {sortPalette(palette); updatePalette(); shouldUpdateAll = true; showPalette = true;}
+          ImGui::EndMenu();
+        }
         ImGui::Separator();
         bool lockedMouse = lockedMouseX||lockedMouseY||tilingOn;
         if (lockedMouse) ImGui::PushStyleColor(ImGuiCol_Text,(k2 & 1) ? ImVec4(1,0,0,1) : ImVec4(0.5,0,0,1));
         if (ImGui::MenuItem("Clear mouse lock and tiling",NULL,false,lockedMouse)) {lockedMouseX = false; lockedMouseY = false; tilingOn = false; if (tool == TOOL_TILING) switchTool(TOOL_NONE);}
         if (lockedMouse) ImGui::PopStyleColor();
-        if (ImGui::MenuItem("Show only selected layer(s) selection",NULL,showOnlyActiveLayersSelection)) {showOnlyActiveLayersSelection = !showOnlyActiveLayersSelection; shouldUpdateAll = true;}
-        ImGui::Separator();
-        if (ImGui::MenuItem("Sort palette by luminance",NULL)) {sortPalette(palette); updatePalette(); shouldUpdateAll = true; showPalette = true;}
-        if (ImGui::MenuItem("Quantize with luminance",NULL,fastQuantWithLuma)) {fastQuantWithLuma = !fastQuantWithLuma; shouldUpdateAll = true; updatePalette();}
         ImGui::EndMenu();
       }
       if (ImGui::BeginMenu("Filter")) {
@@ -569,11 +637,15 @@ void drawMenuBar() {
       if (ImGui::MenuItem("About")) {dialogAbout(true);}
       if (ImGui::MenuItem("Hotkeys")) {dialogHotkeys(true);}
       ImGui::Separator();
-      if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
-      if (ImGui::MenuItem("Flaws (e.g. memory consumption)")) {dialogFlaws(true);}
-      if (ImGui::MenuItem("Puls4r game creation suite")) {dialogSuite(true);}
+      if (ImGui::BeginMenu("Maybe worth to read")) {
+        if (ImGui::MenuItem("If you are new")) {dialogNewHere(true);}
+        if (ImGui::MenuItem("Flaws (e.g. memory consumption)")) {dialogFlaws(true);}
+        if (ImGui::MenuItem("Puls4r game creation suite")) {dialogSuite(true);}
+        if (ImGui::MenuItem("What's Wypa for?")) {dialogWhatFor(true);}
+        ImGui::EndMenu();
+      }
+      ImGui::Separator();
       if (ImGui::MenuItem("Tiny documentation")) {dialogDocumentation(true);}
-      if (ImGui::MenuItem("What's Wypa for?")) {dialogWhatFor(true);}
       ImGui::Separator();
       if (ImGui::MenuItem("Show tooltips",NULL,showToolTips,true)) {showToolTips = !showToolTips;}
       if (ImGui::MenuItem("Status window",NULL,debugWindowOn,true)) {debugWindowOn = !debugWindowOn;}
