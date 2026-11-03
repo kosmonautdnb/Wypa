@@ -663,7 +663,7 @@ public:
   void convertToPremul();
   void convertToAlpha();
   void convertToBitmap(class Canvas *canvas);
-  void convertColorToAlpha(bool white);
+  void convertColorToAlpha(int mode);
 
   void setLayerPos(double x, double y);
   void setLayerSize(double width, double height);
@@ -978,7 +978,7 @@ public:
   void convertFromAlphaToPremul();
   void convertFromPremulToAlpha();
   void convertFromTilemapToBitmap();
-  void convertColorToAlpha(bool white);
+  void convertColorToAlpha(int mode);
 
   void selectAll();
   void selectNone(bool all);

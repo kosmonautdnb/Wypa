@@ -2031,7 +2031,7 @@ void Layer::convertToBitmap(Canvas *canvas) {
   updatedPixelStates(this);
 }
 
-void Layer::convertColorToAlpha(bool white) {
+void Layer::convertColorToAlpha(int mode) {
   bool hasSel = hasSelection();
   bool premul = mode == LAYERMODE_PREMULTIPLIEDALPHA;
 
@@ -2051,23 +2051,26 @@ void Layer::convertColorToAlpha(bool white) {
           b = b * 255.f / a;
         }
       }
-  
-      float whiteLevel = r;
-      if (g < whiteLevel) whiteLevel = g;
-      if (b < whiteLevel) whiteLevel = b;
-    
+
       float blackLevel = r;
       if (g > blackLevel) blackLevel = g;
       if (b > blackLevel) blackLevel = b;
       blackLevel = 255 - blackLevel;
   
-      if (white) {
-        r = r - whiteLevel;
-        g = g - whiteLevel;
-        b = b - whiteLevel;
-        a = 255.f-whiteLevel;
-      } else {
-        a = 255.f-blackLevel;
+      float whiteLevel = r;
+      if (g < whiteLevel) whiteLevel = g;
+      if (b < whiteLevel) whiteLevel = b;
+
+      switch(mode) {  
+        case 0: {
+          a = 255.f-blackLevel;
+        } break;
+        case 1: {
+          r = r - whiteLevel;
+          g = g - whiteLevel;
+          b = b - whiteLevel;
+          a = 255.f-whiteLevel;
+        } break;
       }
   
       if (!premul) {
@@ -4433,10 +4436,10 @@ void Canvas::convertFromTilemapToBitmap() {
   shouldUpdateAll = true;
 }
 
-void Canvas::convertColorToAlpha(bool white) {
+void Canvas::convertColorToAlpha(int mode) {
   for (int i = 0; i < (int)layers.size(); i++) {
     if (layers[i]->state.selected || layers[i]->state.active) {
-      layers[i]->convertColorToAlpha(white);
+      layers[i]->convertColorToAlpha(mode);
     }
   }
   shouldUpdateAll = true;

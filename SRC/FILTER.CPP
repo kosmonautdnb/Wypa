@@ -4029,3 +4029,43 @@ bool filterVoronoi(class Layer *layer, int pointCount) {
   afterUndoPoint();
   return true;
 }
+
+bool filterSetComponentsHSL(Layer *layer, bool hueOn, bool saturationOn, bool lightnessOn, float hue, float saturation, float lightness) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  bool hasSelection = layer->hasSelection();
+  for (int i = 0; i < (int)(layer->width*layer->height); i++) {
+    if ((!hasSelection) || (layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      ImVec4 c = getImVec4Color(layer->pixels[i]);
+      float h=0, s=0, l=0;
+      getHsl(c,&h,&s,&l);
+      if (hueOn) h = hue/360.f;
+      if (saturationOn) s = saturation;
+      if (lightnessOn) l = lightness;
+      c = hsl(h,s,l);
+      layer->pixels[i] = getUIntColor(c);
+    }
+  }
+  updatedPixels(layer);
+  return true;
+}
+
+bool filterSetComponentsRGB(Layer *layer, bool rOn, bool gOn, bool bOn, float red, float green, float blue) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  bool hasSelection = layer->hasSelection();
+  for (int i = 0; i < (int)(layer->width*layer->height); i++) {
+    if ((!hasSelection) || (layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = layer->pixels[i];
+      int r = (col & 255);
+      int g = ((col>>8) & 255);
+      int b = ((col>>16) & 255);
+      if (rOn) r = (int)red;
+      if (gOn) g = (int)green;
+      if (bOn) b = (int)blue;
+      layer->pixels[i] = r|(g<<8)|(b<<16)|(col & 0xff000000);
+    }
+  }
+  updatedPixels(layer);
+  return true;
+}

@@ -219,6 +219,7 @@ void dialogs() {
   dialogFindFile(false, NULL, NULL);
   dialogBlackAndWhiteCurves(false);
   dialogVoronoi(false);
+  dialogSetColorComponents(false);
 }
 
 void drawDialogs() {
@@ -1645,7 +1646,7 @@ void dialogVoronoi(bool openIt) {
   if (ImGui::Button("Apply##DIALOGVORONOIAPPLY")) {
     ImGui::CloseCurrentPopup();
     filterVoronoi(l, pointCount);
-  }
+  } else toolTip("Apply the Voronoi filter");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGVORONOICLOSE")) {
     ImGui::CloseCurrentPopup();
@@ -1653,6 +1654,59 @@ void dialogVoronoi(bool openIt) {
   DIALOGEND()
 }
 
+void dialogSetColorComponents(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float hue=0, saturation=0, lightness=0;
+  static bool hueOn = false, saturationOn = false, lightnessOn = false;
+  static float red = 0, green = 0, blue = 0;
+  static bool rOn = false, gOn = false, bOn = false;
+  if (openIt) {
+  }
+  DIALOGSTART("Set color components");
+
+  ImGui::PushItemWidth(362);
+  float *v = NULL;
+
+  if (ImGui::Checkbox("##DIALOGSETCOLORCOMPONENTSHUEON",&hueOn)) {if (hueOn) {rOn=gOn=bOn=false;}} else toolTip("Should change the hue of the pixels"); 
+  ImGui::SameLine(); ImGui::Text("Hue       "); ImGui::SameLine();
+  blitColorSliderBackground(ImGui::GetCursorScreenPos(),3,362);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg,ImVec4(0,0,0,0));
+  v = &hue; if (ImGui::SliderFloat("##DIALOGSETCOLORCOMPONENTSHUE",v,0,360)) {if (*v<0) *v = 0; if (*v>360) {*v = 360;} hueOn = true; rOn=gOn=bOn=false;} else toolTip("Change the hue of the selection");
+  ImGui::PopStyleColor();
+  if (ImGui::Checkbox("##DIALOGSETCOLORCOMPONENTSSATON",&saturationOn)) {if (saturationOn) {rOn=gOn=bOn=false;}} else toolTip("Should change the saturation of the pixels"); 
+  ImGui::SameLine(); ImGui::Text("Saturation"); ImGui::SameLine();
+  v = &saturation; if (ImGui::SliderFloat("##DIALOGSETCOLORCOMPONENTSSATURATION",v,0,2)) {if (*v<0) *v = 0; if (*v>2) {*v = 2;} saturationOn = true; rOn=gOn=bOn=false;} else toolTip("Change the saturation of the selection");
+  if (ImGui::Checkbox("##DIALOGSETCOLORCOMPONENTSLIGHTNESSON",&lightnessOn)) {if (lightnessOn) {rOn=gOn=bOn=false;}} else toolTip("Should change the lightness of the pixels"); 
+  ImGui::SameLine(); ImGui::Text("Lightness "); ImGui::SameLine();
+  v = &lightness; if (ImGui::SliderFloat("##DIALOGSETCOLORCOMPONENTSLIGHTNESS",v,0,1)) {if (*v<0) *v = 0; if (*v>4) {*v = 4;} lightnessOn = true; rOn=gOn=bOn=false;} else toolTip("Change the lightness of the selection");
+
+  if (ImGui::Checkbox("##DIALOGSETCOLORCOMPONENTSRON",&rOn)) {if (rOn) {hueOn = saturationOn = lightnessOn = false;}} else toolTip("Should change the red value of the pixels"); 
+  ImGui::SameLine(); ImGui::Text("Red       "); ImGui::SameLine();
+  v = &red; if (ImGui::SliderFloat("##DIALOGSETCOLORCOMPONENTSRED",v,0,255)) {if (*v<0) *v = 0; if (*v>255) {*v = 255;} rOn = true; hueOn = saturationOn = lightnessOn = false;} else toolTip("Change the red value of the selection");
+  if (ImGui::Checkbox("##DIALOGSETCOLORCOMPONENTSGON",&gOn)) {if (gOn) {hueOn = saturationOn = lightnessOn = false;}} else toolTip("Should change the green value of the pixels"); 
+  ImGui::SameLine(); ImGui::Text("Green     "); ImGui::SameLine();
+  v = &green; if (ImGui::SliderFloat("##DIALOGSETCOLORCOMPONENTSGREEN",v,0,255)) {if (*v<0) *v = 0; if (*v>255) {*v = 255;} gOn = true; hueOn = saturationOn = lightnessOn = false;} else toolTip("Change the green value of the selection");
+  if (ImGui::Checkbox("##DIALOGSETCOLORCOMPONENTSBON",&bOn)) {if (bOn) {hueOn = saturationOn = lightnessOn = false;}} else toolTip("Should change the blue value of the pixels"); 
+  ImGui::SameLine(); ImGui::Text("Blue      "); ImGui::SameLine();
+  v = &blue; if (ImGui::SliderFloat("##DIALOGSETCOLORCOMPONENTSBLUE",v,0,255)) {if (*v<0) *v = 0; if (*v>255) {*v = 255;} bOn = true; hueOn = saturationOn = lightnessOn = false;} else toolTip("Change the blue value of the selection");
+
+  ImGui::PopItemWidth();
+
+  if (ImGui::Button("Apply##DIALOGSETCOLORCOMPONENTSAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    beforeUndoPoint();
+    if (hue || saturation || lightness) filterSetComponentsHSL(l, hueOn, saturationOn, lightnessOn, hue, saturation, lightness);
+    if (rOn || gOn || bOn) filterSetComponentsRGB(l, rOn, gOn, bOn, red, green, blue);
+    afterUndoPoint();
+    updatedPixels(l);
+    repaintLayer(l,true);
+  } else toolTip("Apply these color changes");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGSETCOLORCOMPONENTSCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply a color component change here");
+  DIALOGEND()
+}
 
 #define HOTKEY(__char__,__ctrl__,__alt__,__text__) ImGui::Text("%s",__text__);
 

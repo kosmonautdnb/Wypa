@@ -82,6 +82,7 @@ void updatePalette();
 void sortPalette(Array<ImVec4> &pal);
 
 void reGenColorWheel();
+void blitColorSliderBackground(const ImVec2 &before, int slider, int sliderWidth);
 
 #define COLORTRACEBACKS 8
 extern unsigned int colorTraceBacks[COLORTRACEBACKS];

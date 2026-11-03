@@ -79,6 +79,8 @@ bool filterComic(class Layer *layer, float steps, bool sat);
 bool filterLuminanceBlackWhite(class Layer *layer, float luminanceBridgeBottom, float luminanceBridgeTop);
 bool filterCache(class Layer *layer, int leftRight, int topBottom, unsigned int color);
 bool filterVoronoi(class Layer *layer, int pointCount);
+bool filterSetComponentsHSL(class Layer *layer, bool hueOn, bool saturationOn, bool lightnessOn, float hue, float saturation, float lightness);
+bool filterSetComponentsRGB(class Layer *layer, bool rOn, bool gOn, bool bOn, float red, float green, float blue);
 
 #define S_FILTER_CPP()
 

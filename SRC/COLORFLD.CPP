@@ -184,7 +184,7 @@ void updateColorSlidersTexture() {
       colorSliderTextureContent[x+y*colorSliderTextureWidth] = gammaCorrect(ri|(gi<<8)|(bi<<16)|0xff000000,x,0);
     }
   }
-  glBindTexture(GL_TEXTURE_2D,colorSliderTexture);
+  glBindTexture(GL_TEXTURE_2D, colorSliderTexture);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA, colorSliderTextureWidth, colorSliderTextureHeight, 0, GL_RGBA, GL_BYTE, colorSliderTextureContent);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

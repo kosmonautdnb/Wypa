@@ -278,6 +278,7 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::BeginMenu("Simple color modifications")) {
           if (ImGui::MenuItem("Normalize",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->normalize();afterUndoPoint();}
+          if (ImGui::MenuItem("Set color component(s)",NULL,false,count == 1)) {dialogSetColorComponents(true);}
           if (ImGui::MenuItem("Greyscale",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->greyScale();afterUndoPoint();}
           if (ImGui::MenuItem("Contrast and brightness",NULL,false,count == 1)) {dialogContrastAndBrightness(true);}
           if (ImGui::MenuItem("Color matrix",NULL,false,count == 1)) {dialogColorMatrixDirect(true);}
@@ -289,8 +290,8 @@ void drawMenuBar() {
           ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Transparency")) {
-          if (ImGui::MenuItem("Turn white to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(true);afterUndoPoint();}
-          if (ImGui::MenuItem("Turn black to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(false);afterUndoPoint();}
+          if (ImGui::MenuItem("Turn white to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(1);afterUndoPoint();}
+          if (ImGui::MenuItem("Turn black to alpha",NULL,false,count == 1)) {beforeUndoPoint();currentCanvas->convertColorToAlpha(0);afterUndoPoint();}
           ImGui::EndMenu();
         }
         ImGui::Separator();

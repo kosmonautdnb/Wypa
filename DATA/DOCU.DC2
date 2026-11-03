@@ -289,6 +289,11 @@
       "FXAA is a anti aliasing and thus makes the structures" _N_
       "more smooth. FXAA is also called \"screen space antialiasing\"." _N_
     "}" _N_
+    "Set color component(s){" _N_
+      "You can change any of the six given options in the selected area." _N_
+      "You can choose which ones should be changed." _N_
+      "e.g. for a complete hue change just edit the hue slider." _N_
+    "}" _N_
     "Normalize{" _N_
       "Makes the RGB colors occupy the full 0..255 range." _N_
       "thus removing lower \"greys\" and upper \"greys\" making" _N_
