@@ -354,6 +354,12 @@ void drawMenuBar() {
           ImGui::EndMenu();
         }
         ImGui::Separator();
+        if (ImGui::BeginMenu("Split layer")) {
+          if (ImGui::MenuItem("Split layer into RGB", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(0);}
+          if (ImGui::MenuItem("Split layer into GWLC", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(1);}
+          ImGui::EndMenu();
+        }
+        ImGui::Separator();
         if (ImGui::MenuItem("Hide all layers")) {currentCanvas->showAllLayers(false);}
         if (ImGui::MenuItem("Show all layers")) {currentCanvas->showAllLayers(true);}
         if (ImGui::MenuItem("Select all layers")) {currentCanvas->selectAllLayers();}

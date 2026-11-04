@@ -559,6 +559,16 @@
       "If you convert from premul to alpha the colors on the transparent" _N_
       "sections will get worse. It is not a good idea to do that." _N_
     "}" _N_
+    "Split layer into RGB{" _N_
+      "splits the current active layer into three distinct layers." _N_
+      "One with the red channel, one with green and one with blue." _N_
+    "}" _N_
+    "Split layer into GWLC{" _N_
+      "splits the current active layer into four distinct layers." _N_
+      "One with the saturation(grey), one with white, another with" _N_
+      "luminance and one with color. However this transformation may" _N_
+      "not keep all color information like it was before." _N_
+    "}" _N_
     "Quantized palette from layer{" _N_
       "You can enter a color count and reduce the current layer" _N_
       "to this color count. With the preview button you can see the" _N_
@@ -901,6 +911,7 @@
       "Iterative - a stepwise pixel blur." _N_
       "Radial - a directional blur with an angle and a size." _N_
       "Median - this one can be used to smooth surfaces." _N_
+      "Contour median - Like median but keeps big color jumps unaffected." _N_
       "" _N_
       "This filter also works with selections on layers." _N_
     "}" _N_

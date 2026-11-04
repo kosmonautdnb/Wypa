@@ -39,7 +39,7 @@ bool filterBoxBlur(unsigned int *dest,unsigned int *source, unsigned int width, 
 bool filterRadialBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radialAngle, float radialSize, unsigned char *pixelStates, bool usePixelStates);
 bool filterGaussBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float radiusX, float radiusY, unsigned char *pixelStates, bool usePixelStates);
 bool filterIterativeBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int steps, unsigned char *pixelStates, bool usePixelStates);
-bool filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates, bool circular, bool keepSelection);
+bool filterMedianBlur(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int medianW, int medianH, unsigned char *pixelStates, bool usePixelStates, bool circular, bool keepSelection, bool bilateral, float bilateralThreshold);
 bool filterEmboss(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, float angle, unsigned char *pixelStates, bool usePixelStates);
 bool filterSimpleKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, int channel, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert);
 bool filterColorKeying(unsigned int *dest,unsigned int *source, unsigned int width, unsigned int height, unsigned int color, float factor, unsigned char *pixelStates, bool usePixelStates, int mode, bool binary, bool invert);

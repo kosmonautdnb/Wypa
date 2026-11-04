@@ -1015,6 +1015,8 @@ public:
   void copy();
   void paste();
 
+  void splitLayer(int mode);
+
   int getActiveLayerIndex();
   Layer *getActiveLayer();
   void setActiveLayer(int layer);

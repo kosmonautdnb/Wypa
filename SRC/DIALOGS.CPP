@@ -2872,7 +2872,8 @@ enum BLURTYPES {
   BLURTYPE_RADIAL = 2,
   BLURTYPE_ITERATIVE = 3,
   BLURTYPE_MEDIAN = 4,
-  BLURTYPE_COUNT = 5
+  BLURTYPE_CONTOURMEDIAN = 5,
+  BLURTYPE_COUNT = 6
 };
 
 void dialogBlur(bool openIt) {
@@ -2888,10 +2889,11 @@ void dialogBlur(bool openIt) {
   static int medianWidth = 4;
   static int medianHeight = 4;
   static int blurType = BLURTYPE_GAUSS;
-  static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur","Iterative", "Median"};
+  static const char *blurTypes[BLURTYPE_COUNT] = {"Gauss blur", "Box blur", "Radial blur","Iterative", "Median", "Contour median"};
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static int maxBlurPixels = 100;
   static int maxMedianPixels = 30;
+  static float bilateralMedianThreshold = 64;
   static bool medianCircular = false;
   static bool medianContours = false;
   static bool highPass = false;
@@ -2956,6 +2958,17 @@ void dialogBlur(bool openIt) {
       increaseLayerWidth = medianWidth;
       increaseLayerHeight = medianHeight;
     } break;
+    case BLURTYPE_CONTOURMEDIAN: {
+      ImGui::Text("Contour median blur settings");
+      ImGui::Text("Circular"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGBLURMEDIANCIRCULAR",&medianCircular)) {updatedValues = true;} else toolTip("This changes from box filter to some sort of round shape, maybe smoother.");
+      ImGui::Text("Radius X"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANWIDTH",&medianWidth,0,0)) {updatedValues = true;} else toolTip("The rectangular blur width/2"); if (medianWidth<0) medianWidth = 0; if (medianWidth>maxMedianPixels) medianWidth = maxMedianPixels;
+      ImGui::Text("Radius Y"); ImGui::SameLine(); if (ImGui::InputInt("##DIALOGBLURMEDIANHEIGHT",&medianHeight,0,0)) {updatedValues = true;} else toolTip("The rectangular blur height/2"); if (medianHeight<0) medianHeight = 0; if (medianHeight>maxMedianPixels) medianHeight = maxMedianPixels;
+      ImGui::Text("Keep selection area contours"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGBLURMEDIANCONTOURS",&medianContours)) {updatedValues = true;} else toolTip("Doesn't take pixels outside the selected area into account");
+      ImGui::Separator();
+      ImGui::Text("Max channel difference"); ImGui::SameLine(); if (ImGui::InputFloat("##DIALOGBLURMEDIANBILATERALTHRESH",&bilateralMedianThreshold,0,2)) {updatedValues = true;} else toolTip("How much a channel (R/G/B) can differ to be accepted"); if (bilateralMedianThreshold<0) bilateralMedianThreshold = 0; if (bilateralMedianThreshold>256) bilateralMedianThreshold = 256;
+      increaseLayerWidth = medianWidth;
+      increaseLayerHeight = medianHeight;
+    } break;
   }
   ImGui::Separator();
   ImGui::Text("Just get the highpass"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGBLURHIGHPASS",&highPass)) {updatedValues = true;} else toolTip("Gets the highpass (range -128..127) instead of the blur. Use layer mode \"Addsub\" to add it to the blur again.");
@@ -2979,7 +2992,8 @@ void dialogBlur(bool openIt) {
         case BLURTYPE_RADIAL: {filterRadialBlur(l->pixels,clone->pixels, l->width, l->height, radialAngle, radialSize,l->pixelStates,l->hasSelection());} break;
         case BLURTYPE_GAUSS: {filterGaussBlur(l->pixels,clone->pixels, l->width, l->height, gaussX, gaussY,l->pixelStates,l->hasSelection());} break;
         case BLURTYPE_ITERATIVE: {filterIterativeBlur(l->pixels,clone->pixels, l->width, l->height, iterativeSteps, l->pixelStates,l->hasSelection());} break;
-        case BLURTYPE_MEDIAN: {filterMedianBlur(l->pixels,clone->pixels, l->width, l->height, medianWidth, medianHeight,l->pixelStates,l->hasSelection(), medianCircular, medianContours);} break;
+        case BLURTYPE_MEDIAN: {filterMedianBlur(l->pixels,clone->pixels, l->width, l->height, medianWidth, medianHeight,l->pixelStates,l->hasSelection(), medianCircular, medianContours, false, 0);} break;
+        case BLURTYPE_CONTOURMEDIAN: {filterMedianBlur(l->pixels,clone->pixels, l->width, l->height, medianWidth, medianHeight,l->pixelStates,l->hasSelection(), medianCircular, medianContours, true, bilateralMedianThreshold);} break;
       }
       if (escapeWasPressed) {apply = false; escapeWasPressed = false;}
       if (highPass) {
