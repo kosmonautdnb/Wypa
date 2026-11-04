@@ -2578,7 +2578,9 @@ void dialogGradiationCurves(bool openIt) {
   static Array<int> histogram;
   static bool showCurveBetter = false;
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static Layer *hg = NULL;
   if (openIt) {
+    hg = l;
     showCurveCVs = false;
     beforeUndoPoint();
     gradiationChannel = 0;
@@ -2594,6 +2596,7 @@ void dialogGradiationCurves(bool openIt) {
       if (gradientCurvesToColorTransform == NULL) {
         if (clone != NULL) {delete clone; clone = NULL;}
         clone = l->clone();
+        hg = clone; // the layer taken for the histogram counts
       } else {
         curveBefore = gradientCurvesToColorTransform->gradientCurves;
         stringToCurves(curveBefore);
@@ -2704,10 +2707,10 @@ void dialogGradiationCurves(bool openIt) {
   dialogNoMove = false;
   for (int i = 0; i < 5; i++) if (curves[i].dragPoint>=0) dialogNoMove = true;
   ImGui::Text("CVs"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGGRADIATIONCVS",&showCurveCVs); toolTip("Show bezier curve handles");
-  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel,histogram,showCurveBetter);} else toolTip("Show the curve for a color channel");
+  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,hg,gradiationChannel,histogram,showCurveBetter);} else toolTip("Show the curve for a color channel");
   ImGui::PopItemWidth();
   ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<(int)c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;} else toolTip("Delete this curve point");
-  ImGui::SameLine(); ImGui::Text("Sqrt"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGGRADIATIONBETTER",&showCurveBetter)) {updateGradiationTexture(gradiationTexture,l,gradiationChannel,histogram,showCurveBetter);} toolTip("Histogram shows squareroots as red columns");
+  ImGui::SameLine(); ImGui::Text("Sqrt"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGGRADIATIONBETTER",&showCurveBetter)) {updateGradiationTexture(gradiationTexture,hg,gradiationChannel,histogram,showCurveBetter);} toolTip("Histogram shows squareroots as red columns");
 
   if (shouldUpdateAll) updateGradientCurvesPreview = true;
 
