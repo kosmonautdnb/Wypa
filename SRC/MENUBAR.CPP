@@ -357,6 +357,7 @@ void drawMenuBar() {
         if (ImGui::BeginMenu("Split layer")) {
           if (ImGui::MenuItem("Split layer into RGB", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(0);}
           if (ImGui::MenuItem("Split layer into WGBC", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(1);}
+          if (ImGui::MenuItem("Split layer into CL", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(2);}
           ImGui::Separator();
           if (ImGui::MenuItem("Insert alpha mask above layer(s)",NULL,false,count > 0)) {currentCanvas->insertAlphaMasks();}
           if (ImGui::MenuItem("Apply alpha mask to selected below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}

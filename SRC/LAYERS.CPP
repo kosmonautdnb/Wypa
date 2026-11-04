@@ -5159,6 +5159,29 @@ void Canvas::splitLayer(int mode) {
       l->state.visible = false;
       setActiveLayer(pos);
     } break;
+    case 2: {
+      const char *names[2] = {"<color>","<luma>"};
+      int modes[2] = {LAYERMODE_MUL2X,LAYERMODE_PREMULTIPLIEDALPHA};
+      for (int i = 1; i >= 0; i--) {
+        Layer *l2 = l->clone(); int m = l2->mode; l2->mode = modes[i]; updatedLayerMode(l2, m, l2->mode);
+        sprintf(l2->name,"%s",names[i]);
+        for (int j = 0; j < (int)(l2->width*l2->height); j++) {
+          unsigned int col = l2->pixels[j]; int r = (int)(col & 255); int g = (int)((col>>8) & 255); int b = (int)((col>>16) & 255); int luma = (r + g + b)/3; int l = luma == 0 ? 1 : luma;
+          switch(i) {
+          case 0: {r = r * 255 / l / 2; g = g * 255 / l / 2; b = b * 255 / l / 2;} break;
+          case 1: {r = g = b = luma;} break;
+          }
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          l2->pixels[j] = r|(g<<8)|(b<<16)|0xff000000;
+        }
+        insertLayer(l2,pos);
+      }
+      //eraseLayer(l);
+      l->state.visible = false;
+      setActiveLayer(pos);
+    } break;
   }
 }
 
