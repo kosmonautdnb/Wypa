@@ -5139,7 +5139,7 @@ void Canvas::splitLayer(int mode) {
       setActiveLayer(pos);
     } break;
     case 1: {
-      const char *names[4] = {"<grey>","<white>","<black>","<color>"};
+      const char *names[4] = {"<white>","<grey>","<black>","<color>"};
       int modes[4] = {LAYERMODE_PREMULTIPLIEDALPHA,LAYERMODE_PREMULTIPLIEDALPHA,LAYERMODE_PREMULTIPLIEDALPHA,LAYERMODE_PREMULTIPLIEDALPHA};
       for (int i = 3; i >= 0; i--) {
         Layer *l2 = l->clone(); int m = l2->mode; l2->mode = modes[i]; updatedLayerMode(l2, m, l2->mode);
@@ -5147,8 +5147,8 @@ void Canvas::splitLayer(int mode) {
         for (int j = 0; j < (int)(l2->width*l2->height); j++) {
           float h,s,l; getHsl(getImVec4Color(l2->pixels[j]), &h, &s, &l);
           switch(i) {
-            case 0: {int a = (int)(255-s * 255.f); int grey = (int)(l * 255.f)*a/255; l2->pixels[j] = grey|(grey<<8)|(grey<<16)|(a<<24);} break;
-            case 1: {int a = (int)((l-0.5f) * 2.f * 255.f); if (a < 0) {a = 0;} int white = a; l2->pixels[j] = white|(white<<8)|(white<<16)|(a<<24);} break;
+            case 0: {int a = (int)((l-0.5f) * 2.f * 255.f); if (a < 0) {a = 0;} int white = a; l2->pixels[j] = white|(white<<8)|(white<<16)|(a<<24);} break;
+            case 1: {int a = (int)(255-s * 255.f); int grey = (int)((l<0.5f?l:0.5f) * 255.f)*a/255; l2->pixels[j] = grey|(grey<<8)|(grey<<16)|(a<<24);} break;
             case 2: {int a = 255; int grey = (int)(l*255*2); if (grey > 255) {grey=255;} l2->pixels[j] = 0x000000|((255-grey)<<24);} break;
             case 3: {s = 1; l = 0.5; l2->pixels[j] = getUIntColor(hsl(h,s,l));} break;
           }
