@@ -144,8 +144,8 @@ float noise2d(unsigned int x, unsigned int y) {
   return (float)(k & 0x7fffff)/(float)0x7fffff;
 }
 
-const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve","Off","DarkerC","LighterC","Divide","Inverse","Thresh"};
-const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha","More luminance blends down layers below","Darker color","Lighter color","Divide by color","Negative color","Thresholding"};
+const char *layerModeNames[LAYERMODE_COUNT] = {"UNDEFINED","Alpha","Premul","Screen","Add","Sub","Mul","Mul2X","Max","Min","Color","Luma","SoftLight","HardLight","LinearLight","PinLight","Diff","Copy","Mask","Addsub","Overlay","Burn","ColBurn","ColDodge","Pigment","SqrAdd","Wand","Dissolve","Off","DarkerC","LighterC","Divide","Inverse","Thresh","Mul3X"};
+const char *layerModeNamesFull[LAYERMODE_COUNT] = {"UNDEFINED","Alpha transparency","Premultiplied alpha","Like Photoshop Screen","Additive like Photoshop Linear dodge","Subtractive","Like Photoshop Multiplicative","Multiplicative*2","Like Photoshop Lighten","Like Photoshop Darken","Color hue","Luminance","Like Photoshop Soft light","Like Photoshop Hard light","Like Photoshop Linear light","Like Photoshop Pin light","Difference","Copy","Modify above layers opacity","Above 128 add. below sub","Like Photoshop Overlay","Like Photoshop Linear burn", "Like Photoshop Color burn", "Like Photoshop Color dodge","Pigments are used with brushes/pens for the layers above","Quadratic addition and square root","Wand selections solely on this layer","Random pixels by alpha","More luminance blends down layers below","Darker color","Lighter color","Divide by color","Negative color","Thresholding","Multiplicative*3"};
 const char *layerTypeNames[LAYERTYPE_COUNT] = {"Basic","Text","Adjustment","Tilemap"};
 const char *interpolationNames[INTERPOLATION_COUNT] = {"Pixelated","Averaging","Linear","Quadratic","Cubic","Lanczos2","Lanczos3","XAveraging"};
 const char *interpolationDescs[INTERPOLATION_COUNT] = {"Nearest neighboring pixel","For minifying images","Smooth but flat","Not so flat and doesn't keep values","May have halos","May have halos","May wear out the image","For XBR minifying(very slow)"};
@@ -3372,6 +3372,26 @@ void updateCanvas(Canvas *canvas, int x0, int y0, int x1, int y1, Layer *layer) 
           if (a>0) a = 255; else a = (rgb0>>24);
           col = r|(g<<8)|(b<<16)|(a<<24);
         } break;
+      case LAYERMODE_MUL3X: {
+          int r = (int)(rgb0 & 255)*(int)(rgb1 & 255);
+          int g = (int)((rgb0>>8) & 255)*(int)((rgb1>>8) & 255);
+          int b = (int)((rgb0>>16) & 255)*(int)((rgb1>>16) & 255);
+          r *= 3;
+          g *= 3;
+          b *= 3;
+          r /= 255;
+          g /= 255;
+          b /= 255;
+          int a = (int)(alpha * (int)(rgb1>>24)); float alpha2 = a/255.f;
+          r = (int)((r - (int)(rgb0 & 255)) * alpha2) + (int)(rgb0 & 255);
+          g = (int)((g - (int)((rgb0>>8) & 255)) * alpha2) + (int)((rgb0>>8) & 255);
+          b = (int)((b - (int)((rgb0>>16) & 255)) * alpha2) + (int)((rgb0 >> 16) & 255);
+          if (r > 255) r = 255;
+          if (g > 255) g = 255;
+          if (b > 255) b = 255;
+          if (a>0) a = 255; else a = (rgb0>>24);
+          col = r|(g<<8)|(b<<16)|(a<<24);
+        } break;
       case LAYERMODE_PREMULTIPLIEDALPHA: {
           int a = (int)((rgb1 >> 24)*alpha);
           int a2 = 255-a;
@@ -5161,14 +5181,14 @@ void Canvas::splitLayer(int mode) {
     } break;
     case 2: {
       const char *names[2] = {"<color>","<luma>"};
-      int modes[2] = {LAYERMODE_MUL2X,LAYERMODE_PREMULTIPLIEDALPHA};
+      int modes[2] = {LAYERMODE_MUL3X,LAYERMODE_PREMULTIPLIEDALPHA};
       for (int i = 1; i >= 0; i--) {
         Layer *l2 = l->clone(); int m = l2->mode; l2->mode = modes[i]; updatedLayerMode(l2, m, l2->mode);
         sprintf(l2->name,"%s",names[i]);
         for (int j = 0; j < (int)(l2->width*l2->height); j++) {
           unsigned int col = l2->pixels[j]; int r = (int)(col & 255); int g = (int)((col>>8) & 255); int b = (int)((col>>16) & 255); int luma = (r + g + b)/3; int l = luma == 0 ? 1 : luma;
           switch(i) {
-          case 0: {r = r * 255 / l / 2; g = g * 255 / l / 2; b = b * 255 / l / 2;} break;
+          case 0: {r = r * 255 / l / 3; g = g * 255 / l / 3; b = b * 255 / l / 3;} break;
           case 1: {r = g = b = luma;} break;
           }
           if (r > 255) r = 255;
