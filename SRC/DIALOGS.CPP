@@ -2184,42 +2184,49 @@ void dialogPictureInfo(bool openIt) {
 
 int gradiationTextureWidth = 256;
 int gradiationTextureHeight = 256;
-void updateGradiationTexture(GLuint gradiationTexture, Layer *l, int type, Array<int> &counts, bool squareRoots) {
+void updateGradiationTexture(GLuint gradiationTexture, Layer *base, Layer *updated, int type, Array<int> &counts, bool squareRoots) {
+  if (base == NULL || updated == NULL) return;
+  if (base->width != updated->width || base->height != updated->height) return;
   Array<unsigned int> gradiationTextureContent;
   gradiationTextureContent.resize(gradiationTextureWidth*gradiationTextureHeight);
   for (int i = 0; i < (int)gradiationTextureContent.size(); i++) gradiationTextureContent[i] = 0xff000000;
-  counts.resize(256); for (int i5 = 0; i5 < 256; i5++) counts[i5] = 0;
-  for (int i2 = 0; i2 < l->width*l->height; i2++) {
-    unsigned int col = l->pixels[i2];
-    int r = col & 255;
-    int g = (col>>8) & 255;
-    int b = (col>>16) & 255;
-    int a = (col>>24) & 255;
-    int grey = (r+g+b)/3;
-    int count = 0;
-    switch(type) {
-    case 0: {count = grey;} break;
-    case 1: {count = r;} break;
-    case 2: {count = g;} break;
-    case 3: {count = b;} break;
-    case 4: {count = a;} break;
+  counts.resize(256*2); for (int i5 = 0; i5 < 256*2; i5++) counts[i5] = 0;
+  int max_[2] = {0,0};
+  for (int k0 = 0; k0 < 2; k0++) {
+    Layer *l = k0 == 0 ? base : updated;
+    for (int i2 = 0; i2 < l->width*l->height; i2++) {
+      unsigned int col = l->pixels[i2];
+      int r = col & 255;
+      int g = (col>>8) & 255;
+      int b = (col>>16) & 255;
+      int a = (col>>24) & 255;
+      int grey = (r+g+b)/3;
+      int count = 0;
+      switch(type) {
+      case 0: {count = grey;} break;
+      case 1: {count = r;} break;
+      case 2: {count = g;} break;
+      case 3: {count = b;} break;
+      case 4: {count = a;} break;
+      }
+      counts[count+k0*256]++;
     }
-    counts[count]++;
+    for (int i3 = 0; i3 < 256; i3++) {
+      if (counts[i3+k0*256]>max_[k0]) max_[k0] = counts[i3+k0*256];
+    }
+    if (max_[k0] <= 0) max_[k0] = 1;
   }
-  int max_ = 0;
-  for (int i3 = 0; i3 < 256; i3++) {
-    if (counts[i3]>max_) max_ = counts[i3];
-  }
-  if (max_ <= 0) max_ = 1;
   for (int y = 0; y < gradiationTextureHeight; y++) {
     for (int x = 0; x < gradiationTextureWidth; x++) {
       int heightHere = 255-y*256/gradiationTextureHeight;
       int xk = x * 256 / gradiationTextureWidth;
       unsigned int col = 0xff000000;
-      double a = (double)counts[xk]/max_;
-      if (a > 0 && squareRoots) a = sqrt(a);
-      if (heightHere < a * 255) col = 0xff0000ff;
-      gradiationTextureContent[x+y*gradiationTextureWidth] = col;
+      for (int k0 = 0; k0 < 2; k0++) {
+        double a = (double)counts[xk+256*k0]/max_[k0];
+        if (a > 0 && squareRoots) a = sqrt(a);
+        if (heightHere < a * 255) col |= k0 == 0 ? 0x000000ff : 0x0000ff00;
+        gradiationTextureContent[x+y*gradiationTextureWidth] = col;
+      }
     }
   }
   glBindTexture(GL_TEXTURE_2D,gradiationTexture);
@@ -2586,7 +2593,7 @@ void dialogGradiationCurves(bool openIt) {
     gradiationChannel = 0;
     if (gradiationTexture != 0) {glDeleteTextures(1,&gradiationTexture); gradiationTexture = 0;}
     glGenTextures(1,&gradiationTexture);
-    updateGradiationTexture(gradiationTexture,l,gradiationChannel,histogram,showCurveBetter);
+    updateGradiationTexture(gradiationTexture,l,l,gradiationChannel,histogram,showCurveBetter);
     if (!reOpen) {
       for (int i = 0; i < 5; i++) {
         curves[i].clear();
@@ -2707,10 +2714,15 @@ void dialogGradiationCurves(bool openIt) {
   dialogNoMove = false;
   for (int i = 0; i < 5; i++) if (curves[i].dragPoint>=0) dialogNoMove = true;
   ImGui::Text("CVs"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGGRADIATIONCVS",&showCurveCVs); toolTip("Show bezier curve handles");
-  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,hg,gradiationChannel,histogram,showCurveBetter);} else toolTip("Show the curve for a color channel");
+  ImGui::SameLine(); ImGui::Text("Channel");ImGui::SameLine(); if (ImGui::Combo("##DIALOGGRADIATIONCHANNEL",&gradiationChannel, channelNames, 5)) {updateGradiationTexture(gradiationTexture,hg,l,gradiationChannel,histogram,showCurveBetter);} else toolTip("Show the curve for a color channel");
   ImGui::PopItemWidth();
   ImGui::SameLine(); if (roundButton("Delete##DIALOGGRADIATIONDELETE",c.selectedPoint>0 && c.selectedPoint<(int)c.points.size()-1)) {c.erasePoint(c.selectedPoint); updateGradientCurvesPreview = true;} else toolTip("Delete this curve point");
-  ImGui::SameLine(); ImGui::Text("Sqrt"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGGRADIATIONBETTER",&showCurveBetter)) {updateGradiationTexture(gradiationTexture,hg,gradiationChannel,histogram,showCurveBetter);} toolTip("Histogram shows squareroots as red columns");
+  ImGui::SameLine(); ImGui::Text("Sqrt"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGGRADIATIONBETTER",&showCurveBetter)) {updateGradiationTexture(gradiationTexture,hg,l,gradiationChannel,histogram,showCurveBetter);} toolTip("Histogram shows squareroots as red columns");
+
+  static bool lastMouseLeft = ImGui::IsMouseDown(0);
+  bool mouseLeft = ImGui::IsMouseDown(0);
+  if ((!mouseLeft) && lastMouseLeft && hg != l) {updateGradiationTexture(gradiationTexture,hg,l,gradiationChannel,histogram,showCurveBetter);}
+  lastMouseLeft = mouseLeft;
 
   if (shouldUpdateAll) updateGradientCurvesPreview = true;
 
