@@ -543,7 +543,7 @@
       "The old layer(s) are kept." _N_
       "No undo." _N_
     "}" _N_
-    "Apply alpha mask to below{" _N_
+    "Apply alpha mask to selected below{" _N_
       "The selected layers are combined (and deleted) with the layer(s)" _N_
       "below. The layer(s) below receive the grey (red+green+blue)/3" _N_
       "value as their new alpha channel (transparency) value." _N_

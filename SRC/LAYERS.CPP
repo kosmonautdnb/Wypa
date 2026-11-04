@@ -5120,20 +5120,22 @@ void Canvas::paste() {
 void Canvas::splitLayer(int mode) {
   Layer *l = getActiveLayer(); if (l == NULL) return;
   if (locked(l,LOCK_ANY)) return;
-  int pos = getActiveLayerIndex();
+  int pos = getActiveLayerIndex()+1;
   switch(mode) {
     case 0: {
       const char *names[3] = {"<red>","<green>","<blue>"};
+      int modes[3] = {LAYERMODE_ADD,LAYERMODE_ADD,LAYERMODE_PREMULTIPLIEDALPHA};
       for (int i = 2; i >= 0; i--) {
-        Layer *l2 = l->clone(); int m = l2->mode; l2->mode = LAYERMODE_ADD; updatedLayerMode(l2, m, l2->mode);
+        Layer *l2 = l->clone(); int m = l2->mode; l2->mode = modes[i]; updatedLayerMode(l2, m, l2->mode);
         sprintf(l2->name,"%s",names[i]);
         for (int j = 0; j < (int)(l2->width*l2->height); j++) {
-          l2->pixels[j] &= 255<<(i * 8);
+          l2->pixels[j] &= (255<<(i * 8));
           l2->pixels[j] |= 0xff000000;
         }
         insertLayer(l2,pos);
       }
-      eraseLayer(l);
+      //eraseLayer(l);
+      l->state.visible = false;
       setActiveLayer(pos);
     } break;
     case 1: {
@@ -5153,7 +5155,8 @@ void Canvas::splitLayer(int mode) {
         }
         insertLayer(l2,pos);
       }
-      eraseLayer(l);
+      //eraseLayer(l);
+      l->state.visible = false;
       setActiveLayer(pos);
     } break;
   }

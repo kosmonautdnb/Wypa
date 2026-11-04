@@ -357,6 +357,9 @@ void drawMenuBar() {
         if (ImGui::BeginMenu("Split layer")) {
           if (ImGui::MenuItem("Split layer into RGB", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(0);}
           if (ImGui::MenuItem("Split layer into GWLC", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(1);}
+          ImGui::Separator();
+          if (ImGui::MenuItem("Insert alpha mask above layer(s)",NULL,false,count > 0)) {currentCanvas->insertAlphaMasks();}
+          if (ImGui::MenuItem("Apply alpha mask to selected below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}
           ImGui::EndMenu();
         }
         ImGui::Separator();
@@ -369,12 +372,6 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::MenuItem("Bake layer(s) (and rasterize)",NULL,false,one)) {dialogBakeLayers(true);}
         if (ImGui::MenuItem("Merge down layer(s)",NULL,false,count > 1)) {dialogMergeDown(true);}
-        ImGui::Separator();
-        if (ImGui::BeginMenu("Alpha masks")) {
-          if (ImGui::MenuItem("Insert alpha mask above layer(s)",NULL,false,count > 0)) {currentCanvas->insertAlphaMasks();}
-          if (ImGui::MenuItem("Apply alpha mask to below",NULL,false,count==2)) {currentCanvas->applyAlphaMaskToBelow();}
-          ImGui::EndMenu();
-        }
         ImGui::Separator();
         if (ImGui::BeginMenu("Convert layer(s)")) {
           if (ImGui::MenuItem("Convert layer(s) from alpha to premul",NULL,false,one)) {beforeUndoPoint();currentCanvas->convertFromAlphaToPremul();afterUndoPoint();}
