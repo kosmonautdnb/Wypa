@@ -563,11 +563,11 @@
       "splits the current active layer into three distinct layers." _N_
       "One with the red channel, one with green and one with blue." _N_
     "}" _N_
-    "Split layer into GWLC{" _N_
+    "Split layer into GWBC{" _N_
       "splits the current active layer into four distinct layers." _N_
       "One with the saturation(grey), one with white, another with" _N_
-      "luminance and one with color. However this transformation may" _N_
-      "not keep all color information like it was before." _N_
+      "black(luminance) and one with color. However this transformation" _N_
+      "may not keep all color information like it was before." _N_
     "}" _N_
     "Quantized palette from layer{" _N_
       "You can enter a color count and reduce the current layer" _N_
