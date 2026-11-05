@@ -1664,32 +1664,39 @@ void dialogHatcherize(bool openIt) {
   static float lumaSteps = 16.f;
   static float intensity = 0.75f;
   static bool blackWhite = true;
+  static bool crossed = false;
+  static float crossAngle = 45.f;
 
   if (openIt) {
   }
   DIALOGSTART("Hatcherize");
 
   ImGui::PushItemWidth(64);
-  ImGui::Text("Hatching section size (pixels)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEWIDTH",&lineWidth); toolTip("How wide the hatching lines are in pixels"); if (lineWidth<0.f) lineWidth = 0.f;
-  ImGui::Text("Luma steps"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZELUMASTEPS",&lumaSteps); toolTip("How many different widths for the luminances"); if (lumaSteps<1.f) lumaSteps = 1.f;
-  ImGui::Text("Hue sector count (rotation)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZESECTORS",&hueSectors); toolTip("How many different oriented hatchings"); if (hueSectors<1.f) hueSectors = 1.f;
-  ImGui::Text("Angle start (rotation)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZESTARTANGLE",&angleStart); toolTip("How the hatchings are rotated in the first sector");
-  ImGui::Text("Angle end (rotation)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEENDANGLE",&angleEnd); toolTip("How the hatchings are rotated in the last sector");
+  ImGui::Text("Bar width"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEWIDTH",&lineWidth); toolTip("How wide the hatching lines are in pixels"); if (lineWidth<0.f) lineWidth = 0.f;
+  //ImGui::Text("Hue sector count (rotation)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZESECTORS",&hueSectors); toolTip("How many different oriented hatchings"); if (hueSectors<1.f) hueSectors = 1.f;
+  ImGui::Text("Angle"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZESTARTANGLE",&angleStart); toolTip("How the hatchings are rotated in the first sector");
+  //ImGui::Text("Angle end (rotation)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEENDANGLE",&angleEnd); toolTip("How the hatchings are rotated in the last sector");
+  angleEnd = angleStart;
   if (angleStart<0.f) angleStart = 0.f;
   if (angleStart>360.f) angleStart = 360.f;
   if (angleEnd<0.f) angleEnd = 0.f;
   if (angleEnd>360.f) angleEnd = 360.f;
-  ImGui::Text("Hatching intensity"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEINTENSITY",&intensity); toolTip("how big should the hatchings be in respect to the section size");
+  ImGui::Text("Intensity"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEINTENSITY",&intensity); toolTip("how big should the hatchings be in respect to the section size");
   if (intensity < 0.f) intensity = 0.f;
   if (intensity > 100.f) intensity = 100.f;
   ImGui::Text("Black white"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGHATCHERIZEBLACKWHITE",&blackWhite)) {;} else toolTip("Should the colors of the layer be taken or just black and white");
+  ImGui::Text("Luma steps"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZELUMASTEPS",&lumaSteps); toolTip("How many different widths for the luminances"); if (lumaSteps<1.f) lumaSteps = 1.f;
+  ImGui::Text("Crossed"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGHATCHERIZECROSSED",&crossed)) {;} else toolTip("Add a second layer of hatching with some angle difference");
+  if (crossed) {
+    ImGui::Text("Cross angle difference"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZECROSSANGLE",&crossAngle); toolTip("Second layer of hatchings angle difference");
+  }
 
 
   ImGui::PopItemWidth();
 
   if (ImGui::Button("Apply##DIALOGHATCHERIZEAPPLY")) {
     ImGui::CloseCurrentPopup();
-    filterHatcherize(l, lineWidth, intensity, hueSectors, angleStart, angleEnd, lumaSteps, blackWhite);
+    filterHatcherize(l, lineWidth, intensity, hueSectors, angleStart, angleEnd, lumaSteps, blackWhite, crossed, crossAngle);
   } else toolTip("Apply the Hatcherize/Hatching filter");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGHATCHERIZECLOSE")) {

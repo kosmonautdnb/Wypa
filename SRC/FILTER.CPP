@@ -4079,40 +4079,49 @@ bool filterSetComponentsRGB(Layer *layer, bool rOn, bool gOn, bool bOn, float re
   return true;
 }
 
-bool filterHatcherize(class Layer *layer, float lineWidth, float intensity, float hueSectors, float angleStart, float angleEnd, float lumaSteps, bool blackWhite) {
+bool filterHatcherize(class Layer *layer, float lineWidth, float intensity, float hueSectors, float angleStart, float angleEnd, float lumaSteps, bool blackWhite, bool crossed, float crossAngle) {
   if (layer == NULL) return false;
   if (locked(layer,LOCK_ANY)) return false;
   if (hueSectors < 1) return false;
   bool hasSelection = layer->hasSelection();
   beforeUndoPoint();
-
+  if (crossed) intensity *= 0.5f;
+  float *lumas = luminanceValues;
   for (int y = 0; y < layer->height; y++) {
     for (int x = 0; x < layer->width; x++) {
       if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
         unsigned int col = layer->pixels[x+y*layer->width];
+        float r2 = (float)(col & 255);
+        float g2 = (float)((col>>8) & 255);
+        float b2 = (float)((col>>16) & 255);
+        double luma = 1-(double)((float)r2*lumas[0]+(float)g2*lumas[1]+(float)b2*lumas[2])/255.0;
         float h,s,l; getHsl(getImVec4Color(col),&h,&s,&l);
         int sector = (int)(h * hueSectors);
-        double angle = (double)sector * (double)(angleEnd - angleStart) / hueSectors + (double)angleStart;
-        double ax = cos(angle*PI/180.0); double ay = -sin(angle*PI/180.0); double d = ax*(double)x+ay*(double)y;
-        if (d >= 0) {d = fmod(d,lineWidth);} else {d = lineWidth-fmod(-d,lineWidth);}
-        double luma = 1-l;
-        if (luma > 0.5f) luma = 0.5f;
-        luma = (double)((int)(luma * lumaSteps))*2/lumaSteps;
-        double blackLineWidth = lineWidth * luma * intensity;
-        blackLineWidth -= 0.5;
-        blackLineWidth *= 0.5;
-        double dd = fabs(d - (double)lineWidth*0.5);
-        double value = 0;
-        if (dd >= blackLineWidth + 0.5) {
-          value = 0;
-        } else {
-          if (dd <= blackLineWidth - 0.5) {
-            value = 1;
+        double value2 = 0;
+        for (int c = 0; c < 2; c++) {
+          if (c > 0 && (!crossed)) continue;
+          double angle = (double)sector * (double)(angleEnd - angleStart) / hueSectors + (double)angleStart + (c == 1 ? crossAngle : 0);
+          double ax = cos(angle*PI/180.0); double ay = -sin(angle*PI/180.0); double d = ax*(double)x+ay*(double)y;
+          if (d >= 0) {d = fmod(d,lineWidth);} else {d = lineWidth-fmod(-d,lineWidth);}
+          if (luma > 0.5f) luma = 0.5f;
+          luma = (double)((int)(luma * lumaSteps))*2/lumaSteps;
+          double blackLineWidth = lineWidth * luma * intensity;
+          blackLineWidth -= 0.5;
+          blackLineWidth *= 0.5;
+          double dd = fabs(d - (double)lineWidth*0.5);
+          double value = 0;
+          if (dd >= blackLineWidth + 0.5) {
+            value = 0;
           } else {
-            value = 1-(dd - (blackLineWidth-0.5));
+            if (dd <= blackLineWidth - 0.5) {
+              value = 1;
+            } else {
+              value = 1-(dd - (blackLineWidth-0.5));
+            }
           }
+          value2 = value2 * (1 - value) + value;
         }
-        int alpha = (int)((1-value) * 255.0);
+        int alpha = (int)((1-value2) * 255.0);
         if (alpha < 0) alpha = 0;
         if (alpha > 255) alpha = 255;
         if (blackWhite) col = 0xffffffff;
