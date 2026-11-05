@@ -1661,7 +1661,7 @@ void dialogHatcherize(bool openIt) {
   static float angleStart = 15.f;
   static float angleEnd = 15.f;
   static float hueSectors = 8.f;
-  static float lumaSteps = 16.f;
+  static float lumaSteps = 1024.f;
   static float intensity = 0.75f;
   static bool blackWhite = true;
   static bool crossed = false;
@@ -1685,7 +1685,7 @@ void dialogHatcherize(bool openIt) {
   if (intensity < 0.f) intensity = 0.f;
   if (intensity > 100.f) intensity = 100.f;
   ImGui::Text("Black white"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGHATCHERIZEBLACKWHITE",&blackWhite)) {;} else toolTip("Should the colors of the layer be taken or just black and white");
-  ImGui::Text("Luma steps"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZELUMASTEPS",&lumaSteps); toolTip("How many different widths for the luminances"); if (lumaSteps<1.f) lumaSteps = 1.f;
+  //ImGui::Text("Luma steps"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZELUMASTEPS",&lumaSteps); toolTip("How many different widths for the luminances"); if (lumaSteps<1.f) lumaSteps = 1.f;
   ImGui::Text("Crossed"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGHATCHERIZECROSSED",&crossed)) {;} else toolTip("Add a second layer of hatching with some angle difference");
   if (crossed) {
     ImGui::Text("Cross angle difference"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZECROSSANGLE",&crossAngle); toolTip("Second layer of hatchings angle difference");
