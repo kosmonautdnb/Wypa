@@ -4099,14 +4099,17 @@ bool filterHatcherize(class Layer *layer, float lineWidth, float intensity, floa
         if (luma > 0.5f) luma = 0.5f;
         luma = (double)((int)(luma * lumaSteps))*2/lumaSteps;
         double blackLineWidth = lineWidth * luma * intensity;
+        blackLineWidth -= 0.5;
+        blackLineWidth *= 0.5;
+        double dd = fabs(d - (double)lineWidth*0.5);
         double value = 0;
-        if (d > lineWidth - 1 && blackLineWidth < lineWidth && blackLineWidth >= 1) { // here is a tiny bug
-          value = d - (lineWidth-1);
+        if (dd >= blackLineWidth + 0.5) {
+          value = 0;
         } else {
-          if (d > (double)blackLineWidth-1 && d < (double)blackLineWidth) {
-            value = 1 - (d - ((double)blackLineWidth-1));
-          } else if (d <= (double)blackLineWidth-1.f) {
+          if (dd <= blackLineWidth - 0.5) {
             value = 1;
+          } else {
+            value = 1-(dd - (blackLineWidth-0.5));
           }
         }
         int alpha = (int)((1-value) * 255.0);
