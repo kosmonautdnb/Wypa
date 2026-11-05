@@ -1009,6 +1009,9 @@
       "You can take another pictures light profile and assign it" _N_
       "to the current active layer." _N_
     "}" _N_
+    "Simple pastel{" _N_
+      "A simple color change to more pastel like colors." _N_
+    "}" _N_
     "Sepia{" _N_
       "Converts the current active layer to Sepia colors." _N_
     "}" _N_

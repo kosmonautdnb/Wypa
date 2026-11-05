@@ -82,7 +82,7 @@ bool filterVoronoi(class Layer *layer, int pointCount);
 bool filterSetComponentsHSL(class Layer *layer, bool hueOn, bool saturationOn, bool lightnessOn, float hue, float saturation, float lightness);
 bool filterSetComponentsRGB(class Layer *layer, bool rOn, bool gOn, bool bOn, float red, float green, float blue);
 bool filterHatcherize(class Layer *layer, float lineWidth, float intensity, float hueSectors, float angleStart, float angleEnd, float lumaSteps, bool blackWhite, bool crossed, float crossAngle);
-
+bool filterPastelize(class Layer *layer);
 
 #define S_FILTER_CPP()
 

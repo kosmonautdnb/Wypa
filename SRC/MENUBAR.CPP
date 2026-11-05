@@ -560,6 +560,7 @@ void drawMenuBar() {
           if (ImGui::MenuItem("Histogram matching (brightness)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCH);}
           if (ImGui::MenuItem("Histogram light (colored)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_HISTOGRAMMATCHINGCOLORED);}
           if (ImGui::MenuItem("Color transfer (monochrome)",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogLoadSave(true,DIALOG_COLORTRANSFER);}
+          if (ImGui::MenuItem("Simple pastel",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterPastelize(currentCanvas->getActiveLayer()); afterUndoPoint();}
           ImGui::EndMenu();
         }
         ImGui::Separator();

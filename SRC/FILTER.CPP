@@ -4139,3 +4139,39 @@ bool filterHatcherize(class Layer *layer, float lineWidth, float intensity, floa
   afterUndoPoint();
   return true;
 }
+
+bool filterPastelize(Layer *layer) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  bool hasSelection = layer->hasSelection();
+  float *lumas = luminanceValues;
+  for (int i = 0; i < (int)(layer->width * layer->height); i++) {
+    if ((!hasSelection)||(layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = layer->pixels[i];
+      int r = (int)(col & 255);
+      int g = (int)((col>>8) & 255);
+      int b = (int)((col>>16) & 255);
+      double c = (double)(b*lumas[2] + g*lumas[1])/(lumas[2]+lumas[1]);
+      double m =(double)(r*lumas[0] + b*lumas[2])/(lumas[0]+lumas[2]);
+      double y =(double)(r*lumas[0] + g*lumas[1])/(lumas[0]+lumas[1]);
+      double r2 = (m + y) / 2.0;
+      double g2 = (c + y) / 2.0;
+      double b2 = (c + m) / 2.0;
+      double grey = (double)(r2*lumas[0] + g2*lumas[1] + b2*lumas[2]);
+      double s = 0.75;
+      r = (int)((r2 - grey)*s+r2);
+      g = (int)((g2 - grey)*s+g2);
+      b = (int)((b2 - grey)*s+b2);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      layer->pixels[i] = (r)|(g<<8)|(b<<16)|(col & 0xff000000);
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  return true;
+}
