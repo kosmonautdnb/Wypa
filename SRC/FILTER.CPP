@@ -4078,3 +4078,52 @@ bool filterSetComponentsRGB(Layer *layer, bool rOn, bool gOn, bool bOn, float re
   updatedPixels(layer);
   return true;
 }
+
+bool filterHatcherize(class Layer *layer, float lineWidth, float intensity, float hueSectors, float angleStart, float angleEnd, float lumaSteps, bool blackWhite) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  if (hueSectors < 1) return false;
+  bool hasSelection = layer->hasSelection();
+  beforeUndoPoint();
+
+  for (int y = 0; y < layer->height; y++) {
+    for (int x = 0; x < layer->width; x++) {
+      if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
+        unsigned int col = layer->pixels[x+y*layer->width];
+        float h,s,l; getHsl(getImVec4Color(col),&h,&s,&l);
+        int sector = (int)(h * hueSectors);
+        double angle = (double)sector * (double)(angleEnd - angleStart) / hueSectors + (double)angleStart;
+        double ax = cos(angle*PI/180.0); double ay = -sin(angle*PI/180.0); double d = ax*(double)x+ay*(double)y;
+        if (d >= 0) {d = fmod(d,lineWidth);} else {d = lineWidth-fmod(-d,lineWidth);}
+        double luma = 1-l;
+        if (luma > 0.5f) luma = 0.5f;
+        luma = (double)((int)(luma * lumaSteps))*2/lumaSteps;
+        double blackLineWidth = lineWidth * luma * intensity;
+        double value = 0;
+        if (d > lineWidth - 1 && blackLineWidth < lineWidth && blackLineWidth >= 1) { // here is a tiny bug
+          value = d - (lineWidth-1);
+        } else {
+          if (d > (double)blackLineWidth-1 && d < (double)blackLineWidth) {
+            value = 1 - (d - ((double)blackLineWidth-1));
+          } else if (d <= (double)blackLineWidth-1.f) {
+            value = 1;
+          }
+        }
+        int alpha = (int)((1-value) * 255.0);
+        if (alpha < 0) alpha = 0;
+        if (alpha > 255) alpha = 255;
+        if (blackWhite) col = 0xffffffff;
+        int r = (int)(col & 255) * alpha / 255;
+        int g = (int)((col>>8) & 255) * alpha / 255;
+        int b = (int)((col>>16) & 255) * alpha / 255;
+        int a = (int)((col>>24) & 255) * alpha / 255 + (255-alpha);
+        layer->pixels[x+y*layer->width] = r | (g << 8) | (b << 16) | (a << 24);
+      }
+    }
+  }
+
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+  return true;
+}

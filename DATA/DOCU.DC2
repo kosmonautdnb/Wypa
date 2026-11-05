@@ -561,7 +561,7 @@
       "If you convert from premul to alpha the colors on the transparent" _N_
       "sections will get worse. It is not a good idea to do that." _N_
     "}" _N_
-    "Split layer into RGB{" _N_
+    "Split layer into RGB (Add){" _N_
       "splits the current active layer into three distinct layers." _N_
       "One with the red channel, one with green and one with blue." _N_
     "}" _N_
@@ -576,6 +576,11 @@
       "One with the color + saturation and one with the luminance." _N_
       "However this transformation may not keep all color information" _N_
       "like it was before." _N_
+    "}" _N_
+    "Split layer into CMY (Sub){" _N_
+      "splits the current active layer into three distinct layers." _N_
+      "Cyan, Magenta and Yellow. You may make some sort of" _N_
+      "pastell like colors by spliting these layers again into rgb." _N_
     "}" _N_
     "Quantized palette from layer{" _N_
       "You can enter a color count and reduce the current layer" _N_
@@ -1114,6 +1119,15 @@
       "pixel color by the distance to the nearest mediancolor from the" _N_
       "surrounding cells." _N_
     "}" _N_
+    "Line shading{" _N_
+      "Paints some linear hatchings. If you choose black and white" _N_
+      "you could use the Mul layer mode to apply this onto your picture." _N_
+      "Maybe it is a good idea to blur the input layer before." _N_
+      "The hue of each pixel is evaluated to be a section." _N_
+      "You can choose an angle for the start section and one for the end." _N_
+      "So to say, if you want you can have differently rotated hatching" _N_
+      "by the color of each pixel." _N_
+    "}" _N_
   "}" _N_
   "Pictures{" _N_
     "Here all the currently loaded pictures are visible." _N_
@@ -1625,6 +1639,8 @@
     "LIGHTERC = Just chooses the lighter color by luminance." _N_
     "DIVIDE = Divides the background by the paint color." _N_
     "THRESH = All colors RGB below the paint color RGB get 0." _N_
+    "MUL3X = Same like MUL2X (but *3 instead)." _N_
+    "INVSUB = Inverse subtraction (color = background - (255-color))." _N_
   "}" _N_
   "" _N_
   "The layer opacity specifies how much influence the layer should have" _N_

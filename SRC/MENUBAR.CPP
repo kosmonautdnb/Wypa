@@ -355,7 +355,8 @@ void drawMenuBar() {
         }
         ImGui::Separator();
         if (ImGui::BeginMenu("Split layer")) {
-          if (ImGui::MenuItem("Split layer into RGB", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(0);}
+          if (ImGui::MenuItem("Split layer into RGB (Add)", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(0);}
+          if (ImGui::MenuItem("Split layer into CMY (Sub)", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(3);}
           if (ImGui::MenuItem("Split layer into WGBC (not precise)", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(1);}
           if (ImGui::MenuItem("Split layer into CL (not precise)", NULL, false, currentCanvas->getActiveLayer()!=NULL)) {currentCanvas->splitLayer(2);}
           ImGui::Separator();
@@ -596,6 +597,7 @@ void drawMenuBar() {
           if (ImGui::MenuItem("Comic",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogComic(true);}
           if (ImGui::MenuItem("Voronoi",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogVoronoi(true);}
           if (ImGui::MenuItem("Medianize",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogMedianize(true);}
+          if (ImGui::MenuItem("Line shading",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogHatcherize(true);}
           if (ImGui::MenuItem("Emboss",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogEmboss(true);}
           ImGui::EndMenu();
         }

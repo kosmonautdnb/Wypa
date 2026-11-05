@@ -220,6 +220,7 @@ void dialogs() {
   dialogBlackAndWhiteCurves(false);
   dialogVoronoi(false);
   dialogSetColorComponents(false);
+  dialogHatcherize(false);
 }
 
 void drawDialogs() {
@@ -1649,6 +1650,49 @@ void dialogVoronoi(bool openIt) {
   } else toolTip("Apply the Voronoi filter");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGVORONOICLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply a curvyness here");
+  DIALOGEND()
+}
+
+void dialogHatcherize(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float lineWidth = 10.f;
+  static float angleStart = 15.f;
+  static float angleEnd = 15.f;
+  static float hueSectors = 8.f;
+  static float lumaSteps = 16.f;
+  static float intensity = 0.75f;
+  static bool blackWhite = true;
+
+  if (openIt) {
+  }
+  DIALOGSTART("Hatcherize");
+
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Hatching section size (pixels)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEWIDTH",&lineWidth); toolTip("How wide the hatching lines are in pixels"); if (lineWidth<0.f) lineWidth = 0.f;
+  ImGui::Text("Luma steps"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZELUMASTEPS",&lumaSteps); toolTip("How many different widths for the luminances"); if (lumaSteps<1.f) lumaSteps = 1.f;
+  ImGui::Text("Hue sector count (rotation)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZESECTORS",&hueSectors); toolTip("How many different oriented hatchings"); if (hueSectors<1.f) hueSectors = 1.f;
+  ImGui::Text("Angle start (rotation)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZESTARTANGLE",&angleStart); toolTip("How the hatchings are rotated in the first sector");
+  ImGui::Text("Angle end (rotation)"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEENDANGLE",&angleEnd); toolTip("How the hatchings are rotated in the last sector");
+  if (angleStart<0.f) angleStart = 0.f;
+  if (angleStart>360.f) angleStart = 360.f;
+  if (angleEnd<0.f) angleEnd = 0.f;
+  if (angleEnd>360.f) angleEnd = 360.f;
+  ImGui::Text("Hatching intensity"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZEINTENSITY",&intensity); toolTip("how big should the hatchings be in respect to the section size");
+  if (intensity < 0.f) intensity = 0.f;
+  if (intensity > 100.f) intensity = 100.f;
+  ImGui::Text("Black white"); ImGui::SameLine(); if (ImGui::Checkbox("##DIALOGHATCHERIZEBLACKWHITE",&blackWhite)) {;} else toolTip("Should the colors of the layer be taken or just black and white");
+
+
+  ImGui::PopItemWidth();
+
+  if (ImGui::Button("Apply##DIALOGHATCHERIZEAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    filterHatcherize(l, lineWidth, intensity, hueSectors, angleStart, angleEnd, lumaSteps, blackWhite);
+  } else toolTip("Apply the Hatcherize/Hatching filter");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGHATCHERIZECLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't apply a curvyness here");
   DIALOGEND()

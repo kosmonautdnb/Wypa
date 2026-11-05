@@ -145,6 +145,7 @@ void dialogFindFile(bool openIt, const char *shortPath2, const char *longFileNam
 void dialogBlackAndWhiteCurves(bool openIt);
 void dialogVoronoi(bool openIt);
 void dialogSetColorComponents(bool openIt);
+void dialogHatcherize(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);
