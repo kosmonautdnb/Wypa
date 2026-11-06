@@ -1025,6 +1025,14 @@
     "Black white red{" _N_
       "Reduces the image to a grey and red colored one." _N_
     "}" _N_
+    "Green yellow white{" _N_
+      "Chooses the color channels by luminance. 0 = green" _N_
+      "128 = yellow, 255 = white." _N_
+    "}" _N_
+    "Blue violet yellow white{" _N_
+      "Chooses the color channels by luminance. 0 = blue" _N_
+      "then violet, yellow and then 255 = white." _N_
+    "}" _N_
     "Sepia{" _N_
       "Converts the current active layer to Sepia colors." _N_
     "}" _N_

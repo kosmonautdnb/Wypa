@@ -594,6 +594,8 @@ void drawMenuBar() {
           if (ImGui::MenuItem("Tile distortion",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogTileDistortion(true);}
           if (ImGui::MenuItem("Simple pastel",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterPastelize(currentCanvas->getActiveLayer()); afterUndoPoint();}
           if (ImGui::MenuItem("Black white red",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterBWR(currentCanvas->getActiveLayer()); afterUndoPoint();}
+          if (ImGui::MenuItem("Green yellow white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterGYW(currentCanvas->getActiveLayer()); afterUndoPoint();}
+          if (ImGui::MenuItem("Blue violet yellow white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterBVYW(currentCanvas->getActiveLayer()); afterUndoPoint();}
           ImGui::EndMenu();
         }
         ImGui::Separator();

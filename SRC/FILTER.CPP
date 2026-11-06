@@ -4314,3 +4314,85 @@ bool filterTileDist(class Layer *layer, float tileWidth, float tileHeight, float
   afterUndoPoint();
   return true;
 }
+
+bool filterGYW(Layer *layer) { // green yellow white
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  bool hasSelection = layer->hasSelection();
+  float *lumas = luminanceValues;
+  for (int i = 0; i < (int)(layer->width * layer->height); i++) {
+    if ((!hasSelection)||(layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = layer->pixels[i];
+      int r = (int)(col & 255);
+      int g = (int)((col>>8) & 255);
+      int b = (int)((col>>16) & 255);
+      int greenr = 0; int greeng = g; int greenb = 0;  
+     int yellowr = r; int yellowg = g; int yellowb = 0;
+      int whiter = 255; int whiteg = 255; int whiteb = 255;
+      double grey = (double)(r*lumas[0]+g*lumas[1]+b*lumas[2]);
+      if (grey < 128.0) {
+        double f = grey / 128.0;
+        r = (int)(yellowr * f + greenr * (1-f));
+        g = (int)(yellowg * f + greeng * (1-f));
+        b = (int)(yellowb * f + greenb * (1-f));
+      } else {
+        double f = (grey-128.0) / 128.0;
+        r = (int)(whiter * f + yellowr * (1-f));
+        g = (int)(whiteg * f + yellowg * (1-f));
+        b = (int)(whiteb * f + yellowb * (1-f));
+      }
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      layer->pixels[i] = (r)|(g<<8)|(b<<16)|(col & 0xff000000);
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  return true;
+}
+
+bool filterBVYW(Layer *layer) { // blue violet yellow white
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  bool hasSelection = layer->hasSelection();
+  float *lumas = luminanceValues;
+  for (int i = 0; i < (int)(layer->width * layer->height); i++) {
+    if ((!hasSelection)||(layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = layer->pixels[i];
+      int r = (int)(col & 255);
+      int g = (int)((col>>8) & 255);
+      int b = (int)((col>>16) & 255);
+      double grey = (double)(r*lumas[0]+g*lumas[1]+b*lumas[2]);
+      int bluer = 0; int blueg = 0; int blueb = b;
+      int violetr = r; int violetg = 0; int violetb = b;
+      int yellowr = r; int yellowg = g; int yellowb = 0;
+      int whiter = 255; int whiteg = 255; int whiteb = 255;
+      if (grey < 255.0/3.0) {
+        double f = grey / (255.0/3.0);
+        r = (int)(violetr * f + bluer * (1-f)); g = (int)(violetg * f + blueg * (1-f)); b = (int)(violetb * f + blueb * (1-f));
+      } else {
+        if (grey < 255.0/3.0*2.0) {
+          double f = (grey-255.0/3.0*1.0) / (255.0/3.0);
+          r = (int)(yellowr * f + violetr * (1-f)); g = (int)(yellowg * f + violetg * (1-f)); b = (int)(yellowb * f + violetb * (1-f));
+        } else {
+          double f = (grey-255.0/3.0*2.0) / (255.0/3.0);
+          r = (int)(whiter * f + yellowr * (1-f)); g = (int)(whiteg * f + yellowg * (1-f)); b = (int)(whiteb * f + yellowb * (1-f));
+        }
+      }
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      layer->pixels[i] = (r)|(g<<8)|(b<<16)|(col & 0xff000000);
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  return true;
+}
