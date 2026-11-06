@@ -4396,3 +4396,39 @@ bool filterBVYW(Layer *layer) { // blue violet yellow white
   updatedPixels(layer);
   return true;
 }
+
+bool filterBRW(Layer *layer) { // blue red white
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  bool hasSelection = layer->hasSelection();
+  float *lumas = luminanceValues;
+  for (int i = 0; i < (int)(layer->width * layer->height); i++) {
+    if ((!hasSelection)||(layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = layer->pixels[i];
+      int r = (int)(col & 255);
+      int g = (int)((col>>8) & 255);
+      int b = (int)((col>>16) & 255);
+      double grey = (double)(r*lumas[0]+g*lumas[1]+b*lumas[2]);
+      double dr = r - grey;
+      double db = b - grey;
+      double m = fabs(dr) > fabs(db) ? fabs(dr) : fabs(db);
+      if (m != 0) {dr /= m; db /= m;}
+      double fr = dr * 0.5 + 0.5;
+      double fb = db * 0.5 + 0.5;
+      double blueRedDifference = (fr - fb)*0.5+0.5;
+      r = (int)(r * blueRedDifference * (1-grey/255.0) + grey);
+      g = (int)grey;
+      b = (int)(b * (1-blueRedDifference) * (1-grey/255.0) + grey);
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      layer->pixels[i] = (r)|(g<<8)|(b<<16)|(col & 0xff000000);
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  return true;
+}

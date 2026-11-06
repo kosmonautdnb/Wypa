@@ -89,6 +89,7 @@ bool filterWaterdrop(class Layer *layer,float freq,float disp,float wobble);
 bool filterTileDist(class Layer *layer, float tileWidth, float tileHeight, float tileMoveX, float tileMoveY, bool loop);
 bool filterGYW(class Layer *layer);
 bool filterBVYW(class Layer *layer);
+bool filterBRW(class Layer *layer);
 
 #define S_FILTER_CPP()
 
