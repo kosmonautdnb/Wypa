@@ -4535,3 +4535,43 @@ bool filterWhitePaper(Layer *layer) {
   updatedPixels(layer);
   return true;
 }
+
+bool filterFlatNoise(class Layer *layer, float influence) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  if (layer->width < 1 || layer->height < 1) return false;
+  beforeUndoPoint();
+  Array<unsigned int> source; Templated<unsigned int>::arrayResize(source, layer->width * layer->height); memcpy(&source[0], &layer->pixels[0], source.size()*sizeof(unsigned int));
+  bool hasSelection = layer->hasSelection();
+  influence *= sqrt(layer->width*layer->width+layer->height*layer->height)*0.1;
+  initStatusBar();
+  initNoise32();
+  for (int y = 0; y < (int)layer->height; y++) {
+    if ((y & 15)==0) updateStatusBar();
+    for (int x = 0; x < (int)layer->width; x++) {
+      if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
+        float red = 0, green = 0, blue = 0, alpha = 0;
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)(x+1), (float)y, red, green, blue, alpha); float lp0 = (red + green + blue)/255.0/3.0;
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)(x-1), (float)y, red, green, blue, alpha); float ln0 = (red + green + blue)/255.0/3.0;
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)x, (float)(y+1), red, green, blue, alpha); float l0p = (red + green + blue)/255.0/3.0;
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)x, (float)(y-1), red, green, blue, alpha); float l0n = (red + green + blue)/255.0/3.0;
+        double dx = lp0-ln0;
+        double dy = l0p-l0n;
+        double d = sqrt(dx*dx+dy*dy)/sqrt(2.0);
+        d = 1.0/(d*100.0+1);
+        double xp = x + (((float)(noise32() & 0xffff)/0xffff)*2-1) * influence * d; 
+        double yp = y + (((float)(noise32() & 0xffff)/0xffff)*2-1) * influence * d; 
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)xp, (float)yp, red, green, blue, alpha);
+        float h1, s1, l1; getHsl(ImVec4(red/255.f,green/255.f,blue/255.f,alpha/255.f),&h1,&s1,&l1);
+        float h2, s2, l2; getHsl(getImVec4Color(source[x+y*layer->width]),&h2,&s2,&l2);
+        h2 = h1;
+        s2 = s1;
+        layer->pixels[x+y*layer->width] = getUIntColor(hsl(h2,s2,l2));
+      }
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+  return true;
+}

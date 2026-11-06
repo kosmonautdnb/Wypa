@@ -1022,6 +1022,9 @@
       "The picture is splitted into tiles and the tiles are offseted." _N_
       "There is a looping, non random version and a random version." _N_
     "}" _N_
+    "Flat noise{" _N_
+      "Some funny noise." _N_
+    "}" _N_
     "Simple pastel{" _N_
       "A simple color change to more pastel like colors." _N_
     "}" _N_

@@ -225,6 +225,7 @@ void dialogs() {
   dialogWaterdrop(false);
   dialogTileDistortion(false);
   dialogDistortion(false);
+  dialogFlatNoise(false);
 }
 
 void drawDialogs() {
@@ -1781,7 +1782,6 @@ void dialogTileDistortion(bool openIt) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't apply the Tile distortion effect here");
   DIALOGEND()
-
 }
 
 void dialogDistortion(bool openIt) {
@@ -1801,11 +1801,30 @@ void dialogDistortion(bool openIt) {
     filterDist(l,influence,seed);
   } else toolTip("Apply the distortion filter");
   ImGui::SameLine();
-  if (ImGui::Button("Close##DIALODISTORTIONCLOSE")) {
+  if (ImGui::Button("Close##DIALOGDISTORTIONCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't apply the distortion effect here");
   DIALOGEND()
+}
 
+void dialogFlatNoise(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float influence = 1.f;
+  if (openIt) {
+  }
+  DIALOGSTART("Flat noise");
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Influence"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGFLATNOISE",&influence); toolTip("How much distortion to add");
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGFLATNOISEAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    filterFlatNoise(l,influence);
+  } else toolTip("Apply the noise filter");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGFLATNOISECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply the noise effect here");
+  DIALOGEND()
 }
 
 void dialogSetColorComponents(bool openIt) {

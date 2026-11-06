@@ -52,7 +52,7 @@ enum COLORSLIDER_TYPES {
 int lastColorSlider = COLORSLIDER_RED;
 
 Array<unsigned short> gammaTable_; // needed to do that because of PModeW with WatcomC11
-unsigned short *gammaTable;//[256*3];
+unsigned short *gammaTable = NULL;//[256*3];
 bool hasMonitorCalibration = false;
 float monitorGamma = 1.f;
 float monitorMin[3] = {0,0,0};
@@ -156,7 +156,8 @@ ImVec4 foregroundColor(0,1,1,1);
 GLuint colorSliderTexture = 0;
 const unsigned int colorSliderTextureWidth = 256;
 const unsigned int colorSliderTextureHeight = 6;
-unsigned int colorSliderTextureContent[colorSliderTextureWidth*colorSliderTextureHeight];
+Array<unsigned int> colorSliderTextureContent_; // because of PModeW with WatcomC11
+unsigned int *colorSliderTextureContent = NULL; //[colorSliderTextureWidth*colorSliderTextureHeight];
 
 void updateColorSlidersTexture() {
   ImVec4 _hsl; getHsl(foregroundColor,&_hsl.x,&_hsl.y,&_hsl.z);
@@ -348,6 +349,9 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
 void initColorField() {
   gammaTable_.resize(256*3);
   gammaTable = &gammaTable_[0];
+  colorSliderTextureContent_.resize(colorSliderTextureWidth*colorSliderTextureHeight);
+  colorSliderTextureContent = &colorSliderTextureContent_[0];
+
   colorWheelAspectRatio = aspectRatio;
   colorWheelY = (int)(colorWheelX*colorWheelAspectRatio*main_window_yres/main_window_xres);
   if (colorWheelTexture != 0) {glDeleteTextures(1,&colorWheelTexture); colorWheelTexture = 0;}
