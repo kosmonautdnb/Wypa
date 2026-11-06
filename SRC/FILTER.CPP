@@ -4496,3 +4496,42 @@ bool filterDist(class Layer *layer, float influence, int seed) {
   afterUndoPoint();
   return true;
 }
+
+bool filterWhitePaper(Layer *layer) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  bool hasSelection = layer->hasSelection();
+  float *lumas = luminanceValues;
+  for (int i = 0; i < (int)(layer->width * layer->height); i++) {
+    if ((!hasSelection)||(layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = layer->pixels[i];
+      int r = (int)(col & 255);
+      int g = (int)((col>>8) & 255);
+      int b = (int)((col>>16) & 255);
+      int black = 255-r;
+      if (255-g < black) black = 255-g;
+      if (255-b < black) black = 255-b;
+      float h = 0, s = 0, l = 0; getHsl(getImVec4Color(col),&h,&s,&l);
+      float d = (s+1-l)*0.5f;
+      s = s * 2; if (s > 1) s = 1;
+      col = getUIntColor(hsl(h,s,l));
+      r = (int)(col & 255);
+      g = (int)((col>>8) & 255);
+      b = (int)((col>>16) & 255);
+      d += (float)black / 255.f; if (d > 1) d = 1;
+      r = (int)(r*d + 255*(1-d));
+      g = (int)(g*d + 255*(1-d));
+      b = (int)(b*d + 255*(1-d));
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      layer->pixels[i] = (r)|(g<<8)|(b<<16)|(col & 0xff000000);
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  return true;
+}

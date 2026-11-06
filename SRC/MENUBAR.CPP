@@ -598,6 +598,7 @@ void drawMenuBar() {
           if (ImGui::MenuItem("Green yellow white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterGYW(currentCanvas->getActiveLayer()); afterUndoPoint();}
           if (ImGui::MenuItem("Blue violet yellow white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterBVYW(currentCanvas->getActiveLayer()); afterUndoPoint();}
           if (ImGui::MenuItem("Blue red white",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterBRW(currentCanvas->getActiveLayer()); afterUndoPoint();}
+          if (ImGui::MenuItem("White paper paint",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterWhitePaper(currentCanvas->getActiveLayer()); afterUndoPoint();}
           ImGui::EndMenu();
         }
         ImGui::Separator();

@@ -1039,6 +1039,9 @@
     "Blue red white{" _N_
       "Somehow chooses the most dominant channel (red/blue)." _N_
     "}" _N_
+    "White paper paint{" _N_
+      "Has an \"implicit\" assumption of a white paper in the background." _N_
+    "}" _N_
     "Sepia{" _N_
       "Converts the current active layer to Sepia colors." _N_
     "}" _N_

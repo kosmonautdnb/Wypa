@@ -91,6 +91,7 @@ bool filterGYW(class Layer *layer);
 bool filterBVYW(class Layer *layer);
 bool filterBRW(class Layer *layer);
 bool filterDist(class Layer *layer, float influence, int seed);
+bool filterWhitePaper(class Layer *layer);
 
 #define S_FILTER_CPP()
 
