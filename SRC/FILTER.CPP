@@ -4245,3 +4245,72 @@ bool filterBWR(Layer *layer) { // black white red
   updatedPixels(layer);
   return true;
 }
+
+bool filterWaterdrop(class Layer *layer,float freq,float disp,float wobble) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  if (layer->width < 1 || layer->height < 1) return false;
+  beforeUndoPoint();
+  Array<unsigned int> source; Templated<unsigned int>::arrayResize(source, layer->width * layer->height); memcpy(&source[0], &layer->pixels[0], source.size()*sizeof(unsigned int));
+  bool hasSelection = layer->hasSelection();
+  double diag = sqrt(layer->width*0.5*layer->width*0.5+layer->height*0.5*layer->height*0.5);
+  for (int y = 0; y < (int)layer->height; y++) {
+    for (int x = 0; x < (int)layer->width; x++) {
+      if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
+        double dx = ((double)x - layer->width*0.5) / diag;
+        double dy = ((double)y - layer->height*0.5) / diag;
+        double d = sqrt(dx*dx+dy*dy);
+        double a_ = atan2(dx,dy);
+        double w_ = sin(d*freq*PI*2.0);
+        a_ += w_ * disp * PI / 180.0;
+        d += w_ * wobble;
+        double xp = sin(a_) * d;
+        double yp = cos(a_) * d;
+        xp = xp * diag + layer->width * 0.5;
+        yp = yp * diag + layer->height * 0.5;
+        float red = 0, green = 0, blue = 0, alpha = 0;
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)xp, (float)yp, red, green, blue, alpha);
+        int r = (int)red; int g = (int)green; int b = (int)blue; int a = (int)alpha;
+        layer->pixels[x+y*layer->width] = (r)|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+  return true;
+}
+
+float noise2d(unsigned int x, unsigned int y);
+
+bool filterTileDist(class Layer *layer, float tileWidth, float tileHeight, float tileMoveX, float tileMoveY, bool loop) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  if (layer->width < 1 || layer->height < 1) return false;
+  beforeUndoPoint();
+  Array<unsigned int> source; Templated<unsigned int>::arrayResize(source, layer->width * layer->height); memcpy(&source[0], &layer->pixels[0], source.size()*sizeof(unsigned int));
+  bool hasSelection = layer->hasSelection();
+  double diag = sqrt(layer->width*0.5*layer->width*0.5+layer->height*0.5*layer->height*0.5);
+  for (int y = 0; y < (int)layer->height; y++) {
+    for (int x = 0; x < (int)layer->width; x++) {
+      if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
+        double xn = fmod((double)x, tileWidth); double yn = fmod((double)y, tileHeight);
+        double xf = (double)x - xn; double yf = (double)y - yn;
+        double k = 1;
+        if (!loop) {k = (double)noise2d((int)xf,(int)yf);}
+        xn += tileMoveX*k; if (loop) {if (xn < 0) {xn += tileWidth*(int)(-xn/tileWidth+1);} xn = fmod(xn, tileWidth);}
+        yn += tileMoveY*k; if (loop) {if (yn < 0) {yn += tileHeight*(int)(-yn/tileHeight+1);} yn = fmod(yn, tileHeight);}
+        double xp = xf + xn;
+        double yp = yf + yn;
+        float red = 0, green = 0, blue = 0, alpha = 0;
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)xp, (float)yp, red, green, blue, alpha);
+        int r = (int)red; int g = (int)green; int b = (int)blue; int a = (int)alpha;
+        layer->pixels[x+y*layer->width] = (r)|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+  return true;
+}

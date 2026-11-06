@@ -590,6 +590,8 @@ void drawMenuBar() {
         ImGui::Separator();
         if (ImGui::BeginMenu("Fun")) {
           if (ImGui::MenuItem("Fisheye",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogFisheye(true);}
+          if (ImGui::MenuItem("Waterdrop",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogWaterdrop(true);}
+          if (ImGui::MenuItem("Tile distortion",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {dialogTileDistortion(true);}
           if (ImGui::MenuItem("Simple pastel",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterPastelize(currentCanvas->getActiveLayer()); afterUndoPoint();}
           if (ImGui::MenuItem("Black white red",NULL,false,count==1&&(currentCanvas->getActiveLayer()!=NULL))) {beforeUndoPoint(); filterBWR(currentCanvas->getActiveLayer()); afterUndoPoint();}
           ImGui::EndMenu();

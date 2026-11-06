@@ -222,6 +222,8 @@ void dialogs() {
   dialogSetColorComponents(false);
   dialogHatcherize(false);
   dialogFisheye(false);
+  dialogWaterdrop(false);
+  dialogTileDistortion(false);
 }
 
 void drawDialogs() {
@@ -1726,6 +1728,59 @@ void dialogFisheye(bool openIt) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't apply a Fisheye here");
   DIALOGEND()
+}
+
+void dialogWaterdrop(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float freq = 5;
+  static float disp = 10;
+  static float wobble = 0.02;
+  if (openIt) {
+  }
+  DIALOGSTART("Waterdrop");
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Frequency"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGWATERDOPFREQUENCY",&freq); toolTip("How many waves are visible");
+  ImGui::Text("Angular displacement"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGWATERDROPDISPLACEMENT",&disp); toolTip("How every wave is sheered");
+  ImGui::Text("Wobble"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGWATERDROPWOBBE",&wobble); toolTip("How every wave is wobbling");
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGWATERDROPAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    filterWaterdrop(l,freq,disp,wobble);
+  } else toolTip("Apply the Waterdrop filter");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGWATERDROPCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply a Waterdrop effect here");
+  DIALOGEND()
+}
+
+void dialogTileDistortion(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float tileWidth = 32;
+  static float tileHeight = 32;
+  static float tileMoveX = 8;
+  static float tileMoveY = 8;
+  static bool loop = false;
+  if (openIt) {
+  }
+  DIALOGSTART("Tiledistortion");
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Tile width"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGTILEDISTORTIONW",&tileWidth); toolTip("How big one tile is in x");
+  ImGui::Text("Tile height"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGTILEDISTORTIONH",&tileHeight); toolTip("How big one tile is in y");
+  ImGui::Text("Tile move x"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGTILEDISTORTIONX",&tileMoveX); toolTip("How many pixels to move one tile in x");
+  ImGui::Text("Tile move y"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGTILEDISTORTIONY",&tileMoveY); toolTip("How many pixels to move one tile in y");
+  ImGui::Text("Random version"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGTILEDISTORTIONLOOP",&loop); toolTip("Should each tile be looping");
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGTILEDISTORTIONAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    filterTileDist(l,tileWidth,tileHeight,tileMoveX,tileMoveY,!loop);
+  } else toolTip("Apply the Tile distortion filter");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGTILEDISTORTIONCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply the Tile distortion effect here");
+  DIALOGEND()
+
 }
 
 void dialogSetColorComponents(bool openIt) {

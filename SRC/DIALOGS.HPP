@@ -147,6 +147,8 @@ void dialogVoronoi(bool openIt);
 void dialogSetColorComponents(bool openIt);
 void dialogHatcherize(bool openIt);
 void dialogFisheye(bool openIt);
+void dialogWaterdrop(bool openIt);
+void dialogTileDistortion(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);

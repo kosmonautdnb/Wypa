@@ -38,7 +38,7 @@ extern bool showPalette;
 extern bool showSkinTone;
 extern bool alternativeColorWheel;
 
-extern unsigned short gammaTable[256*3];
+extern unsigned short *gammaTable; //[256*3];
 void reGenMonitorGamma();
 extern float monitorGamma;
 extern float monitorMin[3];

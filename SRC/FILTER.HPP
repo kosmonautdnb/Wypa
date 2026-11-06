@@ -85,6 +85,8 @@ bool filterHatcherize(class Layer *layer, float lineWidth, float intensity, floa
 bool filterPastelize(class Layer *layer);
 bool filterFisheye(class Layer *layer, float zScale, float zPow);
 bool filterBWR(class Layer *layer);
+bool filterWaterdrop(class Layer *layer,float freq,float disp,float wobble);
+bool filterTileDist(class Layer *layer, float tileWidth, float tileHeight, float tileMoveX, float tileMoveY, bool loop);
 
 #define S_FILTER_CPP()
 

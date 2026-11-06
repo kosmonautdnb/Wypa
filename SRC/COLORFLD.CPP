@@ -51,7 +51,8 @@ enum COLORSLIDER_TYPES {
 };
 int lastColorSlider = COLORSLIDER_RED;
 
-unsigned short gammaTable[256*3];
+Array<unsigned short> gammaTable_; // needed to do that because of PModeW with WatcomC11
+unsigned short *gammaTable;//[256*3];
 bool hasMonitorCalibration = false;
 float monitorGamma = 1.f;
 float monitorMin[3] = {0,0,0};
@@ -345,6 +346,8 @@ bool updateColorWheel(float h, int mx, int my, float *hv, float *sv, float *lv) 
 }
 
 void initColorField() {
+  gammaTable_.resize(256*3);
+  gammaTable = &gammaTable_[0];
   colorWheelAspectRatio = aspectRatio;
   colorWheelY = (int)(colorWheelX*colorWheelAspectRatio*main_window_yres/main_window_xres);
   if (colorWheelTexture != 0) {glDeleteTextures(1,&colorWheelTexture); colorWheelTexture = 0;}
