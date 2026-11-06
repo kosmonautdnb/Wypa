@@ -644,8 +644,8 @@ void bakeFormsIntoLayer(Layer *l, int formType) {
         for (int x = 0; x < l->width; x++) {
           int i = x + y * l->width;
           int count = 0;
-          for (int y2 = 0; y2 < scaleUp; y2++) {
-            for (int x2 = 0; x2 < scaleUp; x2++) {
+          for (int y2 = 0; y2 < (int)scaleUp; y2++) {
+            for (int x2 = 0; x2 < (int)scaleUp; x2++) {
               int x3 = x*scaleUp + x2;
               int y3 = y*scaleUp + y2;
               if ((unsigned int)x3 < (unsigned int)selectionPlane->width && (unsigned int)y3 < (unsigned int)selectionPlane->height) {
@@ -680,8 +680,8 @@ void bakeFormsIntoLayer(Layer *l, int formType) {
         for (int x = 0; x < l->width; x++) {
           int i = x + y * l->width;
           int count = 0;
-          for (int y2 = 0; y2 < scaleUp; y2++) {
-            for (int x2 = 0; x2 < scaleUp; x2++) {
+          for (int y2 = 0; y2 < (int)scaleUp; y2++) {
+            for (int x2 = 0; x2 < (int)scaleUp; x2++) {
               int x3 = x*scaleUp + x2;
               int y3 = y*scaleUp + y2;
               if ((unsigned int)x3 < (unsigned int)selectionPlane->width && (unsigned int)y3 < (unsigned int)selectionPlane->height) {

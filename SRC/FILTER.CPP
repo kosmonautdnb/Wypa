@@ -4175,3 +4175,73 @@ bool filterPastelize(Layer *layer) {
   updatedPixels(layer);
   return true;
 }
+
+bool filterFisheye(class Layer *layer, float zScale, float zPow) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  if (layer->width < 1 || layer->height < 1) return false;
+  if (zPow <= 0) return false;
+  beforeUndoPoint();
+  Array<unsigned int> source; Templated<unsigned int>::arrayResize(source, layer->width * layer->height); memcpy(&source[0], &layer->pixels[0], source.size()*sizeof(unsigned int));
+  bool hasSelection = layer->hasSelection();
+  double diag = sqrt(layer->width*0.5*layer->width*0.5+layer->height*0.5*layer->height*0.5);
+  for (int y = 0; y < (int)layer->height; y++) {
+    for (int x = 0; x < (int)layer->width; x++) {
+      if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
+        double dx = ((double)x - layer->width*0.5) / diag;
+        double dy = ((double)y - layer->height*0.5) / diag;
+        double d = sqrt(dx*dx+dy*dy);
+        if (d < 0) d = 0;
+        if (d > 1) d = 1;
+        double k = acos(d); double z = sin(k);
+        if (z > 0) z = pow(z,zPow);
+        if (zScale < 0) z = 1 - z;
+        z *= fabs(zScale);
+        double xp = dx / (1.0+z);
+        double yp = dy / (1.0+z);
+        xp = xp * diag + layer->width * 0.5;
+        yp = yp * diag + layer->height * 0.5;
+        float red = 0, green = 0, blue = 0, alpha = 0;
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)xp, (float)yp, red, green, blue, alpha);
+        int r = (int)red; int g = (int)green; int b = (int)blue; int a = (int)alpha;
+        layer->pixels[x+y*layer->width] = (r)|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+  return true;
+}
+
+bool filterBWR(Layer *layer) { // black white red
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  bool hasSelection = layer->hasSelection();
+  float *lumas = luminanceValues;
+  for (int i = 0; i < (int)(layer->width * layer->height); i++) {
+    if ((!hasSelection)||(layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
+      unsigned int col = layer->pixels[i];
+      int r = (int)(col & 255);
+      int g = (int)((col>>8) & 255);
+      int b = (int)((col>>16) & 255);
+      double grey = (double)(r*lumas[0]+g*lumas[1]+b*lumas[2]);
+      double d = (r - grey)/255.0;
+      if (d < 0) d = 0;
+      d *= 2;
+      r = (int)(r*d + grey*(1-d));
+      g = (int)grey;
+      b = (int)grey;
+      if (r < 0) r = 0;
+      if (g < 0) g = 0;
+      if (b < 0) b = 0;
+      if (r > 255) r = 255;
+      if (g > 255) g = 255;
+      if (b > 255) b = 255;
+      layer->pixels[i] = (r)|(g<<8)|(b<<16)|(col & 0xff000000);
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  return true;
+}

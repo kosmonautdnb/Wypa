@@ -1012,6 +1012,9 @@
     "Simple pastel{" _N_
       "A simple color change to more pastel like colors." _N_
     "}" _N_
+    "Black white red{" _N_
+      "Reduces the image to a grey and red colored one." _N_
+    "}" _N_
     "Sepia{" _N_
       "Converts the current active layer to Sepia colors." _N_
     "}" _N_

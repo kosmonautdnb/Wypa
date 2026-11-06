@@ -221,6 +221,7 @@ void dialogs() {
   dialogVoronoi(false);
   dialogSetColorComponents(false);
   dialogHatcherize(false);
+  dialogFisheye(false);
 }
 
 void drawDialogs() {
@@ -764,11 +765,11 @@ void dialogMonitorGamma2(bool openIt) {
       case 4: {col = 0xffff0000;} break;
     }
     ImGui::SetCursorScreenPos(cursor);
-    ImGui::Image((ImTextureID)0, ImVec2(w,h), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col));
+    ImGui::Image((ImTextureID)0, ImVec2((float)w, (float)h), ImVec2(0, 0), ImVec2(1, 1), getImVec4Color(col));
     c2 = ImGui::GetCursorScreenPos();
     ImGui::GetWindowDrawList()->AddRect(cursor, ImVec2(cursor.x+w,cursor.y+h), 0xff0000ff);
     ImGui::SetCursorScreenPos(ImVec2(cursor.x+(w-w2)/2,cursor.y+(h-h2)/2));
-    col = gammaCorrect(col,0,0); ImGui::Image((ImTextureID)0, ImVec2(w2,h2), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col));
+    col = gammaCorrect(col,0,0); ImGui::Image((ImTextureID)0, ImVec2((float)w2,(float)h2), ImVec2(0,0), ImVec2(1,1), getImVec4Color(col));
     cursor.x += w + 10;
   }   
   ImGui::SetCursorScreenPos(c2);
@@ -1563,7 +1564,7 @@ void dialogFindFile(bool openIt, const char *shortPath2, const char *longFileNam
   ImGui::Text("Base folder:\"%s\"",folder.last(80).c_str());
   if (!currentFolder.empty()) ImGui::TextColored(ImVec4(1,0,0,1),"Processing folder:\"%s\"", currentFolder.last(80).c_str());
   ImGui::Separator();
-  ImGui::BeginChild("DIALOGFINDFILECHILD",ImVec2(main_window_xres * 3/4, main_window_yres*3/4));
+  ImGui::BeginChild("DIALOGFINDFILECHILD",ImVec2((float)main_window_xres * 3/4, (float)main_window_yres*3/4));
   for (int i = 0; i < (int)found.size(); i++) {
     ImGui::TextWrapped("%s",found[i].c_str());
   }
@@ -1691,7 +1692,6 @@ void dialogHatcherize(bool openIt) {
     ImGui::Text("Cross angle difference"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGHATCHERIZECROSSANGLE",&crossAngle); toolTip("Second layer of hatchings angle difference");
   }
 
-
   ImGui::PopItemWidth();
 
   if (ImGui::Button("Apply##DIALOGHATCHERIZEAPPLY")) {
@@ -1701,7 +1701,30 @@ void dialogHatcherize(bool openIt) {
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGHATCHERIZECLOSE")) {
     ImGui::CloseCurrentPopup();
-  } else toolTip("Don't apply a curvyness here");
+  } else toolTip("Don't apply a Hatchings here");
+  DIALOGEND()
+}
+
+void dialogFisheye(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float perspective = 1;
+  static float roundness = 4;
+  if (openIt) {
+  }
+  DIALOGSTART("Fisheye");
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Perspective"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGFISHEYEPERSPECTIVE",&perspective); toolTip("The distortion of the fisheye lens");
+  ImGui::Text("Zoom"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGFISHEYEROUNDNESS",&roundness); toolTip("How bent the lens is");
+  if (roundness < 0.001f) roundness = 0.001f;
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGFISHEYEAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    filterFisheye(l,perspective, roundness);
+  } else toolTip("Apply the Fisheye filter");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGFISHEYECLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply a Fisheye here");
   DIALOGEND()
 }
 
