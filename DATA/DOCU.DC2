@@ -1015,6 +1015,9 @@
     "Waterdrop{" _N_
       "Some ripple wave effect." _N_
     "}" _N_
+    "Distortion{" _N_
+      "Some random distortion. Maybe not useful at all." _N_
+    "}" _N_
     "Tile distortion{" _N_
       "The picture is splitted into tiles and the tiles are offseted." _N_
       "There is a looping, non random version and a random version." _N_

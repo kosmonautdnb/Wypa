@@ -4432,3 +4432,67 @@ bool filterBRW(Layer *layer) { // blue red white
   updatedPixels(layer);
   return true;
 }
+
+bool filterDist(class Layer *layer, float influence, int seed) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  if (layer->width < 1 || layer->height < 1) return false;
+  beforeUndoPoint();
+  Array<unsigned int> source; Templated<unsigned int>::arrayResize(source, layer->width * layer->height); memcpy(&source[0], &layer->pixels[0], source.size()*sizeof(unsigned int));
+  bool hasSelection = layer->hasSelection();
+  initStatusBar();
+  for (int y = 0; y < (int)layer->height; y++) {
+    if ((y & 15)==0) updateStatusBar();
+    for (int x = 0; x < (int)layer->width; x++) {
+      if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
+        int tileSize = layer->width; if (layer->height>tileSize) tileSize = layer->height;
+        tileSize /= 2;
+        int seed2 = seed;
+        float mul = 1; 
+        float value = 0;
+        float one = 0;
+        for (int i = 0; i < 5; i++) {
+          if (tileSize < 1) break;
+          int ix0 = x / tileSize;
+          int iy0 = y / tileSize;
+          float v00 = sfrand2d(seed2, (float)ix0,(float)iy0);
+          float v10 = sfrand2d(seed2, (float)ix0+1, (float)iy0);
+          float v01 = sfrand2d(seed2, (float)ix0, (float)iy0+1);
+          float v11 = sfrand2d(seed2, (float)ix0+1, (float)iy0+1);
+          float fx = (float)(x % tileSize)/tileSize;
+          float fy = (float)(y % tileSize)/tileSize;
+          //float top = (v10 - v00)*fx + v00;
+          //float bottom = (v11 - v01)*fx + v01;
+          //float v = (bottom-top)*fy + top;
+          float influence00 = 1.f-(float)sqrt(fx*fx+fy*fy);
+          float influence10 = 1.f-(float)sqrt((1-fx)*(1-fx)+fy*fy);
+          float influence01 = 1.f-(float)sqrt(fx*fx+(1-fy)*(1-fy));
+          float influence11 = 1.f-(float)sqrt((1-fx)*(1-fx)+(1-fy)*(1-fy));
+          if (influence00<0) influence00 = 0;
+          if (influence10<0) influence10 = 0;
+          if (influence01<0) influence01 = 0;
+          if (influence11<0) influence11 = 0;
+          float all = influence00 + influence10 + influence01 + influence11;
+          float v = (influence00 * v00 + influence10 * v10 + influence01 * v01 + influence11 * v11) / all;
+          value += v*mul;
+          one += mul;
+          mul /= 1.5;
+          tileSize /= 2;
+          seed2 += 571;
+          seed2 *= 3;
+          seed2 &= 0xffff;
+        }
+        double xp = x + value/one * influence; 
+        double yp = y + value/one * influence;
+        float red = 0, green = 0, blue = 0, alpha = 0;
+        lookupInterpolated(&source[0], layer->width, layer->height, (float)xp, (float)yp, red, green, blue, alpha);
+        int r = (int)red; int g = (int)green; int b = (int)blue; int a = (int)alpha;
+        layer->pixels[x+y*layer->width] = (r)|(g<<8)|(b<<16)|(a<<24);
+      }
+    }
+  }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+  return true;
+}

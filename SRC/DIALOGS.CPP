@@ -224,6 +224,7 @@ void dialogs() {
   dialogFisheye(false);
   dialogWaterdrop(false);
   dialogTileDistortion(false);
+  dialogDistortion(false);
 }
 
 void drawDialogs() {
@@ -1779,6 +1780,30 @@ void dialogTileDistortion(bool openIt) {
   if (ImGui::Button("Close##DIALOGTILEDISTORTIONCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't apply the Tile distortion effect here");
+  DIALOGEND()
+
+}
+
+void dialogDistortion(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float influence = 100;
+  static int seed = 1111;
+  static bool loop = false;
+  if (openIt) {
+  }
+  DIALOGSTART("Distortion");
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Influence"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGDISTORTIONINFLUENCE",&influence); toolTip("How much distortion to add");
+  ImGui::Text("Random seed"); ImGui::SameLine(); ImGui::InputInt("##DIALOGDISTORTIONSEED",&seed,0,0); toolTip("Which random number to start with");
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGDISTORTIONAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    filterDist(l,influence,seed);
+  } else toolTip("Apply the distortion filter");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALODISTORTIONCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply the distortion effect here");
   DIALOGEND()
 
 }

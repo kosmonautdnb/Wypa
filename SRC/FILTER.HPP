@@ -90,6 +90,7 @@ bool filterTileDist(class Layer *layer, float tileWidth, float tileHeight, float
 bool filterGYW(class Layer *layer);
 bool filterBVYW(class Layer *layer);
 bool filterBRW(class Layer *layer);
+bool filterDist(class Layer *layer, float influence, int seed);
 
 #define S_FILTER_CPP()
 
