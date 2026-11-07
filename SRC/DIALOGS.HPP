@@ -151,6 +151,7 @@ void dialogWaterdrop(bool openIt);
 void dialogTileDistortion(bool openIt);
 void dialogDistortion(bool openIt);
 void dialogFlatNoise(bool openIt);
+void dialogNonMaximumSupressionPoints(bool openIt);
 
 void dialogOverwrite(bool openIt);
 void dialogCreateFolder(bool openIt);

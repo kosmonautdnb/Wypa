@@ -4290,7 +4290,6 @@ bool filterTileDist(class Layer *layer, float tileWidth, float tileHeight, float
   beforeUndoPoint();
   Array<unsigned int> source; Templated<unsigned int>::arrayResize(source, layer->width * layer->height); memcpy(&source[0], &layer->pixels[0], source.size()*sizeof(unsigned int));
   bool hasSelection = layer->hasSelection();
-  double diag = sqrt(layer->width*0.5*layer->width*0.5+layer->height*0.5*layer->height*0.5);
   for (int y = 0; y < (int)layer->height; y++) {
     for (int x = 0; x < (int)layer->width; x++) {
       if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
@@ -4501,7 +4500,6 @@ bool filterWhitePaper(Layer *layer) {
   if (layer == NULL) return false;
   if (locked(layer,LOCK_ANY)) return false;
   bool hasSelection = layer->hasSelection();
-  float *lumas = luminanceValues;
   for (int i = 0; i < (int)(layer->width * layer->height); i++) {
     if ((!hasSelection)||(layer->pixelStates[i] & PIXELSTATE_SELECTED)) {
       unsigned int col = layer->pixels[i];
@@ -4570,6 +4568,66 @@ bool filterFlatNoise(class Layer *layer, float influence) {
       }
     }
   }
+  repaintLayer(layer,true);
+  updatedPixels(layer);
+  afterUndoPoint();
+  return true;
+}
+
+bool filterNonMaximumSupressionPoints(class Layer *layer, float intensity) {
+  if (layer == NULL) return false;
+  if (locked(layer,LOCK_ANY)) return false;
+  if (layer->width < 1 || layer->height < 1) return false;
+  beforeUndoPoint();
+  Array<unsigned int> source; Templated<unsigned int>::arrayResize(source, layer->width * layer->height); memcpy(&source[0], &layer->pixels[0], source.size()*sizeof(unsigned int));
+  bool hasSelection = layer->hasSelection();
+  unsigned int *source_ = &source[0];
+
+  for (int y = 0; y < (int)layer->height; y++) {
+    for (int x = 0; x < (int)layer->width; x++) {
+      if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
+        unsigned int col0 = source_[x+y*layer->width];
+        int r0 = (int)(col0 & 255);
+        int g0 = (int)((col0>>8) & 255);
+        int b0 = (int)((col0>>16) & 255);
+        int grey0 = r0+g0+b0;
+        bool found = false;
+        int around = 0;
+        int weight = 0;
+        for (int y2 = -2; y2 <= 2; y2++) { // 2 not 1
+          if (found) break;
+          for (int x2 = -2; x2 <= 2; x2++) {
+            if (!(x2 == 0 && y2 == 0)) {
+              int x3 = x + x2;
+              int y3 = y + y2;
+              if ((unsigned int)x3<(unsigned int)layer->width && (unsigned int)y3<(unsigned int)layer->height) {
+                unsigned int col1 = source_[x3+y3*layer->width];
+                int r1 = (int)(col1 & 255);
+                int g1 = (int)((col1>>8) & 255);
+                int b1 = (int)((col1>>16) & 255);
+                int grey1 = r1+g1+b1;
+                if (grey1 >= grey0) {found = true;}
+                around += grey1;
+                weight += 1;
+              }
+            }
+          }
+        }
+        if (!found) {
+          double f = around; if (weight != 0) f /= (double)weight;
+          f = (grey0 - f)*0.01*intensity+1;
+          r0 = (int)(r0*f);
+          g0 = (int)(g0*f);
+          b0 = (int)(b0*f);
+          if (r0 > 255) r0 = 255;
+          if (g0 > 255) g0 = 255;
+          if (b0 > 255) b0 = 255;
+          layer->pixels[x+y*layer->width] = r0|(g0<<8)|(b0<<16)|0xff000000;
+        }
+      }
+    }
+  }
+
   repaintLayer(layer,true);
   updatedPixels(layer);
   afterUndoPoint();

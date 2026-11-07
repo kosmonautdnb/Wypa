@@ -226,6 +226,7 @@ void dialogs() {
   dialogTileDistortion(false);
   dialogDistortion(false);
   dialogFlatNoise(false);
+  dialogNonMaximumSupressionPoints(false);
 }
 
 void drawDialogs() {
@@ -1788,7 +1789,6 @@ void dialogDistortion(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static float influence = 100;
   static int seed = 1111;
-  static bool loop = false;
   if (openIt) {
   }
   DIALOGSTART("Distortion");
@@ -1824,6 +1824,26 @@ void dialogFlatNoise(bool openIt) {
   if (ImGui::Button("Close##DIALOGFLATNOISECLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Don't apply the noise effect here");
+  DIALOGEND()
+}
+
+void dialogNonMaximumSupressionPoints(bool openIt) {
+  Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
+  static float influence = 1.f;
+  if (openIt) {
+  }
+  DIALOGSTART("Glitter");
+  ImGui::PushItemWidth(64);
+  ImGui::Text("Influence"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGGLITTERINTENSITY",&influence); toolTip("How much distortion to add");
+  ImGui::PopItemWidth();
+  if (ImGui::Button("Apply##DIALOGINTERESSTINGPOINTSAPPLY")) {
+    ImGui::CloseCurrentPopup();
+    filterNonMaximumSupressionPoints(l,influence);
+  } else toolTip("Apply the points filter");
+  ImGui::SameLine();
+  if (ImGui::Button("Close##DIALOGINTERESSTINGPOINTSCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Don't apply the points effect here");
   DIALOGEND()
 }
 
