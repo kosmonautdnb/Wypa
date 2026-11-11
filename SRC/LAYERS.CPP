@@ -5831,6 +5831,7 @@ void blitCanvas() {
       l->hasOutline = false;
     }
     currentCanvas->updatePixelStates(~(PIXELSTATE_OUTLINE),0,0);
+    clearOutlineAfterNextPaint = false;
   }
   blitOutlineSolidOneFrame = false;
 }
