@@ -1098,7 +1098,7 @@ void Layer::clear() {
 }
 
 void Layer::updatePixelStates(unsigned char _and, unsigned char _or, unsigned char _eor) {
-  if (locked(this,LOCK_PIXELS)) return;
+  //if (locked(this,LOCK_SELECTION)) return; // maybe lock_selection is too restrictive here?
   unsigned int and2 = _and|(_and<<8)|(_and<<16)|(_and<<24);
   unsigned int or2 = _or|(_or<<8)|(_or<<16)|(_or<<24);
   unsigned int eor2 = _eor|(_eor<<8)|(_eor<<16)|(_eor<<24);
