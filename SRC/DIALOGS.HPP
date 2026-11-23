@@ -104,6 +104,7 @@ void dialogSuite(bool openIt);
 void dialogExit(bool openIt);
 void dialogDuplicate(bool openIt);
 void dialogMergeDown(bool openIt);
+void dialogCropByCanvas(bool openIt);
 void dialogInsertSVG(bool openIt,int width, int height);
 void dialogExportLayersRaw(bool openIt);
 void dialogPictureInfo(bool openIt);

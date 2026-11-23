@@ -677,6 +677,7 @@ public:
 
   void enlargenLayerBy(int left, int top, int right, int bottom);
   void cropByAlpha(double alphaThreshold);
+  void cropByCanvas(class Canvas *canvas);
   void antialiasSelected();
   void colorFromAlpha();
   void applyAlphaMask(Layer *source);
@@ -975,6 +976,7 @@ public:
   void rotate90DegreesBackwardLayers();
   Layer *getMergedLayer(const Array<Layer*> &layers,bool pixelSelection, bool keepCanvasSize);
   void mergeDownLayers();
+  void cropLayersByCanvas();
   void insertMergeOfLayers();
   void insertAlphaMasks();
   void applyAlphaMaskToBelow();

@@ -2255,6 +2255,32 @@ void Layer::cropByAlpha(double alphaThreshold) {
   shouldUpdateAll = true;
 }
 
+void Layer::cropByCanvas(Canvas *canvas) {
+  if (locked(this,LOCK_ANY)) return;
+  Matrix m = inverse2(transform.transformation);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      double minX = 0, minY = 0, maxX = 0, maxY = 0;
+      for (int ky = 0; ky < 2; ky++) {
+        for (int kx = 0; kx < 2; kx++) {
+          double lx = (double)(x+kx)*m.m[0+0*4]+(double)(y+ky)*m.m[0+1*4]+m.m[0+3*4];
+          double ly = (double)(x+kx)*m.m[1+0*4]+(double)(y+ky)*m.m[1+1*4]+m.m[1+3*4];
+          bool first = (kx == 0) && (ky == 0);
+          if (first || lx < minX) minX = lx;
+          if (first || ly < minY) minY = ly;
+          if (first || lx > maxX) maxX = lx;
+          if (first || ly > maxY) maxY = ly;
+        }
+      }
+      if (minX >= canvas->canvasX1 || minY >= canvas->canvasY1 || maxX <= canvas->canvasX0 || maxY <= canvas->canvasY0) {
+        pixels[x+y*width] = 0x00000000;
+      }
+    }
+  }
+  updatedPixels(this);
+  shouldUpdateAll = true;
+}
+
 void Layer::antialiasSelected() {
   if (locked(this,LOCK_PIXELS)) return;
   doFXAA(pixels,width,height,pixelStates,PIXELSTATE_SELECTED);
@@ -4384,6 +4410,14 @@ void Canvas::mergeDownLayers() {
   shouldUpdateAll = true;
 }
 
+void Canvas::cropLayersByCanvas() {
+  for (int i2 = 0; i2 < (int)layers.size(); i2++) {
+    if (layers[i2]->state.selected || layers[i2]->state.active) {
+      layers[i2]->cropByCanvas(this);
+    }
+  }
+}
+
 void Canvas::insertMergeOfLayers() {
   int pos = 0;
   for (int i = 0; i < (int)layers.size(); i++) {
@@ -5186,7 +5220,7 @@ void Canvas::splitLayer(int mode) {
           switch(i) {
             case 0: {int a = (int)((l-0.5f) * 2.f * 255.f); if (a < 0) {a = 0;} int white = a; l2->pixels[j] = white|(white<<8)|(white<<16)|(a<<24);} break;
             case 1: {int a = (int)(255-s * 255.f); int grey = (int)((l<0.5f?l:0.5f) * 255.f)*a/255; l2->pixels[j] = grey|(grey<<8)|(grey<<16)|(a<<24);} break;
-            case 2: {int a = 255; int grey = (int)(l*255*2); if (grey > 255) {grey=255;} l2->pixels[j] = 0x000000|((255-grey)<<24);} break;
+            case 2: {int grey = (int)(l*255*2); if (grey > 255) {grey=255;} l2->pixels[j] = 0x000000|((255-grey)<<24);} break;
             case 3: {s = 1; l = 0.5; l2->pixels[j] = getUIntColor(hsl(h,s,l));} break;
           }
         }

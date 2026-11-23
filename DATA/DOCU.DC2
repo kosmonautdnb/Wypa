@@ -629,6 +629,12 @@
       "value/transparency is 0. The layer data is smaller and" _N_
       "the position and size of the layer is updated." _N_
     "}" _N_
+    "Delete layer(s) pixels by canvas{" _N_
+      "All pixels outside the canvas of the selected layer(s) get deleted." _N_
+      "The layers width and height are not updated just the pixels" _N_
+      "including alpha are set to 0." _N_
+      "Beware, that there is no undo for this operation." _N_
+    "}" _N_
     "Resize layer by repetition{" _N_
       "Replicates the current layers content onto a bigger" _N_
       "(or smaller) layer size, the replicated content stays" _N_

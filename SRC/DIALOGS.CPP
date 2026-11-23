@@ -180,6 +180,7 @@ void dialogs() {
   dialogExit(false);
   dialogDuplicate(false);
   dialogMergeDown(false);
+  dialogCropByCanvas(false);
   dialogInsertSVG(false,0,0);
   dialogExportLayersRaw(false);
   dialogPictureInfo(false);
@@ -2298,6 +2299,38 @@ void dialogMergeDown(bool openIt) {
     ImGui::SameLine();
   }
   if (ImGui::Button("Close##DIALOGMERGEDOWNLAYERSCLOSE")) {
+    ImGui::CloseCurrentPopup();
+  } else toolTip("Leave the layers as they are");
+  DIALOGEND()
+}
+
+void dialogCropByCanvas(bool openIt) {
+  DIALOGSTART("Delete all pixels outside the canvas");
+
+  Array<Layer *> layers;
+  bool one = false; for (int i = 0; i < (int)currentCanvas->layers.size(); i++) if (currentCanvas->layers[i]->state.selected) {one = true; layers.push_back(currentCanvas->layers[i]);}
+  if (!one) for (int i2 = 0; i2 < (int)currentCanvas->layers.size(); i2++) if (currentCanvas->layers[i2]->state.active) {layers.push_back(currentCanvas->layers[i2]);}
+
+  if (layers.empty()) {
+    ImGui::Text("No layers selected or active");
+  } else {
+    noUndoMessage();
+    ImGui::Text("Layers to delete the pixels outside of canvas");
+    ImGui::BeginChild("CROPBYCANVASCHILD",ImVec2((float)(main_window_xres/2),(float)(main_window_yres/3)));
+    for (int i = 0; i < (int)layers.size(); i++) {
+      ImGui::Text("\"%s\"",layers[i]->name);
+    }
+    ImGui::EndChild();
+  }
+
+  if (!layers.empty()) {
+    if (ImGui::Button("Apply##DIALOGCROPLAYERSBYCANVASPROCEED")) {
+      currentCanvas->cropLayersByCanvas();
+      ImGui::CloseCurrentPopup();
+    } else toolTip("The writes 0 in the alpha channel of all pixels outside the canvas");
+    ImGui::SameLine();
+  }
+  if (ImGui::Button("Close##DIALOGCROPLAYERSBYCANVASCLOSE")) {
     ImGui::CloseCurrentPopup();
   } else toolTip("Leave the layers as they are");
   DIALOGEND()
