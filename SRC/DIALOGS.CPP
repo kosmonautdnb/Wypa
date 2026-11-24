@@ -1811,15 +1811,22 @@ void dialogDistortion(bool openIt) {
 void dialogFlatNoise(bool openIt) {
   Layer *l = currentCanvas->getActiveLayer(); if (l == NULL) return;
   static float influence = 1.f;
+  static bool circular = false;
+  static float circularRadius = 10.f;
   if (openIt) {
   }
   DIALOGSTART("Flat noise");
   ImGui::PushItemWidth(64);
-  ImGui::Text("Influence"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGFLATNOISE",&influence); toolTip("How much distortion to add");
+  ImGui::Text("Circular noise"); ImGui::SameLine(); ImGui::Checkbox("##DIALOGFLATNOISECIRCULARON",&circular);
+  if (!circular) {
+    ImGui::Text("Influence"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGFLATNOISE",&influence); toolTip("How much distortion to add");
+  } else {
+    ImGui::Text("Radius"); ImGui::SameLine(); ImGui::InputFloat("##DIALOGFLATNOISERADIUS",&circularRadius); toolTip("How many pixels around a pixel should be included");
+  }
   ImGui::PopItemWidth();
   if (ImGui::Button("Apply##DIALOGFLATNOISEAPPLY")) {
     ImGui::CloseCurrentPopup();
-    filterFlatNoise(l,influence);
+    filterFlatNoise(l,influence,circular,circularRadius);
   } else toolTip("Apply the noise filter");
   ImGui::SameLine();
   if (ImGui::Button("Close##DIALOGFLATNOISECLOSE")) {

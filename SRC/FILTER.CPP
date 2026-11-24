@@ -4534,7 +4534,7 @@ bool filterWhitePaper(Layer *layer) {
   return true;
 }
 
-bool filterFlatNoise(class Layer *layer, float influence) {
+bool filterFlatNoise(class Layer *layer, float influence, bool circularOn, float circularRadius) {
   if (layer == NULL) return false;
   if (locked(layer,LOCK_ANY)) return false;
   if (layer->width < 1 || layer->height < 1) return false;
@@ -4548,23 +4548,45 @@ bool filterFlatNoise(class Layer *layer, float influence) {
     if ((y & 15)==0) updateStatusBar();
     for (int x = 0; x < (int)layer->width; x++) {
       if ((!hasSelection)||(layer->pixelStates[x+y*layer->width] & PIXELSTATE_SELECTED)) {
-        float red = 0, green = 0, blue = 0, alpha = 0;
-        lookupInterpolated(&source[0], layer->width, layer->height, (float)(x+1), (float)y, red, green, blue, alpha); float lp0 = (red + green + blue)/255.0/3.0;
-        lookupInterpolated(&source[0], layer->width, layer->height, (float)(x-1), (float)y, red, green, blue, alpha); float ln0 = (red + green + blue)/255.0/3.0;
-        lookupInterpolated(&source[0], layer->width, layer->height, (float)x, (float)(y+1), red, green, blue, alpha); float l0p = (red + green + blue)/255.0/3.0;
-        lookupInterpolated(&source[0], layer->width, layer->height, (float)x, (float)(y-1), red, green, blue, alpha); float l0n = (red + green + blue)/255.0/3.0;
-        double dx = lp0-ln0;
-        double dy = l0p-l0n;
-        double d = sqrt(dx*dx+dy*dy)/sqrt(2.0);
-        d = 1.0/(d*100.0+1);
-        double xp = x + (((float)(noise32() & 0xffff)/0xffff)*2-1) * influence * d; 
-        double yp = y + (((float)(noise32() & 0xffff)/0xffff)*2-1) * influence * d; 
-        lookupInterpolated(&source[0], layer->width, layer->height, (float)xp, (float)yp, red, green, blue, alpha);
-        float h1, s1, l1; getHsl(ImVec4(red/255.f,green/255.f,blue/255.f,alpha/255.f),&h1,&s1,&l1);
-        float h2, s2, l2; getHsl(getImVec4Color(source[x+y*layer->width]),&h2,&s2,&l2);
-        h2 = h1;
-        s2 = s1;
-        layer->pixels[x+y*layer->width] = getUIntColor(hsl(h2,s2,l2));
+        if (!circularOn) {
+          float red = 0, green = 0, blue = 0, alpha = 0;
+          lookupInterpolated(&source[0], layer->width, layer->height, (float)(x+1), (float)y, red, green, blue, alpha); float lp0 = (red + green + blue)/255.0/3.0;
+          lookupInterpolated(&source[0], layer->width, layer->height, (float)(x-1), (float)y, red, green, blue, alpha); float ln0 = (red + green + blue)/255.0/3.0;
+          lookupInterpolated(&source[0], layer->width, layer->height, (float)x, (float)(y+1), red, green, blue, alpha); float l0p = (red + green + blue)/255.0/3.0;
+          lookupInterpolated(&source[0], layer->width, layer->height, (float)x, (float)(y-1), red, green, blue, alpha); float l0n = (red + green + blue)/255.0/3.0;
+          double dx = lp0-ln0;
+          double dy = l0p-l0n;
+          double d = sqrt(dx*dx+dy*dy)/sqrt(2.0);
+          d = 1.0/(d*100.0+1);
+          double xp = x + (((float)(noise32() & 0xffff)/0xffff)*2-1) * influence * d; 
+          double yp = y + (((float)(noise32() & 0xffff)/0xffff)*2-1) * influence * d; 
+          lookupInterpolated(&source[0], layer->width, layer->height, (float)xp, (float)yp, red, green, blue, alpha);
+          float h1, s1, l1; getHsl(ImVec4(red/255.f,green/255.f,blue/255.f,alpha/255.f),&h1,&s1,&l1);
+          float h2, s2, l2; getHsl(getImVec4Color(source[x+y*layer->width]),&h2,&s2,&l2);
+          h2 = h1;
+          s2 = s1;
+          layer->pixels[x+y*layer->width] = getUIntColor(hsl(h2,s2,l2));
+        } else {
+          float red = 0, green = 0, blue = 0, alpha = 0;
+          bool found = false;
+          for (int i = 0; i < 16; i++) {
+            float newX = ((float)(noise32() & 0xffff)/0xffff*2-1);
+            float newY = ((float)(noise32() & 0xffff)/0xffff*2-1);
+            double l = newX*newX + newY*newY;
+            if (l > 1) continue;
+            newX = (float)x + newX * circularRadius;
+            newY = (float)y + newY * circularRadius;
+            if (newX < 0 || newX >= layer->width || newY < 0 || newY >= layer->height) continue;
+            lookupInterpolated(&source[0], layer->width, layer->height, newX, newY, red, green, blue, alpha);
+            found = true; break;
+          }
+          if (!found) lookupInterpolated(&source[0], layer->width, layer->height, (float)x, (float)y, red, green, blue, alpha);
+          int r = (int)red;
+          int g = (int)green;
+          int b = (int)blue;
+          int a = (int)alpha;
+          layer->pixels[x+y*layer->width] = r|(g<<8)|(b<<16)|(a<<24);
+        }
       }
     }
   }

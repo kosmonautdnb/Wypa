@@ -92,7 +92,7 @@ bool filterBVYW(class Layer *layer);
 bool filterBRW(class Layer *layer);
 bool filterDist(class Layer *layer, float influence, int seed);
 bool filterWhitePaper(class Layer *layer);
-bool filterFlatNoise(class Layer *layer, float influence);
+bool filterFlatNoise(class Layer *layer, float influence, bool circularOn, float circularRadius);
 bool filterNonMaximumSupressionPoints(class Layer *layer, float intensity);
 
 #define S_FILTER_CPP()
