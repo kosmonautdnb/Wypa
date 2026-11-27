@@ -129,7 +129,8 @@ void loadArray(Array<char> *arr, FILE *in) {
   unsigned int fileLen = ftell(in);
   fseek(in,0,SEEK_SET);
   Templated<char>::arrayResize(*arr,fileLen);
-  fread(&(*arr)[0],1,fileLen,in);
+  Array<char> &arr2 = *arr; // seems to be an openWatcom2 bug?
+  fread(&(arr2[0]),1,fileLen,in);
 }
 
 void readJson(Array<char> *arr, String *string) {
