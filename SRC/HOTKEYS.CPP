@@ -76,6 +76,8 @@ void mouseToGrid() {
   mouseY = cy;
 }
 
+void redFlash();
+
 void applyHotKeys() {
   unsigned int currentHotKey = currentKey | ((controlKeyId & (~CONTROLKEY_SHIFT)) << 16);
   switch (currentHotKey) {
@@ -120,7 +122,7 @@ void applyHotKeys() {
     case HOTKEY_SAVEIMAGE: {dialogLoadSave(true,DIALOG_SAVEIMAGE);} break;
     case HOTKEY_RESTORESCROLL: {currentCanvas->restoreScroll(); shouldUpdateAll = true;} break;
     case HOTKEY_LAYERORIGIN: {currentCanvas->scrollToLayerOrigin(); shouldUpdateAll = true;} break;
-    case HOTKEY_REFRESH: {shouldUpdateAll = true; clearOutlineAfterNextPaint = true;} break;
+    case HOTKEY_REFRESH: {shouldUpdateAll = true; clearOutlineAfterNextPaint = true; memset(glFrameBuffer,0x78,glFrameBufferWidth*glFrameBufferHeight*sizeof(unsigned int)); redFlash();} break;
     case HOTKEY_LAYERVISIBLE: {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) {l->state.visible = !l->state.visible; shouldUpdateAll = true;}} break;
     case HOTKEY_SELECTUNDER: {currentCanvas->selectUnder(mouseX, mouseY); shouldUpdateAll = true;} break;
     case HOTKEY_OVERLAYX: {Layer *l = currentCanvas->getActiveLayer(); if (l != NULL) {double x = mouseX; double y = mouseY; currentCanvas->getLayerPos(l,x,y,x,y); addHorizontalOverlayLine(l,(int)x,(int)y); }} break;
