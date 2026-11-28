@@ -26,6 +26,7 @@
 #include "SVG.HPP"
 
 HashMap<String, SVG> svgs;
+HashMap<String, String> svgSources;
 
 #define NANOSVG_IMPLEMENTATION
 #include "STL\NANOSVG.HPP"
@@ -77,10 +78,30 @@ SVG *SVG::set(const char *fileName, unsigned int *rgba, int w, int h) {
 bool problemsLoadingSVGs = false;
 
 void addSVG(const char *id, const char *fileName, int width, int height,double scale, double aspect) {
-  NSVGimage* image;
+
+  if (!svgSources.has(id)) {
+    String fileName2 = dosFileName(fromLocalFileName(fileName));
+    FILE *in = fopen(fileName2.c_str(),"rb");
+    if (in != NULL) {
+      String k;
+      fseek(in,0,SEEK_END);
+      k.resize(ftell(in));
+      fseek(in,0,SEEK_SET);
+      fread(&(k[0]),1,k.length(),in);
+      fclose(in);
+      svgSources[id] = k;
+    }
+  }
+
+  NSVGimage* image = NULL;
   NSVGrasterizer* rast = nsvgCreateRasterizer();
-  String fileName2 = dosFileName(fromLocalFileName(fileName));
-  image = nsvgParseFromFile(fileName2.c_str(), "px", 96);
+
+  //image = nsvgParseFromFile(fileName2.c_str(), "px", 96);
+  if (svgSources.has(id)) {
+    String k = svgSources[id];
+    image = nsvgParse(k.c_str(), "px", 96);
+  }
+
   int w = width;
   int h = height;
   unsigned int* img = (unsigned int*)malloc(w*h*4);
